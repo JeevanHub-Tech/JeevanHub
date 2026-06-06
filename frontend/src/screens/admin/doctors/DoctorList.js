@@ -130,13 +130,15 @@ const DoctorManagement = () => {
 
 			<div className="dm-controls-container">
 				<div className="dm-search-bar">
-					<SearchIcon className="dm-search-icon" size={30} />
-					<input
-						type="text"
-						placeholder="Search by name, email, or specialization..."
-						value={search}
-						onChange={(e) => setSearch(e.target.value)}
-					/>
+					<div className="dm-search-input-wrapper">
+						<SearchIcon className="dm-search-icon" size={20} />
+						<input
+							type="text"
+							placeholder="Search by name, email, or specialization..."
+							value={search}
+							onChange={(e) => setSearch(e.target.value)}
+						/>
+					</div>
 					<div className="dm-filter-wrapper">
 						<Stethoscope size={20} className="dm-filter-icon" />
 						<select

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ReceiptText, Search } from 'lucide-react';
-// import './doctorTrans.css'; // add CSS if needed
+import './DoctorTrans.css';
 
 const Transactions = ({ doctorId }) => {
 	const [searchTerm, setSearchTerm] = useState('');

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { ReceiptText, Search } from 'lucide-react';
 import './transactions.css';
 
 /**
@@ -92,7 +93,9 @@ const Transactions = () => {
     return (
         <div className="tx-container">
             <header className="tx-header-section">
-                <h2 className="tx-header">Transactions</h2>
+                <h2 className="tx-header" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <ReceiptText size={28} /> Transactions
+                </h2>
                 <p className="tx-subtitle">View and manage all Ayurvedic commerce history</p>
             </header>
 
@@ -112,12 +115,14 @@ const Transactions = () => {
                     </select>
                 </div>
 
-                <div className="tx-control-group search-group">
+                <div className="tx-control-group search-group" style={{ position: 'relative' }}>
                     <label htmlFor="tx-search">Quick Search</label>
+                    <Search size={18} style={{ position: 'absolute', bottom: '12px', left: '12px', color: '#64748b' }} />
                     <input
                         id="tx-search"
                         type="text"
                         className="tx-search"
+                        style={{ paddingLeft: '38px' }}
                         placeholder="Search by date, amount, or name..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}

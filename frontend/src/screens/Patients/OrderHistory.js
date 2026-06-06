@@ -91,7 +91,7 @@ const OrderHistory = () => {
 				<div className="empty-state">
 					<p>You haven't placed any orders yet.</p>
 					<button
-						onClick={() => window.location.href = '/shop'}
+						onClick={() => navigate('/medicines')}
 						className="shop-now-btn"
 					>
 						Shop Now

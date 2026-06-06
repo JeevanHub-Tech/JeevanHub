@@ -212,3 +212,157 @@
     padding: 1.5rem;
   }
 }
+
+/* ───────────── Edit Modal ───────────── */
+.patfull-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(3px);
+}
+
+.patfull-modal-content {
+  background: white;
+  border-radius: 14px;
+  width: 92%;
+  max-width: 520px;
+  max-height: 94vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow-md);
+}
+
+.patfull-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.3rem 1.6rem;
+  background: var(--light-green);
+  border-radius: 14px 14px 0 0;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.patfull-modal-header h3 {
+  margin: 0;
+  color: var(--dark-green);
+  font-size: 1.35rem;
+}
+
+.patfull-close-modal-btn {
+  background: none;
+  border: none;
+  color: var(--dark-green);
+  cursor: pointer;
+  padding: 0.4rem;
+  font-size: 1.2rem;
+  font-weight: bold;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.patfull-close-modal-btn:hover {
+  background: rgba(62,75,44,0.12);
+}
+
+.patfull-edit-form {
+  padding: 1.6rem;
+  display: grid;
+  gap: 1.3rem;
+}
+
+.patfull-form-row {
+  display: grid;
+  gap: 1.3rem;
+  grid-template-columns: 1fr 1fr;
+}
+
+.patfull-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.patfull-form-group label {
+  font-weight: 600;
+  color: var(--dark-green);
+  font-size: 0.94rem;
+}
+
+.patfull-form-group input,
+.patfull-form-group select {
+  padding: 0.7rem 0.9rem;
+  border: 1px solid #e2e8f0;
+  border-radius: var(--radius-md);
+  font-size: 1rem;
+  transition: all 0.2s ease;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.patfull-form-group input:focus,
+.patfull-form-group select:focus {
+  outline: none;
+  border-color: var(--primary-green);
+  box-shadow: 0 0 0 3px rgba(143,158,111,0.14);
+}
+
+.patfull-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  padding-top: 1.5rem;
+  margin-top: 0.5rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.patfull-btn-cancel,
+.patfull-btn-save {
+  padding: 0.7rem 1.8rem;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+}
+
+.patfull-btn-cancel {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+}
+
+.patfull-btn-cancel:hover {
+  background: #e2e8f0;
+  color: #1e293b;
+}
+
+.patfull-btn-save {
+  background: var(--primary-green);
+  color: white;
+  box-shadow: 0 4px 10px rgba(143, 158, 111, 0.3);
+}
+
+.patfull-btn-save:hover {
+  background: var(--dark-green);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(62, 75, 44, 0.3);
+}
+
+@media (max-width: 500px) {
+  .patfull-form-row {
+    grid-template-columns: 1fr;
+  }
+  .patfull-modal-actions {
+    flex-direction: column-reverse;
+    gap: 0.8rem;
+  }
+  .patfull-btn-cancel,
+  .patfull-btn-save {
+    width: 100%;
+    padding: 0.85rem;
+  }
+}

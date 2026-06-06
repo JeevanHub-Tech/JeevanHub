@@ -33,12 +33,21 @@ function MyItems() {
       {error && <p style={{ color: 'red' }}>{error}</p>}
       {items.map((item, index) => (
         <div key={index} className="item-card">
+          {item.image && (
+            <img 
+              src={item.image.startsWith('http') ? item.image : `${process.env.REACT_APP_AYURVEDA_BACKEND_URL}${item.image}`} 
+              alt={item.name} 
+              style={{ width: '100%', height: '150px', objectFit: 'cover', borderRadius: '5px', marginBottom: '10px' }} 
+            />
+          )}
           <h3>{item.name}</h3>
-          <p>Price: {item.price}</p>
-          <p>Quantity: {item.quantity}</p>
-          <p>Category: {item.category}</p>
-          <button>Edit</button>
-          <button>Delete</button>
+          <p><strong>Price:</strong> ₹{item.price}</p>
+          <p><strong>Quantity:</strong> {item.quantity}</p>
+          <p><strong>Category:</strong> {item.category}</p>
+          <div className="card-actions">
+            <button className="edit-btn">Edit</button>
+            <button className="delete-btn">Delete</button>
+          </div>
         </div>
       ))}
     </div>

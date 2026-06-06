@@ -6,6 +6,8 @@ const PatientManagement = () => {
     const [patients, setPatients] = useState([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [patientToEdit, setPatientToEdit] = useState(null);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -60,9 +62,18 @@ const PatientManagement = () => {
         }
     };
 
-    const handleEdit = (e, id) => {
+    const handleEdit = (e, patient) => {
         e.stopPropagation(); // Prevents navigating to details page
-        alert(`Editing patient with ID: ${id}`);
+        setPatientToEdit(patient);
+        setIsEditModalOpen(true);
+    };
+
+    const handleSaveChanges = (updatedPatient) => {
+        setPatients((prev) =>
+            prev.map((p) => (p._id === updatedPatient._id ? updatedPatient : p))
+        );
+        setIsEditModalOpen(false);
+        setPatientToEdit(null);
     };
 
     if (loading) {
@@ -116,7 +127,7 @@ const PatientManagement = () => {
                                     <td className="patfull-action-buttons">
                                         <button
                                             className="patfull-edit-btn"
-                                            onClick={(e) => handleEdit(e, patient._id)}
+                                            onClick={(e) => handleEdit(e, patient)}
                                         >
                                             Edit
                                         </button>
@@ -138,6 +149,86 @@ const PatientManagement = () => {
                         )}
                     </tbody>
                 </table>
+            </div>
+
+            {patientToEdit && (
+                <EditModal
+                    isOpen={isEditModalOpen}
+                    onClose={() => setIsEditModalOpen(false)}
+                    patient={patientToEdit}
+                    onSave={handleSaveChanges}
+                />
+            )}
+        </div>
+    );
+};
+
+// ===== Edit Modal =====
+const EditModal = ({ isOpen, onClose, patient, onSave }) => {
+    const [formData, setFormData] = useState({ ...patient });
+
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setFormData((prev) => ({ ...prev, [name]: value }));
+    };
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        onSave(formData);
+    };
+
+    if (!isOpen) return null;
+
+    return (
+        <div className="patfull-modal-overlay">
+            <div className="patfull-modal-content">
+                <div className="patfull-modal-header">
+                    <h3>Edit Patient Details</h3>
+                    <button className="patfull-close-modal-btn" onClick={onClose}>
+                        ✕
+                    </button>
+                </div>
+
+                <form onSubmit={handleSubmit} className="patfull-edit-form">
+                    <div className="patfull-form-row">
+                        <div className="patfull-form-group">
+                            <label>First Name</label>
+                            <input type="text" name="firstName" value={formData.firstName || ''} onChange={handleChange} />
+                        </div>
+                        <div className="patfull-form-group">
+                            <label>Last Name</label>
+                            <input type="text" name="lastName" value={formData.lastName || ''} onChange={handleChange} />
+                        </div>
+                    </div>
+                    <div className="patfull-form-group">
+                        <label>Email</label>
+                        <input type="email" name="email" value={formData.email || ''} onChange={handleChange} />
+                    </div>
+                    <div className="patfull-form-group">
+                        <label>Phone</label>
+                        <input type="text" name="phone" value={formData.phone || ''} onChange={handleChange} />
+                    </div>
+                    <div className="patfull-form-row">
+                        <div className="patfull-form-group">
+                            <label>Age</label>
+                            <input type="number" name="age" value={formData.age || ''} onChange={handleChange} />
+                        </div>
+                        <div className="patfull-form-group">
+                            <label>Gender</label>
+                            <select name="gender" value={formData.gender || ''} onChange={handleChange}>
+                                <option value="">Select Gender</option>
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div className="patfull-modal-actions">
+                        <button type="button" className="patfull-btn-cancel" onClick={onClose}>Cancel</button>
+                        <button type="submit" className="patfull-btn-save">Save Changes</button>
+                    </div>
+                </form>
             </div>
         </div>
     );

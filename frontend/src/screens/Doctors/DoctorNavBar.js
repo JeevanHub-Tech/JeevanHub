@@ -192,7 +192,59 @@ function DoctorNavBar() {
 					{/* Display user location */}
 				</div>
 				<div className="center-items">
-					<ul>
+					{showMenu && (
+						<div className="nav-menu">
+							<ul className="nav-sidebar" style={{ width: "60%" }}>
+								<img
+									src={menu_close}
+									alt="menu_close"
+									onClick={handleMenuClose}
+									style={{
+										zIndex: "99",
+									}}
+								/>
+								<li>
+									<NavLink to="/doctor-home" activeClassName="active">
+										Home
+									</NavLink>
+								</li>
+								<li>
+									<NavLink to="/current-requests" activeClassName="active">
+										Current Requests
+									</NavLink>
+								</li>
+								<li>
+									<NavLink to="/appointment-slots" activeClassName="active">
+										Appointment Slots
+									</NavLink>
+								</li>
+								<li>
+									<NavLink to="/patient-list" activeClassName="active">
+										Patient List
+									</NavLink>
+								</li>
+								<li>
+									<NavLink to="/doctor-reviews" activeClassName="active">
+										Patient's Reviews
+									</NavLink>
+								</li>
+								<li>
+									<NavLink to="/doctor-analytics" activeClassName="active">
+										Analytics
+									</NavLink>
+								</li>
+								<li>
+									<NavLink to="/health-blogs" activeClassName="active">
+										My Health Blogs
+									</NavLink>
+								</li>
+							</ul>
+						</div>
+					)}
+					<div className="nav-menu-button">
+						<img src={menu} alt="menu" onClick={handleMenuClose} />
+					</div>
+					<ul className="nav-center-menu">
 						<li>
 							<NavLink to="/doctor-home" activeClassName="active">
 								Home

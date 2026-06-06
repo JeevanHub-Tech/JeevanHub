@@ -72,16 +72,25 @@
   }
 }
 
-.dm-search-bar > input {
+.dm-search-input-wrapper {
+  position: relative;
   flex: 1;
-  padding: 0.75rem 1rem 0.75rem 3.2rem;
+  display: flex;
+  width: 100%;
+}
+
+.dm-search-input-wrapper > input {
+  flex: 1;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.75rem 1rem 0.75rem 2.8rem;
   border: 1px solid var(--border-light);
   border-radius: var(--radius);
   font-size: 1rem;
   transition: var(--transition);
 }
 
-.dm-search-bar > input:focus {
+.dm-search-input-wrapper > input:focus {
   outline: none;
   border-color: var(--primary-green);
   box-shadow: 0 0 0 3px rgba(143,158,111,0.15);
@@ -89,8 +98,8 @@
 
 .dm-search-icon {
   position: absolute;
-    left: 3rem;
-    top: 47%;
+  left: 0.9rem;
+  top: 50%;
   transform: translateY(-50%);
   color: var(--muted-green);
   pointer-events: none;
@@ -292,15 +301,6 @@
 }
 
 @media (max-width: 500px) {
- 
-  .dm-search-icon {
-    position: absolute;
-    left: 3rem;
-    top: 65%;
-    transform: translateY(-50%);
-    color: var(--muted-green);
-    pointer-events: none;
-}
 }
 
 .dm-form-group {
@@ -333,36 +333,59 @@
   display: flex;
   justify-content: flex-end;
   gap: 1rem;
-  padding-top: 1rem;
+  padding-top: 1.5rem;
+  margin-top: 0.5rem;
   border-top: 1px solid var(--border-light);
 }
 
 .dm-btn-cancel,
 .dm-btn-save {
-  padding: 0.65rem 1.4rem;
+  padding: 0.7rem 1.8rem;
   border-radius: var(--radius);
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
   border: none;
-  transition: var(--transition);
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .dm-btn-cancel {
-  background: #f3f4f6;
-  color: #444;
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
 }
 
 .dm-btn-cancel:hover {
-  background: #e5e7eb;
+  background: #e2e8f0;
+  color: #1e293b;
 }
 
 .dm-btn-save {
   background: var(--primary-green);
   color: white;
+  box-shadow: 0 4px 10px rgba(143, 158, 111, 0.3);
 }
 
 .dm-btn-save:hover {
   background: var(--dark-green);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(62, 75, 44, 0.3);
+}
+
+@media (max-width: 500px) {
+  .dm-modal-actions {
+    flex-direction: column-reverse;
+    gap: 0.8rem;
+  }
+  
+  .dm-btn-cancel,
+  .dm-btn-save {
+    width: 100%;
+    padding: 0.85rem;
+  }
 }
 
 /* No results row */

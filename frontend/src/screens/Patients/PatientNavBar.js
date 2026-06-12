@@ -180,13 +180,8 @@ function PatientNavBar() {
 						<img
 							src={profilePic || defaultProfilePic}
 							alt="Profile"
-							style={{
-								width: "100px",
-								height: "100px",
-								borderRadius: "50%",
-								objectFit: "cover"
-							}}
-						/></div>
+						/>
+					</div>
 					<h2>User Profile</h2>
 					<div className="profile-details">
 						<p>

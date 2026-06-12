@@ -13,7 +13,7 @@ const AdminDashboard = () => {
 	];
 
 	return (
-		<div style={{ textAlign: 'center', marginTop: '165px', padding: "25px", boxSizing: "border-box", marginLeft: "50px", marginRight: "50px", marginBottom:"25px", background:"white", borderRadius:"15px" }}>
+		<div style={{ textAlign: 'center', marginTop: '165px', padding: "25px", boxSizing: "border-box", margin: "165px auto 25px auto", maxWidth: "95%", background:"white", borderRadius:"15px" }}>
 			<h1>Admin Dashboard</h1>
 			<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', padding: '20px' }}>
 				{sections.map((section, index) => (

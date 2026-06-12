@@ -172,12 +172,14 @@ function DoctorNavBar() {
 							<strong>Email:</strong> {userEmail}
 						</p>
 					</div>
-					<button onClick={handleSignOut} className="signout-btn">
-						Sign Out
-					</button>
-					<button onClick={handleProfileClick} className="close-btn">
-						Close
-					</button>
+					<div className="modal-btn-container">
+						<button onClick={handleSignOut} className="signout-btn">
+							Sign Out
+						</button>
+						<button onClick={handleProfileClick} className="close-btn">
+							Close
+						</button>
+					</div>
 				</div>
 			)}
 

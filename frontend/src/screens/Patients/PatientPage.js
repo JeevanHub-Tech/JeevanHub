@@ -187,7 +187,6 @@ function PatientPage() {
 								src={yogaImage}
 								alt="Yoga & Diet"
 								className="service-image"
-								style={{ width: '380px', height: '200px' }}
 							/>
 							<h3>Yoga & Diet</h3>
 							<p>

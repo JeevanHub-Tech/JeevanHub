@@ -234,27 +234,4 @@ label[for="instructions"]:after {
   }
 }
 
-
-@media (max-width: 1024px) {
-  .tabs-containers {
-    max-width: 100%;
-    padding: 20px;
-  }
-}
-
-/* Mobile */
-@media (max-width: 768px) {
-  .tabs-containers {
-    padding-right: 120px;
-    border-radius: 10px;
-  }
-}
-
-/* Small mobile */
-@media (max-width: 480px) {
-  .tabs-containers {
-    /* padding: 14px; */
-      padding-right: 100px;
-    border-radius: 8px;
-  }
-}
+

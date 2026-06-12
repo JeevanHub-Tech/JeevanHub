@@ -1,7 +1,7 @@
 .signin-container {
 	display: flex;
-	height: 100vh;
-	margin-top: 75px;
+	min-height: calc(100vh - 130px);
+	margin-top: 130px;
 }
 
 .signin-left {
@@ -74,6 +74,8 @@
 	color: black;
 	font-size: 35px;
 	font-weight: bold;
+	margin-top: 20px;
+	margin-bottom: 10px;
 }
 
 .welcome {
@@ -130,31 +132,47 @@ select {
 	font-weight: bold;
 }
 
-@media (max-width: 760px) {
-	.signin-left h1 {
-		font-size: 35px;
+@media (max-width: 768px) {
+	.signin-container {
+		flex-direction: column;
+		height: auto;
+		min-height: calc(100vh - 120px);
+		margin-top: 120px;
 	}
 	.signin-left {
-		flex: 1;
+		width: 100%;
+		padding: 40px 20px;
+	}
+	.signin-left h1 {
+		font-size: 30px;
+	}
+	.signin-left h2 {
+		font-size: 22px;
 	}
 	.signin-right {
-		flex: 2;
+		width: 100%;
+		padding: 40px 20px;
+	}
+	.signin-heading {
+		font-size: 28px;
 	}
 	.outbox .consult-btn {
 		padding: 0px 10px;
 	}
 }
 
-@media (max-width: 590px) {
-	.signin-container {
-		flex-direction: column;
-		height: max-content;
-		margin-top: 140px;
-		width: 100%;
-		overflow: hidden;
+@media (max-width: 480px) {
+	.signin-heading {
+		font-size: 24px;
 	}
-	.signin-left {
-		width: 100%;
-		padding: 75px 0px;
+	.signin-left h1 {
+		font-size: 26px;
+	}
+	.signin-left h2 {
+		font-size: 18px;
+	}
+	.sconsult-btn {
+		height: auto;
+		padding: 15px 10px;
 	}
 }

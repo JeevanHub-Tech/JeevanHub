@@ -53,8 +53,9 @@ function DoctorsScreen() {
             : (doctor.zipCode || "N/A"),
           language: "English",
           rating: 4.0,
-          gender:
-            doctor.gender.charAt(0).toUpperCase() + doctor.gender.slice(1),
+          gender: doctor.gender
+            ? doctor.gender.charAt(0).toUpperCase() + doctor.gender.slice(1)
+            : "N/A",
           age: `${doctor.age}`,
         }));
         setDoctors(mappedDoctors);

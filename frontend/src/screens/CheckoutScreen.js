@@ -155,16 +155,18 @@ const CheckoutScreen = () => {
 	const handleOnlinePayment = async (orderDataFromBackend) => {
 		try {
 			// 1. Create Razorpay order from backend
+			// Using at least 1 for demo payment if totalPrice is 0
+			const paymentAmount = totalPrice > 0 ? totalPrice : 1;
 			const res = await axios.post(
 				`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/payment/create-order`,
-				{ amount: totalPrice }
+				{ amount: paymentAmount }
 			);
 
 			const order = res.data;
 
 			// 2. Open Razorpay
 			const options = {
-				key: "rzp_test_Sl1TIKLxwNWCKt",
+				key: process.env.REACT_APP_RAZORPAY_KEY_ID, // Using key from frontend .env
 				amount: order.amount,
 				currency: "INR",
 				name: "Ayurveda Platform",

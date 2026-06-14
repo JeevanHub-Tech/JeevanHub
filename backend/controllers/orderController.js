@@ -2,6 +2,7 @@
 const Order = require('../models/Order');
 const mongoose = require('mongoose');
 const Medicine = require('../models/Medicine');
+const Cart = require('../models/Cart');
 const Booking = require('../models/Booking');
 const Retailer = require('../models/Retailer');
 const Patient = require('../models/Patient');
@@ -90,6 +91,22 @@ exports.createOrder = async (req, res) => {
         }
 
         await newOrder.save();
+
+        // Clear the cart
+        await Cart.findOneAndDelete({ patientId: buyer.userId });
+
+        // Check stock and decrement medicine stock atomically
+        for (const item of formattedItems) {
+            const result = await Medicine.updateOne(
+                { _id: item.medicineId, quantity: { $gte: item.quantity } },
+                { $inc: { quantity: -item.quantity } }
+            );
+
+            if (result.modifiedCount === 0) {
+                // Race condition - stock was claimed by another order or insufficient
+                return res.status(409).json({ message: 'Stock no longer available for one or more items' });
+            }
+        }
 
         res.status(201).json(newOrder);
     } catch (error) {

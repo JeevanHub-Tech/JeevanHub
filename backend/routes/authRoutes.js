@@ -52,7 +52,10 @@ router.post("/login", loginUser);
 
 //  Admin Login Route
 // Create Admin
-router.post("/admin/register", async (req, res) => {
+router.post("/admin/register", auth, async (req, res) => {
+  if (req.user.role !== "admin") {
+    return res.status(403).json({ message: "Access denied. Admins only." });
+  }
   const { firstName, lastName, email, phone, password } = req.body;
 
   try {
@@ -152,8 +155,11 @@ router.get("/users", auth, async (req, res) => {
   }
 });
 
-router.delete("/users/:id", async (req, res) => {
+router.delete("/users/:id", auth, async (req, res) => {
   try {
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ message: "Access denied. Admins only." });
+    }
     const user = await Patient.findByIdAndDelete(req.params.id);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
@@ -217,7 +223,8 @@ router.post("/upload-retailers", upload.single("file"), async (req, res) => {
 
       const existingRetailer = await Retailer.findOne({ email });
       if (!existingRetailer) {
-        const newRetailer = new Retailer({ firstName, lastName, email, phone, dob, licenseNumber, age, gender, zipCode, password });
+        const hashedPassword = await bcrypt.hash(password.toString(), 10);
+        const newRetailer = new Retailer({ firstName, lastName, email, phone, dob, licenseNumber, age, gender, zipCode, password: hashedPassword });
         await newRetailer.save();
       }
     }
@@ -232,8 +239,11 @@ router.post("/upload-retailers", upload.single("file"), async (req, res) => {
   }
 });
 
-router.delete("/retailers/:id", async (req, res) => {
+router.delete("/retailers/:id", auth, async (req, res) => {
   try {
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ message: "Access denied. Admins only." });
+    }
     const deletedRetailer = await Retailer.findByIdAndDelete(req.params.id);
     if (!deletedRetailer) {
       return res.status(404).json({ message: "Retailer not found" });

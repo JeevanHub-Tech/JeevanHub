@@ -5,7 +5,9 @@ const Admin = require('../models/Admin'); // You'll need to create this model if
 // Create a new blog
 exports.createBlog = async (req, res) => {
     try {
-        const { title, description, authorType, authorId, category, image } = req.body;
+        const { title, description, category, image } = req.body;
+        const authorType = req.user.role;
+        const authorId = req.user._id || req.user.id;
         let authorName;
 
         // Find the author based on type to get the name
@@ -79,10 +81,17 @@ exports.getOneBlog = async (req, res) => {
 // Delete a blog
 exports.deleteBlog = async (req, res) => {
     try {
-        const result = await Blog.findByIdAndDelete(req.params.id);
-        if (!result) {
+        const blog = await Blog.findById(req.params.id);
+        if (!blog) {
             return res.status(404).json({ message: 'Blog not found' });
         }
+
+        // Ownership check
+        if (blog.authorId.toString() !== (req.user._id || req.user.id).toString() && req.user.role !== 'admin') {
+            return res.status(403).json({ message: 'Not authorized to delete this blog' });
+        }
+
+        await Blog.findByIdAndDelete(req.params.id);
         res.status(200).json({ message: 'Blog deleted successfully' });
     } catch (error) {
         res.status(500).json({ error: error.message });

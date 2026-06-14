@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+const mongoose = require("mongoose");
 
 const FeedbackSchema = new mongoose.Schema({
     fromType: { type: String, enum: ["Patient", "Doctor"], required: true },

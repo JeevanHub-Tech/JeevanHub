@@ -1,14 +1,14 @@
 // controllers/notificationController.js
 const Notification = require('../models/Notification');
 
-exports.createNotification = async (userId, title, message, relatedTo, relatedId) => {
+exports.createNotification = async (userId, role, orderId, message, type = 'system') => {
   try {
     const notification = new Notification({
-      recipient: userId,
-      title,
+      userId,
+      role,
+      orderId,
       message,
-      relatedTo,
-      relatedId
+      type
     });
     
     await notification.save();
@@ -76,7 +76,7 @@ exports.markAllAsRead = async (req, res) => {
     const userId = req.user.id;
     
     await Notification.updateMany(
-      { recipient: userId, isRead: false },
+      { userId: userId, isRead: false },
       { isRead: true }
     );
     

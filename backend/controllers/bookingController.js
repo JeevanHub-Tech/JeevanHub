@@ -5,6 +5,7 @@ const Cart = require("../models/Cart");
 const Notification = require("../models/Notification");
 const fs = require("fs");
 const multer = require("multer");
+const path = require("path");
 
 // Add or update rating and review
 exports.updateRatingAndReview = async (req, res) => {
@@ -64,7 +65,6 @@ exports.createBooking = async (req, res) => {
 		doctorName,
 		doctorId,
 		doctorEmail,
-		patientId,
 		timeSlot,
 		dateOfAppointment,
 		email,
@@ -74,6 +74,7 @@ exports.createBooking = async (req, res) => {
 		patientIllness,
 		meetLink,
 	} = req.body; // Destructure the request body
+	const patientId = req.user._id; // Enforce ownership
 
 	if (!doctorName) {
 		return res.status(400).json({ error: "Doctor name are required" });
@@ -90,7 +91,7 @@ exports.createBooking = async (req, res) => {
 		}
 		// Check if a booking already exists for the doctor and time slot
 		const existingBooking = await Booking.findOne({
-			doctorName,
+			doctorId: doctor._id,
 			timeSlot,
 			dateOfAppointment,
 		});
@@ -265,9 +266,9 @@ exports.updateBookingStatus = async (req, res) => {
             updateData.meetLink = `https://meet.jit.si/${uniqueRoomName}`;
         }
 
-        // Find the booking by ID and update the fields
-        const updatedBooking = await Booking.findByIdAndUpdate(
-            id,
+        // Find the booking by ID and update the fields, ensuring doctor owns it
+        const updatedBooking = await Booking.findOneAndUpdate(
+            { _id: id, doctorId: req.user._id },
             updateData,
             { new: true }
         );
@@ -322,8 +323,8 @@ exports.deleteBooking = async (req, res) => {
 	const { id } = req.params;
 
 	try {
-		// Find the booking by ID and delete it
-		const deletedBooking = await Booking.findByIdAndDelete(id);
+		// Find the booking by ID and delete it, ensuring patient owns it
+		const deletedBooking = await Booking.findOneAndDelete({ _id: id, patientId: req.user._id });
 
 		if (!deletedBooking) {
 			return res.status(404).json({ error: "Booking not found" });

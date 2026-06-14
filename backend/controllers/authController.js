@@ -150,6 +150,11 @@ exports.registerDoctor = async (req, res) => {
 			},
 		});
 	} catch (error) {
+		console.error("Doctor registration error:", error);
+		if (error.code === 11000) {
+			const duplicateField = Object.keys(error.keyValue)[0];
+			return res.status(400).json({ error: `${duplicateField} already exists` });
+		}
 		res.status(500).json({ error: 'Registration failed' });
 	}
 };
@@ -174,6 +179,11 @@ exports.registerRetailer = async (req, res) => {
 			},
 		});
 	} catch (error) {
+		console.error("Retailer registration error:", error);
+		if (error.code === 11000) {
+			const duplicateField = Object.keys(error.keyValue)[0];
+			return res.status(400).json({ error: `${duplicateField} already exists` });
+		}
 		res.status(500).json({ error: 'Registration failed' });
 	}
 };
@@ -199,6 +209,10 @@ exports.registerPatient = async (req, res) => {
 		});
 	} catch (error) {
 		console.error("Error registering patient:", error);
+		if (error.code === 11000) {
+			const duplicateField = Object.keys(error.keyValue)[0];
+			return res.status(400).json({ error: `${duplicateField} already exists` });
+		}
 		res.status(500).json({ error: 'Registration failed' });
 	}
 };
@@ -241,7 +255,8 @@ exports.handleForgotPassword = async (req, res) => {
 		// await sendOTPWhatsApp(userPhone, user.firstName, otp);
 
 		return res.status(200).json({
-			message: "Success! OTP sent to WhatsApp.",
+			message: "Success! OTP generated (WhatsApp disabled in sandbox).",
+			otp: otp // Include OTP in response for testing
 		});
 
 	} catch (error) {

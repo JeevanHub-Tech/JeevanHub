@@ -7,6 +7,9 @@ const AdmZip = require('adm-zip');
 
 // Add Medicines from Zip File (Excel + Images)
 exports.addMedicinesFromZip = async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ message: 'No file uploaded' });
+  }
   const retailerId = req.user._id; // Get retailer ID from authenticated user
   const zipFilePath = req.file.path;
 
@@ -27,6 +30,12 @@ exports.addMedicinesFromZip = async (req, res) => {
     const sheet = workbook.Sheets[sheetName];
     const data = xlsx.utils.sheet_to_json(sheet);
 
+    // Ensure the uploads directory exists
+    const uploadDir = path.join('uploads', 'medicines');
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+
     // Process each entry in the Excel file
     const medicines = [];
     for (const item of data) {
@@ -35,7 +44,7 @@ exports.addMedicinesFromZip = async (req, res) => {
 
       let imagePath = null;
       if (imageEntry) {
-        imagePath = path.join('uploads/medicines', imageFileName);
+        imagePath = path.join(uploadDir, imageFileName);
         fs.writeFileSync(imagePath, zip.readFile(imageEntry));
       }
 
@@ -61,12 +70,17 @@ exports.addMedicinesFromZip = async (req, res) => {
     res.status(500).json({ message: 'Failed to add medicines from zip', error: error.message });
   } finally {
     // Cleanup: remove the uploaded zip file
-    fs.unlinkSync(zipFilePath);
+    if (zipFilePath && fs.existsSync(zipFilePath)) {
+      fs.unlinkSync(zipFilePath);
+    }
   }
 };
 
 // Add Medicine (Retailer Only)
 exports.addMedicine = async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ message: 'Medicine image is required' });
+  }
   const { name, price, quantity ,category, prescription} = req.body;
   const image = req.file.path;
   const retailerId = req.user._id; // Get retailer ID from authenticated user
@@ -106,9 +120,44 @@ exports.getMyMedicines = async (req, res) => {
 // Delete Medicine (Retailer Only)
 exports.deleteMedicine = async (req, res) => {
   try {
+    const medicine = await Medicine.findById(req.params.id);
+    if (!medicine) {
+      return res.status(404).json({ message: 'Medicine not found' });
+    }
+    if (!medicine.retailerId.equals(req.user._id)) {
+      return res.status(403).json({ message: 'Not authorized to delete this medicine' });
+    }
     await Medicine.findByIdAndDelete(req.params.id);
     res.status(200).json({ message: 'Medicine deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: 'Failed to delete medicine', error: error.message });
+  }
+};
+
+// Update Medicine (Retailer Only)
+exports.updateMedicine = async (req, res) => {
+  try {
+    const medicine = await Medicine.findById(req.params.id);
+    if (!medicine) {
+      return res.status(404).json({ message: 'Medicine not found' });
+    }
+    if (!medicine.retailerId.equals(req.user._id)) {
+      return res.status(403).json({ message: 'Unauthorized' });
+    }
+
+    const updates = req.body;
+    if (req.file) {
+      updates.image = req.file.path;
+    }
+
+    const updated = await Medicine.findByIdAndUpdate(
+      req.params.id,
+      { $set: updates },
+      { new: true, runValidators: true }
+    );
+
+    res.status(200).json({ message: 'Medicine updated', medicine: updated });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 };

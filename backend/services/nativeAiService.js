@@ -726,6 +726,38 @@ Message to translate:
     }
 }
 
+/**
+ * Summarize older conversation history to save tokens while keeping context
+ */
+async function summarizeConversation(messages) {
+    if (!messages || messages.length === 0) return "";
+    
+    const script = messages.map(m => `${m.role.toUpperCase()}: ${m.content}`).join('\n');
+    
+    const prompt = `You are a medical AI assistant summarizer.
+Summarize the following conversation history focusing ONLY on the user's health profile, symptoms discussed, and advice already given. 
+Be concise and factual. Do not include conversational pleasantries.
+
+Conversation:
+${script}
+
+Summary:`;
+
+    try {
+        const summary = await groqChat([
+            { role: 'user', content: prompt }
+        ], {
+            model: MODEL_FAST,
+            temperature: 0.3,
+            maxTokens: 300
+        });
+        return summary.trim();
+    } catch (error) {
+        console.error('Summarize Error:', error.message);
+        return "Previous context could not be summarized.";
+    }
+}
+
 module.exports = {
     generateResponse,
     quickHealthAssessment,
@@ -735,5 +767,6 @@ module.exports = {
     rankDoctorsForCondition,
     translateMessage,
     generateDietPlan,
-    generateYogaPlan
+    generateYogaPlan,
+    summarizeConversation
 };

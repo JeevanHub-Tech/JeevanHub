@@ -1,16 +1,34 @@
 const express = require('express');
 const router = express.Router();
 const WebChatSession = require('../models/WebChatSession');
+const jwt = require('jsonwebtoken');
 const nativeAi = require('../services/nativeAiService');
 const Doctor = require('../models/Doctor');
 const DoctorData = require('../models/DoctorData');
 const bcrypt = require('bcryptjs');
 const Patient = require('../models/Patient');
 const Booking = require('../models/Booking');
+const Retailer = require('../models/Retailer');
+const Admin = require('../models/Admin');
+
+let doctorCache = {
+    data: null,
+    lastFetched: 0
+};
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 // ─── Utility: Fetch doctors from DB, filter by specialization, rank by AI ─────
 async function getTopDoctors(category, symptoms) {
-    const [doctors1, doctors2] = await Promise.all([Doctor.find().lean(), DoctorData.find().lean()]);
+    let doctors1, doctors2;
+    const now = Date.now();
+    
+    if (doctorCache.data && (now - doctorCache.lastFetched < CACHE_TTL)) {
+        [doctors1, doctors2] = doctorCache.data;
+    } else {
+        [doctors1, doctors2] = await Promise.all([Doctor.find().lean(), DoctorData.find().lean()]);
+        doctorCache.data = [doctors1, doctors2];
+        doctorCache.lastFetched = now;
+    }
 
     const normalize = (d) => ({
         id: d._id.toString(),
@@ -86,11 +104,60 @@ router.post('/message', async (req, res) => {
         const { userId, message, isRegistered, userRole, fetchHistory } = req.body;
         if (!userId || !message) return res.status(400).json({ error: 'userId and message are required' });
 
+        // --- IDOR Protection Logic ---
+        let verifiedUserId = null;
+        let verifiedRole = null;
+        const token = req.header('Authorization')?.replace('Bearer ', '');
+        
+        if (token) {
+            try {
+                const decoded = jwt.verify(token, process.env.JWT_SECRET);
+                verifiedUserId = decoded.id;
+                verifiedRole = decoded.role;
+            } catch (err) {
+                // Ignore invalid tokens for guests, but we must protect registered sessions
+            }
+        }
+
         // 1. Get or create session
         let session = await WebChatSession.findOne({ userId });
-        if (!session) {
-            session = new WebChatSession({ userId });
+        
+        if (session) {
+            // If the existing session is registered, the user MUST be authenticated and own it.
+            if (session.isRegistered) {
+                if (!verifiedUserId || verifiedUserId !== userId) {
+                    return res.status(403).json({ error: 'Unauthorized. You cannot access a registered chat session without a valid token.' });
+                }
+            }
+        } else {
+            // If it's a new session and they claim to be registered, they must be authenticated
+            if (isRegistered) {
+                if (!verifiedUserId || verifiedUserId !== userId) {
+                    return res.status(403).json({ error: 'Unauthorized. Valid token required to start a registered session.' });
+                }
+            }
+            
+            let profileData = {};
+            if (isRegistered && verifiedUserId) {
+                const modelMap = { admin: Admin, doctor: Doctor, retailer: Retailer, patient: Patient };
+                const Model = modelMap[verifiedRole || userRole?.toLowerCase()] || Patient;
+                const user = await Model.findById(verifiedUserId).select("firstName lastName firstname lastname email");
+                if (user) {
+                    profileData = {
+                        firstName: user.firstName || user.firstname || "",
+                        lastName: user.lastName || user.lastname || "",
+                        email: user.email || ""
+                    };
+                }
+            }
+
+            session = new WebChatSession({ 
+                userId,
+                profile: profileData
+            });
         }
+        // --- End IDOR Protection ---
+
         // Hydrate profile from token if logged in
         if (isRegistered && !session.isRegistered) {
             session.isRegistered = true;
@@ -138,7 +205,13 @@ router.post('/message', async (req, res) => {
         session.totalMessages = (session.totalMessages || 0) + 1;
         session.conversationHistory.push({ role: 'user', content: message, timestamp: new Date() });
         if (session.conversationHistory.length > 60) {
-            session.conversationHistory = session.conversationHistory.slice(-60);
+            const olderMessages = session.conversationHistory.slice(0, -40);
+            const summary = await nativeAi.summarizeConversation(olderMessages);
+
+            session.conversationHistory = [
+                { role: "system", content: `Previous conversation summary: ${summary}`, timestamp: new Date() },
+                ...session.conversationHistory.slice(-40),
+            ];
         }
 
         let responseText = '';

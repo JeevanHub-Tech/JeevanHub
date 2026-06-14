@@ -28,6 +28,7 @@ router.post('/', auth, async (req, res) => {
     
     const newNotification = new Notification({
       userId: req.user.id,
+      role: req.user.role || 'patient', // Provide role
       orderId,
       type: type || 'system',
       message,

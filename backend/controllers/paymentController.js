@@ -1,17 +1,13 @@
-const razorpay = require("../services/razorpayService");
+const getRazorpay = require("../services/razorpayService");
+const crypto = require("crypto");
 
 exports.createOrder = async (req, res) => {
-    console.log("KEY-----:", process.env.RAZORPAY_KEY_ID);
-    console.log("SECRET--------:", process.env.RAZORPAY_KEY_SECRET);
     try {
         const { amount } = req.body;
-
-        console.log("KEY:", process.env.RAZORPAY_KEY_ID);
-        console.log("SECRET:", process.env.RAZORPAY_KEY_SECRET);
         
+        const razorpay = getRazorpay();
         const order = await razorpay.orders.create({
             amount: amount * 100, // rupees → paise
-
             currency: "INR",
             receipt: "receipt_" + Date.now(),
         });
@@ -20,5 +16,25 @@ exports.createOrder = async (req, res) => {
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: "Order creation failed" });
+    }
+};
+
+exports.verifyPayment = async (req, res) => {
+    const { razorpayOrderId, razorpayPaymentId, razorpaySignature } = req.body;
+    
+    if (!razorpayOrderId || !razorpayPaymentId || !razorpaySignature) {
+        return res.status(400).json({ verified: false, message: "Missing required fields" });
+    }
+
+    const body = razorpayOrderId + "|" + razorpayPaymentId;
+    const expectedSignature = crypto
+        .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+        .update(body)
+        .digest('hex');
+
+    if (expectedSignature === razorpaySignature) {
+        res.status(200).json({ verified: true });
+    } else {
+        res.status(400).json({ verified: false, message: "Payment verification failed" });
     }
 };

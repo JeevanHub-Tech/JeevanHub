@@ -3,6 +3,7 @@ const router = express.Router();
 const bookingController = require("../controllers/bookingController");
 const { uploadPaymentScreenshot } = require("../controllers/bookingController");
 const Booking = require("../models/Booking");
+const auth = require("../middleware/auth");
 const {
   createBooking,
   getAllBookings,
@@ -23,7 +24,7 @@ const {
 } = require("../controllers/bookingController");
 
 // POST route to book an appointment
-router.post("/", createBooking);
+router.post("/", auth, createBooking);
 
 // Route to fetch all bookings
 router.get("/bookings", getAllBookings);
@@ -32,12 +33,12 @@ router.get("/bookings", getAllBookings);
 router.get("/notifications", getNotifications);
 
 // PUT route to update booking requestAccept status
-router.put("/update/:id", updateBookingStatus);
+router.put("/update/:id", auth, updateBookingStatus);
 
 router.put("/update/meet-link/:id", updateMeetLink);
 
 // DELETE route to delete a booking by ID
-router.delete("/delete/:id", deleteBooking);
+router.delete("/delete/:id", auth, deleteBooking);
 
 // Route to update recommended supplements
 router.put("/supplements", prescribeMedicine);

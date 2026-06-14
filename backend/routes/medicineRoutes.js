@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { addMedicine, getAllMedicines, getMyMedicines, deleteMedicine } = require('../controllers/medicineController');
+const { addMedicine, updateMedicine, getAllMedicines, getMyMedicines, deleteMedicine } = require('../controllers/medicineController');
 const auth = require('../middleware/auth');
 const multer = require('multer');
 const { addMedicinesFromZip } = require('../controllers/medicineController');
@@ -21,6 +21,7 @@ router.get('/', getAllMedicines); // Public route to view all medicines
 
 // Retailer Routes (Protected)
 router.post('/add', auth, upload.single('file'), addMedicinesFromZip); // Add medicine (Retailer only)
+router.put('/:id', auth, upload.single('image'), updateMedicine); // Update medicine (Retailer only)
 router.get('/my', auth, getMyMedicines); // Get logged-in retailer's medicines
 router.delete('/:id', auth, deleteMedicine); // Delete medicine (Retailer only)
 

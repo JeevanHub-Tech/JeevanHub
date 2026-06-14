@@ -108,7 +108,6 @@ exports.getAllBlogs = async (req, res) => {
             // -----------------------------------------------------------
             date: blog.timestamp,
             authorName: blog.user.name,
-            category: blog.tags.join(', '),
             type: 'ai',
             // Since AI schema doesn't have a top-level 'image', handle it if you need one later
             image: blog.content.images?.[0]?.url || null,
@@ -182,15 +181,22 @@ exports.updateBlog = async (req, res) => {
     const updateData = req.body;
 
     try {
-        const updatedBlog = await AIBlog.findByIdAndUpdate(id, updateData, {
+        let updatedBlog = await AIBlog.findByIdAndUpdate(id, updateData, {
             new: true,
             runValidators: true,
         });
 
         if (!updatedBlog) {
+            updatedBlog = await Blogs.findByIdAndUpdate(id, updateData, {
+                new: true,
+                runValidators: true,
+            });
+        }
+
+        if (!updatedBlog) {
             return res.status(404).json({
                 success: false,
-                message: "Blog not found."
+                message: "Blog not found in either collection."
             });
         }
 

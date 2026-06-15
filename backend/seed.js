@@ -1,9 +1,8 @@
 const mongoose = require("mongoose");
-const { Medicine } = require("./Models/db"); // Import Medicine model
+const Medicine = require("./models/Medicine"); // Import Medicine model
 
 // MongoDB URI from environment variables for security
-const mongoURI =
-  "mongodb+srv://hello:123@cluster0.bex5s.mongodb.net/medicine?retryWrites=true&w=majority&appName=Cluster0";
+const mongoURI = process.env.MDB || "mongodb://localhost:27017/medicine";
 
 // Sample data
 const sampleMedicines = [

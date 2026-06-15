@@ -27,7 +27,21 @@ exports.getAllDoctors = async (req, res) => {
 // Helper function to calculate age from DOB	
 const calculateAge = (dob) => {
 	if (!dob) return null;
-	const birthDate = new Date(dob);
+	
+    let birthDate;
+    if (typeof dob === 'string' && dob.includes('/')) {
+        const parts = dob.split('/');
+        if (parts.length === 3) {
+            birthDate = new Date(parts[2], parts[1] - 1, parts[0]);
+        } else {
+            birthDate = new Date(dob);
+        }
+    } else {
+        birthDate = new Date(dob);
+    }
+
+    if (isNaN(birthDate.getTime())) return null;
+
 	const today = new Date();
 	let age = today.getFullYear() - birthDate.getFullYear();
 	const m = today.getMonth() - birthDate.getMonth();
@@ -188,6 +202,10 @@ exports.updateDoctor = async (req, res) => {
     const updates = req.body; 
 
     try {
+        if (req.user.role !== 'admin' && req.user._id.toString() !== id) {
+            return res.status(403).json({ success: false, message: "Not authorized to update this doctor" });
+        }
+
         // --- ATTEMPT 1: Check if ID belongs to Doctor (Schema 1) ---
         let doctor = await Doctor.findById(id);
 
@@ -234,6 +252,9 @@ exports.updateDoctor = async (req, res) => {
 
     } catch (error) {
         console.error("Update Error:", error);
+        if (error.name === 'CastError') {
+            return res.status(400).json({ success: false, message: "Invalid Doctor ID format" });
+        }
         return res.status(500).json({ success: false, message: "Internal Server Error", error: error.message });
     }
 };

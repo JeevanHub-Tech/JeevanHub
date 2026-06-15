@@ -8,7 +8,7 @@ exports.submitAssessment = async (req, res) => {
         const patientId = req.user._id;
 
         const responseArray = Object.keys(answers).map((id) => {
-            let type = "";
+            let type = "vata"; // Default fallback
             if (id.startsWith('k')) type = "kapha";
             else if (id.startsWith('p')) type = "pitta";
             else if (id.startsWith('v')) type = "vata";

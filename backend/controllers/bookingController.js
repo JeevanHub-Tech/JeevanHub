@@ -305,9 +305,9 @@ exports.updateMeetLink = async (req, res) => {
 	}
 
 	try {
-		// Find the booking by ID and update the meetLink field
-		const updatedBooking = await Booking.findByIdAndUpdate(
-			id,
+		// Find the booking by ID and update the meetLink field, ensuring doctor owns it
+		const updatedBooking = await Booking.findOneAndUpdate(
+			{ _id: id, doctorId: req.user._id },
 			{ meetLink },
 			{ new: true }
 		);
@@ -362,6 +362,14 @@ exports.prescribeMedicine = async (req, res) => {
 		if (!booking) {
 			return res.status(404).json({ error: "Booking not found." });
 		}
+		
+		if (booking.doctorId.toString() !== req.user._id.toString()) {
+		    return res.status(403).json({ error: "Not authorized to prescribe medicine for this booking" });
+		}
+
+		if (!medicineData.startDate || !medicineData.endDate) {
+		    return res.status(400).json({ error: "Start date and End date are required." });
+		}
 
 		// --- STEP A: Update Booking (Prescription Logic) ---
 		const newSupplement = {
@@ -379,9 +387,10 @@ exports.prescribeMedicine = async (req, res) => {
 		await booking.save();
 
 		// --- STEP B: Check Inventory & Update Cart ---
-		// 1. Search for the medicine in your DB (Case insensitive search)
+		// 1. Search for the medicine in your DB (Case insensitive search, escaping regex)
+		const escapedName = medicineData.medicineName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 		const medicineInStock = await Medicine.findOne({
-			name: { $regex: new RegExp(`^${medicineData.medicineName}$`, "i") }
+			name: { $regex: new RegExp(`^${escapedName}$`, "i") }
 		});
 
 		let cartMessage = "";

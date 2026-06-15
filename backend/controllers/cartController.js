@@ -185,6 +185,10 @@ exports.addToCart = async (req, res) => {
             return res.status(404).json({ message: "Medicine not found" });
         }
 
+        if (quantity > medicine.quantity) {
+            return res.status(400).json({ message: `Only ${medicine.quantity} units available in stock` });
+        }
+
         // 2. Find existing cart or create new one
         let cart = await Cart.findOne({ patientId });
 
@@ -200,6 +204,9 @@ exports.addToCart = async (req, res) => {
             const itemIndex = cart.items.findIndex(p => p.medicineId.toString() === medicineId);
 
             if (itemIndex > -1) {
+                if (cart.items[itemIndex].quantity + quantity > medicine.quantity) {
+                    return res.status(400).json({ message: `Cannot add. Only ${medicine.quantity} units available in stock` });
+                }
                 // Update quantity
                 cart.items[itemIndex].quantity += quantity;
             } else {

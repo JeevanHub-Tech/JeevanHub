@@ -39,6 +39,9 @@ exports.getSingleRetailer = async (req, res) => {
         res.status(200).json(retailer);
     } catch (error) {
         console.error("Error fetching single retailer:", error);
+        if (error.name === 'CastError') {
+            return res.status(400).json({ message: "Invalid Retailer ID format" });
+        }
         res.status(500).json({
             message: "Failed to fetch retailer",
             error: error.message,

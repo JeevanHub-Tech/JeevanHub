@@ -3,9 +3,6 @@ const router = express.Router();
 const auth = require('../middleware/auth');
 const { getCartByPatientID, updateCartItemQuantity, removeFromCart, addToCart } = require('../controllers/cartController');
 
-// Route to get cart items by patient ID
-router.get('/:patientId', auth, getCartByPatientID);
-
 // Route to update cart item quantity
 router.put('/update-quantity', auth, updateCartItemQuantity);
 
@@ -14,5 +11,8 @@ router.delete("/remove", auth, removeFromCart);
 
 // Route to add item to cart
 router.post("/add", auth, addToCart);
+
+// Route to get cart items by patient ID (must be last)
+router.get('/:patientId', auth, getCartByPatientID);
 
 module.exports = router;

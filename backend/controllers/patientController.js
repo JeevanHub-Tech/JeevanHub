@@ -23,6 +23,7 @@ exports.updatePatient = async (req, res) => {
 	const updates = req.body;
 
 	try {
+        if (!req.user) return res.status(401).json({ message: "Unauthorized" });
 		if (req.user.role !== 'admin' && req.user._id.toString() !== id) {
 			return res.status(403).json({ message: "Not authorized to update this patient" });
 		}
@@ -56,6 +57,7 @@ exports.deletePatient = async (req, res) => {
 	const { id } = req.params;
 
 	try {
+        if (!req.user) return res.status(401).json({ message: "Unauthorized" });
 		if (req.user.role !== 'admin' && req.user._id.toString() !== id) {
 			return res.status(403).json({ message: "Not authorized to delete this patient" });
 		}

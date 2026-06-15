@@ -10,6 +10,7 @@ exports.addMedicinesFromZip = async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ message: 'No file uploaded' });
   }
+  if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
   const retailerId = req.user._id; // Get retailer ID from authenticated user
   const zipFilePath = req.file.path;
 
@@ -87,6 +88,7 @@ exports.addMedicine = async (req, res) => {
   }
   const { name, price, quantity ,category, prescription} = req.body;
   const image = req.file.path;
+  if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
   const retailerId = req.user._id; // Get retailer ID from authenticated user
 
   try {
@@ -111,6 +113,7 @@ exports.getAllMedicines = async (req, res) => {
 
 // Get Retailer's Medicines (Retailer Only)
 exports.getMyMedicines = async (req, res) => {
+  if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
   const retailerId = req.user._id;
 
   try {
@@ -124,6 +127,7 @@ exports.getMyMedicines = async (req, res) => {
 // Delete Medicine (Retailer Only)
 exports.deleteMedicine = async (req, res) => {
   try {
+    if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
     const medicine = await Medicine.findById(req.params.id);
     if (!medicine) {
       return res.status(404).json({ message: 'Medicine not found' });
@@ -141,6 +145,7 @@ exports.deleteMedicine = async (req, res) => {
 // Update Medicine (Retailer Only)
 exports.updateMedicine = async (req, res) => {
   try {
+    if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
     const medicine = await Medicine.findById(req.params.id);
     if (!medicine) {
       return res.status(404).json({ message: 'Medicine not found' });

@@ -162,10 +162,11 @@ async function sendOTPWhatsApp(phone, firstName, otp) {
 			}
 		];
 
+		const { sendWhatsAppMessage } = require('./controllers/whatsappController');
+		
 		await sendWhatsAppMessage(
 			phone,
-			// "password_reset_otp", 
-			"ayurvedic_score",
+			"password_reset_otp", 
 			components
 		);
 		console.log(`✅ OTP sent to ${phone}`);

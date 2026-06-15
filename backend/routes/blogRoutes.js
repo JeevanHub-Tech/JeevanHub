@@ -20,10 +20,10 @@ router.get('/', getallBlog);
 router.get('/author/:authorType/:authorId', getBlogsByAuthor);
 
 // Get blogs by doctor ID (for backward compatibility)
-router.get('/doctor/:doctorId', (req, res) => {
+router.get('/doctor/:doctorId', (req, res, next) => {
     req.params.authorType = 'doctor';
     req.params.authorId = req.params.doctorId;
-    getBlogsByAuthor(req, res);
+    getBlogsByAuthor(req, res).catch(next);
 });
 
 // Get a single blog by ID

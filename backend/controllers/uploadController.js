@@ -1,5 +1,6 @@
 const xlsx = require('xlsx');
 const path = require('path');
+const fs = require('fs');
 const Doctor = require('../models/DoctorData'); // Your Mongoose model
 
 exports.getAllDoctors = async (req, res) => {
@@ -12,9 +13,13 @@ exports.getAllDoctors = async (req, res) => {
 	}
 };
 
-exports.uploadDoctorsFromGoogleSheet = async () => {
+exports.uploadDoctorsFromGoogleSheet = async (req, res) => {
     try {
         const filePath = path.join(__dirname, 'doctors.xlsx'); // Excel file must be here
+        if (!fs.existsSync(filePath)) {
+            if (res) return res.status(404).json({ message: "Excel file not found" });
+            else return;
+        }
         const workbook = xlsx.readFile(filePath);
         const sheetName = workbook.SheetNames[0]; // assumes first sheet
         const sheet = workbook.Sheets[sheetName];
@@ -22,6 +27,7 @@ exports.uploadDoctorsFromGoogleSheet = async () => {
 
         if (!rows || rows.length === 0) {
             console.log('ℹ️ Excel file is empty.');
+            if (res) return res.status(400).json({ message: "Excel file is empty" });
             return;
         }
 
@@ -70,13 +76,16 @@ exports.uploadDoctorsFromGoogleSheet = async () => {
 
         if (doctors.length === 0) {
             console.log('⚠️ No valid doctor data to upload.');
+            if (res) return res.status(400).json({ message: "No valid doctor data to upload" });
             return;
         }
 
         await Doctor.insertMany(doctors);
         console.log(`✅ Uploaded ${doctors.length} doctors to MongoDB.`);
+        if (res) return res.status(200).json({ message: `Uploaded ${doctors.length} doctors successfully` });
     } catch (error) {
         console.error('❌ Failed to upload doctors from Excel:', error.message);
+        if (res) return res.status(500).json({ message: "Failed to upload doctors", error: error.message });
     }
 };
 

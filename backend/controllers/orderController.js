@@ -27,6 +27,7 @@ exports.updateOrderReview = async (req, res) => {
             rating,
             comment,
             createdAt: new Date(), // when review submitted
+            deliveredAt: receivingDate ? new Date(receivingDate) : undefined,
         };
 
         // Update the order
@@ -35,7 +36,6 @@ exports.updateOrderReview = async (req, res) => {
             {
                 $set: {
                     review: reviewData,
-                    deliveredAt: receivingDate ? new Date(receivingDate) : undefined,
                     orderStatus: "delivered", 
                 },
             },
@@ -64,7 +64,7 @@ exports.createOrder = async (req, res) => {
         const formattedItems = items.map(item => ({
             medicineId: item.medicineId,   // required
             quantity: item.quantity,       // required
-            subTotal: item.subtotal        // required
+            subTotal: item.subTotal || item.subtotal        // required
         }));
 
         // Map buyer to schema-required fields

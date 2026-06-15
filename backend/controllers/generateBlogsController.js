@@ -116,7 +116,11 @@ exports.getAllBlogs = async (req, res) => {
         const allBlogs = [...normalizedAIBlogs, ...normalizedNormalBlogs];
 
         // Ensure date field is consistently a Date object for safe sorting
-        allBlogs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        allBlogs.sort((a, b) => {
+            const dateA = a.date ? new Date(a.date).getTime() : 0;
+            const dateB = b.date ? new Date(b.date).getTime() : 0;
+            return dateB - dateA;
+        });
 
 
         res.status(200).json({
@@ -181,6 +185,12 @@ exports.updateBlog = async (req, res) => {
     const updateData = req.body;
 
     try {
+        if (updateData.content && updateData.content.text) {
+            const cleanHtml = await convertMarkdownToHtml(updateData.content.text);
+            updateData.content.html = cleanHtml;
+            updateData.content.text = undefined;
+        }
+
         let updatedBlog = await AIBlog.findByIdAndUpdate(id, updateData, {
             new: true,
             runValidators: true,

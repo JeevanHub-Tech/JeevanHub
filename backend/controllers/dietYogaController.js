@@ -79,8 +79,8 @@ exports.prescribeYoga = async (req, res) => {
 
 	try {
 		// 1. Validation
-		if (!bookingId || !yogaPlan) {
-			return res.status(400).json({ error: "Booking ID and Yoga Plan are required" });
+		if (!bookingId || !yogaPlan || !patientId || !doctorId) {
+			return res.status(400).json({ error: "Booking ID, Patient ID, Doctor ID, and Yoga Plan are required" });
 		}
 
 		// 2. Check if the booking exists

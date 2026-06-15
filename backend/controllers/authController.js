@@ -38,6 +38,10 @@ exports.registerAdmin = async (req, res) => {
 			}
 		});
 	} catch (error) {
+		if (error.code === 11000) {
+			const duplicateField = Object.keys(error.keyValue)[0];
+			return res.status(400).json({ error: `${duplicateField} already exists` });
+		}
 		if (error.name === 'ValidationError') {
 			const messages = Object.values(error.errors).map(val => val.message);
 			return res.status(400).json({ error: messages.join(', ') });
@@ -274,6 +278,9 @@ exports.handleForgotPassword = async (req, res) => {
 		await user.save();
 
 		// 5. Trigger WhatsApp Message
+		if (!user.phone) {
+			return res.status(400).json({ message: "No phone number associated with this account." });
+		}
 		const userPhone = user.phone.toString();
 
 		// await sendOTPWhatsApp(userPhone, user.firstName, otp);

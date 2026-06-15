@@ -26,7 +26,9 @@ const chatRoutes = require("./routes/chatRoutes");
 const { startScheduler } = require("./scheduler");
 const paymentRoutes = require("./routes/paymentRoutes");
 
-mongoose.set('debug', true);
+if (process.env.NODE_ENV !== 'production') {
+    mongoose.set('debug', true);
+}
 const app = express();
 const PORT = process.env.PORT || 8080;
 
@@ -87,6 +89,15 @@ app.use("/api/payment", paymentRoutes);
 
 // Start the scheduler
 startScheduler();
+
+// Global error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ 
+      message: "Internal Server Error", 
+      error: process.env.NODE_ENV === 'production' ? null : err.message 
+  });
+});
 
 // Start the server
 app.listen(PORT, () => {

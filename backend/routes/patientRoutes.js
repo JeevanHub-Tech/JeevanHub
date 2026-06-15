@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const auth = require('../middleware/auth');
 const { getAllPatients,
     deletePatient,
     getPatientById,
@@ -9,12 +10,12 @@ const { getAllPatients,
     createTempOrder,
     addDietYoga } = require('../controllers/patientController');
 
-router.get('/getAllPatients', getAllPatients);
-router.put('/updatePatient/:id', updatePatient);
-router.delete('/deletePatient/:id', deletePatient);
-router.get('/getPatient/:id', getPatientById);
-router.get('/dietYoga/:patientId', getPatientDietYoga);
-router.get('/orders/:buyerId', getOrdersByBuyerId);
+router.get('/getAllPatients', auth, getAllPatients);
+router.put('/updatePatient/:id', auth, updatePatient);
+router.delete('/deletePatient/:id', auth, deletePatient);
+router.get('/getPatient/:id', auth, getPatientById);
+router.get('/dietYoga/:patientId', auth, getPatientDietYoga);
+router.get('/orders/:buyerId', auth, getOrdersByBuyerId);
 // router.post('/dietYoga', addDietYoga);
 // router.post('/createTempOrder', createTempOrder);
 

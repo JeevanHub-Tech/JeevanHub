@@ -4,7 +4,7 @@ const DoctorData = require("../models/DoctorData");
 // Get All Doctors (Public)
 exports.getAllDoctors = async (req, res) => {
 	try {
-		const doctors = await Doctor.find();
+		const doctors = await Doctor.find().select('-password');
 
 		const doctorsWithQrUrls = doctors.map((doc) => {
 			return {
@@ -40,8 +40,8 @@ const calculateAge = (dob) => {
 // Get All Doctors from both collections (Public)
 exports.getAllDoctorsData = async (req, res) => {
 	try {
-		const doctors = await Doctor.find();
-		const doctorData = await DoctorData.find();
+		const doctors = await Doctor.find().select('-password');
+		const doctorData = await DoctorData.find().select('-password');
 
 		const formattedDoctors = doctors.map((doc) => ({
 			_id: doc._id,
@@ -111,7 +111,7 @@ exports.getDoctorById = async (req, res) => {
 	const { id } = req.params;
 
 	try {
-		let doc = await Doctor.findById(id);
+		let doc = await Doctor.findById(id).select('-password');
 
 		if (doc) {
 			const formattedDoctor = {
@@ -142,7 +142,7 @@ exports.getDoctorById = async (req, res) => {
 			return res.status(200).json(formattedDoctor);
 		}
 
-		doc = await DoctorData.findById(id);
+		doc = await DoctorData.findById(id).select('-password');
 
 		if (doc) {
 			const formattedDoctorData = {

@@ -11,7 +11,8 @@ router.get("/", async (req, res) => {
 
   try {
     let results = [];
-    const regex = new RegExp(s, "i");
+    const escapeRegex = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(escapeRegex(s), "i");
 
     switch (type) {
       case "doctor":
@@ -29,8 +30,8 @@ router.get("/", async (req, res) => {
         results = results.map(entry => ({ name: entry.diet || entry.yoga }));
         break;
       case "disease":
-        // Placeholder — assuming treatment data is in a `Treatment` model
-        results = await Treatment.find({ name: regex }).select("name _id");
+        // Treatment model does not exist. Returning empty array to prevent crash.
+        results = [];
         break;
     }
 

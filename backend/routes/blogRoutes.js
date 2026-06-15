@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const auth = require('../middleware/auth');
 const {
     getOneBlog,
     getBlogsByAuthor,
@@ -10,7 +11,7 @@ const {
 
 
 // Create a new blog
-router.post('/', createBlog);
+router.post('/', auth, createBlog);
 
 // Get all blogs (for public view)
 router.get('/', getallBlog);
@@ -29,6 +30,6 @@ router.get('/doctor/:doctorId', (req, res) => {
 router.get('/:id', getOneBlog);
 
 // Delete a blog
-router.delete('/:id', deleteBlog);
+router.delete('/:id', auth, deleteBlog);
 
 module.exports = router;

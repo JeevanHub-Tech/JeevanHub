@@ -7,7 +7,7 @@ exports.createBlog = async (req, res) => {
     try {
         const { title, description, category, image } = req.body;
         const authorType = req.user.role;
-        const authorId = req.user._id || req.user.id;
+        const authorId = req.user._id;
         let authorName;
 
         // Find the author based on type to get the name
@@ -87,7 +87,7 @@ exports.deleteBlog = async (req, res) => {
         }
 
         // Ownership check
-        if (blog.authorId.toString() !== (req.user._id || req.user.id).toString() && req.user.role !== 'admin') {
+        if (blog.authorId.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
             return res.status(403).json({ message: 'Not authorized to delete this blog' });
         }
 

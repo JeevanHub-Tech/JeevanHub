@@ -6,7 +6,7 @@ const Medicine = require("../models/Medicine");
 // Get All Patients (Public)
 exports.getAllPatients = async (req, res) => {
 	try {
-		const patients = await Patient.find();
+		const patients = await Patient.find().select('-password');
 
 		res.status(200).json(patients);
 	} catch (error) {
@@ -23,6 +23,9 @@ exports.updatePatient = async (req, res) => {
 	const updates = req.body;
 
 	try {
+		if (req.user.role !== 'admin' && req.user._id.toString() !== id) {
+			return res.status(403).json({ message: "Not authorized to update this patient" });
+		}
 		let patient = await Patient.findById(id);
 
 		if (patient) {
@@ -53,6 +56,9 @@ exports.deletePatient = async (req, res) => {
 	const { id } = req.params;
 
 	try {
+		if (req.user.role !== 'admin' && req.user._id.toString() !== id) {
+			return res.status(403).json({ message: "Not authorized to delete this patient" });
+		}
 		const deletedPatient = await Patient.findByIdAndDelete(id);
 
 		if (!deletedPatient) {
@@ -71,7 +77,7 @@ exports.getPatientById = async (req, res) => {
 	const { id } = req.params;
 
 	try {
-		const patient = await Patient.findById(id);
+		const patient = await Patient.findById(id).select('-password');
 
 		if (!patient) {
 			return res.status(404).json({ message: "Patient not found" });

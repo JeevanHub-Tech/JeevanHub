@@ -27,32 +27,32 @@ const {
 router.post("/", auth, createBooking);
 
 // Route to fetch all bookings
-router.get("/bookings", getAllBookings);
+router.get("/bookings", auth, getAllBookings);
 
 // Route to fetch all notifications
-router.get("/notifications", getNotifications);
+router.get("/notifications", auth, getNotifications);
 
 // PUT route to update booking requestAccept status
 router.put("/update/:id", auth, updateBookingStatus);
 
-router.put("/update/meet-link/:id", updateMeetLink);
+router.put("/update/meet-link/:id", auth, updateMeetLink);
 
 // DELETE route to delete a booking by ID
 router.delete("/delete/:id", auth, deleteBooking);
 
 // Route to update recommended supplements
-router.put("/supplements", prescribeMedicine);
+router.put("/supplements", auth, prescribeMedicine);
 
 // Route to get recommended supplements
-router.get("/supplements/:id", getRecommendedSupplements);
+router.get("/supplements/:id", auth, getRecommendedSupplements);
 
 // Route to update rating and review
-router.put("/rating-review/:id", updateRatingAndReview);
+router.put("/rating-review/:id", auth, updateRatingAndReview);
 
 // Route to get rating and review
-router.get("/rating-review/:id", getRatingAndReview);
+router.get("/rating-review/:id", auth, getRatingAndReview);
 
-router.get("/reviews/:doctorEmail", async (req, res) => {
+router.get("/reviews/:doctorEmail", auth, async (req, res) => {
   const { doctorEmail } = req.params;
   try {
     const reviews = await Booking.find({
@@ -67,31 +67,23 @@ router.get("/reviews/:doctorEmail", async (req, res) => {
   }
 });
 
-router.post("/:id/payment", bookingController.uploadPaymentScreenshot);
+router.post("/:id/payment", auth, bookingController.uploadPaymentScreenshot);
 
-// GET all bookings
-router.get("/", async (req, res) => {
-  try {
-    const bookings = await Booking.find(); // Fetch from DB
-    res.json(bookings);
-  } catch (error) {
-    res.status(500).json({ message: "Error fetching bookings" });
-  }
-});
+// Removed duplicate GET / here
 
 // Temporary route for adding a booking (for testing)
-router.post("/temp", addTempBooking);
+router.post("/temp", auth, addTempBooking);
 
 // Get bookings by patient ID
-router.get("/patient/:patientId", getBookingsByPatientId);
+router.get("/patient/:patientId", auth, getBookingsByPatientId);
 
 // Get bookings by doctor ID
-router.get("/doctor/:doctorId", getBookingsByDoctorId);
+router.get("/doctor/:doctorId", auth, getBookingsByDoctorId);
 
 // Get reviewed bookings by patient ID
-router.get("/patient/reviews/:patientId", getReviewedBookingsByPatientId);
+router.get("/patient/reviews/:patientId", auth, getReviewedBookingsByPatientId);
 
 // Get reviewed bookings by doctor ID
-router.get("/doctor/reviews/:doctorId", getReviewedBookingsForDoctorId);
+router.get("/doctor/reviews/:doctorId", auth, getReviewedBookingsForDoctorId);
 
 module.exports = router;

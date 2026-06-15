@@ -6,7 +6,7 @@ const Medicine = require("../models/Medicine");
 
 exports.getAllRetailers = async (req, res) => {
     try {
-        const retailers = await Retailer.find();
+        const retailers = await Retailer.find().select('-password');
 
         if (!retailers || retailers.length === 0) {
             return res.status(404).json({
@@ -28,7 +28,7 @@ exports.getSingleRetailer = async (req, res) => {
     try {
         const { id } = req.params;
 
-        const retailer = await Retailer.findById(id);
+        const retailer = await Retailer.findById(id).select('-password');
 
         if (!retailer) {
             return res.status(404).json({

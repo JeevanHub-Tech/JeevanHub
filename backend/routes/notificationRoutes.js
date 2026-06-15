@@ -7,7 +7,7 @@ const auth = require('../middleware/auth');
 // Get all notifications for a user
 router.get('/', auth, async (req, res) => {
   try {
-    const notifications = await Notification.find({ userId: req.user.id })
+    const notifications = await Notification.find({ userId: req.user._id })
       .sort({ createdAt: -1 });  // Sort by creation date, newest first
     
     res.json(notifications);
@@ -27,7 +27,7 @@ router.post('/', auth, async (req, res) => {
     }
     
     const newNotification = new Notification({
-      userId: req.user.id,
+      userId: req.user._id,
       role: req.user.role || 'patient', // Provide role
       orderId,
       type: type || 'system',
@@ -54,7 +54,7 @@ router.patch('/:id/read', auth, async (req, res) => {
     }
     
     // Check if this notification belongs to the authenticated user
-    if (notification.userId.toString() !== req.user.id) {
+    if (notification.userId.toString() !== req.user._id.toString()) {
       return res.status(403).json({ message: 'Not authorized' });
     }
     
@@ -72,7 +72,7 @@ router.patch('/:id/read', auth, async (req, res) => {
 router.patch('/read-all', auth, async (req, res) => {
   try {
     await Notification.updateMany(
-      { userId: req.user.id, isRead: false },
+      { userId: req.user._id, isRead: false },
       { $set: { isRead: true } }
     );
     
@@ -93,11 +93,11 @@ router.delete('/:id', auth, async (req, res) => {
     }
     
     // Check if this notification belongs to the authenticated user
-    if (notification.userId.toString() !== req.user.id) {
+    if (notification.userId.toString() !== req.user._id.toString()) {
       return res.status(403).json({ message: 'Not authorized' });
     }
     
-    await notification.remove();
+    await Notification.findByIdAndDelete(req.params.id);
     res.json({ message: 'Notification removed' });
   } catch (err) {
     console.error('Error deleting notification:', err);

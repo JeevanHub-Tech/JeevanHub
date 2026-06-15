@@ -1,8 +1,9 @@
 const express = require('express');
 const router = express.Router();
+const auth = require('../middleware/auth');
 const { uploadDoctorsFromGoogleSheet, getAllDoctors, deleteDoctor } = require('../controllers/uploadController');
 
-router.post('/', async (req, res) => {
+router.post('/', auth, async (req, res) => {
     try {
         await uploadDoctorsFromGoogleSheet();
         res.status(200).json({ message: 'Upload query called successfully - Please check if data upload was successfull' });
@@ -11,7 +12,7 @@ router.post('/', async (req, res) => {
     }
 });
 
-router.get('/getdoctors', getAllDoctors);
-router.delete('/deleteDoctor/:id', deleteDoctor);
+router.get('/getdoctors', auth, getAllDoctors);
+router.delete('/deleteDoctor/:id', auth, deleteDoctor);
 
 module.exports = router;

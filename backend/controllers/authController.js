@@ -279,8 +279,7 @@ exports.handleForgotPassword = async (req, res) => {
 		// await sendOTPWhatsApp(userPhone, user.firstName, otp);
 
 		return res.status(200).json({
-			message: "Success! OTP generated (WhatsApp disabled in sandbox).",
-			otp: otp // Include OTP in response for testing
+			message: "Success! OTP generated (WhatsApp disabled in sandbox)."
 		});
 
 	} catch (error) {

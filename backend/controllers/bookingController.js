@@ -17,6 +17,14 @@ exports.updateRatingAndReview = async (req, res) => {
 			return res.status(400).json({ error: "Rating must be between 1 and 5" });
 		}
 
+		const booking = await Booking.findById(id);
+		if (!booking) {
+			return res.status(404).json({ error: "Booking not found" });
+		}
+		if (booking.patientId.toString() !== req.user._id.toString()) {
+			return res.status(403).json({ error: "Not authorized to update this booking" });
+		}
+
 		const updatedBooking = await Booking.findByIdAndUpdate(
 			id,
 			{ rating, review },

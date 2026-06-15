@@ -6,6 +6,7 @@ const Doctor = require("../models/Doctor");
 const QRCode = require("qrcode"); 
 const path = require("path"); 
 const fs = require("fs");
+const auth = require("../middleware/auth");
 
 const { getAllDoctors, 
     getAllDoctorsData, 
@@ -13,7 +14,7 @@ const { getAllDoctors,
     getDoctorById } = require("../controllers/doctorController");
 
 // Public Routes
-router.get("/", getAllDoctors); 
+router.get("/", auth, getAllDoctors); 
 
 // Multer setup for file upload
 const storage = multer.memoryStorage();
@@ -21,7 +22,7 @@ const upload = multer({ storage: storage });
 const uploadDirectory = path.join(__dirname, "../uploads/doctos");
 
 // Upload Excel file and process
-router.post("/upload", upload.single("file"), async (req, res) => {
+router.post("/upload", auth, upload.single("file"), async (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({ message: "No file uploaded" });
@@ -61,7 +62,7 @@ const generateQRCode = async (doctorId) => {
 };
 
 // Endpoint to get QR Code for doctor
-router.get("/:id/qr-code", async (req, res) => {
+router.get("/:id/qr-code", auth, async (req, res) => {
     try {
         const doctor = await Doctor.findById(req.params.id);
         console.log("Doctor fetched from DB:", doctor); // Log doctor data
@@ -107,7 +108,7 @@ router.get("/:id/qr-code", async (req, res) => {
 });
 
 // Delete doctor by ID
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", auth, async (req, res) => {
     try {
         const doctor = await Doctor.findByIdAndDelete(req.params.id);
 
@@ -123,12 +124,12 @@ router.delete("/:id", async (req, res) => {
 });
 
 // New route to get all doctors from both collections
-router.get("/allDoctors", getAllDoctorsData); 
+router.get("/allDoctors", auth, getAllDoctorsData); 
 
 // New route to get doctor by ID from both collections
-router.get("/getDoctorById/:id", getDoctorById);
+router.get("/getDoctorById/:id", auth, getDoctorById);
 
 // update doctor details
-router.put("/updateDoctor/:id", updateDoctor);
+router.put("/updateDoctor/:id", auth, updateDoctor);
 
 module.exports = router;

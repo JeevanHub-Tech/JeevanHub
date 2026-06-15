@@ -26,6 +26,14 @@ const PatientSchema = new mongoose.Schema({
   isOTPVerified: {
     type: Boolean,
     default: false
+  },
+  hasTakenAssessment: { 
+    type: Boolean, 
+    default: false 
+  },
+  lastAssessmentDate: { 
+    type: Date, 
+    default: null 
   }
 }, { timestamps: true });
 

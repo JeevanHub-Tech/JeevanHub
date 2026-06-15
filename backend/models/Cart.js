@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const cartSchema = new mongoose.Schema({
     patientId:{type: mongoose.Schema.Types.ObjectId, ref: 'Patient', required: true},
-    doctorId:{type: mongoose.Schema.Types.ObjectId, ref: 'Doctor', required: true},
+    doctorId:{type: mongoose.Schema.Types.ObjectId, ref: 'Doctor', required: false},
     items: [{
         medicineId: { type: mongoose.Schema.Types.ObjectId, ref: 'Medicine', required: true },
         quantity: { type: Number, required: true },

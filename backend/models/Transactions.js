@@ -15,9 +15,11 @@ const TransactionSchema = new mongoose.Schema({
   // 🛒 Only for medicine purchases
   medicineStatus: {
     orderId: { type: mongoose.Schema.Types.ObjectId, ref: "Order", required: false },
-    type: String,
-    enum: ["Pending", "Received", "Shipped"],
-    default: null
+    status: {
+      type: String,
+      enum: ["Pending", "Received", "Shipped"],
+      default: null
+    }
   }
 }, { timestamps: true });
 

@@ -24,7 +24,7 @@ exports.getNotifications = async (req, res) => {
     let { patientId, userId, role } = req.query;
 
     if (!patientId && !userId && req.user) {
-        userId = req.user.id;
+        userId = req.user._id;
     }
     if (!role && req.user) {
         role = req.user.role;
@@ -73,7 +73,7 @@ exports.markAsRead = async (req, res) => {
 
 exports.markAllAsRead = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user._id;
     
     await Notification.updateMany(
       { userId: userId, isRead: false },

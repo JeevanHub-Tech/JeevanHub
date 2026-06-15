@@ -180,7 +180,7 @@ router.delete("/users/:id", auth, async (req, res) => {
 });
 
 // Fetch all retailers
-router.get("/retailers", async (req, res) => {
+router.get("/retailers", auth, async (req, res) => {
   try {
     const retailers = await Retailer.find({});
     res.status(200).json(retailers);
@@ -191,7 +191,7 @@ router.get("/retailers", async (req, res) => {
 });
 
 // Fetch all doctors
-router.get("/doctors", async (req, res) => {
+router.get("/doctors", auth, async (req, res) => {
   try {
     const doctors = await Doctor.find({});
     res.status(200).json(doctors);
@@ -202,7 +202,7 @@ router.get("/doctors", async (req, res) => {
 });
 
 // API route to upload Excel file and save retailers
-router.post("/upload-retailers", upload.single("file"), async (req, res) => {
+router.post("/upload-retailers", auth, upload.single("file"), async (req, res) => {
   try {
     console.log("File received:", req.file);
 

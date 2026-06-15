@@ -1,10 +1,11 @@
 const express = require('express');
 const router = express.Router();
+const auth = require('../middleware/auth');
 const { getAllRetailers,
     getSingleRetailer
  } = require('../controllers/retailerController');
 
-router.get('/getAllRetailers', getAllRetailers);
-router.get('/getSingleRetailer/:id', getSingleRetailer);
+router.get('/getAllRetailers', auth, getAllRetailers);
+router.get('/getSingleRetailer/:id', auth, getSingleRetailer);
 
 module.exports = router;

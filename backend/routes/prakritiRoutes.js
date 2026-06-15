@@ -27,7 +27,7 @@ const {
 router.post("/assessment", verifyToken, submitAssessment);
 
 // GET route to fetch Prakriti Assessment for a specific patient
-router.post("/assessment/getall", verifyToken, getPrakritiAssessment);
+router.get("/assessment/getall", verifyToken, getPrakritiAssessment);
 
 // DELETE route to delete Prakriti Assessment for a specific patient
 router.delete("/assessment/:patientEmail", verifyToken, deleteAssessment);

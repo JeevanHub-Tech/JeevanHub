@@ -44,7 +44,11 @@ exports.addMedicinesFromZip = async (req, res) => {
 
       let imagePath = null;
       if (imageEntry) {
-        imagePath = path.join(uploadDir, imageFileName);
+        imagePath = path.resolve(uploadDir, imageFileName);
+        const resolvedUploadDir = path.resolve(uploadDir);
+        if (!imagePath.startsWith(resolvedUploadDir + path.sep)) {
+          return res.status(400).json({ message: 'Invalid file path in zip' });
+        }
         fs.writeFileSync(imagePath, zip.readFile(imageEntry));
       }
 

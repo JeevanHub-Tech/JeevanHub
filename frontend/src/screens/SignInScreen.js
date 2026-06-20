@@ -4,6 +4,67 @@ import "./SignInScreen.css";
 import logo from "../media/logo.png"; // Import your logo
 import { AuthContext } from "../context/AuthContext";
 
+const PasswordInput = ({ value, onChange, placeholder, name }) => {
+	const [show, setShow] = useState(false);
+	return (
+		<div style={{ position: 'relative', width: '100%', marginBottom: '15px' }}>
+			<input 
+				type={show ? "text" : "password"} 
+				name={name}
+				value={value} 
+				onChange={onChange} 
+				placeholder={placeholder} 
+				required 
+				style={{ 
+					width: '100%', 
+					padding: '15px', 
+					paddingRight: '45px', 
+					borderRadius: '5px', 
+					border: '1px solid #ccc', 
+					fontSize: '16px',
+					boxSizing: 'border-box',
+					margin: 0,
+					fontFamily: 'inherit',
+					outline: 'none'
+				}} 
+			/>
+			<button 
+				type="button" 
+				tabIndex="-1" 
+				onClick={() => setShow(!show)} 
+				style={{ 
+					position: 'absolute', 
+					right: '15px', 
+					top: '50%', 
+					transform: 'translateY(-50%)', 
+					background: 'transparent', 
+					border: 'none', 
+					cursor: 'pointer', 
+					color: '#666', 
+					padding: 0, 
+					display: 'flex', 
+					alignItems: 'center',
+					justifyContent: 'center',
+					height: '100%'
+				}}
+			>
+				{show ? (
+					<svg width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
+						<path d="M13.359 11.238C15.06 9.72 16 8 16 8s-3-5.5-8-5.5a7.028 7.028 0 0 0-2.79.588l.77.771A5.944 5.944 0 0 1 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.134 13.134 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755l.192.195z"/>
+						<path d="M11.297 9.176a3.5 3.5 0 0 0-4.474-4.474l.823.823a2.5 2.5 0 0 1 2.829 2.829l.822.822zm-2.943 1.299.822.822a3.5 3.5 0 0 1-4.474-4.474l.823.823a2.5 2.5 0 0 0 2.829 2.829z"/>
+						<path d="M3.35 5.47c-.18.16-.353.322-.518.487A13.134 13.134 0 0 0 1.172 8l.195.288c.335.48.83 1.12 1.465 1.755C4.121 11.332 5.881 12.5 8 12.5c.716 0 1.39-.133 2.02-.36l.77.772A7.029 7.029 0 0 1 8 13.5C3 13.5 0 8 0 8s.939-1.721 2.641-3.238l.708.709zm10.296 8.884-12-12 .708-.708 12 12-.708.708z"/>
+					</svg>
+				) : (
+					<svg width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
+						<path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"/>
+						<path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z"/>
+					</svg>
+				)}
+			</button>
+		</div>
+	);
+};
+
 function SignInScreen() {
 	const { auth, setAuth } = useContext(AuthContext);
 	const [formData, setFormData] = useState({
@@ -102,14 +163,19 @@ function SignInScreen() {
 						navigate("/patient-home");
 						break;
 					case "admin":
-						navigate("/admin-home");
+						if (result.forcePasswordReset) {
+							alert("Your account requires a password reset. Redirecting to profile...");
+							navigate("/admin/profile");
+						} else {
+							navigate("/admin-home");
+						}
 						break;
 					default:
 						navigate("/");
 						break;
 				}
 			} else {
-				alert(result.error || "Invalid credentials");
+				alert(result.message || result.error || "Invalid credentials");
 			}
 		} catch (error) {
 			console.error("Error during sign-in:", error);
@@ -277,23 +343,18 @@ function SignInScreen() {
 			<div className='reset-password-form'>
 				<h2>Set Your New Password</h2>
 
-				<div style={{ display: "flex", flexDirection: "column", padding: "15px" }}>
-					<input
-						type="password"
+				<div style={{ display: "flex", flexDirection: "column", padding: "15px", gap: "0px" }}>
+					<PasswordInput
 						name="newPassword"
 						value={newPassword}
 						onChange={(e) => setNewPassword(e.target.value)}
 						placeholder="Enter New Password"
-						required
 					/>
-
-					<input
-						type="password"
+					<PasswordInput
 						name="confirmPassword"
 						value={confirmPassword}
 						onChange={(e) => setConfirmPassword(e.target.value)}
 						placeholder="Confirm New Password"
-						required
 					/>
 				</div>
 
@@ -306,6 +367,12 @@ function SignInScreen() {
 	//////////////////////////////////////////////////////////
 	return (
 		<div className="signin-container">
+			<style>{`
+				input[type="password"]::-ms-reveal,
+				input[type="password"]::-ms-clear {
+					display: none;
+				}
+			`}</style>
 			<div className="signin-left">
 				<img src={logo} alt="Ayurvedic Logo" className="ayurvedic-logo" />
 				<h1>AYURVEDIC</h1>
@@ -325,7 +392,13 @@ function SignInScreen() {
 						{/* Form for sign-in, with onSubmit triggering handleSignIn */}
 						<form className='signin-form' onSubmit={handleSignIn}>
 							<input type="email" name="email" value={formData.email} onChange={handleInputChange} placeholder="Mail ID" required />
-							<input type="password" name="password" value={formData.password} onChange={handleInputChange} placeholder="Password" required />
+							
+							<PasswordInput
+								name="password"
+								value={formData.password}
+								onChange={handleInputChange}
+								placeholder="Password"
+							/>
 
 							{/* Role Selection Dropdown */}
 							<label htmlFor="role">Select Role:</label>

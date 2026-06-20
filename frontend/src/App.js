@@ -42,6 +42,9 @@ import CheckoutScreen from './screens/CheckoutScreen';
 
 import AdminPage from './screens/admin/AdminPage';
 import AdminUsers from './screens/admin/AdminUsers';
+import AdminProfile from './screens/admin/AdminProfile';
+import AdminManagement from './screens/admin/AdminManagement';
+import AdminAuditLogs from './screens/admin/AdminAuditLogs';
 import AdminDoctors from './screens/admin/doctors/AdminDoctors';
 import AdminRetailers from './screens/admin/Retailer/AdminRetailers';
 import AdminNavBar from './screens/admin/AdminNavbar';
@@ -138,6 +141,9 @@ function App() {
         <Route path="/patient-home" element={<PatientPage />} />
 
         <Route path="/admin-home" element={<AdminPage />} />
+        <Route path="/admin/profile" element={<AdminProfile />} />
+        <Route path="/admin/management" element={<AdminManagement />} />
+        <Route path="/admin/audit-logs" element={<AdminAuditLogs />} />
         <Route path="/admin/consultations" element={<DoctorList />} />
         <Route path="/admin/blogs" element={<AdminBlogs />} />
         <Route path="/admin/blogs/update/:id" element={<AdminBlogsUpdate />} />

@@ -15,11 +15,15 @@ const API_KEY = "f08bb887cc0d42bb8b9fb21993c3a6d3"; // Replace with your OpenCag
 function AdminNavBar() {
 	const navigate = useNavigate();
 	const { auth, setAuth } = useContext(AuthContext);
-	const [showModal, setShowModal] = useState(false);
-	const modalRef = useRef(null);
+	const profileRef = useRef(null);
+	const adminModalRef = useRef(null);
 	const [userLocation, setUserLocation] = useState("Fetching location...");
 	const [cityName, setCityName] = useState(""); // State for city name
 	const [userAddress, setUserAddress] = useState(auth.user?.address || "Not available");
+
+	const handleProfileClick = () => {
+		navigate('/admin/profile');
+	};
 
 	const profilePic = "";
 	const userFirstName = auth.user ? auth.user.firstName : "Guest";
@@ -62,24 +66,17 @@ function AdminNavBar() {
 		fetchLocation();
 	}, []);
 
-	// Close modal when clicking outside of it
+	// Close menu when clicking outside of it (if we need to retain any menu functionality)
 	useEffect(() => {
 		function handleClickOutside(event) {
-			if (modalRef.current && !modalRef.current.contains(event.target)) {
-				setShowModal(false);
-			}
+			// Other click outside logic if needed
 		}
 
-		if (showModal) {
-			document.addEventListener("mousedown", handleClickOutside);
-		} else {
-			document.removeEventListener("mousedown", handleClickOutside);
-		}
-
+		document.addEventListener("mousedown", handleClickOutside);
 		return () => {
 			document.removeEventListener("mousedown", handleClickOutside);
 		};
-	}, [showModal]);
+	}, []);
 
 	const fetchCityName = async (latitude, longitude) => {
 		try {
@@ -102,10 +99,6 @@ function AdminNavBar() {
 		}
 	};
 
-	const handleProfileClick = () => {
-		setShowModal(!showModal);
-	};
-
 	const handleChangeAddress = () => {
 		// Add functionality to update address via a form or API call
 		const newAddress = prompt("Enter new address:", userAddress);
@@ -113,11 +106,6 @@ function AdminNavBar() {
 			setUserAddress(newAddress);
 			// Call an API to update the user's address in the database
 		}
-	};
-
-	const handleOpenPrakritiForm = () => {
-		// Redirect to Prakriti Determination form page or show modal for the form
-		navigate("/prakritidetermination"); // Assume you have a page for this.
 	};
 
 	return (
@@ -155,15 +143,17 @@ function AdminNavBar() {
 						<input type="text" placeholder="Search" className="search-input" />
 					</div>
 				</div>
-				<div className="auth" onClick={handleProfileClick}>
-					<span className="topnav-username">{userName}</span>
-					<NavLink to="/Admin-home" className="signin-btn">
+				<div className="auth" style={{ display: "flex", alignItems: "center", gap: "15px" }}>
+					<span className="topnav-username" onClick={handleProfileClick} style={{ cursor: "pointer" }}>{userName}</span>
+					<div ref={profileRef} style={{ position: "relative", display: "flex", alignItems: "center" }}>
 						<img
 							src={profilePic || defaultProfilePic}
 							alt="Profile"
 							className="profile-pic"
+							onClick={handleProfileClick}
+							style={{ cursor: "pointer" }}
 						/>
-					</NavLink>
+					</div>
 				</div>
 				<NavLink to="/notifications" className="notification-icon">
 					<img
@@ -174,42 +164,9 @@ function AdminNavBar() {
 				</NavLink>
 			</div>
 
-			{
-				showModal && (
-					<div className="profile-shadow" style={{
-						height: "100vh", width: "100vw", backdropFilter: "blur(15px)",
-						position: "absolute", top: "0", zIndex: "-100"
-					}}></div>
-				)
-			}
 
-			{showModal && (
-				<div className="profile-modal" ref={modalRef}>
-					<div className="user-profile" >
-						<img src="https://images.unsplash.com/photo-1458696352784-ffe1f47c2edc?q=80&w=2071&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" alt="image" />
-					</div>
-					<h2>User Profile</h2>
-					<div className="profile-details">
-						<p>
-							<strong>Name:</strong> {userName}
-						</p>
-						<p>
-							<strong>Phone:</strong> {userPhone}
-						</p>
-						<p>
-							<strong>Email:</strong> {userEmail}
-						</p>
-					</div>
-					<div className="modal-btn-container">
-						<button onClick={handleSignOut} className="signout-btn">
-							Sign Out
-						</button>
-						<button onClick={handleProfileClick} className="close-btn">
-							Close
-						</button>
-					</div>
-				</div>
-			)}
+
+			{/* Admin Modal has been moved to Admin Management Page */}
 
 			<nav className="navbar">
 				<div className="left-item">

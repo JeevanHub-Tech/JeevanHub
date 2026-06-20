@@ -80,16 +80,32 @@ exports.loginUser = async (req, res) => {
 		}
 
 
+		if (role === 'admin' && user) {
+			if (!user.isActive) {
+				return res.status(403).json({ message: 'Your admin account has been deactivated. Contact a super admin.' });
+			}
+			user.lastLogin = new Date();
+			await user.save();
+		}
+
 		console.log("before token : user - ", user);
 		const token = generateToken(user);
-		res.status(200).json({
+		
+		const responsePayload = {
 			message: 'Login successful', token, user: {
 				id: user._id,
 				firstName: user.firstName,
 				lastName: user.lastName,
 				role,
 			}
-		});
+		};
+
+		if (role === 'admin') {
+			responsePayload.forcePasswordReset = user.forcePasswordReset;
+			responsePayload.user.permissions = user.permissions;
+		}
+
+		res.status(200).json(responsePayload);
 	} catch (error) {
 		res.status(500).json({ error: 'Login failed' });
 	}

@@ -82,6 +82,8 @@ function SignInScreen() {
 	const [showReset, setShowReset] = useState(false);
 	const navigate = useNavigate();
 	const [showPage, setShowPage] = useState("enterEmail");
+	
+	const [tempAuth, setTempAuth] = useState(null);
 
 	// Redirect if user is already authenticated
 	useEffect(() => {
@@ -142,27 +144,56 @@ function SignInScreen() {
 
 			const result = await response.json();
 			if (response.ok) {
-				localStorage.setItem("token", result.token);
-				localStorage.setItem("email", formData.email);
-				localStorage.setItem("role", formData.role);
-				setAuth({
-					token: result.token,
-					user: result.user,
-					role: formData.role,
-				});
-
 				// Redirect based on role
 				switch (formData.role) {
 					case "doctor":
-						navigate("/doctor-home");
+						if (result.forcePasswordReset) {
+							setTempAuth(result);
+							setShowReset(true);
+							setShowPage("ForceChangePassword");
+						} else {
+							localStorage.setItem("token", result.token);
+							localStorage.setItem("email", formData.email);
+							localStorage.setItem("role", formData.role);
+							setAuth({
+								token: result.token,
+								user: result.user,
+								role: formData.role,
+							});
+							navigate("/doctor-home");
+						}
 						break;
 					case "retailer":
+						localStorage.setItem("token", result.token);
+						localStorage.setItem("email", formData.email);
+						localStorage.setItem("role", formData.role);
+						setAuth({
+							token: result.token,
+							user: result.user,
+							role: formData.role,
+						});
 						navigate("/retailer-home");
 						break;
 					case "patient":
+						localStorage.setItem("token", result.token);
+						localStorage.setItem("email", formData.email);
+						localStorage.setItem("role", formData.role);
+						setAuth({
+							token: result.token,
+							user: result.user,
+							role: formData.role,
+						});
 						navigate("/patient-home");
 						break;
 					case "admin":
+						localStorage.setItem("token", result.token);
+						localStorage.setItem("email", formData.email);
+						localStorage.setItem("role", formData.role);
+						setAuth({
+							token: result.token,
+							user: result.user,
+							role: formData.role,
+						});
 						if (result.forcePasswordReset) {
 							alert("Your account requires a password reset. Redirecting to profile...");
 							navigate("/admin/profile");
@@ -292,6 +323,54 @@ function SignInScreen() {
 		}
 	};
 
+	const handleForceChangePassword = async () => {
+		if (!newPassword || !confirmPassword) {
+			alert("Please fill in both password fields.");
+			return;
+		}
+
+		if (newPassword !== confirmPassword) {
+			alert("Passwords do not match. Please try again.");
+			return;
+		}
+
+		try {
+			const response = await fetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/auth/force-change-password`, {
+				method: "PUT",
+				headers: {
+					"Content-Type": "application/json",
+					Authorization: `Bearer ${tempAuth.token}`
+				},
+				body: JSON.stringify({ newPassword }),
+			});
+
+			const data = await response.json();
+
+			if (response.ok) {
+				alert("Password successfully updated! Logging you in...");
+				
+				// Finalize login
+				localStorage.setItem("token", tempAuth.token);
+				localStorage.setItem("email", formData.email);
+				localStorage.setItem("role", formData.role);
+				setAuth({
+					token: tempAuth.token,
+					user: tempAuth.user,
+					role: formData.role,
+				});
+
+				setShowReset(false);
+				setTempAuth(null);
+				navigate("/doctor-home");
+			} else {
+				alert(data.message || "Failed to update password.");
+			}
+		} catch (error) {
+			console.error("Force Change Password Error:", error);
+			alert("An error occurred. Please try again.");
+		}
+	};
+
 	////////////////////////////////////////////////////////
 	const enterEmail = () => {
 		return (
@@ -364,6 +443,47 @@ function SignInScreen() {
 			</div>
 		);
 	};
+
+	const ForceChangePassword = () => {
+		return (
+			<div className='reset-password-form'>
+				<h2>Welcome! Set Your Permanent Password</h2>
+				<p style={{ color: "#666", marginBottom: "15px", textAlign: "center" }}>
+					For security reasons, you must change your temporary password before accessing your dashboard.
+				</p>
+
+				<div style={{ display: "flex", flexDirection: "column", padding: "15px", gap: "0px" }}>
+					<input 
+						type="password" 
+						value="••••••••" 
+						disabled 
+						style={{ 
+							width: '100%', padding: '15px', borderRadius: '5px', border: '1px solid #ccc', 
+							fontSize: '16px', boxSizing: 'border-box', marginBottom: '15px', 
+							backgroundColor: '#f8f9fa', color: '#6c757d', cursor: 'not-allowed' 
+						}} 
+					/>
+					<PasswordInput
+						name="newPassword"
+						value={newPassword}
+						onChange={(e) => setNewPassword(e.target.value)}
+						placeholder="Enter New Password"
+					/>
+					<PasswordInput
+						name="confirmPassword"
+						value={confirmPassword}
+						onChange={(e) => setConfirmPassword(e.target.value)}
+						placeholder="Confirm New Password"
+					/>
+				</div>
+
+				<button onClick={handleForceChangePassword} className="reset-btn" style={{ background: "#28a745" }}>
+					Update Password & Login
+				</button>
+			</div>
+		);
+	};
+
 	//////////////////////////////////////////////////////////
 	return (
 		<div className="signin-container">
@@ -420,7 +540,8 @@ function SignInScreen() {
 				) : (
 					(showPage === "enterEmail" && enterEmail()) ||
 					(showPage === "OTPVerification" && OTPVerification()) ||
-					(showPage === "NewPassword" && NewPassword())
+					(showPage === "NewPassword" && NewPassword()) ||
+					(showPage === "ForceChangePassword" && ForceChangePassword())
 				)}
 			</div>
 		</div>

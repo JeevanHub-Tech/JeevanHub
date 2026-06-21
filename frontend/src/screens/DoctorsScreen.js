@@ -31,96 +31,39 @@ function DoctorsScreen() {
 
   // Fetch doctors from backend on component mount
   useEffect(() => {
-    fetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/doctors`)
+    fetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/doctors/allDoctors`)
       .then((response) => response.json())
       .then((data) => {
-        const mappedDoctors = data.map((doctor) => ({
+        // Only show approved doctors to the public
+        const approvedDoctors = data.filter(doc => doc.approvalStatus === 'Approved');
+        
+        const mappedDoctors = approvedDoctors.map((doctor) => ({
           id: doctor._id,
           name: `${doctor.firstName} ${doctor.lastName}`,
-          specialization: doctor.designation || "N/A",
-          experience: `${doctor.experience} years`,
+          specialization: doctor.specialization?.[0] || "N/A",
+          experience: doctor.experience ? `${doctor.experience} years` : "0 years",
           email: `${doctor.email}`,
-          education: `${doctor.education}`,
-          pricepoint: `${doctor.price}`,
+          education: doctor.education ? doctor.education : "N/A",
+          pricepoint: `${doctor.price || "0"}`,
           priceRange:
             doctor.price < 500
               ? "Low"
               : doctor.price >= 500 && doctor.price <= 1000
                 ? "Medium"
                 : "High",
-          location: typeof doctor.zipCode === "object" && doctor.zipCode !== null
-            ? (doctor.zipCode?.specific || doctor.zipCode?.pincode || "N/A")
-            : (doctor.zipCode || "N/A"),
-          language: "English",
+          location: doctor.zipCode || "N/A",
+          language: doctor.languages?.join(", ") || "English",
           rating: 4.0,
           gender: doctor.gender
             ? doctor.gender.charAt(0).toUpperCase() + doctor.gender.slice(1)
             : "N/A",
-          age: `${doctor.age}`,
+          age: `${doctor.age || "N/A"}`,
         }));
         setDoctors(mappedDoctors);
       })
       .catch((error) => {
         console.error("Error fetching doctors:", error);
       });
-
-    //////////////////////////////////////////////////////////////////////////////
-    // Append temporary doctors from second API
-    fetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/upload/getdoctors`)
-      .then((res) => res.json())
-      .then((extraData) => {
-        const mappedExtraDoctors = extraData.map((doctor) => ({
-          id: doctor._id || Math.random().toString(36).substring(2),
-          name: `${doctor.firstname || ""} ${doctor.lastname || ""}`,
-          specialization: doctor.specialization?.[0] || "N/A",
-          experience: doctor.experience
-            ? `${doctor.experience} years`
-            : "0 years",
-          email: doctor.email || "N/A",
-          education: doctor.education
-            ? `${doctor.education.degree}, ${doctor.education.college}`
-            : "N/A",
-          pricepoint: doctor.fee?.toString() || "0",
-          priceRange:
-            doctor.fee < 500
-              ? "Low"
-              : doctor.fee >= 500 && doctor.fee <= 1000
-                ? "Medium"
-                : "High",
-          location: typeof doctor.location === "object" && doctor.location !== null
-            ? (doctor.location?.specific || doctor.location?.pincode || "N/A")
-            : (doctor.location || "N/A"),
-          language: doctor.languages?.join(", ") || "English",
-          rating: 4.0, // or generate randomly if needed
-          gender: doctor.gender
-            ? doctor.gender.charAt(0).toUpperCase() + doctor.gender.slice(1)
-            : "Other",
-          age: doctor.dob
-            ? (() => {
-              const [day, month, year] = doctor.dob.split("/").map(Number);
-              if (!day || !month || !year) return "";
-              const birthDate = new Date(year, month - 1, day);
-              const today = new Date();
-              let age = today.getFullYear() - birthDate.getFullYear();
-              const m = today.getMonth() - birthDate.getMonth();
-              if (
-                m < 0 ||
-                (m === 0 && today.getDate() < birthDate.getDate())
-              ) {
-                age--;
-              }
-              return `${age}`;
-            })()
-            : "",
-        }));
-
-        // Append to existing doctors list
-        setDoctors((prev) => [...prev, ...mappedExtraDoctors]);
-      })
-      .catch((err) => {
-        console.warn("⚠️ Failed to fetch extra temporary doctors:", err);
-      });
-    //////////////////////////////////////////////////////////////////////////////
   }, []);
 
   const filteredDoctors = doctors.filter(

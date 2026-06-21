@@ -1,4 +1,5 @@
 const Doctor = require("../models/Doctor");
+const Feedback = require("../models/Feedback");
 const DoctorData = require("../models/DoctorData");
 
 // Get All Doctors (Public)
@@ -51,22 +52,32 @@ const calculateAge = (dob) => {
 	return age;
 };
 
-// Get All Doctors from both collections (Public)
+// Get All Doctors from unified collection (Admin & Public)
 exports.getAllDoctorsData = async (req, res) => {
 	try {
 		const doctors = await Doctor.find().select('-password');
-		const doctorData = await DoctorData.find().select('-password');
+		
+		// Fetch average ratings from Feedback collection
+		const ratings = await Feedback.aggregate([
+			{ $match: { toType: 'Doctor' } },
+			{ $group: { _id: '$to', averageRating: { $avg: '$stars' } } }
+		]);
+		
+		// Map ratings by doctor ID for quick lookup
+		const ratingMap = {};
+		ratings.forEach(r => {
+			if (r._id) ratingMap[r._id.toString()] = r.averageRating;
+		});
 
 		const formattedDoctors = doctors.map((doc) => ({
 			_id: doc._id,
-			source: "Doctor",
 			firstName: doc.firstName,
 			lastName: doc.lastName,
 			email: doc.email,
 			phone: doc.phone,
 			age: doc.age,
 			gender: doc.gender,
-			zipCode: doc.zipCode || doc.location?.pincode || "Not specified",
+			zipCode: doc.zipCode || "Not specified",
 			designation: doc.designation,
 			specialization: Array.isArray(doc.specialization) && doc.specialization.length > 0
 				? doc.specialization
@@ -78,45 +89,64 @@ exports.getAllDoctorsData = async (req, res) => {
 			price: doc.price,
 			education: doc.education,
 			dob: doc.dob,
+			approvalStatus: doc.approvalStatus || 'Pending',
 			qrCode: doc.qrCode
 				? `${process.env.BASE_URL || "http://localhost:5000"}/${doc.qrCode}`
 				: null,
-		}));
-
-		const formattedDoctorData = doctorData.map((doc) => ({
-			_id: doc._id,
-			source: "DoctorData",
-			firstName: doc.firstname,
-			lastName: doc.lastname,
-			email: doc.email,
-			phone: doc.whatsapp,
-			age: calculateAge(doc.dob),
-			gender: doc.gender,
-			zipCode: doc.location?.pincode || doc.zipCode || "Not specified",
-			designation: doc.education?.degree,
-			specialization: Array.isArray(doc.specialization) && doc.specialization.length > 0
-				? doc.specialization
-				: doc.specialization
-					? [doc.specialization]
-					: ["Not specified"],
-			experience: doc.experience,
-			certificate: doc.certificateLink,
-			price: doc.fee,
-			education: doc.education?.college,
-			dob: doc.dob,
-			qrCode: doc.imageLink
-				? `${process.env.BASE_URL || "http://localhost:5000"}/${doc.imageLink}`
+			profileImage: doc.profileImage
+				? `${process.env.BASE_URL || "http://localhost:5000"}/${doc.profileImage}`
 				: null,
+			lastLogin: doc.lastLogin,
+			rating: ratingMap[doc._id.toString()] || null
 		}));
 
-		const allDoctors = [...formattedDoctors, ...formattedDoctorData];
-
-		res.status(200).json(allDoctors);
+		res.status(200).json(formattedDoctors);
 	} catch (error) {
 		res.status(500).json({
 			message: "Failed to fetch Doctors",
 			error: error.message,
 		});
+	}
+};
+
+// Bulk Verify Doctors (Admin)
+exports.bulkVerifyDoctors = async (req, res) => {
+	try {
+		const { doctorIds, approvalStatus } = req.body;
+		
+		if (!Array.isArray(doctorIds) || doctorIds.length === 0) {
+			return res.status(400).json({ message: "No doctors selected for bulk update." });
+		}
+		
+		if (!['Approved', 'Rejected', 'Pending'].includes(approvalStatus)) {
+			return res.status(400).json({ message: "Invalid approval status." });
+		}
+
+		await Doctor.updateMany(
+			{ _id: { $in: doctorIds } },
+			{ $set: { approvalStatus } }
+		);
+
+		res.status(200).json({ message: `Successfully updated ${doctorIds.length} doctors to ${approvalStatus}.` });
+	} catch (error) {
+		res.status(500).json({ message: "Failed to perform bulk update", error: error.message });
+	}
+};
+
+// Bulk Delete Doctors (Admin)
+exports.bulkDeleteDoctors = async (req, res) => {
+	try {
+		const { doctorIds } = req.body;
+		
+		if (!Array.isArray(doctorIds) || doctorIds.length === 0) {
+			return res.status(400).json({ message: "No doctors selected for bulk delete." });
+		}
+
+		await Doctor.deleteMany({ _id: { $in: doctorIds } });
+
+		res.status(200).json({ message: `Successfully deleted ${doctorIds.length} doctors.` });
+	} catch (error) {
+		res.status(500).json({ message: "Failed to perform bulk delete", error: error.message });
 	}
 };
 
@@ -130,14 +160,14 @@ exports.getDoctorById = async (req, res) => {
 		if (doc) {
 			const formattedDoctor = {
 				_id: doc._id,
-				source: "Doctor",
 				firstName: doc.firstName,
 				lastName: doc.lastName,
 				email: doc.email,
 				phone: doc.phone,
 				age: doc.age,
 				gender: doc.gender,
-				zipCode: doc.zipCode || doc.location?.pincode || "Not specified",
+				zipCode: doc.zipCode || "Not specified",
+				address: doc.address || "Not specified",
 				designation: doc.designation,
 				specialization: Array.isArray(doc.specialization) && doc.specialization.length > 0
 					? doc.specialization
@@ -149,43 +179,18 @@ exports.getDoctorById = async (req, res) => {
 				price: doc.price,
 				education: doc.education,
 				dob: doc.dob,
+				approvalStatus: doc.approvalStatus || 'Pending',
 				qrCode: doc.qrCode
 					? `${process.env.BASE_URL || "http://localhost:5000"}/${doc.qrCode}`
+					: null,
+				profileImage: doc.profileImage
+					? `${process.env.BASE_URL || "http://localhost:5000"}/${doc.profileImage}`
 					: null,
 			};
 			return res.status(200).json(formattedDoctor);
 		}
 
-		doc = await DoctorData.findById(id).select('-password');
-
-		if (doc) {
-			const formattedDoctorData = {
-				_id: doc._id,
-				source: "DoctorData",
-				firstName: doc.firstname,
-				lastName: doc.lastname,
-				email: doc.email,
-				phone: doc.whatsapp,
-				age: calculateAge(doc.dob),
-				gender: doc.gender,
-				zipCode: doc.location?.pincode || doc.zipCode || "Not specified",
-				designation: null,
-				specialization: Array.isArray(doc.specialization) && doc.specialization.length > 0
-					? doc.specialization
-					: doc.specialization
-						? [doc.specialization]
-						: ["Not specified"],
-				experience: doc.experience,
-				certificate: doc.certificateLink,
-				price: doc.fee,
-				education: doc.education?.degree,
-				dob: doc.dob,
-				qrCode: doc.imageLink
-					? `${process.env.BASE_URL || "http://localhost:5000"}/${doc.imageLink}`
-					: null,
-			};
-			return res.status(200).json(formattedDoctorData);
-		}
+		return res.status(404).json({ message: "Doctor not found" });
 
 		return res.status(404).json({ message: "Doctor not found" });
 
@@ -218,37 +223,15 @@ exports.updateDoctor = async (req, res) => {
             if (updates.gender) doctor.gender = updates.gender;
             if (updates.pincode) doctor.zipCode = updates.pincode; 
             if (updates.address) doctor.address = updates.address;
-            // if (updates.profileImage) doctor.profileImage = updates.profileImage;
+            if (updates.profileImage) doctor.profileImage = updates.profileImage;
 
             await doctor.save();
 			console.log("Updated Doctor:", doctor);
-            return res.status(200).json({ success: true, message: "Updated in Doctor Schema", data: doctor });
+            return res.status(200).json({ success: true, message: "Doctor profile updated", data: doctor });
         }
 
-        // --- ATTEMPT 2: Check if ID belongs to DoctorData (Schema 2) ---
-        doctor = await DoctorData.findById(id);
-
-        if (doctor) {
-            if (updates.firstName) doctor.firstname = updates.firstName;
-            if (updates.lastName) doctor.lastname = updates.lastName;
-            if (updates.email) doctor.email = updates.email;
-            if (updates.yearsOfExperience) doctor.experience = updates.yearsOfExperience;
-            if (updates.specialization) doctor.specialization = updates.specialization;
-            if (updates.gender) doctor.gender = updates.gender;
-            if (updates.profileImage) doctor.imageLink = updates.profileImage;
-            if (updates.pincode || updates.address) {
-                if (!doctor.location) doctor.location = {};
-                if (updates.pincode) doctor.location.pincode = updates.pincode;
-                if (updates.address) doctor.location.specific = updates.address;
-            }
-
-            await doctor.save();
-			console.log("Updated DoctorData:", doctor);
-            return res.status(200).json({ success: true, message: "Updated in DoctorData Schema", data: doctor });
-        }
-
-        // --- If ID is not found in either ---
-        return res.status(404).json({ success: false, message: "Doctor not found in either database" });
+        // --- If ID is not found ---
+        return res.status(404).json({ success: false, message: "Doctor not found" });
 
     } catch (error) {
         console.error("Update Error:", error);

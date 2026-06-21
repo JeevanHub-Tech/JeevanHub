@@ -4,7 +4,7 @@ const multer = require("multer");
 const auth = require("../middleware/auth");
 const Admin = require("../models/Admin");
 const AuditLog = require("../models/AuditLog");
-const { registerDoctor, registerRetailer, registerPatient, loginUser, handleForgotPassword, verifyOTP, resetPassword } = require("../controllers/authController");
+const { registerDoctor, registerRetailer, registerPatient, loginUser, handleForgotPassword, verifyOTP, resetPassword, forceChangePassword } = require("../controllers/authController");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const Patient = require("../models/Patient"); // Import the Patient model
@@ -59,6 +59,9 @@ router.post("/register/doctor", (req, res, next) => {
 router.post("/register/retailer", registerRetailer);
 router.post("/register/patient", registerPatient);
 router.post("/login", loginUser);
+
+// Force change password route
+router.put("/force-change-password", auth, forceChangePassword);
 
 // Helper function to log admin actions
 const logAdminAction = async (adminId, action, details, targetId = null) => {

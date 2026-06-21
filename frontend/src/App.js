@@ -45,7 +45,6 @@ import AdminUsers from './screens/admin/AdminUsers';
 import AdminProfile from './screens/admin/AdminProfile';
 import AdminManagement from './screens/admin/AdminManagement';
 import AdminAuditLogs from './screens/admin/AdminAuditLogs';
-import AdminDoctors from './screens/admin/doctors/AdminDoctors';
 import AdminRetailers from './screens/admin/Retailer/AdminRetailers';
 import AdminNavBar from './screens/admin/AdminNavbar';
 import AdminBlogs from './screens/admin/AdminBlogs';

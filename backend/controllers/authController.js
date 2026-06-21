@@ -88,6 +88,11 @@ exports.loginUser = async (req, res) => {
 			await user.save();
 		}
 
+		if (role === 'doctor' && user) {
+			user.lastLogin = new Date();
+			await user.save();
+		}
+
 		console.log("before token : user - ", user);
 		const token = generateToken(user);
 		
@@ -103,6 +108,8 @@ exports.loginUser = async (req, res) => {
 		if (role === 'admin') {
 			responsePayload.forcePasswordReset = user.forcePasswordReset;
 			responsePayload.user.permissions = user.permissions;
+		} else if (role === 'doctor') {
+			responsePayload.forcePasswordReset = user.forcePasswordReset || false;
 		}
 
 		res.status(200).json(responsePayload);
@@ -384,15 +391,48 @@ exports.resetPassword = async (req, res) => {
 		user.resetPasswordOTP = null;
 		user.resetPasswordOTPExpires = null;
 		user.isOTPVerified = false;
-
+		user.password = hashedPassword;
 		await user.save();
 
-		return res.status(200).json({
-			message: "Success! Your password has been updated. You can now log in."
-		});
-
+		res.status(200).json({ message: "Password has been successfully reset." });
 	} catch (error) {
-		console.error("Final Reset Error:", error);
-		return res.status(500).json({ message: "Internal Server Error" });
+		console.error("Reset Password Error:", error);
+		res.status(500).json({ message: "Server error. Please try again later." });
+	}
+};
+
+// Force change password (for admin-registered doctors)
+exports.forceChangePassword = async (req, res) => {
+	try {
+		const { newPassword } = req.body;
+		if (!newPassword) {
+			return res.status(400).json({ message: "New password is required" });
+		}
+
+		// Since route is protected by `auth` middleware, req.user exists
+		const Model = modelMap[req.user.role];
+		if (!Model) {
+			return res.status(400).json({ message: "Invalid role" });
+		}
+
+		// auth middleware attaches the user object as req.user (which uses _id)
+		const user = await Model.findById(req.user._id);
+		if (!user) {
+			return res.status(404).json({ message: "User not found" });
+		}
+
+		if (!user.forcePasswordReset) {
+			return res.status(400).json({ message: "Password reset not forced for this account" });
+		}
+
+		const hashedPassword = await bcrypt.hash(newPassword, 10);
+		user.password = hashedPassword;
+		user.forcePasswordReset = false;
+		await user.save();
+
+		res.status(200).json({ message: "Password successfully updated" });
+	} catch (error) {
+		console.error("Force Change Password Error:", error);
+		res.status(500).json({ message: "Server error" });
 	}
 };

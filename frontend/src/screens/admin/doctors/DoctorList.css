@@ -27,12 +27,15 @@
 .dm-header {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  justify-content: center;
+  position: relative;
   margin-bottom: 1.8rem;
-  flex-wrap: wrap;
+  width: 100%;
 }
 
 .dm-back-btn {
+  position: absolute;
+  left: 0;
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
@@ -394,4 +397,232 @@
   padding: 3.5rem 1rem;
   color: #666;
   font-size: 1.05rem;
+}
+
+/* Full Screen Info Modal Styles */
+.dm-fullscreen-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.dm-fullscreen-modal {
+  background: white;
+  width: 90vw;
+  height: 90vh;
+  border-radius: 16px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow-y: auto;
+  overflow-x: hidden;
+  animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.dm-close-fullscreen {
+  position: absolute;
+  top: calc(5vh - 20px);
+  right: calc(5vw - 16px);
+  background: #adb5bd;
+  border: 3px solid white;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: white;
+  transition: all 0.2s ease-in-out;
+  z-index: 10000;
+}
+
+.dm-close-fullscreen:hover {
+  background: red !important;
+  transform: scale(1.05);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.3);
+}
+
+.dm-fullscreen-header {
+  padding: 40px 50px 20px;
+  border-bottom: 1px solid #eaeaea;
+  background: #f8f9fa;
+}
+
+.dm-fullscreen-header h2 {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 10px;
+  font-size: 2rem;
+  color: #212529;
+}
+
+.dm-fullscreen-header p {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #6c757d;
+}
+
+.dm-excel-showcase {
+  padding: 40px 50px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 30px;
+  background: #fdfdfd;
+}
+
+.dm-column-group {
+  flex: 1;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  border: 1px solid #eaeaea;
+  position: relative;
+  padding: 1px;
+}
+
+.dm-column-group.required-group {
+  border-color: #555;
+  flex: 0.6;
+}
+
+.dm-column-group.optional-group {
+  border-color: #ddd;
+  flex: 1.4;
+}
+
+.dm-group-badge {
+  position: absolute;
+  top: -14px;
+  left: 20px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: white;
+}
+
+.required-badge {
+  background: #555;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.optional-badge {
+  background: #888;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.dm-demo-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.dm-demo-table th {
+  background: #f8f9fa;
+  padding: 16px;
+  text-align: left;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #495057;
+  border-bottom: 2px solid #dee2e6;
+}
+
+.dm-demo-table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid #eaeaea;
+  color: #212529;
+  font-size: 0.95rem;
+}
+
+.dm-demo-table tbody tr:hover {
+  background: #f1f3f5;
+}
+
+.highlight-header {
+  background: #f1f3f5 !important;
+  color: #333 !important;
+  border-bottom-color: #dee2e6 !important;
+}
+
+.highlight-cell {
+  background: #fafafa;
+  font-family: monospace;
+  font-weight: 600;
+  color: #333 !important;
+}
+
+.dm-explanation-section {
+  padding: 0 50px 40px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.dm-info-cards {
+  display: flex;
+  gap: 24px;
+  margin-top: 10px;
+}
+
+.dm-card {
+  flex: 1;
+  background: white;
+  border: 1px solid #eaeaea;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.03);
+  transition: transform 0.2s;
+}
+
+.dm-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.06);
+}
+
+.dm-card-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: #f8f9fa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.dm-card h4 {
+  margin: 0 0 12px;
+  font-size: 1.15rem;
+  color: #212529;
+}
+
+.dm-card p {
+  margin: 0;
+  color: #6c757d;
+  line-height: 1.6;
+  font-size: 0.95rem;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(40px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }

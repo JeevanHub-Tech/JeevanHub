@@ -91,6 +91,33 @@ const DoctorFullDetails = () => {
 		}
 	};
 
+	const handleVerify = async (status) => {
+		try {
+			const token = localStorage.getItem("token") || "";
+			const res = await fetch(
+				`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/doctors/verify/${doctorId}`,
+				{
+					method: "PUT",
+					headers: {
+						"Content-Type": "application/json",
+						Authorization: `Bearer ${token}`
+					},
+					body: JSON.stringify({ approvalStatus: status }),
+				}
+			);
+			const data = await res.json();
+			if (res.ok) {
+				setDoctor((prev) => ({ ...prev, approvalStatus: status }));
+				alert(data.message);
+			} else {
+				alert(data.message || "Failed to update status");
+			}
+		} catch (error) {
+			console.error("Error verifying doctor:", error);
+			alert("An error occurred.");
+		}
+	};
+
 	const tabs = [
 		{ name: "Details", icon: Briefcase },
 		{ name: "Prescriptions", icon: Pill },
@@ -446,6 +473,25 @@ const DoctorFullDetails = () => {
 							<div>
 								<p className="stat-value">{doctor.experience || "N/A"}</p>
 								<p className="stat-label">Years of Exp</p>
+							</div>
+						</div>
+						
+						<div className="status-section" style={{ marginTop: "20px", paddingTop: "20px", borderTop: "1px solid #eee" }}>
+							<p className="stat-label" style={{ marginBottom: "10px" }}>Verification Status</p>
+							<div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+								<span style={{
+									padding: "4px 12px", borderRadius: "12px", fontSize: "14px", fontWeight: "bold",
+									backgroundColor: doctor.approvalStatus === 'Approved' ? '#d4edda' : doctor.approvalStatus === 'Rejected' ? '#f8d7da' : '#fff3cd',
+									color: doctor.approvalStatus === 'Approved' ? '#155724' : doctor.approvalStatus === 'Rejected' ? '#721c24' : '#856404'
+								}}>
+									{doctor.approvalStatus || 'Pending'}
+								</span>
+								{doctor.approvalStatus !== 'Approved' && (
+									<button onClick={() => handleVerify('Approved')} style={{ backgroundColor: "#28a745", color: "white", border: "none", padding: "6px 12px", borderRadius: "4px", cursor: "pointer" }}>Approve</button>
+								)}
+								{doctor.approvalStatus !== 'Rejected' && (
+									<button onClick={() => handleVerify('Rejected')} style={{ backgroundColor: "#dc3545", color: "white", border: "none", padding: "6px 12px", borderRadius: "4px", cursor: "pointer" }}>Reject</button>
+								)}
 							</div>
 						</div>
 					</div>}

@@ -22,7 +22,12 @@ const createFirstAdmin = async () => {
         }
 
         // Hash the password securely
-        const hashedPassword = await bcrypt.hash("admin123", 10);
+        const adminPassword = process.env.ADMIN_PASSWORD;
+        if (!adminPassword) {
+            console.error("❌ Error: ADMIN_PASSWORD environment variable is required to create an admin. Please set it in your .env file.");
+            process.exit(1);
+        }
+        const hashedPassword = await bcrypt.hash(adminPassword, 10);
 
         // Create the new admin
         const newAdmin = new Admin({
@@ -38,7 +43,7 @@ const createFirstAdmin = async () => {
         
         console.log("✅ First Admin created successfully!");
         console.log("Email: admin@jeevanhub.com");
-        console.log("Password: admin123");
+        console.log(`Password: ${adminPassword}`);
         
         mongoose.connection.close();
     } catch (error) {

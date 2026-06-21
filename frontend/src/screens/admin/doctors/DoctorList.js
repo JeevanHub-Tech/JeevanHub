@@ -841,7 +841,7 @@ const DoctorManagement = () => {
 											<td>8</td>
 											<td>Female</td>
 											<td>800</td>
-											<td className="highlight-cell">secret123</td>
+											<td className="highlight-cell">********</td>
 										</tr>
 										<tr>
 											<td></td>

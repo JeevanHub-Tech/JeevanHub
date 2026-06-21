@@ -211,27 +211,27 @@ function RetailerNavBar() {
 									style={{ zIndex: 99 }}
 								/>
 								<li>
-									<NavLink to="/retailer-home" activeClassName="active">
+									<NavLink to="/retailer-home">
 										Home
 									</NavLink>
 								</li>
 								<li>
-									<NavLink to="/manage-products" activeClassName="active">
+									<NavLink to="/manage-products">
 										Products
 									</NavLink>
 								</li>
 								<li>
-									<NavLink to="/my-orders" activeClassName="active">
+									<NavLink to="/my-orders">
 										Orders
 									</NavLink>
 								</li>
 								<li>
-									<NavLink to="/retailer-analytics" activeClassName="active">
+									<NavLink to="/retailer-analytics">
 										Analytics
 									</NavLink>
 								</li>
 								<li>
-									<NavLink to="/customer-support" activeClassName="active">
+									<NavLink to="/customer-support">
 										Customer Support
 									</NavLink>
 								</li>
@@ -243,27 +243,27 @@ function RetailerNavBar() {
 					</div>
 					<ul className="nav-center-menu">
 						<li>
-							<NavLink to="/retailer-home" activeClassName="active">
+							<NavLink to="/retailer-home">
 								Home
 							</NavLink>
 						</li>
 						<li>
-							<NavLink to="/manage-products" activeClassName="active">
+							<NavLink to="/manage-products">
 								Products
 							</NavLink>
 						</li>
 						<li>
-							<NavLink to="/my-orders" activeClassName="active">
+							<NavLink to="/my-orders">
 								Orders
 							</NavLink>
 						</li>
 						<li>
-							<NavLink to="/retailer-analytics" activeClassName="active">
+							<NavLink to="/retailer-analytics">
 								Analytics
 							</NavLink>
 						</li>
 						<li>
-							<NavLink to="/customer-support" activeClassName="active">
+							<NavLink to="/customer-support">
 								Customer Support
 							</NavLink>
 						</li>

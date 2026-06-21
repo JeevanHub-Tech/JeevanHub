@@ -245,42 +245,42 @@ function PatientNavBar() {
 									}}
 								/>
 								<li>
-									<NavLink to="/patient-home" activeClassName="active">
+									<NavLink to="/patient-home">
 										Home
 									</NavLink>
 								</li>
 								<li>
-									<NavLink to="/treatments" activeClassName="active">
+									<NavLink to="/treatments">
 										Treatments
 									</NavLink>
 								</li>
 								<li>
-									<NavLink to="/doctors" activeClassName="active">
+									<NavLink to="/doctors">
 										Doctors
 									</NavLink>
 								</li>
 								<li>
-									<NavLink to="/medicines" activeClassName="active">
+									<NavLink to="/medicines">
 										Medicines
 									</NavLink>
 								</li>
 								<li>
-									<NavLink to="/diet-yoga" activeClassName="active">
+									<NavLink to="/diet-yoga">
 										Diet and Yoga Plan
 									</NavLink>
 								</li>
 								<li>
-									<NavLink to="/blogs-videos" activeClassName="active">
+									<NavLink to="/blogs-videos">
 										Blogs and Videos
 									</NavLink>
 								</li>
 								<li>
-									<NavLink to="/cart" activeClassName="active">
+									<NavLink to="/cart">
 										Cart
 									</NavLink>
 								</li>
 								<li>
-									<NavLink to="/order-history" activeClassName="active">
+									<NavLink to="/order-history">
 										Orders
 									</NavLink>
 								</li>
@@ -292,47 +292,47 @@ function PatientNavBar() {
 					</div>
 					<ul className="nav-center-menu">
 						<li>
-							<NavLink to="/patient-home" activeClassName="active">
+							<NavLink to="/patient-home">
 								Home
 							</NavLink>
 						</li>
 						<li>
-							<NavLink to="/appointed-doctor" activeClassName="active">
+							<NavLink to="/appointed-doctor">
 								Appointed Doctor
 							</NavLink>
 						</li>
 						<li>
-							<NavLink to="/treatments" activeClassName="active">
+							<NavLink to="/treatments">
 								Treatments
 							</NavLink>
 						</li>
 						<li>
-							<NavLink to="/doctors" activeClassName="active">
+							<NavLink to="/doctors">
 								Doctors
 							</NavLink>
 						</li>
 						<li>
-							<NavLink to="/medicines" activeClassName="active">
+							<NavLink to="/medicines">
 								Medicines
 							</NavLink>
 						</li>
 						<li>
-							<NavLink to="/diet-yoga" activeClassName="active">
+							<NavLink to="/diet-yoga">
 								Diet and Yoga Plan
 							</NavLink>
 						</li>
 						<li>
-							<NavLink to="/blogs-videos" activeClassName="active">
+							<NavLink to="/blogs-videos">
 								Blogs and Videos
 							</NavLink>
 						</li>
 						<li>
-							<NavLink to="/cart" activeClassName="active">
+							<NavLink to="/cart">
 								Cart
 							</NavLink>
 						</li>
 						<li>
-							<NavLink to="/order-history" activeClassName="active">
+							<NavLink to="/order-history">
 								Orders
 							</NavLink>
 						</li>

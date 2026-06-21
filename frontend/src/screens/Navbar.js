@@ -77,7 +77,7 @@ function NavBar() {
         <div className="search-signin">
           <div className="search-bar">
             <div className="dropdown">
-              <select onChange={(e) => {
+              <select defaultValue="" onChange={(e) => {
                 const value = e.target.value;
                 switch(value) {
                   case "doctor": navigate("/doctors"); break;
@@ -88,7 +88,7 @@ function NavBar() {
                   default: break;
                 }
               }}>
-                <option value="" disabled selected hidden>Explore...</option>
+                <option value="" disabled hidden>Explore...</option>
                 <option value="doctor">Doctor</option>
                 <option value="disease">Diseases</option>
                 <option value="medicine">Medicines</option>
@@ -141,32 +141,32 @@ function NavBar() {
                   onClick={handleMenuClose}
                 />
                 <li>
-                  <NavLink to="/" exact activeClassName="active">
+                  <NavLink to="/" exact="true">
                     Home
                   </NavLink>
                 </li>
                 <li>
-                  <NavLink to="/treatments" activeClassName="active">
+                  <NavLink to="/treatments">
                     Treatments
                   </NavLink>
                 </li>
                 <li>
-                  <NavLink to="/doctors" activeClassName="active">
+                  <NavLink to="/doctors">
                     Doctors
                   </NavLink>
                 </li>
                 <li>
-                  <NavLink to="/medicines" activeClassName="active">
+                  <NavLink to="/medicines">
                     Medicines
                   </NavLink>
                 </li>
                 {/* <li>
-									<NavLink to="/diet-yoga" activeClassName="active">
+									<NavLink to="/diet-yoga">
 										Diet And Yoga
 									</NavLink>
 								</li> */}
                 <li>
-                  <NavLink to="/blogs-videos" activeClassName="active">
+                  <NavLink to="/blogs-videos">
                     Blogs and Videos
                   </NavLink>
                 </li>
@@ -178,32 +178,32 @@ function NavBar() {
           </div>
           <ul className="nav-center-menu">
             <li>
-              <NavLink to="/" exact activeClassName="active">
+              <NavLink to="/" exact="true">
                 Home
               </NavLink>
             </li>
             <li>
-              <NavLink to="/treatments" activeClassName="active">
+              <NavLink to="/treatments">
                 Treatments
               </NavLink>
             </li>
             <li>
-              <NavLink to="/doctors" activeClassName="active">
+              <NavLink to="/doctors">
                 Doctors
               </NavLink>
             </li>
             <li>
-              <NavLink to="/medicines" activeClassName="active">
+              <NavLink to="/medicines">
                 Medicines
               </NavLink>
             </li>
             {/* <li>
-							<NavLink to="/diet-yoga" activeClassName="active">
+							<NavLink to="/diet-yoga">
 								Diet And Yoga
 							</NavLink>
 						</li> */}
             <li>
-              <NavLink to="/blogs-videos" activeClassName="active">
+              <NavLink to="/blogs-videos">
                 Blogs and Videos
               </NavLink>
             </li>

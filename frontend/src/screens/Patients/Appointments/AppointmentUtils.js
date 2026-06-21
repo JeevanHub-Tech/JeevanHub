@@ -43,8 +43,14 @@ export const fetchDoctorData = async () => {
 // Fetch supplements for a specific appointment
 export const fetchSupplements = async (appointmentId) => {
 	try {
+        const token = localStorage.getItem('token');
 		const response = await fetch(
-			`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/bookings/supplements/${appointmentId}`
+			`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/bookings/supplements/${appointmentId}`,
+            {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            }
 		);
 
 		if (!response.ok) {

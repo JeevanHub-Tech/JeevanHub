@@ -50,11 +50,11 @@ const DietYogaComponent = () => {
         const fetchPrakritiData = async () => {
             if (!patientId) return;
             try {
-                const response = await fetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/prakriti/${patientId}`, {
+                const response = await fetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/prakriti/assessment/getall`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const data = await response.json();
-                setPrakriti(data.dominantType || 'Vata');
+                setPrakriti(data.dominantDosha || 'Vata');
             } catch (err) {
                 console.error("Error fetching Prakriti:", err);
             } finally {

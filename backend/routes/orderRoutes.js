@@ -6,18 +6,19 @@ const multer = require('multer');
 const fs = require('fs'); // Added missing fs import
 const mongoose = require('mongoose'); // Added missing mongoose import for validation
 
-// Configure storage for payment proof screenshots
-const storage = multer.diskStorage({
-	destination: function (req, file, cb) {
-		const dir = 'uploads/payment-proofs';
-		if (!fs.existsSync(dir)) {
-			fs.mkdirSync(dir, { recursive: true });
-		}
-		cb(null, dir);
-	},
-	filename: function (req, file, cb) {
-		cb(null, `payment-${Date.now()}-${file.originalname}`);
-	}
+const cloudinary = require("../config/cloudinary");
+const { CloudinaryStorage } = require("multer-storage-cloudinary");
+
+// Configure Cloudinary storage
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: async (req, file) => {
+    return {
+      folder: "jeevanhub/prescriptions",
+      resource_type: "auto",
+      public_id: Date.now() + "-" + file.originalname.split('.')[0]
+    };
+  },
 });
 
 const upload = multer({ storage });

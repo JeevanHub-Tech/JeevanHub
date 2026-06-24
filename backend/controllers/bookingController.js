@@ -162,26 +162,35 @@ exports.getAllBookings = async (req, res) => {
 	}
 };
 
-const upload = multer({
-	storage: multer.diskStorage({
-		destination: function (req, file, cb) {
-			cb(null, "uploads/payments/");
-		},
-		filename: function (req, file, cb) {
-			cb(null, Date.now() + path.extname(file.originalname)); // Ensures unique filenames
-		},
-	}),
-	fileFilter: (req, file, cb) => {
-		const fileTypes = /jpeg|jpg|png|gif/;
-		const extname = fileTypes.test(path.extname(file.originalname).toLowerCase());
-		const mimetype = fileTypes.test(file.mimetype);
+const cloudinary = require("../config/cloudinary");
+const { CloudinaryStorage } = require("multer-storage-cloudinary");
 
-		if (extname && mimetype) {
-			return cb(null, true);
-		} else {
-			cb(new Error("Invalid file type. Only image files are allowed."));
-		}
-	},
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: async (req, file) => {
+    return {
+      folder: "jeevanhub/payments",
+      resource_type: "auto",
+      public_id: Date.now() + "-" + file.originalname.split('.')[0]
+    };
+  },
+});
+
+const fileFilter = (req, file, cb) => {
+	const filetypes = /jpeg|jpg|png|pdf/;
+	const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
+	const mimetype = filetypes.test(file.mimetype);
+
+	if (mimetype && extname) {
+		return cb(null, true);
+	} else {
+		cb(new Error("Only jpeg, jpg, png, and pdf files are allowed"));
+	}
+};
+
+const upload = multer({
+	storage: storage,
+	fileFilter: fileFilter,
 }).single("paymentScreenshot");
 
 exports.uploadPaymentScreenshot = (req, res) => {

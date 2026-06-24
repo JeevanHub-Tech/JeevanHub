@@ -14,13 +14,20 @@ const xlsx = require("xlsx");
 const fs = require("fs");
 const path = require("path");
 
-// Multer setup for file uploads
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, "uploads/doctors");
-  },
-  filename: function (req, file, cb) {
-    cb(null, Date.now() + "-" + file.originalname);
+const cloudinary = require("../config/cloudinary");
+const { CloudinaryStorage } = require("multer-storage-cloudinary");
+
+// Cloudinary storage setup for doctor files (certificates and QR codes)
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: async (req, file) => {
+    // Generate a unique folder path, perhaps under jeevanhub/doctors
+    return {
+      folder: "jeevanhub/doctors",
+      // auto handles pdf, jpg, png, etc.
+      resource_type: "auto", 
+      public_id: Date.now() + "-" + file.originalname.split('.')[0]
+    };
   },
 });
 

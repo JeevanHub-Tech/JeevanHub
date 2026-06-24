@@ -43,12 +43,17 @@ const SanjeevaniChatbot = ({ isFullScreen = false }) => {
         // Initial check with backend to get dynamic greeting and fetch HISTORY
         const initChat = async () => {
             try {
+                const token = localStorage.getItem('token');
                 const response = await axios.post(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/chat/message`, {
                     userId: id,
                     message: 'INIT_CHAT_EVENT',
                     isRegistered: !!token,
                     userRole: role,
                     fetchHistory: true
+                }, {
+                    headers: {
+                        'Authorization': token ? `Bearer ${token}` : ''
+                    }
                 });
 
                 const { response: aiText, metadata, history } = response.data;
@@ -93,10 +98,15 @@ const SanjeevaniChatbot = ({ isFullScreen = false }) => {
         setIsLoading(true);
 
         try {
+            const token = localStorage.getItem('token');
             const response = await axios.post(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/chat/message`, {
                 userId,
                 message: textToSend,
-                isRegistered: !!localStorage.getItem('token')
+                isRegistered: !!token
+            }, {
+                headers: {
+                    'Authorization': token ? `Bearer ${token}` : ''
+                }
             });
 
             const { response: aiText, metadata } = response.data;

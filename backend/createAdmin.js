@@ -9,7 +9,11 @@ const createFirstAdmin = async () => {
         await mongoose.connect(process.env.MDB);
         console.log("Connected to MongoDB...");
 
-        const email = "admin@jeevanhub.com";
+        const email = process.env.ADMIN_EMAIL;
+        if (!email) {
+            console.error("❌ Error: ADMIN_EMAIL environment variable is required to create an admin. Please set it in your .env file.");
+            process.exit(1);
+        }
         
         // Check if admin already exists
         const existingAdmin = await Admin.findOne({ email });
@@ -22,7 +26,12 @@ const createFirstAdmin = async () => {
         }
 
         // Hash the password securely
-        const hashedPassword = await bcrypt.hash("admin123", 10);
+        const adminPassword = process.env.ADMIN_PASSWORD;
+        if (!adminPassword) {
+            console.error("❌ Error: ADMIN_PASSWORD environment variable is required to create an admin. Please set it in your .env file.");
+            process.exit(1);
+        }
+        const hashedPassword = await bcrypt.hash(adminPassword, 10);
 
         // Create the new admin
         const newAdmin = new Admin({
@@ -37,8 +46,8 @@ const createFirstAdmin = async () => {
         await newAdmin.save();
         
         console.log("✅ First Admin created successfully!");
-        console.log("Email: admin@jeevanhub.com");
-        console.log("Password: admin123");
+        console.log(`Email: ${email}`);
+        console.log(`Password: ${adminPassword}`);
         
         mongoose.connection.close();
     } catch (error) {

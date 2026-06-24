@@ -9,7 +9,7 @@ import notificationIcon from "../../media/notifications.png";
 import menu_close from "../../media/menu-close.svg";
 import menu from "../../media/menu.svg";
 
-const API_KEY = "f08bb887cc0d42bb8b9fb21993c3a6d3"; // Your OpenCage API key
+const API_KEY = process.env.REACT_APP_OPENCAGE_API_KEY;
 
 function RetailerNavBar() {
 	const { auth, setAuth } = useContext(AuthContext); // Get auth context to access user info
@@ -211,27 +211,27 @@ function RetailerNavBar() {
 									style={{ zIndex: 99 }}
 								/>
 								<li>
-									<NavLink to="/retailer-home" activeClassName="active">
+									<NavLink to="/retailer-home">
 										Home
 									</NavLink>
 								</li>
 								<li>
-									<NavLink to="/manage-products" activeClassName="active">
+									<NavLink to="/manage-products">
 										Products
 									</NavLink>
 								</li>
 								<li>
-									<NavLink to="/my-orders" activeClassName="active">
+									<NavLink to="/my-orders">
 										Orders
 									</NavLink>
 								</li>
 								<li>
-									<NavLink to="/retailer-analytics" activeClassName="active">
+									<NavLink to="/retailer-analytics">
 										Analytics
 									</NavLink>
 								</li>
 								<li>
-									<NavLink to="/customer-support" activeClassName="active">
+									<NavLink to="/customer-support">
 										Customer Support
 									</NavLink>
 								</li>
@@ -243,27 +243,27 @@ function RetailerNavBar() {
 					</div>
 					<ul className="nav-center-menu">
 						<li>
-							<NavLink to="/retailer-home" activeClassName="active">
+							<NavLink to="/retailer-home">
 								Home
 							</NavLink>
 						</li>
 						<li>
-							<NavLink to="/manage-products" activeClassName="active">
+							<NavLink to="/manage-products">
 								Products
 							</NavLink>
 						</li>
 						<li>
-							<NavLink to="/my-orders" activeClassName="active">
+							<NavLink to="/my-orders">
 								Orders
 							</NavLink>
 						</li>
 						<li>
-							<NavLink to="/retailer-analytics" activeClassName="active">
+							<NavLink to="/retailer-analytics">
 								Analytics
 							</NavLink>
 						</li>
 						<li>
-							<NavLink to="/customer-support" activeClassName="active">
+							<NavLink to="/customer-support">
 								Customer Support
 							</NavLink>
 						</li>

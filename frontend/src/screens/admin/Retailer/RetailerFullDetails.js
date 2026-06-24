@@ -30,7 +30,7 @@ const dummyRetailerData = [
 		age: 39,
 		gender: "Male",
 		zipCode: "10001",
-		password: "hashedpassword1",
+		password: "********",
 		status: "active",
 	}
 ];

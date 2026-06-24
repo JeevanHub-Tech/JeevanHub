@@ -10,7 +10,7 @@ import notificationIcon from "../../media/notifications.png";
 import menu_close from "../../media/menu-close.svg";
 import menu from "../../media/menu.svg";
 
-const API_KEY = "f08bb887cc0d42bb8b9fb21993c3a6d3"; // Your OpenCage API key
+const API_KEY = process.env.REACT_APP_OPENCAGE_API_KEY;
 
 function DoctorNavBar() {
 	const { auth, setAuth } = useContext(AuthContext); // Get auth context to access user info
@@ -116,7 +116,7 @@ function DoctorNavBar() {
 				<div className="search-signin">
 					<div className="search-bar">
 						<div className="dropdown">
-							<select onChange={(e) => {
+							<select defaultValue="" onChange={(e) => {
 								const value = e.target.value;
 								switch(value) {
 									case "doctor": navigate("/doctors"); break;
@@ -127,7 +127,7 @@ function DoctorNavBar() {
 									default: break;
 								}
 							}}>
-								<option value="" disabled selected hidden>Explore...</option>
+								<option value="" disabled hidden>Explore...</option>
 								<option value="doctor">Doctor</option>
 								<option value="disease">Diseases</option>
 								<option value="medicine">Medicines</option>
@@ -216,37 +216,37 @@ function DoctorNavBar() {
 									}}
 								/>
 								<li>
-									<NavLink to="/doctor-home" activeClassName="active">
+									<NavLink to="/doctor-home">
 										Home
 									</NavLink>
 								</li>
 								<li>
-									<NavLink to="/current-requests" activeClassName="active">
+									<NavLink to="/current-requests">
 										Current Requests
 									</NavLink>
 								</li>
 								<li>
-									<NavLink to="/appointment-slots" activeClassName="active">
+									<NavLink to="/appointment-slots">
 										Appointment Slots
 									</NavLink>
 								</li>
 								<li>
-									<NavLink to="/patient-list" activeClassName="active">
+									<NavLink to="/patient-list">
 										Patient List
 									</NavLink>
 								</li>
 								<li>
-									<NavLink to="/doctor-reviews" activeClassName="active">
+									<NavLink to="/doctor-reviews">
 										Patient's Reviews
 									</NavLink>
 								</li>
 								<li>
-									<NavLink to="/doctor-analytics" activeClassName="active">
+									<NavLink to="/doctor-analytics">
 										Analytics
 									</NavLink>
 								</li>
 								<li>
-									<NavLink to="/health-blogs" activeClassName="active">
+									<NavLink to="/health-blogs">
 										My Health Blogs
 									</NavLink>
 								</li>
@@ -258,37 +258,37 @@ function DoctorNavBar() {
 					</div>
 					<ul className="nav-center-menu">
 						<li>
-							<NavLink to="/doctor-home" activeClassName="active">
+							<NavLink to="/doctor-home">
 								Home
 							</NavLink>
 						</li>
 						<li>
-							<NavLink to="/current-requests" activeClassName="active">
+							<NavLink to="/current-requests">
 								Current Requests
 							</NavLink>
 						</li>
 						<li>
-							<NavLink to="/appointment-slots" activeClassName="active">
+							<NavLink to="/appointment-slots">
 								Appointment Slots
 							</NavLink>
 						</li>
 						<li>
-							<NavLink to="/patient-list" activeClassName="active">
+							<NavLink to="/patient-list">
 								Patient List
 							</NavLink>
 						</li>
 						<li>
-							<NavLink to="/doctor-reviews" activeClassName="active">
+							<NavLink to="/doctor-reviews">
 								Patient's Reviews
 							</NavLink>
 						</li>
 						<li>
-							<NavLink to="/doctor-analytics" activeClassName="active">
+							<NavLink to="/doctor-analytics">
 								Analytics
 							</NavLink>
 						</li>
 						<li>
-							<NavLink to="/health-blogs" activeClassName="active">
+							<NavLink to="/health-blogs">
 								My Health Blogs
 							</NavLink>
 						</li>

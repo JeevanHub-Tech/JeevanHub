@@ -31,7 +31,12 @@ function DoctorsScreen() {
 
   // Fetch doctors from backend on component mount
   useEffect(() => {
-    fetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/doctors/allDoctors`)
+    const token = localStorage.getItem("token");
+    fetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/doctors/allDoctors`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
       .then((response) => response.json())
       .then((data) => {
         // Only show approved doctors to the public

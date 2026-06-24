@@ -10,7 +10,7 @@ import { AuthContext } from "../../context/AuthContext";
 import menu from "../../media/menu.svg";
 import menu_close from "../../media/menu-close.svg";
 
-const API_KEY = "f08bb887cc0d42bb8b9fb21993c3a6d3"; // Replace with your OpenCage API key
+const API_KEY = process.env.REACT_APP_OPENCAGE_API_KEY;
 
 function PatientNavBar() {
 	const navigate = useNavigate();
@@ -245,42 +245,42 @@ function PatientNavBar() {
 									}}
 								/>
 								<li>
-									<NavLink to="/patient-home" activeClassName="active">
+									<NavLink to="/patient-home">
 										Home
 									</NavLink>
 								</li>
 								<li>
-									<NavLink to="/treatments" activeClassName="active">
+									<NavLink to="/treatments">
 										Treatments
 									</NavLink>
 								</li>
 								<li>
-									<NavLink to="/doctors" activeClassName="active">
+									<NavLink to="/doctors">
 										Doctors
 									</NavLink>
 								</li>
 								<li>
-									<NavLink to="/medicines" activeClassName="active">
+									<NavLink to="/medicines">
 										Medicines
 									</NavLink>
 								</li>
 								<li>
-									<NavLink to="/diet-yoga" activeClassName="active">
+									<NavLink to="/diet-yoga">
 										Diet and Yoga Plan
 									</NavLink>
 								</li>
 								<li>
-									<NavLink to="/blogs-videos" activeClassName="active">
+									<NavLink to="/blogs-videos">
 										Blogs and Videos
 									</NavLink>
 								</li>
 								<li>
-									<NavLink to="/cart" activeClassName="active">
+									<NavLink to="/cart">
 										Cart
 									</NavLink>
 								</li>
 								<li>
-									<NavLink to="/order-history" activeClassName="active">
+									<NavLink to="/order-history">
 										Orders
 									</NavLink>
 								</li>
@@ -292,47 +292,47 @@ function PatientNavBar() {
 					</div>
 					<ul className="nav-center-menu">
 						<li>
-							<NavLink to="/patient-home" activeClassName="active">
+							<NavLink to="/patient-home">
 								Home
 							</NavLink>
 						</li>
 						<li>
-							<NavLink to="/appointed-doctor" activeClassName="active">
+							<NavLink to="/appointed-doctor">
 								Appointed Doctor
 							</NavLink>
 						</li>
 						<li>
-							<NavLink to="/treatments" activeClassName="active">
+							<NavLink to="/treatments">
 								Treatments
 							</NavLink>
 						</li>
 						<li>
-							<NavLink to="/doctors" activeClassName="active">
+							<NavLink to="/doctors">
 								Doctors
 							</NavLink>
 						</li>
 						<li>
-							<NavLink to="/medicines" activeClassName="active">
+							<NavLink to="/medicines">
 								Medicines
 							</NavLink>
 						</li>
 						<li>
-							<NavLink to="/diet-yoga" activeClassName="active">
+							<NavLink to="/diet-yoga">
 								Diet and Yoga Plan
 							</NavLink>
 						</li>
 						<li>
-							<NavLink to="/blogs-videos" activeClassName="active">
+							<NavLink to="/blogs-videos">
 								Blogs and Videos
 							</NavLink>
 						</li>
 						<li>
-							<NavLink to="/cart" activeClassName="active">
+							<NavLink to="/cart">
 								Cart
 							</NavLink>
 						</li>
 						<li>
-							<NavLink to="/order-history" activeClassName="active">
+							<NavLink to="/order-history">
 								Orders
 							</NavLink>
 						</li>

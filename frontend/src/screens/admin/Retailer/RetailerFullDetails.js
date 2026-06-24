@@ -39,8 +39,14 @@ const fetchRetailerById = async (retailerId, setRetailer, setLoading, setError) 
 	setLoading(true);
 	setError(null);
 	try {
+		const token = localStorage.getItem("token");
 		const res = await fetch(
-			`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/retailers/getSingleRetailer/${retailerId}`
+			`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/retailers/getSingleRetailer/${retailerId}`,
+			{
+				headers: {
+					Authorization: `Bearer ${token}`
+				}
+			}
 		);
 
 		if (!res.ok) {

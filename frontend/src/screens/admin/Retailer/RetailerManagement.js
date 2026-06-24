@@ -33,8 +33,14 @@ const RetailerManagement = () => {
 	useEffect(() => {
 		const fetchAllRetailers = async () => {
 			try {
+				const token = localStorage.getItem("token");
 				const res = await fetch(
-					`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/retailers/getAllRetailers`
+					`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/retailers/getAllRetailers`,
+					{
+						headers: {
+							Authorization: `Bearer ${token}`
+						}
+					}
 				);
 				if (!res.ok) {
 					if (res.status === 404) {

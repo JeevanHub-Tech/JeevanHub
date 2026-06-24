@@ -21,8 +21,14 @@ const fetchFeedbackByRetailerId = async (retailerId, setFeedback, setLoading, se
 	setLoading(true);
 	setError(null);
 	try {
+		const token = localStorage.getItem("token");
 		const response = await fetch(
-			`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/orders/getFeedbackByRetailerId/${retailerId}`
+			`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/orders/getFeedbackByRetailerId/${retailerId}`,
+			{
+				headers: {
+					Authorization: `Bearer ${token}`
+				}
+			}
 		);
 
 		if (!response.ok) {

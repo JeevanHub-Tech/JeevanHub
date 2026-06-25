@@ -317,7 +317,7 @@ exports.getReviewedOrdersByBuyerId = async (req, res) => {
                     select: "BusinessName",
                 },
             })
-            .populate("buyer.buyerId");
+            .populate({ path: "buyer.buyerId", select: "-password -resetPasswordOTP -resetPasswordOTPExpires -isOTPVerified" });
 
         if (!orders || orders.length === 0) {
             return res.status(404).json({
@@ -368,7 +368,7 @@ exports.getOrdersByBuyerId = async (req, res) => {
                     select: "BusinessName",
                 },
             })
-            .populate("buyer.buyerId");
+            .populate({ path: "buyer.buyerId", select: "-password -resetPasswordOTP -resetPasswordOTPExpires -isOTPVerified" });
 
         if (!orders || orders.length === 0) {
             return res.status(404).json({

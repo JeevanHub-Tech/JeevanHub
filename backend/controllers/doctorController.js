@@ -5,7 +5,7 @@ const DoctorData = require("../models/DoctorData");
 // Get All Doctors (Public)
 exports.getAllDoctors = async (req, res) => {
 	try {
-		const doctors = await Doctor.find().select('-password');
+		const doctors = await Doctor.find().select('-password -resetPasswordOTP -resetPasswordOTPExpires -isOTPVerified -razorpayAccountId');
 
 		const doctorsWithQrUrls = doctors.map((doc) => {
 			return {
@@ -278,9 +278,18 @@ exports.updateDoctor = async (req, res) => {
             if (updates.address) doctor.address = updates.address;
             if (updates.profileImage) doctor.profileImage = updates.profileImage;
 
-            await doctor.save();
-			console.log("Updated Doctor:", doctor);
-            return res.status(200).json({ success: true, message: "Doctor profile updated", data: doctor });
+			await doctor.save();
+			console.log("Updated Doctor details successfully");
+			
+			const safeData = doctor.toObject();
+			delete safeData.password;
+			delete safeData.resetPasswordOTP;
+			delete safeData.resetPasswordOTPExpires;
+			delete safeData.isOTPVerified;
+			delete safeData.forcePasswordReset;
+			delete safeData.razorpayAccountId;
+			
+            return res.status(200).json({ success: true, message: "Doctor profile updated", data: safeData });
         }
 
         // --- If ID is not found ---
@@ -318,7 +327,7 @@ exports.verifyDoctor = async (req, res) => {
 			id,
 			{ $set: { approvalStatus } },
 			{ new: true }
-		);
+		).select('-password -resetPasswordOTP -resetPasswordOTPExpires -isOTPVerified');
 
 		if (!updatedDoctor) {
 			return res.status(404).json({ message: "Doctor not found." });

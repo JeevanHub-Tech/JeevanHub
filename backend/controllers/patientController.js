@@ -45,8 +45,13 @@ exports.updatePatient = async (req, res) => {
 			if (updates.address) patient.address = updates.address;
 
 			await patient.save();
-			console.log("Updated Patient:", patient);
-			return res.status(200).json({ success: true, message: "Patient updated successfully", data: patient });
+			console.log("Updated Patient details successfully");
+			const safeData = patient.toObject();
+			delete safeData.password;
+			delete safeData.resetPasswordOTP;
+			delete safeData.resetPasswordOTPExpires;
+			delete safeData.isOTPVerified;
+			return res.status(200).json({ success: true, message: "Patient updated successfully", data: safeData });
 		}
 		return res.status(404).json({ message: "Patient not found" });
 	} catch (error) {
@@ -85,7 +90,7 @@ exports.getPatientById = async (req, res) => {
 		if (req.user.role !== 'admin' && req.user._id.toString() !== id) {
 			return res.status(403).json({ message: "Not authorized to view this patient's details" });
 		}
-		const patient = await Patient.findById(id).select('-password');
+		const patient = await Patient.findById(id).select('-password -resetPasswordOTP -resetPasswordOTPExpires -isOTPVerified');
 
 		if (!patient) {
 			return res.status(404).json({ message: "Patient not found" });

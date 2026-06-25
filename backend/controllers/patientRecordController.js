@@ -6,7 +6,7 @@ const PatientRecord = require('../models/PatientRecord');
 exports.getAllRecords = async (req, res) => {
     try {
         const allRecords = await PatientRecord.find({})
-            .populate('patient')
+            .populate({ path: 'patient', select: '-password -resetPasswordOTP -resetPasswordOTPExpires -isOTPVerified' })
             .exec();
 
         res.status(200).json({

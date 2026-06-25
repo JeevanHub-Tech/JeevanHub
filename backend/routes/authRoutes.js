@@ -87,16 +87,16 @@ router.get("/admin/check-email/:email", auth, async (req, res) => {
   }
   const email = req.params.email;
   try {
-    const admin = await Admin.findOne({ email });
+    const admin = await Admin.findOne({ email }).select('-password');
     if (admin) return res.json({ exists: true, role: "admin" });
 
-    const patient = await Patient.findOne({ email });
+    const patient = await Patient.findOne({ email }).select('-password -resetPasswordOTP -resetPasswordOTPExpires -isOTPVerified');
     if (patient) return res.json({ exists: true, role: "patient", user: patient });
 
-    const doctor = await Doctor.findOne({ email });
+    const doctor = await Doctor.findOne({ email }).select('-password -resetPasswordOTP -resetPasswordOTPExpires -isOTPVerified -razorpayAccountId');
     if (doctor) return res.json({ exists: true, role: "doctor", user: doctor });
 
-    const retailer = await Retailer.findOne({ email });
+    const retailer = await Retailer.findOne({ email }).select('-password -resetPasswordOTP -resetPasswordOTPExpires -isOTPVerified -razorpayAccountId');
     if (retailer) return res.json({ exists: true, role: "retailer", user: retailer });
 
     res.json({ exists: false });
@@ -167,7 +167,7 @@ router.post("/admin/register", auth, async (req, res) => {
 
     res.status(201).json({
       message: "Admin created successfully",
-      admin: newAdmin,
+      admin: { _id: newAdmin._id, firstName: newAdmin.firstName, lastName: newAdmin.lastName, email: newAdmin.email, role: newAdmin.role },
       promoted: !!existingUser
     });
 
@@ -197,7 +197,7 @@ router.post("/admin/login", async (req, res) => {
 
     const token = jwt.sign({ id: admin._id, role: "admin" }, process.env.JWT_SECRET, { expiresIn: "1h" });
 
-    res.json({ token, admin, forcePasswordReset: admin.forcePasswordReset });
+    res.json({ token, admin: { _id: admin._id, firstName: admin.firstName, lastName: admin.lastName, email: admin.email, role: admin.role, permissions: admin.permissions }, forcePasswordReset: admin.forcePasswordReset });
   } catch (error) {
     console.error("Admin Login Error:", error);
     res.status(500).json({ message: "Server error" });
@@ -313,7 +313,7 @@ router.put("/admin/update-status/:id", auth, async (req, res) => {
       adminToUpdate._id
     );
 
-    res.json({ message: "Admin updated successfully", admin: adminToUpdate });
+    res.json({ message: "Admin updated successfully", admin: { _id: adminToUpdate._id, firstName: adminToUpdate.firstName, lastName: adminToUpdate.lastName, email: adminToUpdate.email, role: adminToUpdate.role, permissions: adminToUpdate.permissions, isActive: adminToUpdate.isActive } });
   } catch (error) {
     console.error("Update admin error:", error);
     res.status(500).json({ message: "Server error" });
@@ -410,7 +410,7 @@ router.get("/users", auth, async (req, res) => {
       return res.status(403).json({ message: "Access denied. Admins only." });
     }
 
-    const patients = await Patient.find({});
+    const patients = await Patient.find({}).select('-password -resetPasswordOTP -resetPasswordOTPExpires -isOTPVerified');
     res.status(200).json(patients);
   } catch (error) {
     console.error("Error fetching patients:", error);
@@ -439,7 +439,7 @@ router.get("/retailers", auth, async (req, res) => {
     if (req.user.role !== "admin") {
       return res.status(403).json({ message: "Access denied. Admins only." });
     }
-    const retailers = await Retailer.find({});
+    const retailers = await Retailer.find({}).select('-password -resetPasswordOTP -resetPasswordOTPExpires -isOTPVerified -razorpayAccountId');
     res.status(200).json(retailers);
   } catch (error) {
     console.error("Error fetching retailers:", error);

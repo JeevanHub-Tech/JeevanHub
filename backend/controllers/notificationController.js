@@ -21,24 +21,16 @@ exports.createNotification = async (userId, role, orderId, message, type = 'syst
 
 exports.getNotifications = async (req, res) => {
   try {
-    let { patientId, userId, role } = req.query;
-
-    if (!patientId && !userId && req.user) {
-        userId = req.user._id;
-    }
-    if (!role && req.user) {
-        role = req.user.role;
+    if (!req.user) {
+        return res.status(401).json({ message: "Unauthorized" });
     }
 
-    const finalUserId = userId || patientId;
-
-    if (!finalUserId || !role) {
-        return res.status(400).json({ message: "Missing userId/patientId or role" });
-    }
+    const userId = req.user._id;
+    const role = req.user.role;
 
     // 3. Query the database
     const notifications = await Notification.find({ 
-        userId: finalUserId,  
+        userId: userId,  
         role: role    
     })
       .sort({ createdAt: -1 })
@@ -55,15 +47,18 @@ exports.markAsRead = async (req, res) => {
   try {
     const { notificationId } = req.params;
     
-    const notification = await Notification.findByIdAndUpdate(
-      notificationId,
-      { isRead: true },
-      { new: true }
-    );
+    let notification = await Notification.findById(notificationId);
     
     if (!notification) {
       return res.status(404).json({ message: 'Notification not found' });
     }
+
+    if (notification.userId.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    notification.isRead = true;
+    await notification.save();
     
     res.status(200).json(notification);
   } catch (error) {

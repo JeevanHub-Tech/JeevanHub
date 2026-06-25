@@ -31,7 +31,7 @@ function MyOrders() {
 
 	const updateOrderStatus = async (orderId, newStatus) => {
 		try {
-			await axios.post(
+			await axios.put(
 				`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/orders/status`,
 				{
 					orderId,

@@ -79,7 +79,7 @@ exports.createOrder = async (req, res) => {
             firstName: buyer.firstName,
             lastName: buyer.lastName,
             type: buyer.type === 'patient' ? 'Patient' : 'Doctor', // ensure enum matches
-            buyerId: buyer.userId           // schema expects buyerId as ObjectId
+            buyerId: req.user._id // SECURE: Override with authenticated user ID
         };
 
         const newOrder = new Order({
@@ -204,15 +204,48 @@ exports.updateOrderStatus = async (req, res) => {
         }
         console.log(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> update order status called");
         const { orderId, status } = req.body;
-        const order = await Order.findByIdAndUpdate(
-            orderId,
-            { orderStatus: status },
-            { new: true }
-        );
-
+        
+        const order = await Order.findById(orderId).populate('items.medicineId');
         if (!order) {
             return res.status(404).json({ message: 'Order not found' });
         }
+
+        // If admin, they can update the global status directly
+        if (req.user.role === 'admin') {
+            order.orderStatus = status;
+            // Also update all items to match
+            order.items.forEach(item => item.itemStatus = status);
+            await order.save();
+            return res.status(200).json(order);
+        }
+
+        // If retailer, only update their specific items
+        let updatedAnyItem = false;
+        order.items.forEach(item => {
+            if (item.medicineId && item.medicineId.retailerId && item.medicineId.retailerId.toString() === req.user._id.toString()) {
+                item.itemStatus = status;
+                updatedAnyItem = true;
+            }
+        });
+
+        if (!updatedAnyItem) {
+            return res.status(403).json({ message: 'You do not own any items in this order' });
+        }
+
+        // Calculate global orderStatus based on item statuses
+        const allStatuses = order.items.map(item => item.itemStatus);
+        
+        if (allStatuses.every(s => s === 'delivered')) {
+            order.orderStatus = 'delivered';
+        } else if (allStatuses.every(s => s === 'shipped' || s === 'delivered')) {
+            order.orderStatus = 'shipped';
+        } else if (allStatuses.some(s => s !== 'pending')) {
+            order.orderStatus = 'processing';
+        } else {
+            order.orderStatus = 'pending';
+        }
+
+        await order.save();
 
         res.status(200).json(order);
     } catch (error) {
@@ -305,6 +338,10 @@ exports.getReviewedOrdersByBuyerId = async (req, res) => {
     }
 
     try {
+        if (req.user.role !== 'admin' && req.user._id.toString() !== buyerId) {
+            return res.status(403).json({ message: "Access denied. Not your orders." });
+        }
+
         const orders = await Order.find({
             "buyer.buyerId": buyerId,
             "review.comment": { $exists: true, $ne: null, $ne: "" }
@@ -357,6 +394,10 @@ exports.getOrdersByBuyerId = async (req, res) => {
     }
 
     try {
+        if (req.user.role !== 'admin' && req.user._id.toString() !== buyerId) {
+            return res.status(403).json({ message: "Access denied. Not your orders." });
+        }
+
         const orders = await Order.find({
             "buyer.buyerId": buyerId
         })
@@ -408,6 +449,10 @@ exports.getOrdersByRetailerId = async (req, res) => {
     }
 
     try {
+        if (req.user.role !== 'admin' && req.user._id.toString() !== retailerId) {
+            return res.status(403).json({ message: "Access denied. Not your orders." });
+        }
+
         // get all medicine ids for this retailer
         const medicines = await Medicine.find({ retailerId }).select('_id').lean();
         const medicineIds = medicines.map(m => m._id);
@@ -505,6 +550,10 @@ exports.getFeedbackByRetailerId = async (req, res) => {
     }
 
     try {
+        if (req.user.role !== 'admin' && req.user._id.toString() !== retailerId) {
+            return res.status(403).json({ message: "Access denied. Not your feedback." });
+        }
+
         // Find all medicine IDs associated with the given retailer
         const medicines = await Medicine.find({ retailerId }).select('_id');
         const medicineIds = medicines.map(med => med._id);

@@ -5,6 +5,10 @@ const PatientRecord = require('../models/PatientRecord');
 
 exports.getAllRecords = async (req, res) => {
     try {
+        if (!req.user || req.user.role !== 'admin') {
+            return res.status(403).json({ message: "Access denied. Admins only." });
+        }
+
         const allRecords = await PatientRecord.find({})
             .populate({ path: 'patient', select: '-password -resetPasswordOTP -resetPasswordOTPExpires -isOTPVerified' })
             .exec();

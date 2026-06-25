@@ -39,7 +39,6 @@ router.get('/:id', auth, orderController.getOrderById);
 
 router.put("/updateOrderReview/:orderId", auth, orderController.updateOrderReview);
 router.put('/status', auth, orderController.updateOrderStatus);
-router.put('/retailer-status', auth, orderController.updateRetailerStatus);
 router.post('/:orderId/payment-proof', auth, upload.single('paymentProof'), orderController.uploadPaymentProof);
 
 

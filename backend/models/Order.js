@@ -6,7 +6,9 @@ const orderSchema = new mongoose.Schema({
   items: [{
     medicineId: { type: mongoose.Schema.Types.ObjectId, ref: 'Medicine', required: true },
     quantity: { type: Number, required: true },
-    subTotal: { type: Number, required: true }
+    subTotal: { type: Number, required: true },
+    itemStatus: { type: String, enum: ['pending', 'processing', 'shipped', 'delivered', 'cancelled'], default: 'pending' },
+    retailerStatus: { type: String, enum: ['received', 'accepted', 'rejected', 'shipped'], default: 'received' }
   }],
   totalPrice: Number,
 

@@ -18,6 +18,10 @@ const auth = async (req, res, next) => {
 			return res.status(401).json({ message: 'Authentication token is missing.' });
 		}
 
+		if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
+			console.error('CRITICAL: JWT_SECRET is missing or too weak (must be at least 32 chars).');
+		}
+
 		let decoded;
 		try {
 			decoded = jwt.verify(token, process.env.JWT_SECRET);
@@ -33,6 +37,14 @@ const auth = async (req, res, next) => {
 		const user = await Model.findById(id);
 
 		if (!user) return res.status(401).json({ message: 'User not found.' });
+
+		// Check if user changed password after the token was issued
+		if (user.passwordChangedAt) {
+			const changedTimestamp = parseInt(user.passwordChangedAt.getTime() / 1000, 10);
+			if (decoded.iat < changedTimestamp) {
+				return res.status(401).json({ message: 'User recently changed password! Please log in again.' });
+			}
+		}
 
 		req.user = { ...user.toObject(), role };
 		next();

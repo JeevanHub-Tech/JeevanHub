@@ -10,6 +10,7 @@ const adminSchema = new mongoose.Schema({
   isActive: { type: Boolean, default: true },
   lastLogin: { type: Date },
   forcePasswordReset: { type: Boolean, default: false },
+  passwordChangedAt: Date,
   permissions: {
     manageAdmins: { type: Boolean, default: false },
     manageUsers: { type: Boolean, default: false },

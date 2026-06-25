@@ -27,6 +27,7 @@
     "dompurify": "^3.2.7",
     "dotenv": "^16.6.1",
     "express": "^4.19.2",
+    "express-rate-limit": "^8.5.2",
     "fs": "^0.0.1-security",
     "gapi-script": "^1.2.0",
     "googleapis": "^144.0.0",

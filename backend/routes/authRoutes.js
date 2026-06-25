@@ -13,6 +13,13 @@ const Doctor = require("../models/Doctor");
 const xlsx = require("xlsx");
 const fs = require("fs");
 const path = require("path");
+const rateLimit = require("express-rate-limit");
+
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // limit each IP to 5 login requests per windowMs
+  message: { message: "Too many login attempts from this IP, please try again after 15 minutes." }
+});
 
 const cloudinary = require("../config/cloudinary");
 const { CloudinaryStorage } = require("multer-storage-cloudinary");
@@ -65,7 +72,7 @@ router.post("/register/doctor", (req, res, next) => {
 }, registerDoctor);
 router.post("/register/retailer", registerRetailer);
 router.post("/register/patient", registerPatient);
-router.post("/login", loginUser);
+router.post("/login", loginLimiter, loginUser);
 
 // Force change password route
 router.put("/force-change-password", auth, forceChangePassword);
@@ -177,7 +184,7 @@ router.post("/admin/register", auth, async (req, res) => {
   }
 });
 
-router.post("/admin/login", async (req, res) => {
+router.post("/admin/login", loginLimiter, async (req, res) => {
   const { email, password } = req.body;
 
   try {
@@ -218,6 +225,7 @@ router.put("/admin/change-password", auth, async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     admin.password = await bcrypt.hash(newPassword, salt);
     admin.forcePasswordReset = false; // clear the flag if they change password
+    admin.passwordChangedAt = new Date();
     await admin.save();
 
     await logAdminAction(admin._id, "CHANGE_PASSWORD", "Admin changed their password.");

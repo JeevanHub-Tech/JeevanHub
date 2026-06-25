@@ -54,7 +54,8 @@ const doctorSchema = new mongoose.Schema({
     lastLogin: {
         type: Date,
         default: null
-    }
+    },
+    passwordChangedAt: Date
 }, { timestamps: true });
 
 module.exports = mongoose.model("Doctor", doctorSchema);

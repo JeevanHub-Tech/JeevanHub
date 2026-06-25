@@ -4,6 +4,7 @@ const Retailer = require('../models/Retailer');
 const Patient = require('../models/Patient');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const { sendOTPWhatsApp } = require('../scheduler');
 
 // Helper function to generate JWT token
@@ -291,8 +292,8 @@ exports.handleForgotPassword = async (req, res) => {
 			return res.status(404).json({ message: "No account found with that email address." });
 		}
 
-		// 3. Generate 5-digit Numeric OTP
-		const otp = Math.floor(10000 + Math.random() * 90000).toString();
+		// 3. Generate 5-digit Numeric OTP securely
+		const otp = crypto.randomInt(10000, 99999).toString();
 
 		// 4. Save to Database with 15-minute expiry
 		user.resetPasswordOTP = otp;
@@ -391,7 +392,7 @@ exports.resetPassword = async (req, res) => {
 		user.resetPasswordOTP = null;
 		user.resetPasswordOTPExpires = null;
 		user.isOTPVerified = false;
-		user.password = hashedPassword;
+		user.passwordChangedAt = new Date();
 		await user.save();
 
 		res.status(200).json({ message: "Password has been successfully reset." });
@@ -428,6 +429,7 @@ exports.forceChangePassword = async (req, res) => {
 		const hashedPassword = await bcrypt.hash(newPassword, 10);
 		user.password = hashedPassword;
 		user.forcePasswordReset = false;
+		user.passwordChangedAt = new Date();
 		await user.save();
 
 		res.status(200).json({ message: "Password successfully updated" });

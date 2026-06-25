@@ -34,7 +34,8 @@ const PatientSchema = new mongoose.Schema({
   lastAssessmentDate: { 
     type: Date, 
     default: null 
-  }
+  },
+  passwordChangedAt: Date
 }, { timestamps: true });
 
 module.exports = mongoose.model('Patient', PatientSchema);

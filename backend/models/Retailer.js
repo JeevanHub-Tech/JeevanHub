@@ -29,7 +29,8 @@ const RetailerSchema = new mongoose.Schema({
   isOTPVerified: {
     type: Boolean,
     default: false
-  }
+  },
+  passwordChangedAt: Date
 }, { timestamps: true });
 
 module.exports = mongoose.model('Retailer', RetailerSchema);

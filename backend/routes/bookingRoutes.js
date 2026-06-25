@@ -16,7 +16,6 @@ const {
   updateRatingAndReview,
   getRatingAndReview,
 
-  addTempBooking,
   getBookingsByPatientId,
   getBookingsByDoctorId,
   getReviewedBookingsByPatientId,
@@ -71,8 +70,7 @@ router.post("/:id/payment", auth, bookingController.uploadPaymentScreenshot);
 
 // Removed duplicate GET / here
 
-// Temporary route for adding a booking (for testing)
-router.post("/temp", auth, addTempBooking);
+// Removed duplicate GET / here
 
 // Get bookings by patient ID
 router.get("/patient/:patientId", auth, getBookingsByPatientId);

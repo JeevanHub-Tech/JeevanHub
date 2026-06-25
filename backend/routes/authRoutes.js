@@ -436,6 +436,9 @@ router.delete("/users/:id", auth, async (req, res) => {
 // Fetch all retailers
 router.get("/retailers", auth, async (req, res) => {
   try {
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ message: "Access denied. Admins only." });
+    }
     const retailers = await Retailer.find({});
     res.status(200).json(retailers);
   } catch (error) {
@@ -447,7 +450,10 @@ router.get("/retailers", auth, async (req, res) => {
 // Fetch all doctors
 router.get("/doctors", auth, async (req, res) => {
   try {
-    const doctors = await Doctor.find({});
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ message: "Access denied. Admins only." });
+    }
+    const doctors = await Doctor.find({}).select('-password');
     res.status(200).json(doctors);
   } catch (error) {
     console.error("Error fetching doctors:", error);
@@ -458,6 +464,10 @@ router.get("/doctors", auth, async (req, res) => {
 // API route to upload Excel file and save retailers
 router.post("/upload-retailers", auth, upload.single("file"), async (req, res) => {
   try {
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ message: "Access denied. Admins only." });
+    }
+    
     console.log("File received:", req.file);
 
     if (!req.file) {

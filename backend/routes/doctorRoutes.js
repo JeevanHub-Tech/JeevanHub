@@ -27,6 +27,9 @@ const uploadDirectory = path.join(__dirname, "../uploads/doctos");
 // Upload Excel file and process
 router.post("/upload", auth, upload.single("file"), async (req, res) => {
     try {
+        if (req.user.role !== 'admin') {
+            return res.status(403).json({ message: "Access denied. Admins only." });
+        }
         if (!req.file) {
             return res.status(400).json({ message: "No file uploaded" });
         }
@@ -235,6 +238,9 @@ router.delete("/bulk-delete", auth, async (req, res) => {
 // Delete doctor by ID
 router.delete("/:id", auth, async (req, res) => {
     try {
+        if (req.user.role !== 'admin') {
+            return res.status(403).json({ message: "Not authorized. Only admins can delete doctors." });
+        }
         const doctor = await Doctor.findByIdAndDelete(req.params.id);
 
         if (!doctor) {
@@ -248,8 +254,11 @@ router.delete("/:id", auth, async (req, res) => {
     }
 });
 
-// New route to get all doctors from both collections
+// New route to get all doctors from both collections (Admin only)
 router.get("/allDoctors", auth, getAllDoctorsData); 
+
+// New route to get all public doctors (Safe fields only)
+router.get("/publicDoctors", auth, require("../controllers/doctorController").getPublicDoctorsData);
 
 // New route to get doctor by ID from both collections
 router.get("/getDoctorById/:id", auth, getDoctorById);

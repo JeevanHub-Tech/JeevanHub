@@ -55,6 +55,9 @@ const calculateAge = (dob) => {
 // Get All Doctors from unified collection (Admin & Public)
 exports.getAllDoctorsData = async (req, res) => {
 	try {
+		if (req.user.role !== 'admin') {
+			return res.status(403).json({ message: "Access denied. Admins only." });
+		}
 		const doctors = await Doctor.find().select('-password');
 		
 		// Fetch average ratings from Feedback collection
@@ -109,6 +112,53 @@ exports.getAllDoctorsData = async (req, res) => {
 	}
 };
 
+// Get Public Doctors Data (Safe fields only)
+exports.getPublicDoctorsData = async (req, res) => {
+	try {
+		const doctors = await Doctor.find({ approvalStatus: 'Approved' }).select('-password');
+		
+		// Fetch average ratings from Feedback collection
+		const ratings = await Feedback.aggregate([
+			{ $match: { toType: 'Doctor' } },
+			{ $group: { _id: '$to', averageRating: { $avg: '$stars' } } }
+		]);
+		
+		// Map ratings by doctor ID for quick lookup
+		const ratingMap = {};
+		ratings.forEach(r => {
+			if (r._id) ratingMap[r._id.toString()] = r.averageRating;
+		});
+
+		const formattedDoctors = doctors.map((doc) => ({
+			_id: doc._id,
+			firstName: doc.firstName,
+			lastName: doc.lastName,
+			gender: doc.gender,
+			designation: doc.designation,
+			specialization: Array.isArray(doc.specialization) && doc.specialization.length > 0
+				? doc.specialization
+				: doc.specialization
+					? [doc.specialization]
+					: ["Not specified"],
+			experience: doc.experience,
+			price: doc.price,
+			education: doc.education,
+			approvalStatus: doc.approvalStatus || 'Pending',
+			profileImage: doc.profileImage
+				? `${process.env.BASE_URL || "http://localhost:5000"}/${doc.profileImage}`
+				: null,
+			rating: ratingMap[doc._id.toString()] || null
+		}));
+
+		res.status(200).json(formattedDoctors);
+	} catch (error) {
+		res.status(500).json({
+			message: "Failed to fetch Public Doctors",
+			error: error.message,
+		});
+	}
+};
+
 // Bulk Verify Doctors (Admin)
 exports.bulkVerifyDoctors = async (req, res) => {
 	try {
@@ -155,6 +205,9 @@ exports.getDoctorById = async (req, res) => {
 	const { id } = req.params;
 
 	try {
+		if (req.user.role !== 'admin' && req.user._id.toString() !== id) {
+			return res.status(403).json({ message: "Not authorized to view full doctor details." });
+		}
 		let doc = await Doctor.findById(id).select('-password');
 
 		if (doc) {

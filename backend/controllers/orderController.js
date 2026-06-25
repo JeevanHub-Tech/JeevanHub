@@ -16,6 +16,13 @@ exports.updateOrderReview = async (req, res) => {
         const { orderId } = req.params;
         const { rating, comment, receivingDate } = req.body;
 
+        const existingOrder = await Order.findById(orderId);
+        if (!existingOrder) {
+            return res.status(404).json({ message: "Order not found" });
+        }
+        if (existingOrder.buyer.buyerId.toString() !== req.user._id.toString()) {
+            return res.status(403).json({ message: "Not authorized to review this order" });
+        }
 
         // Validate required fields
         if (!rating || rating < 1 || rating > 5) {
@@ -119,6 +126,14 @@ exports.uploadPaymentProof = async (req, res) => {
     try {
         const { orderId } = req.params;
 
+        const existingOrder = await Order.findById(orderId);
+        if (!existingOrder) {
+            return res.status(404).json({ message: "Order not found" });
+        }
+        if (existingOrder.buyer.buyerId.toString() !== req.user._id.toString()) {
+            return res.status(403).json({ message: "Not authorized" });
+        }
+
         // Check if file was uploaded
         if (!req.file) {
             return res.status(400).json({ message: 'Payment proof image is required' });
@@ -151,6 +166,9 @@ exports.getOrderById = async (req, res) => {
         if (!order) {
             return res.status(404).json({ message: 'Order not found' });
         }
+        if (req.user.role !== 'admin' && req.user.role !== 'retailer' && order.buyer.buyerId.toString() !== req.user._id.toString()) {
+            return res.status(403).json({ message: "Access denied" });
+        }
         res.status(200).json(order);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -159,6 +177,9 @@ exports.getOrderById = async (req, res) => {
 
 exports.updateRetailerStatus = async (req, res) => {
     try {
+        if (req.user.role !== 'admin' && req.user.role !== 'retailer') {
+            return res.status(403).json({ message: "Access denied" });
+        }
         const { orderId, status } = req.body;
         const order = await Order.findByIdAndUpdate(
             orderId,
@@ -178,6 +199,9 @@ exports.updateRetailerStatus = async (req, res) => {
 
 exports.updateOrderStatus = async (req, res) => {
     try {
+        if (req.user.role !== 'admin' && req.user.role !== 'retailer') {
+            return res.status(403).json({ message: "Access denied" });
+        }
         console.log(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> update order status called");
         const { orderId, status } = req.body;
         const order = await Order.findByIdAndUpdate(
@@ -200,6 +224,14 @@ exports.getOrders = async (req, res) => {
     try {
         console.log(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> get all orders by a given retailer id called");
         const { retailerId } = req.query;
+
+        if (!retailerId && req.user.role !== 'admin') {
+            return res.status(403).json({ message: "Access denied. Admins only." });
+        }
+        if (retailerId && req.user.role !== 'admin' && req.user._id.toString() !== retailerId) {
+            return res.status(403).json({ message: "Access denied" });
+        }
+
         let orders;
 
         if (retailerId) {
@@ -520,6 +552,9 @@ exports.getFeedbackByRetailerId = async (req, res) => {
 // ✅ Get all transactions
 exports.getAllTransactions = async (req, res) => {
     try {
+        if (req.user.role !== 'admin') {
+            return res.status(403).json({ message: "Access denied. Admins only." });
+        }
         // Fetch all orders from the database
         const orders = await Order.find({})
             .sort({ createdAt: -1 })

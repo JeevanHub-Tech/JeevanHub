@@ -132,6 +132,9 @@ exports.getDietYogaByBooking = async (req, res) => {
 		if (!dietYoga) {
 			return res.status(404).json({ message: "No diet and yoga recommendations found for this booking" });
 		}
+		if (req.user.role !== 'admin' && dietYoga.patient.toString() !== req.user._id.toString() && dietYoga.doctor.toString() !== req.user._id.toString()) {
+			return res.status(403).json({ message: "Forbidden" });
+		}
 
 		return res.status(200).json({
 			message: "Diet and yoga recommendations retrieved successfully",
@@ -218,6 +221,9 @@ exports.getDietYogaByPatientEmail = async (req, res) => {
 		const dietYoga = await DietYoga.findOne({ patient: patient._id });
 		if (!dietYoga) {
 			return res.status(404).json({ message: "No diet and yoga recommendations found for this patient." });
+		}
+		if (req.user.role !== 'admin' && dietYoga.patient.toString() !== req.user._id.toString() && dietYoga.doctor.toString() !== req.user._id.toString()) {
+			return res.status(403).json({ message: "Forbidden" });
 		}
 
 		return res.status(200).json({ diet: dietYoga.diet, yoga: dietYoga.yoga });

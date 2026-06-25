@@ -55,6 +55,9 @@ exports.getRatingAndReview = async (req, res) => {
 		if (!booking) {
 			return res.status(404).json({ error: "Booking not found" });
 		}
+		if (req.user.role !== 'admin' && booking.patientId.toString() !== req.user._id.toString() && booking.doctorId.toString() !== req.user._id.toString()) {
+			return res.status(403).json({ error: "Not authorized" });
+		}
 
 		return res.status(200).json({
 			message: "Rating and review retrieved successfully",
@@ -143,6 +146,9 @@ exports.createBooking = async (req, res) => {
 // Controller function to get all bookings
 exports.getAllBookings = async (req, res) => {
 	try {
+		if (req.user.role !== 'admin') {
+			return res.status(403).json({ message: "Access denied. Admins only." });
+		}
 		// Fetch all bookings from the database
 		const bookings = await Booking.find();
 
@@ -216,6 +222,9 @@ exports.uploadPaymentScreenshot = (req, res) => {
 			if (!booking) {
 				return res.status(404).json({ error: "Booking not found" });
 			}
+			if (booking.patientId.toString() !== req.user._id.toString()) {
+				return res.status(403).json({ error: "Not authorized" });
+			}
 
 			booking.paymentScreenshot = req.file.path;
 			booking.paymentStatus = paymentStatus || "Completed";
@@ -239,6 +248,9 @@ exports.getNotifications = async (req, res) => {
 	console.log(email);
 	if (!email) {
 		return res.status(400).json({ error: "User email is required" });
+	}
+	if (req.user.role !== 'admin' && req.user.email !== email) {
+		return res.status(403).json({ error: "Not authorized to view notifications for this email" });
 	}
 
 	try {
@@ -491,6 +503,9 @@ exports.getRecommendedSupplements = async (req, res) => {
 		if (!booking) {
 			return res.status(404).json({ error: "Booking not found" });
 		}
+		if (req.user.role !== 'admin' && booking.patientId.toString() !== req.user._id.toString() && booking.doctorId.toString() !== req.user._id.toString()) {
+			return res.status(403).json({ error: "Not authorized" });
+		}
 
 		return res.status(200).json({
 			message: "Recommended supplements retrieved successfully",
@@ -502,66 +517,7 @@ exports.getRecommendedSupplements = async (req, res) => {
 	}
 };
 
-// 🔹 Temporary uploader (to push dummy JSON from Postman)
-exports.addTempBooking = async (req, res) => {
-	try {
-		const data = req.body;
-
-		// Basic required fields check
-		const requiredFields = [
-			"doctorId",
-			"doctorName",
-			"doctorEmail",
-			"timeSlot",
-			"dateOfAppointment",
-			"patientId",
-			"patientEmail",
-			"patientName",
-			"patientGender",
-			"patientAge",
-			"patientIllness",
-			"requestAccept",
-			"meetLink",
-			"amountPaid"
-		];
-
-		const missing = requiredFields.filter((field) => !data[field]);
-		if (missing.length > 0) {
-			return res.status(400).json({
-				message: "Missing required fields",
-				missingFields: missing
-			});
-		}
-
-		// 🔹 Validate recommendedSupplements if provided
-		if (data.recommendedSupplements && Array.isArray(data.recommendedSupplements)) {
-			const invalidSupplements = data.recommendedSupplements.filter((supp) => {
-				return !supp.medicineName || !supp.forIllness || !supp.dosage || !supp.instructions || !supp.duration;
-			});
-
-			if (invalidSupplements.length > 0) {
-				return res.status(400).json({
-					message: "Each recommendedSupplement must include medicineName, forIllness, dosage, instructions, and duration",
-					invalidSupplements
-				});
-			}
-		}
-
-		// Create booking
-		const newBooking = new Booking(data);
-		await newBooking.save();
-
-		res.status(201).json({
-			message: "Booking added successfully",
-			booking: newBooking,
-		});
-	} catch (error) {
-		res.status(500).json({
-			message: "Failed to add booking",
-			error: error.message,
-		});
-	}
-};
+// 🔹 Temporary uploader (to push dummy JSON from Postman) removed due to security vulnerability
 
 // ✅ Get bookings by patientId
 exports.getBookingsByPatientId = async (req, res) => {
@@ -569,6 +525,9 @@ exports.getBookingsByPatientId = async (req, res) => {
 
 	if (!patientId) {
 		return res.status(400).json({ error: "Patient ID is required" });
+	}
+	if (req.user.role !== 'admin' && req.user._id.toString() !== patientId) {
+		return res.status(403).json({ error: "Not authorized" });
 	}
 
 	try {
@@ -595,6 +554,9 @@ exports.getBookingsByDoctorId = async (req, res) => {
 	if (!doctorId) {
 		return res.status(400).json({ error: "Doctor ID is required" });
 	}
+	if (req.user.role !== 'admin' && req.user._id.toString() !== doctorId) {
+		return res.status(403).json({ error: "Not authorized" });
+	}
 
 	try {
 		const bookings = await Booking.find({ doctorId }).sort({ createdAt: -1 });
@@ -619,6 +581,9 @@ exports.getReviewedBookingsByPatientId = async (req, res) => {
 
 	if (!patientId) {
 		return res.status(400).json({ error: "Patient ID is required" });
+	}
+	if (req.user.role !== 'admin' && req.user._id.toString() !== patientId) {
+		return res.status(403).json({ error: "Not authorized" });
 	}
 
 	try {
@@ -650,6 +615,9 @@ exports.getReviewedBookingsForDoctorId = async (req, res) => {
 
 	if (!doctorId) {
 		return res.status(400).json({ error: "Doctor ID is required" });
+	}
+	if (req.user.role !== 'admin' && req.user._id.toString() !== doctorId) {
+		return res.status(403).json({ error: "Not authorized" });
 	}
 
 	try {

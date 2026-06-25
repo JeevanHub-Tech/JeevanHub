@@ -132,7 +132,7 @@ exports.deleteMedicine = async (req, res) => {
     if (!medicine) {
       return res.status(404).json({ message: 'Medicine not found' });
     }
-    if (!medicine.retailerId.equals(req.user._id)) {
+    if (!medicine.retailerId.equals(req.user._id) && req.user.role !== 'admin') {
       return res.status(403).json({ message: 'Not authorized to delete this medicine' });
     }
     await Medicine.findByIdAndDelete(req.params.id);
@@ -150,7 +150,7 @@ exports.updateMedicine = async (req, res) => {
     if (!medicine) {
       return res.status(404).json({ message: 'Medicine not found' });
     }
-    if (!medicine.retailerId.equals(req.user._id)) {
+    if (!medicine.retailerId.equals(req.user._id) && req.user.role !== 'admin') {
       return res.status(403).json({ message: 'Unauthorized' });
     }
 

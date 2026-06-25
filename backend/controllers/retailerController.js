@@ -6,6 +6,9 @@ const Medicine = require("../models/Medicine");
 
 exports.getAllRetailers = async (req, res) => {
     try {
+        if (req.user.role !== 'admin') {
+            return res.status(403).json({ message: "Access denied. Admins only." });
+        }
         const retailers = await Retailer.find().select('-password');
 
         if (!retailers || retailers.length === 0) {
@@ -27,6 +30,10 @@ exports.getAllRetailers = async (req, res) => {
 exports.getSingleRetailer = async (req, res) => {
     try {
         const { id } = req.params;
+
+        if (req.user.role !== 'admin' && req.user._id.toString() !== id) {
+            return res.status(403).json({ message: "Not authorized to view this retailer's details" });
+        }
 
         const retailer = await Retailer.findById(id).select('-password');
 

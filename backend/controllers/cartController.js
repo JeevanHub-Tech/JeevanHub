@@ -6,7 +6,10 @@ exports.getCartByPatientID = async (req, res) => {
 
     try {
         if (!patientId) {
-            return res.status(400).json({ message: "Patient ID is requried" });
+            return res.status(400).json({ message: "Patient ID is required" });
+        }
+        if (req.user._id.toString() !== patientId) {
+            return res.status(403).json({ message: "Not authorized" });
         }
 
         const cartItems = await Cart.findOne({ patientId: patientId }).populate({
@@ -39,6 +42,9 @@ exports.updateCartItemQuantity = async (req, res) => {
     try {
         if (!patientId || !medicineId || !action) {
             return res.status(400).json({ message: "Missing required fields" });
+        }
+        if (req.user._id.toString() !== patientId) {
+            return res.status(403).json({ message: "Not authorized" });
         }
 
         // 2. Use 'Cart' (Model) to find, and assign to 'cart' (Variable)
@@ -121,6 +127,9 @@ exports.removeFromCart = async (req, res) => {
         if (!patientId || !medicineId) {
             return res.status(400).json({ message: "Patient ID and Medicine ID are required" });
         }
+        if (req.user._id.toString() !== patientId) {
+            return res.status(403).json({ message: "Not authorized" });
+        }
 
         // 1. Find the Cart
         const cart = await Cart.findOne({ patientId });
@@ -177,6 +186,9 @@ exports.addToCart = async (req, res) => {
     try {
         if (!patientId || !medicineId || !quantity) {
             return res.status(400).json({ message: "Missing required fields" });
+        }
+        if (req.user._id.toString() !== patientId) {
+            return res.status(403).json({ message: "Not authorized" });
         }
 
         // 1. Fetch medicine to check price and validity

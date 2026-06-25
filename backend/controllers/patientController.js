@@ -6,6 +6,9 @@ const Medicine = require("../models/Medicine");
 // Get All Patients (Public)
 exports.getAllPatients = async (req, res) => {
 	try {
+		if (req.user.role !== 'admin') {
+			return res.status(403).json({ message: "Access denied. Admins only." });
+		}
 		const patients = await Patient.find().select('-password');
 
 		res.status(200).json(patients);
@@ -79,6 +82,9 @@ exports.getPatientById = async (req, res) => {
 	const { id } = req.params;
 
 	try {
+		if (req.user.role !== 'admin' && req.user._id.toString() !== id) {
+			return res.status(403).json({ message: "Not authorized to view this patient's details" });
+		}
 		const patient = await Patient.findById(id).select('-password');
 
 		if (!patient) {
@@ -97,6 +103,13 @@ exports.getPatientDietYoga = async (req, res) => {
 	const { patientId } = req.params; // Patient's ID from URL
 
 	try {
+		if (req.user.role !== 'admin' && req.user._id.toString() !== patientId) {
+			// Actually doctors should be able to view their patient's diet plan too.
+			// Since we only have req.user, let's at least protect it somewhat.
+			if (req.user.role !== 'doctor') {
+				return res.status(403).json({ message: "Not authorized to view this patient's diet plan" });
+			}
+		}
 		console.log("fetching patinet diet yuoga >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
 		const dietYogaPlan = await DietYoga.findOne({ patient: patientId });
 
@@ -121,6 +134,9 @@ exports.getOrdersByBuyerId = async (req, res) => {
 	const { buyerId } = req.params;
 
 	try {
+		if (req.user.role !== 'admin' && req.user._id.toString() !== buyerId) {
+			return res.status(403).json({ message: "Not authorized to view these orders" });
+		}
 		const orders = await Order.find({ "buyer.buyerId": buyerId })
 			.populate({
 				path: "items.medicineId",

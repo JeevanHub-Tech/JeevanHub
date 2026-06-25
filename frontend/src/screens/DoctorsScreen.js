@@ -32,7 +32,7 @@ function DoctorsScreen() {
   // Fetch doctors from backend on component mount
   useEffect(() => {
     const token = localStorage.getItem("token");
-    fetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/doctors/allDoctors`, {
+    fetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/doctors/publicDoctors`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },

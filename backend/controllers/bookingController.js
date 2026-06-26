@@ -72,6 +72,9 @@ exports.getRatingAndReview = async (req, res) => {
 
 // Controller function to handle booking creation
 exports.createBooking = async (req, res) => {
+	if (req.user.role !== 'patient') {
+		return res.status(403).json({ error: "Access denied. Only patients can create bookings." });
+	}
 	const {
 		doctorName,
 		doctorId,

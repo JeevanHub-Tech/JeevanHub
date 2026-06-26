@@ -14,10 +14,11 @@ const { getAllDoctors,
     updateDoctor,
     getDoctorById,
     bulkDeleteDoctors,
+    bulkVerifyDoctors,
     verifyDoctor } = require("../controllers/doctorController");
 
 // Public Routes
-router.get("/", auth, getAllDoctors); 
+router.get("/", getAllDoctors); 
 
 // Multer setup for file upload
 const storage = multer.memoryStorage();
@@ -230,6 +231,18 @@ router.delete("/bulk-delete", auth, async (req, res) => {
             return res.status(403).json({ message: "Not authorized. Only admins can delete doctors." });
         }
         return bulkDeleteDoctors(req, res);
+    } catch (error) {
+        res.status(500).json({ message: "Server error", error: error.message });
+    }
+});
+
+// Bulk verify doctors
+router.put("/bulk-verify", auth, async (req, res) => {
+    try {
+        if (req.user.role !== 'admin') {
+            return res.status(403).json({ message: "Not authorized. Only admins can verify doctors." });
+        }
+        return bulkVerifyDoctors(req, res);
     } catch (error) {
         res.status(500).json({ message: "Server error", error: error.message });
     }

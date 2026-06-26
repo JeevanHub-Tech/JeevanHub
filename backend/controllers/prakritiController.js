@@ -64,7 +64,7 @@ exports.getPrakritiAssessment = async (req, res) => {
         }).sort({ createdAt: -1 });
 
         if (!assessment) {
-            return res.status(404).json({ message: "No assessment found" });
+            return res.status(200).json(null);
         }
 
         return res.status(200).json(assessment);

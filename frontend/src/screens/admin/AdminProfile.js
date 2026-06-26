@@ -120,7 +120,7 @@ const AdminProfile = () => {
     };
 
     return (
-        <div style={{ padding: '20px', maxWidth: '850px', margin: '100px auto 20px auto', background: 'white', borderRadius: '15px' }}>
+        <div style={{ padding: '20px', maxWidth: '850px', margin: '165px auto 25px auto', background: 'white', borderRadius: '15px' }}>
             <style>{`
                 input[type="password"]::-ms-reveal,
                 input[type="password"]::-ms-clear {

@@ -13,8 +13,14 @@ const PatientManagement = () => {
     useEffect(() => {
         const fetchPatients = async () => {
             try {
+                const token = localStorage.getItem("token");
                 const res = await fetch(
-                    `${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/patients/getAllPatients`
+                    `${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/patients/getAllPatients`,
+                    {
+                        headers: {
+                            Authorization: `Bearer ${token}`
+                        }
+                    }
                 );
                 if (!res.ok) throw new Error("Failed to fetch patients");
                 const data = await res.json();

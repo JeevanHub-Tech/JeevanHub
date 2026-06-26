@@ -564,7 +564,7 @@ exports.getBookingsByPatientId = async (req, res) => {
 		const bookings = await Booking.find({ patientId }).sort({ createdAt: -1 });
 
 		if (!bookings || bookings.length === 0) {
-			return res.status(404).json({ message: "No bookings found for this patient" });
+			return res.status(200).json({ bookings: [] });
 		}
 
 		return res.status(200).json({

@@ -133,6 +133,7 @@ exports.getPublicDoctorsData = async (req, res) => {
 			_id: doc._id,
 			firstName: doc.firstName,
 			lastName: doc.lastName,
+			email: doc.email,
 			gender: doc.gender,
 			designation: doc.designation,
 			specialization: Array.isArray(doc.specialization) && doc.specialization.length > 0

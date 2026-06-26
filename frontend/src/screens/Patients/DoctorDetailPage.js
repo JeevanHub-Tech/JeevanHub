@@ -108,7 +108,7 @@ function DoctorDetail() {
 
 			// Data to be sent to the backend
 			let bookingData = {
-				doctorId: doctor._id,
+				doctorId: doctor.id || doctor._id,
 				doctorName: doctor.name,
 				doctorEmail: doctor.email,
 				timeSlot: selectedTime,
@@ -135,11 +135,13 @@ function DoctorDetail() {
 			}
 
 			try {
+				const token = localStorage.getItem("token");
 				const response = await fetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/bookings`, {
 					// Replace with your API URL
 					method: "POST",
 					headers: {
 						"Content-Type": "application/json",
+						"Authorization": `Bearer ${token}`,
 					},
 					body: JSON.stringify(bookingData), // Send the doctor and slot data
 				});

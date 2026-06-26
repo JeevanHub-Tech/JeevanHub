@@ -14,6 +14,7 @@ const { getAllDoctors,
     updateDoctor,
     getDoctorById,
     bulkDeleteDoctors,
+    bulkVerifyDoctors,
     verifyDoctor } = require("../controllers/doctorController");
 
 // Admin/Doctor Routes
@@ -240,6 +241,18 @@ router.delete("/bulk-delete", auth, async (req, res) => {
     }
 });
 
+// Bulk verify doctors
+router.put("/bulk-verify", auth, async (req, res) => {
+    try {
+        if (req.user.role !== 'admin') {
+            return res.status(403).json({ message: "Not authorized. Only admins can verify doctors." });
+        }
+        return bulkVerifyDoctors(req, res);
+    } catch (error) {
+        res.status(500).json({ message: "Server error", error: error.message });
+    }
+});
+
 // Delete doctor by ID
 router.delete("/:id", auth, async (req, res) => {
     try {
@@ -262,8 +275,8 @@ router.delete("/:id", auth, async (req, res) => {
 // New route to get all doctors from both collections (Admin only)
 router.get("/allDoctors", auth, getAllDoctorsData); 
 
-// New route to get all public doctors (Safe fields only)
-router.get("/publicDoctors", auth, require("../controllers/doctorController").getPublicDoctorsData);
+// New route to get all public doctors (Safe fields only, truly public)
+router.get("/publicDoctors", require("../controllers/doctorController").getPublicDoctorsData);
 
 // New route to get doctor by ID from both collections
 router.get("/getDoctorById/:id", auth, getDoctorById);

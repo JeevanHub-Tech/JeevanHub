@@ -51,7 +51,7 @@ router.put("/rating-review/:id", auth, updateRatingAndReview);
 // Route to get rating and review
 router.get("/rating-review/:id", auth, getRatingAndReview);
 
-router.get("/reviews/:doctorEmail", auth, async (req, res) => {
+router.get("/reviews/:doctorEmail", async (req, res) => {
   const { doctorEmail } = req.params;
   try {
     const reviews = await Booking.find({

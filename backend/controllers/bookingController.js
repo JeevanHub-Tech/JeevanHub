@@ -214,7 +214,6 @@ exports.uploadPaymentScreenshot = (req, res) => {
 		console.log(req.file);
 
 		const { id } = req.params;
-		const { paymentStatus, amountPaid } = req.body;
 
 		if (!req.file) {
 			return res.status(400).json({ error: "Payment screenshot is required" });
@@ -230,8 +229,8 @@ exports.uploadPaymentScreenshot = (req, res) => {
 			}
 
 			booking.paymentScreenshot = req.file.path;
-			booking.paymentStatus = paymentStatus || "Completed";
-			booking.amountPaid = amountPaid || booking.amountPaid;
+			// C5-1: Server dictates status, not client
+			booking.paymentStatus = "Pending";
 
 			await booking.save();
 
@@ -244,6 +243,34 @@ exports.uploadPaymentScreenshot = (req, res) => {
 			return res.status(500).json({ error: "Server error" });
 		}
 	});
+};
+
+// Verify Payment Proof (Doctor)
+exports.verifyPaymentProof = async (req, res) => {
+	const { id } = req.params;
+	try {
+		if (req.user.role !== 'doctor') {
+			return res.status(403).json({ error: "Access denied. Only doctors can verify payments." });
+		}
+		const booking = await Booking.findById(id);
+		if (!booking) {
+			return res.status(404).json({ error: "Booking not found" });
+		}
+		if (booking.doctorId.toString() !== req.user._id.toString()) {
+			return res.status(403).json({ error: "Not authorized to verify payment for this booking" });
+		}
+		if (!booking.paymentScreenshot) {
+			return res.status(400).json({ error: "No payment screenshot has been uploaded" });
+		}
+
+		booking.paymentStatus = "Completed";
+		await booking.save();
+
+		return res.status(200).json({ message: "Payment verified successfully", booking });
+	} catch (error) {
+		console.error("Error verifying payment:", error);
+		return res.status(500).json({ error: "Server error" });
+	}
 };
 
 exports.getNotifications = async (req, res) => {

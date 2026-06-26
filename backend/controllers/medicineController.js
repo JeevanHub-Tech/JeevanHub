@@ -163,7 +163,15 @@ exports.updateMedicine = async (req, res) => {
       return res.status(403).json({ message: 'Unauthorized' });
     }
 
-    const updates = req.body;
+    // C5-8: Whitelist allowed fields to prevent mass assignment (e.g., hijacking retailerId)
+    const allowedUpdates = ["name", "price", "quantity", "category", "prescription"];
+    const updates = {};
+    for (const key of allowedUpdates) {
+      if (req.body[key] !== undefined) {
+        updates[key] = req.body[key];
+      }
+    }
+    
     if (req.file) {
       updates.image = req.file.path;
     }

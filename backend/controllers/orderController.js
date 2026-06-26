@@ -24,6 +24,9 @@ exports.updateOrderReview = async (req, res) => {
         if (existingOrder.buyer.buyerId.toString() !== req.user._id.toString()) {
             return res.status(403).json({ message: "Not authorized to review this order" });
         }
+        if (existingOrder.orderStatus !== "delivered") {
+            return res.status(400).json({ message: "Reviews can only be submitted for delivered orders" });
+        }
 
         // Validate required fields
         if (!rating || rating < 1 || rating > 5) {
@@ -43,8 +46,7 @@ exports.updateOrderReview = async (req, res) => {
             orderId,
             {
                 $set: {
-                    review: reviewData,
-                    orderStatus: "delivered", 
+                    review: reviewData
                 },
             },
             { new: true }

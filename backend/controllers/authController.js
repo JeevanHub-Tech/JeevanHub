@@ -346,13 +346,16 @@ exports.verifyOTP = async (req, res) => {
 			return res.status(400).json({ message: "OTP has expired. Please request a new one." });
 		}
 
-		// 5. Success! "Unlock" the password change permission
-		user.isOTPVerified = true;
-		// Optional: You can clear the OTP now or wait until the password is changed
+		// 5. Success! "Unlock" the password change permission with a token
+		const resetToken = crypto.randomBytes(32).toString('hex');
+		user.resetPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+		user.resetPasswordExpires = Date.now() + 15 * 60 * 1000; // 15 minutes
+		// user.isOTPVerified = true; // No longer relying on a boolean flag
 		await user.save();
 
 		return res.status(200).json({
-			message: "OTP verified successfully. You can now reset your password."
+			message: "OTP verified successfully. You can now reset your password.",
+			resetToken
 		});
 
 	} catch (error) {
@@ -364,23 +367,26 @@ exports.verifyOTP = async (req, res) => {
 // Final password reset after OTP verification
 exports.resetPassword = async (req, res) => {
 	try {
-		const { email, role, newPassword } = req.body;
+		const { email, role, newPassword, resetToken } = req.body;
 
 		const Model = modelMap[role];
 		if (!Model) return res.status(400).json({ message: "Invalid role." });
 
+		if (!resetToken) {
+			return res.status(400).json({ message: "Reset token is required." });
+		}
+		
+		const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+
 		// 1. Find user and check the verification flag
-		const user = await Model.findOne({ email });
+		const user = await Model.findOne({ 
+			email,
+			resetPasswordToken: hashedToken,
+			resetPasswordExpires: { $gt: Date.now() }
+		});
 
 		if (!user) {
-			return res.status(404).json({ message: "User not found." });
-		}
-
-		// CRITICAL SECURITY CHECK
-		if (!user.isOTPVerified) {
-			return res.status(403).json({
-				message: "Security violation: OTP was not verified for this account."
-			});
+			return res.status(403).json({ message: "Security violation: Invalid or expired reset token." });
 		}
 
 		// 2. Hash the new password
@@ -389,8 +395,10 @@ exports.resetPassword = async (req, res) => {
 
 		// 3. Update the user and CLEAR ALL RESET FIELDS
 		user.password = hashedPassword;
-		user.resetPasswordOTP = null;
-		user.resetPasswordOTPExpires = null;
+		user.resetPasswordOTP = undefined;
+		user.resetPasswordOTPExpires = undefined;
+		user.resetPasswordToken = undefined;
+		user.resetPasswordExpires = undefined;
 		user.isOTPVerified = false;
 		user.passwordChangedAt = new Date();
 		await user.save();

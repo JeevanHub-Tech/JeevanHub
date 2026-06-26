@@ -619,7 +619,7 @@ exports.getReviewedBookingsByPatientId = async (req, res) => {
 	try {
 		const bookings = await Booking.find({
 			patientId,
-			review: { $exists: true, $ne: null, $ne: "" },
+			review: { $exists: true, $nin: [null, ""] },
 		}).sort({ createdAt: -1 });
 
 		if (!bookings || bookings.length === 0) {
@@ -653,7 +653,7 @@ exports.getReviewedBookingsForDoctorId = async (req, res) => {
 	try {
 		const bookings = await Booking.find({
 			doctorId,
-			review: { $exists: true, $ne: null, $ne: "" },
+			review: { $exists: true, $nin: [null, ""] },
 		}).sort({ createdAt: -1 });
 
 		if (!bookings || bookings.length === 0) {

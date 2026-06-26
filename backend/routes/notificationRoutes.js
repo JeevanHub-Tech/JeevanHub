@@ -19,6 +19,21 @@ router.get('/', auth, async (req, res) => {
 
 // Create a new notification route removed (C4-8) - notifications must be generated server-side.
 
+// Mark all notifications as read
+router.patch('/read-all', auth, async (req, res) => {
+  try {
+    await Notification.updateMany(
+      { userId: req.user._id, isRead: false },
+      { $set: { isRead: true } }
+    );
+    
+    res.json({ message: 'All notifications marked as read' });
+  } catch (err) {
+    console.error('Error updating notifications:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // Mark a notification as read
 router.patch('/:id/read', auth, async (req, res) => {
   try {
@@ -39,21 +54,6 @@ router.patch('/:id/read', auth, async (req, res) => {
     res.json(notification);
   } catch (err) {
     console.error('Error updating notification:', err);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-// Mark all notifications as read
-router.patch('/read-all', auth, async (req, res) => {
-  try {
-    await Notification.updateMany(
-      { userId: req.user._id, isRead: false },
-      { $set: { isRead: true } }
-    );
-    
-    res.json({ message: 'All notifications marked as read' });
-  } catch (err) {
-    console.error('Error updating notifications:', err);
     res.status(500).json({ message: 'Server error' });
   }
 });

@@ -10,6 +10,11 @@ const adminSchema = new mongoose.Schema({
   isActive: { type: Boolean, default: true },
   lastLogin: { type: Date },
   forcePasswordReset: { type: Boolean, default: false },
+  resetPasswordOTP: { type: String, default: null },
+  resetPasswordOTPExpires: { type: Date, default: null },
+  isOTPVerified: { type: Boolean, default: false },
+  resetPasswordToken: { type: String, default: null },
+  resetPasswordExpires: { type: Date, default: null },
   passwordChangedAt: Date,
   permissions: {
     manageAdmins: { type: Boolean, default: false },

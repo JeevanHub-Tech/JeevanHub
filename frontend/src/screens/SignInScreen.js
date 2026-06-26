@@ -77,6 +77,7 @@ function SignInScreen() {
 	const [otp, setOtp] = useState("");
 	const [newPassword, setNewPassword] = useState("");
 	const [confirmPassword, setConfirmPassword] = useState("");
+	const [resetToken, setResetToken] = useState("");
 
 
 	const [showReset, setShowReset] = useState(false);
@@ -269,6 +270,7 @@ function SignInScreen() {
 
 			if (response.ok) {
 				alert("OTP Verified successfully!");
+				setResetToken(data.resetToken);
 				setShowPage("NewPassword");
 			} else {
 				alert(data.message || "Invalid or expired OTP.");
@@ -304,7 +306,8 @@ function SignInScreen() {
 				body: JSON.stringify({
 					email: passwordResetEmail,
 					role: passwordResetRole,
-					newPassword: newPassword
+					newPassword: newPassword,
+					resetToken: resetToken
 				}),
 			});
 

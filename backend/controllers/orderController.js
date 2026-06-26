@@ -103,22 +103,35 @@ exports.createOrder = async (req, res) => {
             newOrder.paymentQR = 'uploads/qr-codes/payment-qr.png';
         }
 
-        await newOrder.save();
+        const session = await mongoose.startSession();
+        session.startTransaction();
+        try {
+            // Check stock and decrement medicine stock atomically
+            for (const item of formattedItems) {
+                const result = await Medicine.updateOne(
+                    { _id: item.medicineId, quantity: { $gte: item.quantity } },
+                    { $inc: { quantity: -item.quantity } },
+                    { session }
+                );
 
-        // Clear the cart
-        await Cart.findOneAndDelete({ patientId: buyer.userId });
-
-        // Check stock and decrement medicine stock atomically
-        for (const item of formattedItems) {
-            const result = await Medicine.updateOne(
-                { _id: item.medicineId, quantity: { $gte: item.quantity } },
-                { $inc: { quantity: -item.quantity } }
-            );
-
-            if (result.modifiedCount === 0) {
-                // Race condition - stock was claimed by another order or insufficient
-                return res.status(409).json({ message: 'Stock no longer available for one or more items' });
+                if (result.modifiedCount === 0) {
+                    // Race condition - stock was claimed by another order or insufficient
+                    await session.abortTransaction();
+                    session.endSession();
+                    return res.status(409).json({ message: 'Stock no longer available for one or more items' });
+                }
             }
+
+            await newOrder.save({ session });
+            // Clear the cart
+            await Cart.findOneAndDelete({ patientId: req.user._id }, { session });
+
+            await session.commitTransaction();
+            session.endSession();
+        } catch (error) {
+            await session.abortTransaction();
+            session.endSession();
+            throw error;
         }
 
         // C4-8: Generate notification securely from the backend
@@ -373,7 +386,7 @@ exports.getReviewedOrdersByBuyerId = async (req, res) => {
 
         const orders = await Order.find({
             "buyer.buyerId": buyerId,
-            "review.comment": { $exists: true, $ne: null, $ne: "" }
+            "review.comment": { $exists: true, $nin: [null, ""] }
         })
             .sort({ createdAt: -1 })
             .populate({
@@ -595,7 +608,7 @@ exports.getFeedbackByRetailerId = async (req, res) => {
 
         const ordersWithFeedback = await Order.find({
             'items.medicineId': { $in: medicineIds },
-            'review.comment': { $exists: true, $ne: null, $ne: '' }
+            'review.comment': { $exists: true, $nin: [null, ''] }
         })
             .sort({ 'review.createdAt': -1 })
             .populate({

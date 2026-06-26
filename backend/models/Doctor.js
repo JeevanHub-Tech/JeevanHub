@@ -47,6 +47,14 @@ const doctorSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
+    resetPasswordToken: {
+        type: String,
+        default: null
+    },
+    resetPasswordExpires: {
+        type: Date,
+        default: null
+    },
     forcePasswordReset: {
         type: Boolean,
         default: false

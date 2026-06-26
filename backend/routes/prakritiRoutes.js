@@ -29,7 +29,7 @@ router.post("/assessment", verifyToken, submitAssessment);
 // GET route to fetch Prakriti Assessment for a specific patient
 router.get("/assessment/getall", verifyToken, getPrakritiAssessment);
 
-// DELETE route to delete Prakriti Assessment for a specific patient
-router.delete("/assessment/:patientEmail", verifyToken, deleteAssessment);
+// DELETE route to delete Prakriti Assessment
+router.delete("/assessment/:id", verifyToken, deleteAssessment);
 
 module.exports = router;

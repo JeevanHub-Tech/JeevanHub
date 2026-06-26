@@ -21,8 +21,15 @@ const loginLimiter = rateLimit({
   message: { message: "Too many login attempts from this IP, please try again after 15 minutes." }
 });
 
+const otpLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // limit each IP to 5 OTP attempts
+  message: { message: "Too many OTP verification attempts from this IP, please try again after 15 minutes." }
+});
+
 const cloudinary = require("../config/cloudinary");
 const { CloudinaryStorage } = require("multer-storage-cloudinary");
+const localUpload = multer({ storage: multer.memoryStorage() });
 
 // Cloudinary storage setup for doctor files (certificates and QR codes)
 const storage = new CloudinaryStorage({
@@ -470,7 +477,8 @@ router.get("/doctors", auth, async (req, res) => {
 });
 
 // API route to upload Excel file and save retailers
-router.post("/upload-retailers", auth, upload.single("file"), async (req, res) => {
+// C6-4: Use localUpload (memory storage) instead of Cloudinary upload
+router.post("/upload-retailers", auth, localUpload.single("file"), async (req, res) => {
   try {
     if (req.user.role !== "admin") {
       return res.status(403).json({ message: "Access denied. Admins only." });
@@ -482,9 +490,8 @@ router.post("/upload-retailers", auth, upload.single("file"), async (req, res) =
       return res.status(400).json({ message: "No file uploaded" });
     }
 
-    //  Read from file instead of buffer
-    const filePath = path.join(__dirname, "..", req.file.path);
-    const workbook = xlsx.readFile(filePath); // ✅ Read the file from disk
+    // C6-4: Read from buffer since it's stored in memory
+    const workbook = xlsx.read(req.file.buffer, { type: "buffer" });
 
     console.log("Workbook loaded:", workbook.SheetNames);
 
@@ -510,8 +517,7 @@ router.post("/upload-retailers", auth, upload.single("file"), async (req, res) =
       }
     }
 
-    //  Delete the uploaded file after processing
-    fs.unlinkSync(filePath);
+
 
     res.status(201).json({ message: "Retailers uploaded successfully!" });
   } catch (error) {
@@ -557,7 +563,7 @@ const findUserAndUpdatePassword = async (email, newPassword) => {
 router.post("/forgot-password", handleForgotPassword);
 
 // verify OTP
-router.post("/verify-otp", verifyOTP);
+router.post("/verify-otp", otpLimiter, verifyOTP);
 
 // reset password
 router.post("/reset-password", resetPassword);

@@ -27,6 +27,14 @@ const PatientSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  resetPasswordToken: {
+    type: String,
+    default: null
+  },
+  resetPasswordExpires: {
+    type: Date,
+    default: null
+  },
   hasTakenAssessment: { 
     type: Boolean, 
     default: false 

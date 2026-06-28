@@ -1,19 +1,87 @@
 import React, { useState, useEffect, useRef, useContext } from 'react';
 import './SanjeevaniChatbot.css';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 
 const SanjeevaniChatbot = ({ isFullScreen = false }) => {
-    const [isOpen, setIsOpen] = useState(isFullScreen);
+    const location = useLocation();
+    const [chatState, setChatState] = useState(() => {
+        if (isFullScreen) return 'open';
+        if (location.pathname === '/') return 'peek';
+        return 'closed';
+    });
     const [messages, setMessages] = useState([]);
     const [inputText, setInputText] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [userId, setUserId] = useState('');
     const messagesEndRef = useRef(null);
     const initializedId = useRef(null);
+    const chatbotRef = useRef(null);
     const navigate = useNavigate();
     const { auth } = useContext(AuthContext);
+
+    // PWA Install State
+    const [deferredPrompt, setDeferredPrompt] = useState(null);
+    const [showIosInstallModal, setShowIosInstallModal] = useState(false);
+    const [isMobile, setIsMobile] = useState(false);
+    const [isIOS, setIsIOS] = useState(false);
+    const textareaRef = useRef(null);
+
+    useEffect(() => {
+        if (chatState === 'open' || isFullScreen) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = 'unset';
+        }
+        return () => { document.body.style.overflow = 'unset'; };
+    }, [chatState, isFullScreen]);
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (chatbotRef.current && !chatbotRef.current.contains(event.target)) {
+                if (!isFullScreen && chatState !== 'closed') {
+                    setChatState('closed');
+                }
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [isFullScreen, chatState]);
+
+    useEffect(() => {
+        // Device Detection
+        const userAgent = window.navigator.userAgent.toLowerCase();
+        const mobileCheck = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
+        setIsMobile(mobileCheck);
+        
+        const iosCheck = /iphone|ipad|ipod/.test(userAgent);
+        setIsIOS(iosCheck);
+
+        // Listen for beforeinstallprompt (Android/Chrome)
+        const handleBeforeInstallPrompt = (e) => {
+            e.preventDefault();
+            setDeferredPrompt(e);
+        };
+
+        window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+        return () => {
+            window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+        };
+    }, []);
+
+    const handleInstallClick = async () => {
+        if (deferredPrompt) {
+            // Android / Chrome
+            deferredPrompt.prompt();
+            await deferredPrompt.userChoice;
+            setDeferredPrompt(null);
+        } else if (isIOS) {
+            // iOS Safari
+            setShowIosInstallModal(true);
+        }
+    };
 
     // Dynamically associate chat session to the permanent logged in ID
     useEffect(() => {
@@ -73,19 +141,39 @@ const SanjeevaniChatbot = ({ isFullScreen = false }) => {
 
         // Only call initChat if we haven't already initialized this specific user ID
         // This prevents the chat from refreshing and fetching history/greetings every time the widget is opened/closed
-        if (id && (isOpen || isFullScreen) && initializedId.current !== id) {
+        if (id && (chatState !== 'closed' || isFullScreen) && initializedId.current !== id) {
             initializedId.current = id;
             initChat();
         }
-    }, [auth, isOpen, isFullScreen]);
+    }, [auth, chatState, isFullScreen]);
 
     const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        if (messagesEndRef.current) {
+            const container = messagesEndRef.current.parentNode;
+            const messageNodes = container.querySelectorAll('.sanjeevani-msg');
+            if (messageNodes.length > 0) {
+                const lastMessage = messageNodes[messageNodes.length - 1];
+                const containerHeight = container.clientHeight;
+                
+                // offsetTop is relative to the offsetParent. 
+                // To be safe, calculate the relative position within the scrollable container.
+                const lastMsgTop = lastMessage.offsetTop - container.offsetTop;
+                const lastMsgHeight = lastMessage.offsetHeight;
+                
+                if (lastMsgHeight > containerHeight) {
+                    // Message is taller than container, align to top of message
+                    container.scrollTop = lastMsgTop - 10; // 10px buffer for padding
+                } else {
+                    // Message fits, scroll to bottom
+                    container.scrollTop = container.scrollHeight;
+                }
+            }
+        }
     };
 
     useEffect(() => {
         scrollToBottom();
-    }, [messages, isOpen]);
+    }, [messages, chatState, isFullScreen]);
 
     const handleSend = async (textOverride) => {
         const textToSend = textOverride || inputText;
@@ -95,6 +183,9 @@ const SanjeevaniChatbot = ({ isFullScreen = false }) => {
         const userMsg = { role: 'user', content: textToSend };
         setMessages(prev => [...prev, userMsg]);
         setInputText('');
+        if (textareaRef.current) {
+            textareaRef.current.style.height = '40px';
+        }
         setIsLoading(true);
 
         try {
@@ -152,7 +243,7 @@ const SanjeevaniChatbot = ({ isFullScreen = false }) => {
                                             const base = window.location.origin;
                                             window.open(base + opt.action, '_blank');
                                         } else {
-                                            setIsOpen(false);
+                                            setChatState('closed');
                                             navigate(opt.action);
                                         }
                                     } else {
@@ -174,7 +265,7 @@ const SanjeevaniChatbot = ({ isFullScreen = false }) => {
                                     if (isFullScreen) {
                                         window.open(window.location.origin + '/doctors', '_blank');
                                     } else {
-                                        setIsOpen(false);
+                                        setChatState('closed');
                                         navigate('/doctors');
                                     }
                                 }}>
@@ -236,7 +327,7 @@ const SanjeevaniChatbot = ({ isFullScreen = false }) => {
                                                     // PWA: can't pass state, open doctors list instead
                                                     window.open(window.location.origin + '/doctors', '_blank');
                                                 } else {
-                                                    setIsOpen(false);
+                                                    setChatState('closed');
                                                     navigate('/doctor-detail', { state: { doctor: doctorForPage } });
                                                 }
                                             }}>
@@ -269,19 +360,69 @@ const SanjeevaniChatbot = ({ isFullScreen = false }) => {
 
     return (
         <div className={`sanjeevani-container ${isFullScreen ? 'sanjeevani-full-screen-app' : ''}`}>
-            {(isOpen || isFullScreen) ? (
-                <div className={`sanjeevani-window ${isFullScreen ? 'sanjeevani-window-full' : ''}`}>
+            {(chatState !== 'closed' || isFullScreen) ? (
+                <div ref={chatbotRef} className={`sanjeevani-window ${isFullScreen ? 'sanjeevani-window-full' : ''} ${chatState === 'peek' ? 'peek' : ''}`}>
                     <div className="sanjeevani-header">
                         <div className="sanjeevani-header-info">
                             <h3>Sanjeevani AI ✨</h3>
                             <span className="sanjeevani-status">Online and Ready</span>
                         </div>
-                        {!isFullScreen && (
-                            <button className="sanjeevani-close-btn" onClick={() => setIsOpen(false)}>×</button>
-                        )}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            {isMobile && (
+                                <button 
+                                    onClick={handleInstallClick}
+                                    style={{
+                                        background: '#fff',
+                                        color: '#1b5e20',
+                                        border: 'none',
+                                        padding: '4px 10px',
+                                        borderRadius: '16px',
+                                        fontSize: '12px',
+                                        fontWeight: '600',
+                                        cursor: 'pointer',
+                                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                                    }}
+                                >
+                                    Install App 📱
+                                </button>
+                            )}
+                            {!isFullScreen && (
+                                <button className="sanjeevani-close-btn" onClick={(e) => { e.stopPropagation(); setChatState('closed'); }}>×</button>
+                            )}
+                        </div>
                     </div>
 
-                    <div className="sanjeevani-messages">
+                    {showIosInstallModal && (
+                        <div style={{
+                            position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+                            background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100,
+                            backdropFilter: 'blur(2px)'
+                        }}>
+                            <div style={{ background: '#fff', padding: '24px', borderRadius: '16px', width: '80%', maxWidth: '300px', textAlign: 'center', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
+                                <h4 style={{ margin: '0 0 10px 0', color: '#1b5e20', fontSize: '18px' }}>Install on iOS</h4>
+                                <p style={{ fontSize: '14px', margin: '0 0 15px 0', color: '#555' }}>
+                                    To install Sanjeevani AI on your iPhone or iPad:
+                                </p>
+                                <ol style={{ textAlign: 'left', fontSize: '13px', margin: '0 0 20px 0', paddingLeft: '20px', color: '#333' }}>
+                                    <li style={{ marginBottom: '8px' }}>Tap the <strong>Share</strong> icon at the bottom of Safari.</li>
+                                    <li>Scroll down and tap <strong>Add to Home Screen</strong>.</li>
+                                </ol>
+                                <button 
+                                    onClick={() => setShowIosInstallModal(false)}
+                                    style={{ padding: '10px 20px', background: '#1b5e20', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '500', width: '100%' }}
+                                >
+                                    Got it
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    <div 
+                        className="sanjeevani-messages"
+                        onClick={() => {
+                            if (chatState === 'peek') setChatState('open');
+                        }}
+                    >
                         {messages.map((msg, i) => (
                             <React.Fragment key={i}>
                                 {renderMessageContent(msg, i)}
@@ -299,24 +440,44 @@ const SanjeevaniChatbot = ({ isFullScreen = false }) => {
                     </div>
 
                     <div className="sanjeevani-input-area">
-                        <input
-                            type="text"
-                            placeholder="Ask Sanjeevani AI..."
-                            value={inputText}
-                            onChange={(e) => setInputText(e.target.value)}
-                            onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-                        />
-                        <button onClick={() => handleSend()} disabled={!inputText.trim() || isLoading}>
-                            <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
-                                <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path>
-                            </svg>
-                        </button>
+                        <div className="sanjeevani-input-wrapper">
+                            <textarea
+                                ref={textareaRef}
+                                placeholder="Ask Sanjeevani AI..."
+                                value={inputText}
+                                onFocus={() => {
+                                    if (chatState === 'peek') setChatState('open');
+                                }}
+                                onChange={(e) => {
+                                    setInputText(e.target.value);
+                                    e.target.style.height = '40px';
+                                    e.target.style.height = Math.min(e.target.scrollHeight, 90) + 'px';
+                                }}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && !e.shiftKey) {
+                                        e.preventDefault();
+                                        handleSend();
+                                    }
+                                }}
+                                rows={1}
+                            />
+                            <button 
+                                onClick={() => handleSend()} 
+                                disabled={!inputText.trim() || isLoading}
+                                onMouseDown={(e) => e.preventDefault()}
+                                onTouchStart={(e) => e.preventDefault()}
+                            >
+                                <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
+                                    <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path>
+                                </svg>
+                            </button>
+                        </div>
                     </div>
                 </div>
             ) : null}
 
-            {(!isOpen && !isFullScreen) && (
-                <button className="sanjeevani-fab" onClick={() => setIsOpen(true)}>
+            {(chatState === 'closed' && !isFullScreen) && (
+                <button className="sanjeevani-fab" onClick={(e) => { e.stopPropagation(); setChatState('open'); }}>
                     <span className="sanjeevani-fab-icon">🌿</span>
                     <div className="sanjeevani-fab-tooltip">Chat with Sanjeevani AI</div>
                 </button>

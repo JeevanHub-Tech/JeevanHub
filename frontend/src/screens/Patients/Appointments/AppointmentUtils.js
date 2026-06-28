@@ -79,7 +79,12 @@ export const fetchSupplements = async (appointmentId) => {
 //  try {
 //    const response = await fetch(
 //      `${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/bookings/delete/${bookingId}`,
-//      { method: "DELETE" }
+//      { 
+//        method: "DELETE",
+//        headers: {
+//          Authorization: `Bearer ${localStorage.getItem("token")}`
+//        }
+//      }
 //    );
 //
 //    if (!response.ok) {

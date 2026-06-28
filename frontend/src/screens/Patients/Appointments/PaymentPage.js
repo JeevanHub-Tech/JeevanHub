@@ -56,6 +56,9 @@ function PaymentPage() {
                 `${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/bookings/${bookingId}/payment`,
                 {
                     method: "POST",
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem("token")}`
+                    },
                     body: formData,
                 }
             );

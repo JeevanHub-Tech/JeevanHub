@@ -28,7 +28,12 @@ const Feedback = ({ patientId }) => {
 		const fetchReviewedBookings = async () => {
 			try {
 				const res = await fetch(
-					`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/bookings/patient/reviews/${patientId}`
+					`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/bookings/patient/reviews/${patientId}`,
+					{
+						headers: {
+							Authorization: `Bearer ${localStorage.getItem("token")}`
+						}
+					}
 				);
 
 				if (!res.ok) {
@@ -57,7 +62,12 @@ const Feedback = ({ patientId }) => {
 		const fetchReviewedOrders = async () => {
 			try {
 				const res = await fetch(
-					`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/orders/reviews/${patientId}`
+					`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/orders/reviews/${patientId}`,
+					{
+						headers: {
+							Authorization: `Bearer ${localStorage.getItem("token")}`
+						}
+					}
 				);
 
 				if (!res.ok) {

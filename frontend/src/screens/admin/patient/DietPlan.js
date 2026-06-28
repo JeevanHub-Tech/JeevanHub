@@ -44,7 +44,12 @@ const DietPlan = ({ patientId }) => {
 		const fetchDietYoga = async () => {
 			try {
 				const res = await fetch(
-					`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/patients/dietYoga/${patientId}`
+					`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/patients/dietYoga/${patientId}`,
+					{
+						headers: {
+							Authorization: `Bearer ${localStorage.getItem("token")}`
+						}
+					}
 				);
 				if (!res.ok) {
 					if (res.status === 404) {

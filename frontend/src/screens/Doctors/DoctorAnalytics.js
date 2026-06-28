@@ -49,7 +49,11 @@ function DoctorAnalytics() {
   useEffect(() => {
     const fetchBookings = async () => {
       try {
-        const response = await fetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/bookings/bookings`);
+        const response = await fetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/bookings/bookings`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`
+          }
+        });
         if (!response.ok) {
           throw new Error("Failed to fetch bookings");
         }

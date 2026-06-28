@@ -13,7 +13,12 @@ const Transactions = ({ bookings, patientId }) => {
 		const fetchPatientOrders = async () => {
 			try {
 				const res = await fetch(
-					`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/patients/orders/${patientId}`
+					`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/patients/orders/${patientId}`,
+					{
+						headers: {
+							Authorization: `Bearer ${localStorage.getItem("token")}`
+						}
+					}
 				);
 
 				if (!res.ok) {

@@ -53,7 +53,12 @@ function AppointmentSlots() {
 
 				const response = await fetch(
 					// Fetch all bookings for this doctor ID
-					`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/bookings/doctor/${doctorId}`
+					`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/bookings/doctor/${doctorId}`,
+					{
+						headers: {
+							Authorization: `Bearer ${localStorage.getItem("token")}`
+						}
+					}
 				);
 
 				if (!response.ok) {

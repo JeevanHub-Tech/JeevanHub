@@ -22,8 +22,14 @@ function CurrentRequests() {
 	useEffect(() => {
 		const fetchRequests = async () => {
 			try {
+				const token = localStorage.getItem("token"); // Assuming token is stored in localStorage
 				const response = await fetch(
-					`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/bookings/doctor/${doctorId}`
+					`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/bookings/doctor/${doctorId}`,
+					{
+						headers: {
+							Authorization: `Bearer ${token}`
+						}
+					}
 				);
 				if (!response.ok) {
 					throw new Error("Failed to fetch requests");
@@ -61,6 +67,7 @@ function CurrentRequests() {
 					method: "PUT",
 					headers: {
 						"Content-Type": "application/json",
+						Authorization: `Bearer ${localStorage.getItem("token")}`
 					},
 					body: JSON.stringify({ requestAccept: "accepted" }),
 				}
@@ -95,6 +102,7 @@ function CurrentRequests() {
 					method: "PUT",
 					headers: {
 						"Content-Type": "application/json",
+						Authorization: `Bearer ${localStorage.getItem("token")}`
 					},
 					body: JSON.stringify({ requestAccept: "denied", doctorsMessage }), // Send doctorsMessage with the denial
 				}

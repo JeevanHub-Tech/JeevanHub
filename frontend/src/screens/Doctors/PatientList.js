@@ -81,9 +81,15 @@ function PatientList() {
 					return;
 				}
 
+				const token = localStorage.getItem("token"); // Assuming token is stored in localStorage
 				const response = await fetch(
 					// Fetch ALL bookings for the doctor ID
-					`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/bookings/doctor/${doctorId}`
+					`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/bookings/doctor/${doctorId}`,
+					{
+						headers: {
+							Authorization: `Bearer ${token}`
+						}
+					}
 				);
 
 				if (!response.ok) {
@@ -162,7 +168,12 @@ function PatientList() {
 
 			// This endpoint should fetch supplements attached to the specific booking
 			const response = await fetch(
-				`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/bookings/supplements/${appointmentId}`
+				`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/bookings/supplements/${appointmentId}`,
+				{
+					headers: {
+						Authorization: `Bearer ${localStorage.getItem("token")}`
+					}
+				}
 			);
 
 			if (response.ok) {
@@ -287,7 +298,11 @@ function PatientList() {
 		setCurrentAppointment(appointment);
 
 		try {
-			const response = await fetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/diet-yoga/booking/${appointmentId}`);
+			const response = await fetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/diet-yoga/booking/${appointmentId}`, {
+				headers: {
+					Authorization: `Bearer ${localStorage.getItem("token")}`
+				}
+			});
 			if (response.ok) {
 				const data = await response.json();
 				// Use the retrieved data or fallback to defaults

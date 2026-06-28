@@ -53,7 +53,12 @@ const PatientManagement = () => {
         try {
             const res = await fetch(
                 `${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/patients/deletePatient/${id}`,
-                { method: "DELETE" }
+                { 
+                    method: "DELETE",
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem("token")}`
+                    }
+                }
             );
 
             if (!res.ok) {

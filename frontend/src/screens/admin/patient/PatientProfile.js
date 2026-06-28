@@ -48,7 +48,8 @@ const PatientProfile = () => {
 		const fetchPatientBookings = async () => {
 			try {
 				const res = await fetch(
-					`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/bookings/patient/${patientId}`
+					`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/bookings/patient/${patientId}`,
+					{ headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
 				);
 
 				if (!res.ok) {
@@ -75,7 +76,9 @@ const PatientProfile = () => {
 	useEffect(() => {
 		const fetchPatient = async () => {
 			try {
-				const res = await fetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/patients/getPatient/${patientId}`);
+				const res = await fetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/patients/getPatient/${patientId}`, {
+					headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+				});
 				if (!res.ok) throw new Error("Failed to fetch patient");
 				const data = await res.json();
 				setPatientData(data);
@@ -94,7 +97,8 @@ const PatientProfile = () => {
 		const fetchDietYoga = async () => {
 			try {
 				const res = await fetch(
-					`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/patients/dietYoga/${patientId}`
+					`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/patients/dietYoga/${patientId}`,
+					{ headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
 				);
 				if (!res.ok) {
 					if (res.status === 404) {
@@ -123,7 +127,8 @@ const PatientProfile = () => {
 				{
 					method: "PUT",
 					headers: {
-						"Content-Type": "application/json"
+						"Content-Type": "application/json",
+						Authorization: `Bearer ${localStorage.getItem("token")}`
 					},
 					body: JSON.stringify(updatedData),
 				}

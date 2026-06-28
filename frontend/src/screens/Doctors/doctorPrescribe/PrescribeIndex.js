@@ -88,7 +88,8 @@ const PrescribeIndex = () => {
 			setLoading(true);
 			try {
 				const response = await fetch(
-					`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/patients/getPatient/${patientId}`
+					`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/patients/getPatient/${patientId}`,
+					{ headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
 				);
 
 				if (!response.ok) {
@@ -118,7 +119,8 @@ const PrescribeIndex = () => {
 			setLoadingPrescriptions(true);
 			try {
 				const response = await fetch(
-					`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/bookings/patient/${patientId}`
+					`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/bookings/patient/${patientId}`,
+					{ headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
 				);
 
 				if (!response.ok) {

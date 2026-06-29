@@ -10,7 +10,7 @@ const ImageUploaderCell = ({ images, onImagesChange, disabled = false }) => {
     const containerRef = useRef(null);
     const [uploading, setUploading] = useState(false);
     const [draggedIndex, setDraggedIndex] = useState(null);
-    const [previewState, setPreviewState] = useState({ url: null, x: 0, y: 0 });
+    const [previewState, setPreviewState] = useState({ url: null, x: 0, y: 0, openedAt: 0 });
     const [previewImgAspect, setPreviewImgAspect] = useState(null);
 
     // Auto-scroll to the right when a new image is added and slots > 3
@@ -36,12 +36,15 @@ const ImageUploaderCell = ({ images, onImagesChange, disabled = false }) => {
         };
 
         const handleGlobalScroll = (e) => {
+            // Ignore scrolls that happen immediately after opening (e.g. auto-scrolls)
+            if (Date.now() - previewState.openedAt < 100) return;
+
             // Ignore scrolls that happen inside the preview popup itself
             if (e.target.classList && e.target.classList.contains('fixed-small-preview')) {
                 return;
             }
             if (previewState.url) {
-                setPreviewState({ url: null, x: 0, y: 0 });
+                setPreviewState({ url: null, x: 0, y: 0, openedAt: 0 });
             }
         };
         
@@ -155,12 +158,27 @@ const ImageUploaderCell = ({ images, onImagesChange, disabled = false }) => {
 
     const openPreview = (e, imgUrl) => {
         e.stopPropagation();
-        const rect = e.currentTarget.getBoundingClientRect();
+        let rect = e.currentTarget.getBoundingClientRect();
         setPreviewImgAspect(null); // Reset before opening
+        
+        const isBelow = rect.top < 470; // 450px height + 20px padding
+
+        if (isBelow) {
+            const overflowBottom = (rect.bottom + 10 + 450) - window.innerHeight;
+            if (overflowBottom > 0) {
+                // Auto-scroll the PAGE to bring the bottom of the modal into view
+                window.scrollBy({ top: overflowBottom + 20, behavior: 'auto' });
+                // Re-measure after scroll
+                rect = e.currentTarget.getBoundingClientRect();
+            }
+        }
+
         setPreviewState({
             url: imgUrl.startsWith('/') ? `${process.env.REACT_APP_AYURVEDA_BACKEND_URL || 'http://localhost:8080'}${imgUrl}` : imgUrl,
             x: rect.left + rect.width / 2,
-            y: rect.top - 10
+            y: isBelow ? rect.bottom + 10 : rect.top - 10,
+            isBelow,
+            openedAt: Date.now()
         });
     };
 
@@ -214,7 +232,11 @@ const ImageUploaderCell = ({ images, onImagesChange, disabled = false }) => {
             {previewState.url && createPortal(
                 <div 
                     className="fixed-small-preview"
-                    style={{ left: previewState.x, top: previewState.y }}
+                    style={{ 
+                        left: previewState.x, 
+                        top: previewState.y,
+                        transform: previewState.isBelow ? 'translate(-50%, 0)' : 'translate(-50%, -100%)'
+                    }}
                     onClick={(e) => { e.stopPropagation(); setPreviewState({ url: null, x: 0, y: 0 }); }}
                 >
                     <img 

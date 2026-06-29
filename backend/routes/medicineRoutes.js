@@ -4,6 +4,7 @@ const { addMedicine, updateMedicine, getAllMedicines, getMyMedicines, deleteMedi
 const auth = require('../middleware/auth');
 const multer = require('multer');
 const { addMedicinesFromZip, addBulkMedicines } = require('../controllers/medicineController');
+const { parseBulkUpload } = require('../controllers/excelParserController');
 
 const cloudinary = require('../config/cloudinary');
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
@@ -76,6 +77,7 @@ router.post('/delete-images', auth, async (req, res) => {
 
 // Retailer Routes (Protected)
 router.post('/add', auth, localUpload.single('file'), addMedicinesFromZip); // Add medicine (Retailer only)
+router.post('/parse-bulk-upload', auth, localUpload.single('file'), parseBulkUpload); // Parse ZIP/Excel for Staging
 router.post('/add-bulk', auth, addBulkMedicines); // Bulk Add medicines from tabular UI
 router.put('/:id', auth, cloudUpload.single('image'), updateMedicine); // Update medicine (Retailer only)
 router.get('/my', auth, getMyMedicines); // Get logged-in retailer's medicines

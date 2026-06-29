@@ -16,18 +16,90 @@ const createEmptyRow = (id) => ({
     isValid: true,
     isArchived: false
 });
+const CATEGORY_OPTIONS = [
+    "Churna", "Bhasma", "Asava/Arishta", "Vati/Guti", 
+    "Taila", "Ghrita", "Lehya", "Syrup", "Capsules", "Ointment", "Other"
+];
+
+const CustomCategoryCombobox = ({ value, onChange, onKeyDown, className, disabled }) => {
+    const [isOpen, setIsOpen] = React.useState(false);
+    const [filteredOptions, setFilteredOptions] = React.useState(CATEGORY_OPTIONS);
+    const wrapperRef = React.useRef(null);
+
+    React.useEffect(() => {
+        function handleClickOutside(event) {
+            if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
+                setIsOpen(false);
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
+    const handleInputChange = (e) => {
+        const val = e.target.value;
+        onChange(val);
+        setFilteredOptions(CATEGORY_OPTIONS.filter(opt => opt.toLowerCase().includes(val.toLowerCase())));
+        setIsOpen(true);
+    };
+
+    return (
+        <div ref={wrapperRef} className="custom-combobox-wrapper">
+            <input
+                type="text"
+                value={value}
+                onChange={handleInputChange}
+                onKeyDown={onKeyDown}
+                onFocus={() => {
+                    setFilteredOptions(CATEGORY_OPTIONS.filter(opt => opt.toLowerCase().includes((value || '').toLowerCase())));
+                    setIsOpen(true);
+                }}
+                className={`custom-combobox-input ${className || ''}`}
+                disabled={disabled}
+                placeholder="Select or type..."
+            />
+            <span 
+                className="custom-combobox-arrow" 
+                onClick={() => {
+                    if (!disabled) {
+                        setFilteredOptions(CATEGORY_OPTIONS);
+                        setIsOpen(!isOpen);
+                    }
+                }}
+            >▼</span>
+            
+            {isOpen && !disabled && (
+                <ul className="custom-combobox-dropdown">
+                    {filteredOptions.map((opt, i) => (
+                        <li key={i} onMouseDown={() => {
+                            onChange(opt);
+                            setIsOpen(false);
+                        }}>{opt}</li>
+                    ))}
+                    {filteredOptions.length === 0 && (
+                        <li className="no-options">Press Enter for custom</li>
+                    )}
+                </ul>
+            )}
+        </div>
+    );
+};
 
 const BulkMedicineUpload = () => {
     const createEmptyRows = (count) => {
         return Array.from({ length: count }).map((_, i) => createEmptyRow(Date.now().toString() + i));
     };
 
-    const [rows, setRows] = useState(createEmptyRows(5));
+    const [rows, setRows] = useState(createEmptyRows(1));
     const [saveStatus, setSaveStatus] = useState('All changes saved to cloud.');
     const [zipFile, setZipFile] = useState(null);
     const [zipError, setZipError] = useState(null);
+    const [activeErrorModalIndex, setActiveErrorModalIndex] = useState(null);
     const [isArchiveExpanded, setIsArchiveExpanded] = useState(false);
     const [activeRowIndex, setActiveRowIndex] = useState(null);
+    const [stagedAbove, setStagedAbove] = useState(false);
+    const [stagedBelow, setStagedBelow] = useState(false);
+    const tableWrapperRef = React.useRef(null);
     const debounceTimeout = React.useRef(null);
 
     // Debounced auto-save logic
@@ -95,7 +167,7 @@ const BulkMedicineUpload = () => {
         newRows[index] = { ...newRows[index], [field]: value };
         // Validate row
         const r = newRows[index];
-        r.isValid = r.name.trim() !== '' && r.price > 0 && r.quantity > 0 && r.category !== '' && r.description.trim() !== '';
+        r.isValid = checkIsRowValid(r);
         setRows(newRows);
         
         // Background sync to backend
@@ -120,6 +192,11 @@ const BulkMedicineUpload = () => {
         return r.name.trim() === '' && r.price === '' && r.quantity === '' && r.category === '' && r.description.trim() === '' && r.images.length === 0;
     };
 
+    // Check if a row has all required fields valid
+    const checkIsRowValid = (r) => {
+        return r.name.trim() !== '' && r.price > 0 && r.quantity > 0 && r.category !== '' && r.description.trim() !== '';
+    };
+
     // Determine if a cell should be highlighted red
     const shouldHighlightInvalid = (row, index, fieldIsInvalid) => {
         if (isRowEmpty(row)) return false; // Never highlight completely empty rows
@@ -127,22 +204,142 @@ const BulkMedicineUpload = () => {
         return fieldIsInvalid;
     };
 
-    const handleClearDraft = async () => {
-        if (window.confirm("Are you sure you want to clear the entire draft? This cannot be undone.")) {
-            // Collect all images to delete from cloud
-            const allImages = rows.flatMap(r => r.images || []);
-            await deleteImagesFromCloudinary(allImages);
+    const handleClearDraft = () => {
+        if (window.confirm("Are you sure you want to clear the active draft? Archived rows will be kept.")) {
+            const activeRows = rows.filter(r => !r.isArchived);
+            const archivedRows = rows.filter(r => r.isArchived);
+            
+            // Collect all images to delete from cloud (only from active rows)
+            const activeImages = activeRows.flatMap(r => r.images || []);
 
-            const empty = createEmptyRows(5);
-            setRows(empty);
-            autoSaveDraft(empty);
+            const empty = createEmptyRows(1);
+            const newRows = [...archivedRows, ...empty];
+            
+            // 1. UPDATE UI INSTANTLY
+            setRows(newRows);
+            
+            // 2. BACKGROUND TASKS (Do not block the UI)
+            deleteImagesFromCloudinary(activeImages).catch(e => console.error("Failed to delete images", e));
+            
+            const token = localStorage.getItem('token');
+            axios.post(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL || 'http://localhost:8080'}/api/drafts/medicine`, {
+                present: newRows
+            }, {
+                headers: { Authorization: `Bearer ${token}` }
+            }).then(() => {
+                setSaveStatus('All changes saved to cloud.');
+            }).catch(e => {
+                console.error("Failed to clear draft on backend", e);
+            });
         }
     };
 
+    const scrollToBottom = () => {
+        setTimeout(() => {
+            if (tableWrapperRef.current) {
+                tableWrapperRef.current.scrollTo({
+                    top: tableWrapperRef.current.scrollHeight,
+                    behavior: 'smooth'
+                });
+            }
+        }, 50);
+    };
+
+    const checkStagedVisibility = useCallback(() => {
+        if (!tableWrapperRef.current) return;
+        const wrapper = tableWrapperRef.current;
+        const rowsElements = wrapper.querySelectorAll('.bulk-table tbody tr.staged-row');
+        let above = false;
+        let below = false;
+
+        const wrapperTopRaw = wrapper.getBoundingClientRect().top;
+        const header = wrapper.querySelector('thead');
+        const headerHeight = header ? header.getBoundingClientRect().height : 0;
+        const wrapperTop = wrapperTopRaw + headerHeight;
+        const wrapperBottom = wrapper.getBoundingClientRect().bottom;
+
+        rowsElements.forEach(rowEl => {
+            const rect = rowEl.getBoundingClientRect();
+            const rowHeight = rect.height;
+            // Consider row "above" if less than 70% of it is visible at the top
+            if (rect.bottom < wrapperTop + 0.7 * rowHeight) above = true;
+            // Consider row "below" if less than 70% of it is visible at the bottom
+            if (rect.top > wrapperBottom - 0.7 * rowHeight) below = true;
+        });
+        
+        setStagedAbove(above);
+        setStagedBelow(below);
+    }, []);
+
+    useEffect(() => {
+        checkStagedVisibility();
+    }, [rows, checkStagedVisibility]);
+
+    const jumpToStagedRowViewport = (direction) => {
+        if (!tableWrapperRef.current) return;
+        const wrapper = tableWrapperRef.current;
+        const rowsElements = Array.from(wrapper.querySelectorAll('.bulk-table tbody tr.staged-row'));
+        
+        const wrapperTopRaw = wrapper.getBoundingClientRect().top;
+        const header = wrapper.querySelector('thead');
+        const headerHeight = header ? header.getBoundingClientRect().height : 0;
+        const wrapperTop = wrapperTopRaw + headerHeight;
+        const wrapperBottom = wrapper.getBoundingClientRect().bottom;
+
+        const scrollToAndFocus = (rowEl, align) => {
+            const rect = rowEl.getBoundingClientRect();
+            
+            let scrollDiff = 0;
+            if (align === 'start') {
+                // Align row's top edge to the wrapper's top edge
+                scrollDiff = rect.top - wrapperTop - 5; // subtract 5px for a little breathing room
+            } else {
+                // Align row's bottom edge to the wrapper's bottom edge
+                scrollDiff = rect.bottom - wrapperBottom + 5; // add 5px for breathing room
+            }
+            
+            wrapper.scrollTo({ top: wrapper.scrollTop + scrollDiff, behavior: 'smooth' });
+            
+            // Find the name input (in the second column) and put the cursor in it
+            const nameInput = rowEl.querySelector('td:nth-child(2) input');
+            if (nameInput) nameInput.focus({ preventScroll: true });
+        };
+
+        if (direction === 'up') {
+            for (let i = rowsElements.length - 1; i >= 0; i--) {
+                const rect = rowsElements[i].getBoundingClientRect();
+                const rowHeight = rect.height;
+                if (rect.bottom < wrapperTop + 0.7 * rowHeight) {
+                    scrollToAndFocus(rowsElements[i], 'start');
+                    break;
+                }
+            }
+        } else {
+            for (let i = 0; i < rowsElements.length; i++) {
+                const rect = rowsElements[i].getBoundingClientRect();
+                const rowHeight = rect.height;
+                if (rect.top > wrapperBottom - 0.7 * rowHeight) {
+                    scrollToAndFocus(rowsElements[i], 'end');
+                    break;
+                }
+            }
+        }
+    };
+
+    const dismissError = (rowIndex, errorId) => {
+        const newRows = [...rows];
+        const r = newRows[rowIndex];
+        if (r.errors) {
+            r.errors = r.errors.filter(e => e.id !== errorId);
+        }
+        updateRowsAndSync(newRows);
+    };
+
     const handleSubmit = async () => {
-        const validRows = rows.filter(r => !r.isArchived && r.isValid && r.name.trim() !== '');
+        // Only submit active, manually accepted (unstaged), completely valid rows
+        const validRows = rows.filter(r => !r.isArchived && !r.isStaged && r.isValid && r.name.trim() !== '');
         if (validRows.length === 0) {
-            alert("No valid active rows to submit.");
+            alert("No valid, unstaged rows ready to submit. Please ensure you have accepted staged rows and filled out all required fields.");
             return;
         }
 
@@ -156,10 +353,17 @@ const BulkMedicineUpload = () => {
             });
             alert("Medicines added successfully!");
             
-            // clear draft safely without confirmation
-            const empty = [createEmptyRow(Date.now().toString())];
-            setRows(empty);
-            autoSaveDraft(empty);
+            // Keep any rows that were NOT submitted (half-filled, invalid, staged, archived, or completely empty)
+            const remainingRows = rows.filter(r => r.isArchived || r.isStaged || !r.isValid || r.name.trim() === '');
+            
+            // Ensure there is at least one active row available to type in
+            const activeRemaining = remainingRows.filter(r => !r.isArchived);
+            if (activeRemaining.length === 0) {
+                remainingRows.push(createEmptyRow(Date.now().toString()));
+            }
+
+            setRows(remainingRows);
+            autoSaveDraft(remainingRows);
             
             setSaveStatus("All changes saved to cloud.");
         } catch (error) {
@@ -176,8 +380,7 @@ const BulkMedicineUpload = () => {
                 // If on the last row, add a new one
                 const newRows = [...rows, createEmptyRow(Date.now().toString())];
                 updateRowsAndSync(newRows);
-                // The new row will focus naturally on the next click, or we can use refs.
-                // For simplicity, just creating the row allows them to hit Tab to jump into it.
+                scrollToBottom();
             } else {
                 // Not the last row, move focus down 1 row same column?
                 // Tab naturally handles left-to-right.
@@ -201,7 +404,8 @@ const BulkMedicineUpload = () => {
 
         try {
             const token = localStorage.getItem("token");
-            const response = await fetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL || 'http://localhost:8080'}/api/medicines/add`, {
+            setZipError("Parsing file..."); // Provide loading feedback
+            const response = await fetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL || 'http://localhost:8080'}/api/medicines/parse-bulk-upload`, {
                 method: "POST",
                 headers: {
                     Authorization: `Bearer ${token}`,
@@ -210,7 +414,17 @@ const BulkMedicineUpload = () => {
             });
 
             if (response.ok) {
-                alert("Zip uploaded successfully!");
+                const data = await response.json();
+                const newStagedRows = data.stagedRows || [];
+                
+                // Remove trailing empty rows so staged rows flow cleanly after manual entries
+                let filteredRows = [...rows];
+                while (filteredRows.length > 0 && isRowEmpty(filteredRows[filteredRows.length - 1]) && !filteredRows[filteredRows.length - 1].isStaged) {
+                    filteredRows.pop();
+                }
+                
+                updateRowsAndSync([...filteredRows, ...newStagedRows]);
+                alert("File parsed successfully! Please review the staged items.");
                 setZipFile(null);
                 setZipError(null);
             } else {
@@ -228,7 +442,7 @@ const BulkMedicineUpload = () => {
         return (
             <tr 
                 key={row.id} 
-                className={(!isArchivedTable && !row.isValid && !isRowEmpty(row) && activeRowIndex !== originalIndex) ? 'invalid-row' : ''}
+                className={`${(!isArchivedTable && !row.isValid && !isRowEmpty(row) && activeRowIndex !== originalIndex) ? 'invalid-row' : ''} ${row.isStaged ? 'staged-row' : ''}`}
                 onFocus={() => !isDisabled && setActiveRowIndex(originalIndex)}
                 onBlur={(e) => {
                     if (!isDisabled && !e.currentTarget.contains(e.relatedTarget)) {
@@ -236,7 +450,16 @@ const BulkMedicineUpload = () => {
                     }
                 }}
             >
-                <td className="row-number">{displayIndex}</td>
+                <td className="row-number" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                    {row.isStaged && !isArchivedTable && (
+                        <button 
+                            className="accept-row-btn" 
+                            title="Accept Row"
+                            onClick={() => handleCellChange(originalIndex, 'isStaged', false)}
+                        >✓</button>
+                    )}
+                    <span>{displayIndex}</span>
+                </td>
                 <td>
                     <input 
                         type="text" 
@@ -298,25 +521,13 @@ const BulkMedicineUpload = () => {
                     />
                 </td>
                 <td>
-                    <select 
-                        value={row.category} 
-                        onChange={(e) => handleCellChange(originalIndex, 'category', e.target.value)}
+                    <CustomCategoryCombobox
+                        value={row.category}
+                        onChange={(val) => handleCellChange(originalIndex, 'category', val)}
                         onKeyDown={(e) => handleKeyDown(e, originalIndex)}
                         className={!isDisabled && shouldHighlightInvalid(row, originalIndex, row.category === '') ? 'invalid-cell' : ''}
                         disabled={isDisabled}
-                    >
-                        <option value="">Select...</option>
-                        <option value="Churna">Churna (Powder)</option>
-                        <option value="Bhasma">Bhasma (Ash)</option>
-                        <option value="Asava/Arishta">Asava/Arishta (Decoction)</option>
-                        <option value="Vati/Guti">Vati/Guti (Tablets)</option>
-                        <option value="Taila">Taila (Oil)</option>
-                        <option value="Ghrita">Ghrita (Ghee)</option>
-                        <option value="Lehya">Lehya (Electuary)</option>
-                        <option value="Syrup">Syrup</option>
-                        <option value="Capsule">Capsule</option>
-                        <option value="Other">Other</option>
-                    </select>
+                    />
                 </td>
                 <td>
                     <div className="toggle-switch">
@@ -393,6 +604,13 @@ const BulkMedicineUpload = () => {
                                     disabled={isRowEmpty(row)}
                                     style={{ opacity: isRowEmpty(row) ? 0.3 : 1, cursor: isRowEmpty(row) ? 'not-allowed' : 'pointer' }}
                                 >⚑</button>
+                                {row.isStaged && row.errors && row.errors.length > 0 && (
+                                    <button 
+                                        className="row-error-icon"
+                                        title="View Errors"
+                                        onClick={() => setActiveErrorModalIndex(originalIndex)}
+                                    >ⓘ</button>
+                                )}
                                 <button className="delete-row-btn" onClick={() => {
                                     deleteImagesFromCloudinary(rows[originalIndex]?.images || []);
                                     const newRows = [...rows];
@@ -418,16 +636,27 @@ const BulkMedicineUpload = () => {
                 <div className="header-actions" style={{ display: 'flex', flexDirection: 'row', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
                     <form className="zip-form-inline" onSubmit={handleZipSubmit} style={{ margin: 0 }}>
                         {zipError && <span className="zip-error">{zipError}</span>}
-                        <input type="file" accept=".zip" onChange={handleZipChange} required />
-                        <button type="submit" className="zip-btn">Upload ZIP</button>
+                        <label className="zip-file-label" title={zipFile ? zipFile.name : 'Choose ZIP File'}>
+                            <input 
+                                type="file" 
+                                accept=".zip" 
+                                onClick={(e) => { e.target.value = null; }}
+                                onChange={handleZipChange} 
+                                style={{ display: 'none' }} 
+                                required 
+                            />
+                            <span>{zipFile ? zipFile.name : 'Choose File'}</span>
+                        </label>
+                        <button type="submit" className="zip-btn">Upload</button>
                     </form>
-                    
-                    <button onClick={handleClearDraft} style={{ background: '#ef5350' }}>Clear Draft</button>
-                    <button onClick={handleSubmit} style={{ background: '#2e7d32' }}>Save & Submit</button>
+                   <div className="bulk-actions" style={{ display: 'flex', gap: '12px' }}>
+                    <button type="button" onClick={handleClearDraft} style={{ background: '#ef5350' }}>Clear Draft</button>
+                    <button type="button" onClick={handleSubmit} style={{ background: '#4caf50' }}>Save & Submit</button>
                 </div>
             </div>
+        </div>
             
-            <div className="bulk-table-wrapper">
+            <div className="bulk-table-wrapper" ref={tableWrapperRef} onScroll={checkStagedVisibility}>
                 <table className="bulk-table">
                     <thead>
                         <tr>
@@ -456,10 +685,14 @@ const BulkMedicineUpload = () => {
             </div>
 
             <div className="add-rows-container">
-                <button onClick={() => updateRowsAndSync([...rows, createEmptyRow(Date.now().toString())])}>+ Add 1 Row</button>
+                <button onClick={() => {
+                    updateRowsAndSync([...rows, createEmptyRow(Date.now().toString())]);
+                    scrollToBottom();
+                }}>+ Add 1 Row</button>
                 <button onClick={() => {
                     const newRows = Array.from({ length: 10 }).map((_, i) => createEmptyRow(Date.now().toString() + i));
                     updateRowsAndSync([...rows, ...newRows]);
+                    scrollToBottom();
                 }}>+ Add 10 Rows</button>
             </div>
             
@@ -510,6 +743,83 @@ const BulkMedicineUpload = () => {
                             </table>
                         </div>
                     )}
+                </div>
+            )}
+
+            {/* Floating Navigation Arrows & Actions for Staged Rows */}
+            {rows.some(r => r.isStaged && !r.isArchived) && (
+                <>
+                    <div className="staged-nav-container left-nav">
+                        <button 
+                            style={{ background: '#4caf50' }}
+                            title="Accept All Valid Staged Rows"
+                            onClick={() => {
+                                const newRows = rows.map(r => {
+                                    const isValid = checkIsRowValid(r);
+                                    if (r.isStaged && isValid && (!r.errors || r.errors.length === 0)) {
+                                        return { ...r, isStaged: false, isValid: true };
+                                    }
+                                    return r;
+                                });
+                                updateRowsAndSync(newRows);
+                            }}
+                        >✓ All</button>
+                        <div className="staged-nav-divider"></div>
+                        <div className="nav-arrows-group">
+                            <button 
+                                onClick={() => jumpToStagedRowViewport('up')} 
+                                title="Previous Staged Row"
+                                disabled={!stagedAbove}
+                                style={{ opacity: stagedAbove ? 1 : 0.4, cursor: stagedAbove ? 'pointer' : 'default' }}
+                            >↑</button>
+                            <button 
+                                onClick={() => jumpToStagedRowViewport('down')} 
+                                title="Next Staged Row"
+                                disabled={!stagedBelow}
+                                style={{ opacity: stagedBelow ? 1 : 0.4, cursor: stagedBelow ? 'pointer' : 'default' }}
+                            >↓</button>
+                        </div>
+                    </div>
+
+                    <div className="staged-nav-container right-nav">
+                        <button 
+                            style={{ background: '#ef5350' }}
+                            title="Reject All Staged Rows"
+                            onClick={() => {
+                                if (window.confirm("Are you sure you want to reject and delete all staged rows?")) {
+                                    const stagedImages = rows.filter(r => r.isStaged && !r.isArchived).flatMap(r => r.images || []);
+                                    deleteImagesFromCloudinary(stagedImages);
+                                    const newRows = rows.filter(r => !(r.isStaged && !r.isArchived));
+                                    updateRowsAndSync(newRows);
+                                }
+                            }}
+                        >× All</button>
+                    </div>
+                </>
+            )}
+
+            {/* Error Details Modal */}
+            {activeErrorModalIndex !== null && rows[activeErrorModalIndex] && (
+                <div className="error-modal-overlay" onClick={() => setActiveErrorModalIndex(null)}>
+                    <div className="error-modal-content" onClick={e => e.stopPropagation()}>
+                        <h3>Row {activeErrorModalIndex + 1} Errors</h3>
+                        <div className="error-list">
+                            {rows[activeErrorModalIndex].errors?.map(err => (
+                                <div key={err.id || Math.random()} className="error-item">
+                                    <span>⚠️ {err.message}</span>
+                                    <button 
+                                        className="dismiss-error-btn"
+                                        onClick={() => dismissError(activeErrorModalIndex, err.id)}
+                                        title="Dismiss this error"
+                                    >Dismiss</button>
+                                </div>
+                            ))}
+                            {(!rows[activeErrorModalIndex].errors || rows[activeErrorModalIndex].errors.length === 0) && (
+                                <div className="success-text">No complex errors remaining.</div>
+                            )}
+                        </div>
+                        <button className="close-modal-btn" onClick={() => setActiveErrorModalIndex(null)}>Close</button>
+                    </div>
                 </div>
             )}
         </div>

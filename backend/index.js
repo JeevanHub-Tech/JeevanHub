@@ -25,6 +25,7 @@ const knowledgeBaseRoutes = require("./routes/knowledgeBaseRoutes");
 const chatRoutes = require("./routes/chatRoutes");
 const { startScheduler } = require("./scheduler");
 const paymentRoutes = require("./routes/paymentRoutes");
+const medicineDraftRoutes = require("./routes/medicineDraftRoutes");
 
 if (process.env.NODE_ENV !== 'production') {
     mongoose.set('debug', true);
@@ -66,6 +67,7 @@ app.get("/", (req, res) => {
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/medicines", medicineRoutes);
+app.use("/api/drafts/medicine", medicineDraftRoutes);
 app.use("/api/doctors", doctorRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/orders", orderRoutes)

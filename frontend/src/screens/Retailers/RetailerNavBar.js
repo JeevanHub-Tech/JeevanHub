@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useState, useRef } from "react";
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import "../NavBar.css"; // Ensure styles from NavBar are included
 import logo from "../../media/logo2.png";
 import locationIcon from "../../media/location.png"; // Adjust the path if needed
@@ -17,6 +17,7 @@ function RetailerNavBar() {
 	const [showModal, setShowModal] = useState(false);
 	const modalRef = useRef(null);
 	const navigate = useNavigate();
+	const location = useLocation();
 	const profilePic = ""; // Logic to fetch user's profile picture URL
 	const userFirstName = auth.user ? auth.user.firstName : "Guest";
 	const userLastName = auth.user ? auth.user.lastName : "";
@@ -215,10 +216,21 @@ function RetailerNavBar() {
 										Home
 									</NavLink>
 								</li>
-								<li>
-									<NavLink to="/manage-products">
-										Products
-									</NavLink>
+								<li style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
+									{location.pathname.includes('/manage-products') ? (
+										<>
+											<NavLink to="/manage-products/add">
+												Add items
+											</NavLink>
+											<NavLink to="/manage-products/items">
+												My items
+											</NavLink>
+										</>
+									) : (
+										<NavLink to="/manage-products/items">
+											Products
+										</NavLink>
+									)}
 								</li>
 								<li>
 									<NavLink to="/my-orders">
@@ -247,10 +259,21 @@ function RetailerNavBar() {
 								Home
 							</NavLink>
 						</li>
-						<li>
-							<NavLink to="/manage-products">
-								Products
-							</NavLink>
+						<li style={{ width: '180px', display: 'flex', justifyContent: 'center', gap: '20px', alignItems: 'center' }}>
+							{location.pathname.includes('/manage-products') ? (
+								<>
+									<NavLink to="/manage-products/add">
+										Add items
+									</NavLink>
+									<NavLink to="/manage-products/items">
+										My items
+									</NavLink>
+								</>
+							) : (
+								<NavLink to="/manage-products/items">
+									Products
+								</NavLink>
+							)}
 						</li>
 						<li>
 							<NavLink to="/my-orders">

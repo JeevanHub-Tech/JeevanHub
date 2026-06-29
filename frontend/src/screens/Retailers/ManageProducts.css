@@ -11,6 +11,15 @@
 	border-radius: 15px;
 }
 
+.manage-products-bulk {
+	width: 95%;
+	max-width: 1600px;
+	margin: 0 auto;
+	margin-top: 140px;
+	padding: 20px;
+	background-color: transparent; /* Bulk upload has its own background */
+}
+
 h1 {
 	font-size: 1.8rem;
 	margin-bottom: 20px;

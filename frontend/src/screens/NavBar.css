@@ -200,7 +200,8 @@
 .navbar ul li a {
 	text-decoration: none;
 	color: white;
-	transition: all 0.5s;
+	transition: all 0.3s ease;
+	position: relative; /* Make pseudo-element relative to the link */
 }
 
 .navbar ul li a::after {
@@ -210,18 +211,25 @@
 	width: 100%;
 	background-color: rgb(255, 255, 255);
 	bottom: -5px;
-	right: 0;
+	left: 0;
 	border-radius: 500px;
-	transform: translateX(100%);
+	transform: scaleX(0); /* Animate from center instead of flying from side */
+	transform-origin: center;
 	opacity: 0;
-	transition: all 0.5s;
+	transition: all 0.3s ease;
 }
 
-.navbar ul li a:hover,
-.navbar ul li a.active,
 .navbar ul li a.active::after {
 	opacity: 1;
-	transform: translateX(0);
+	transform: scaleX(1);
+}
+
+.navbar ul li a:hover {
+	opacity: 0.8;
+}
+
+.navbar ul li a.active {
+	opacity: 1;
 	text-shadow: 0 0 8px black;
 }
 

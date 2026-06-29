@@ -62,8 +62,8 @@ exports.addMedicinesFromZip = async (req, res) => {
         price: item.price,
         quantity: item.quantity,
         category: item.category,
-        prescription: item.prescription === 'yes' || item.prescription === true, // Convert to boolean
-        image: imagePath, // Save image path
+        prescription: item.prescription === 'yes' || item.prescription === true,
+        images: imagePath ? [imagePath] : [], // Save image path in array
         retailerId: retailerId, // Reference to the retailer
       });
     }
@@ -84,6 +84,38 @@ exports.addMedicinesFromZip = async (req, res) => {
   }
 };
 
+// Bulk Add Medicines from Tabular UI
+exports.addBulkMedicines = async (req, res) => {
+  if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
+  if (req.user.role !== 'retailer') {
+    return res.status(403).json({ message: 'Access denied. Only retailers can add medicines.' });
+  }
+
+  const { medicines } = req.body;
+  if (!medicines || !Array.isArray(medicines) || medicines.length === 0) {
+    return res.status(400).json({ message: 'No medicines provided' });
+  }
+
+  try {
+    const formattedMedicines = medicines.map(item => ({
+        name: item.name, 
+        price: item.price,
+        quantity: item.quantity,
+        category: item.category,
+        description: item.description || 'No description provided',
+        prescription: item.prescription,
+        images: item.images || [], 
+        retailerId: req.user._id,
+    }));
+
+    await Medicine.insertMany(formattedMedicines);
+    res.status(201).json({ message: 'Bulk medicines added successfully', count: formattedMedicines.length });
+  } catch (error) {
+    console.error('Error adding bulk medicines:', error);
+    res.status(500).json({ message: 'Failed to add bulk medicines', error: error.message });
+  }
+};
+
 // Add Medicine (Retailer Only)
 exports.addMedicine = async (req, res) => {
   if (!req.file) {
@@ -98,7 +130,7 @@ exports.addMedicine = async (req, res) => {
   const retailerId = req.user._id; // Get retailer ID from authenticated user
 
   try {
-    const newMedicine = new Medicine({ name, price, quantity ,category, prescription, image, retailerId });
+    const newMedicine = new Medicine({ name, price, quantity ,category, prescription, images: [image], retailerId });
     await newMedicine.save();
     res.status(201).json({ message: 'Medicine added successfully', medicine: newMedicine });
   } catch (error) {
@@ -173,7 +205,7 @@ exports.updateMedicine = async (req, res) => {
     }
     
     if (req.file) {
-      updates.image = req.file.path;
+      updates.images = [req.file.path];
     }
 
     const updated = await Medicine.findByIdAndUpdate(

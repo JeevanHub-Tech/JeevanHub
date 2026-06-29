@@ -1,30 +1,14 @@
-import React, { useState } from "react";
-import AddItem from "./AddItem";
-import MyItems from "./MyItems";
-import "./ManageProducts.css"; // Ensure you have the appropriate CSS
+import React from "react";
+import { Outlet, useLocation } from "react-router-dom";
+import "./ManageProducts.css"; 
 
 function ManageProducts() {
-	const [view, setView] = useState("add");
+	const location = useLocation();
+	const isBulk = location.pathname.includes('/add');
 
 	return (
-		<div className="manage-products-container">
-			<h1>Manage Products</h1>
-			<div className="tabs">
-				<button
-					onClick={() => setView("add")}
-					className={`tab-btn ${view === "add" ? "active" : ""}`}
-				>
-					Add Item
-				</button>
-				<button
-					onClick={() => setView("items")}
-					className={`tab-btn ${view === "items" ? "active" : ""}`}
-				>
-					My Items
-				</button>
-			</div>
-
-			{view === "add" ? <AddItem /> : <MyItems />}
+		<div className={isBulk ? "manage-products-bulk" : "manage-products-container"}>
+			<Outlet />
 		</div>
 	);
 }

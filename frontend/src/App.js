@@ -52,6 +52,8 @@ import AdminBlogsUpdate from './screens/admin/AdminBlogsUpdate';
 
 import RetailerDashboard from './screens/Retailers/RetailerDashboard';
 import ManageProducts from './screens/Retailers/ManageProducts';
+import BulkMedicineUpload from './screens/Retailers/BulkMedicineUpload';
+import MyItems from './screens/Retailers/MyItems';
 import RetailerAnalytics from './screens/Retailers/RetailerAnalytics';
 import MyOrders from './screens/Retailers/MyOrders';
 import CustomerSupport from './screens/Retailers/CustomerSupport';
@@ -184,7 +186,10 @@ function App() {
 
           <Route path="/retailer-home" element={<RetailerDashboard />} />
           <Route path="/doctor-notifications" element={<DoctorNotification />} />
-          <Route path="/manage-products" element={<ManageProducts />} />
+          <Route path="/manage-products" element={<ManageProducts />}>
+            <Route path="add" element={<BulkMedicineUpload />} />
+            <Route path="items" element={<MyItems />} />
+          </Route>
           <Route path="/order-history" element={<OrderHistory />} />
           <Route path="/doctor-reviews" element={<DoctorReviewsPage />} />
           <Route path="/checkout" element={<CheckoutScreen />} />

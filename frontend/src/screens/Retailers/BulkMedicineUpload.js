@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import ReactDOM from 'react-dom';
 import axios from 'axios';
 import './BulkMedicineUpload.css';
 import ImageUploaderCell from '../../components/ImageUploaderCell';
@@ -16,6 +17,7 @@ const createEmptyRow = (id) => ({
     isValid: true,
     isArchived: false
 });
+
 const CATEGORY_OPTIONS = [
     "Churna", "Bhasma", "Asava/Arishta", "Vati/Guti", 
     "Taila", "Ghrita", "Lehya", "Syrup", "Capsules", "Ointment", "Other"
@@ -26,21 +28,54 @@ const CustomCategoryCombobox = ({ value, onChange, onKeyDown, className, disable
     const [filteredOptions, setFilteredOptions] = React.useState(CATEGORY_OPTIONS);
     const wrapperRef = React.useRef(null);
 
+    const [dropdownStyles, setDropdownStyles] = React.useState({});
+
     React.useEffect(() => {
         function handleClickOutside(event) {
             if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
-                setIsOpen(false);
+                // Also check if clicking inside the portal dropdown
+                if (!event.target.closest('.custom-combobox-dropdown-portal')) {
+                    setIsOpen(false);
+                }
             }
         }
         document.addEventListener("mousedown", handleClickOutside);
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
+    React.useEffect(() => {
+        if (isOpen && wrapperRef.current) {
+            const rect = wrapperRef.current.getBoundingClientRect();
+            setDropdownStyles({
+                position: 'fixed',
+                top: rect.bottom + 'px',
+                left: rect.left + 'px',
+                width: rect.width + 'px',
+                zIndex: 9999
+            });
+        }
+        
+        const handleScroll = (e) => {
+            if (isOpen) {
+                // Ignore scroll events originating from the dropdown itself
+                if (e.target && e.target.classList && e.target.classList.contains('custom-combobox-dropdown-portal')) {
+                    return;
+                }
+                setIsOpen(false);
+            }
+        };
+        
+        if (isOpen) {
+            window.addEventListener('scroll', handleScroll, true);
+        }
+        return () => window.removeEventListener('scroll', handleScroll, true);
+    }, [isOpen]);
+
     const handleInputChange = (e) => {
         const val = e.target.value;
         onChange(val);
         setFilteredOptions(CATEGORY_OPTIONS.filter(opt => opt.toLowerCase().includes(val.toLowerCase())));
-        setIsOpen(true);
+        if (!isOpen) setIsOpen(true);
     };
 
     return (
@@ -54,6 +89,12 @@ const CustomCategoryCombobox = ({ value, onChange, onKeyDown, className, disable
                     setFilteredOptions(CATEGORY_OPTIONS.filter(opt => opt.toLowerCase().includes((value || '').toLowerCase())));
                     setIsOpen(true);
                 }}
+                onClick={() => {
+                    if (!isOpen) {
+                        setFilteredOptions(CATEGORY_OPTIONS.filter(opt => opt.toLowerCase().includes((value || '').toLowerCase())));
+                        setIsOpen(true);
+                    }
+                }}
                 className={`custom-combobox-input ${className || ''}`}
                 disabled={disabled}
                 placeholder="Select or type..."
@@ -62,14 +103,14 @@ const CustomCategoryCombobox = ({ value, onChange, onKeyDown, className, disable
                 className="custom-combobox-arrow" 
                 onClick={() => {
                     if (!disabled) {
-                        setFilteredOptions(CATEGORY_OPTIONS);
+                        if (!isOpen) setFilteredOptions(CATEGORY_OPTIONS);
                         setIsOpen(!isOpen);
                     }
                 }}
             >▼</span>
             
-            {isOpen && !disabled && (
-                <ul className="custom-combobox-dropdown">
+            {isOpen && !disabled && ReactDOM.createPortal(
+                <ul className="custom-combobox-dropdown custom-combobox-dropdown-portal" style={dropdownStyles}>
                     {filteredOptions.map((opt, i) => (
                         <li key={i} onMouseDown={() => {
                             onChange(opt);
@@ -79,7 +120,8 @@ const CustomCategoryCombobox = ({ value, onChange, onKeyDown, className, disable
                     {filteredOptions.length === 0 && (
                         <li className="no-options">Press Enter for custom</li>
                     )}
-                </ul>
+                </ul>,
+                document.body
             )}
         </div>
     );

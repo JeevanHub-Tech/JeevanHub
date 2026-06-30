@@ -149,6 +149,19 @@ exports.getAllMedicines = async (req, res) => {
   }
 };
 
+// Get Single Medicine by ID (Public)
+exports.getMedicineById = async (req, res) => {
+  try {
+    const medicine = await Medicine.findById(req.params.id).populate('retailerId', 'firstName lastName');
+    if (!medicine) {
+      return res.status(404).json({ message: 'Medicine not found' });
+    }
+    res.status(200).json(medicine);
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to fetch medicine details', error: error.message });
+  }
+};
+
 // Get Retailer's Medicines (Retailer Only)
 exports.getMyMedicines = async (req, res) => {
   if (!req.user) return res.status(401).json({ message: 'Unauthorized' });

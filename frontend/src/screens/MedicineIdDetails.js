@@ -1,106 +1,79 @@
-import React, { useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
+import axios from "axios";
 import "./MedicineIdDetails.css";
-
-// Updated dataset with **real images**
-const medicineDetails = [
-  {
-    id: "68babe8a573167c31f01ce29",
-    name: "Paracetamol 500mg Tablet",
-    pharmacy: "MediCare Pharma (Pvt. Ltd.)",
-    price: "45.50",
-    imageSrc:
-      "https://images.unsplash.com/photo-1584308661627-7894a0d1b523?auto=format&fit=crop&w=900&q=80",
-    description:
-      "A common painkiller used to treat aches, pain, and reduce a high temperature (fever). It is effective for headaches, toothaches, and cold symptoms.",
-    ingredients: ["Paracetamol 500mg", "Starch", "Povidone", "Magnesium stearate"],
-    usesBenefits: [
-      "Relieves mild to moderate pain (headache, muscle ache)",
-      "Reduces fever",
-      "Effective against cold and flu symptoms",
-    ],
-    dosage:
-      "Adults: 1-2 tablets every 4-6 hours as needed. Do not exceed 8 tablets in 24 hours. Always follow a doctor's prescription.",
-    storageSafety:
-      "Store below 25°C in a dry place. Keep out of reach of children. Do not consume alcohol while taking this medicine.",
-  },
-  {
-    id: "68babe8a573167c31f01ce26",
-    name: "Amoxicillin 250mg Capsule",
-    pharmacy: "HealthPlus Wellness",
-    price: "180.00",
-    imageSrc:
-      "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=900&q=80",
-    description:
-      "An antibiotic from the penicillin group, used to treat a wide range of bacterial infections. It works by stopping the growth of bacteria.",
-    ingredients: ["Amoxicillin Trihydrate 250mg", "Magnesium Stearate", "Gelatin"],
-    usesBenefits: [
-      "Treats chest infections (pneumonia, bronchitis)",
-      "Treats ear, nose, and throat infections",
-      "Treats urinary tract infections",
-    ],
-    dosage:
-      "Adults: 250mg to 500mg three times a day. Complete the full course of treatment even if you feel better.",
-    storageSafety:
-      "Store in the original package at room temperature, away from moisture and heat. Do not skip doses.",
-  },
-  {
-    id: "68babe8a573167c31f01ce20",
-    name: "Vitamin C Chewable Tablet",
-    pharmacy: "NutriBoost Supplements",
-    price: "99.99",
-    imageSrc:
-      "https://images.unsplash.com/photo-1625772299846-2d7e2d7b9b2f?auto=format&fit=crop&w=900&q=80",
-    description:
-      "A vital nutrient that acts as an antioxidant. It helps protect cells from damage caused by free radicals.",
-    ingredients: ["Ascorbic Acid (Vitamin C) 500mg", "Sucrose", "Natural Flavoring"],
-    usesBenefits: [
-      "Boosts the immune system",
-      "Aids in collagen formation",
-      "Helps the body absorb iron",
-    ],
-    dosage: "Adults: One chewable tablet daily, preferably with a meal.",
-    storageSafety:
-      "Keep the container tightly closed. Store away from heat and light. Supplements are not a substitute for a balanced diet.",
-  },
-  {
-    id: "68babe8a573167c31f01ce30",
-    name: "Ibuprofen 400mg Pain Reliever",
-    pharmacy: "The Relief Store",
-    price: "62.00",
-    imageSrc:
-      "https://images.unsplash.com/photo-1587854692152-cbe660dbde88?auto=format&fit=crop&w=900&q=80",
-    description:
-      "A non-steroidal anti-inflammatory drug (NSAID) used for pain and inflammation relief. Provides fast relief for common aches and pains.",
-    ingredients: ["Ibuprofen 400mg", "Cellulose", "Croscarmellose Sodium"],
-    usesBenefits: [
-      "Reduces pain (migraines, dental pain, body aches)",
-      "Reduces fever",
-      "Reduces inflammation and swelling",
-    ],
-    dosage:
-      "Adults: 1 tablet every 4-6 hours as needed for pain. Do not exceed 3 tablets in 24 hours.",
-    storageSafety:
-      "Take with food or milk if stomach upset occurs. Consult a doctor if pain persists for more than 10 days.",
-  },
-];
 
 // Fallback image (real generic pharmacy photo)
 const FALLBACK_IMAGE =
   "https://images.unsplash.com/photo-1559757148-5c350d0d3c56?auto=format&fit=crop&w=900&q=80";
-
-// Normalize IDs
-const normalizeId = (v) => String(v ?? "").trim().replace(/,/g, "").toLowerCase();
-const detailsMap = new Map(medicineDetails.map((m) => [normalizeId(m.id), m]));
 
 function MedicineIdDetails({ addToCart }) {
   const { id, medicineId } = useParams();
   const paramId = decodeURIComponent(medicineId ?? id ?? "");
   const navigate = useNavigate();
 
-  const medicine = useMemo(() => detailsMap.get(normalizeId(paramId)), [paramId]);
+  const [medicine, setMedicine] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [quantity, setQuantity] = useState(1);
+  // --- Image Swipe & Modal Logic ---
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [isEnlarged, setIsEnlarged] = useState(false);
+  const [touchStart, setTouchStart] = useState(null);
+  const [touchEnd, setTouchEnd] = useState(null);
 
-  if (!medicine) {
+  const incrementQty = () => setQuantity(q => q + 1);
+  const decrementQty = () => setQuantity(q => Math.max(1, q - 1));
+
+  useEffect(() => {
+    // Scroll to top when opening a new detail page
+    window.scrollTo(0, 0);
+    
+    const fetchMedicine = async () => {
+      try {
+        const response = await axios.get(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL || 'http://localhost:8080'}/api/medicines/${paramId}`);
+        const data = response.data;
+        
+        // Map backend data to frontend expected format
+        const formattedMedicine = {
+          id: data._id,
+          name: data.name,
+          pharmacy: data.retailerId ? `${data.retailerId.firstName || ''} ${data.retailerId.lastName || ''}`.trim() : "Unknown Pharmacy",
+          price: data.price,
+          images: data.images && data.images.length > 0 
+            ? data.images.map(img => img.startsWith('http') ? img : `${process.env.REACT_APP_AYURVEDA_BACKEND_URL || 'http://localhost:8080'}/${img}`)
+            : [FALLBACK_IMAGE],
+          imageSrc: data.images && data.images.length > 0 
+            ? (data.images[0].startsWith('http') ? data.images[0] : `${process.env.REACT_APP_AYURVEDA_BACKEND_URL || 'http://localhost:8080'}/${data.images[0]}`)
+            : FALLBACK_IMAGE,
+          description: data.description || "No description provided.",
+          prescription: data.prescription || false,
+          // Fill placeholders for fields not in backend schema yet
+          ingredients: ["Information not provided"],
+          usesBenefits: ["Information not provided"],
+          dosage: "Please consult your doctor.",
+          storageSafety: "Store in a cool, dry place.",
+        };
+        
+        setMedicine(formattedMedicine);
+      } catch (err) {
+        console.error("Error fetching medicine details:", err);
+        setError(true);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (paramId) {
+      fetchMedicine();
+    }
+  }, [paramId]);
+
+  if (loading) {
+    return <main className="medicine-details"><h2>Loading...</h2></main>;
+  }
+
+  if (error || !medicine) {
     return (
       <main className="medicine-details">
         <div className="medicine-details__header">
@@ -129,15 +102,54 @@ function MedicineIdDetails({ addToCart }) {
     ? `₹${medicine.price}`
     : `₹${priceNumber.toFixed(2)}`;
 
-  const handleAddToCart = () => {
-    if (typeof addToCart === "function") {
-      addToCart({
-        _id: medicine.id,
-        id: medicine.id,
-        name: medicine.name,
-        price: priceNumber,
-        image: medicine.imageSrc,
-      });
+  const handleAddToCart = async () => {
+    const patientId = localStorage.getItem("userId");
+    const token = localStorage.getItem("token");
+
+    if (!patientId) {
+      alert("Please login to add items to cart");
+      return;
+    }
+
+    try {
+      await axios.post(
+        `${process.env.REACT_APP_AYURVEDA_BACKEND_URL || 'http://localhost:8080'}/api/cart/add`,
+        { patientId, medicineId: medicine.id, quantity: quantity },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      alert(`${medicine.name} added to cart!`);
+    } catch (error) {
+      console.error("Failed to add to cart", error);
+      alert("Failed to add item to cart. Please try again.");
+    }
+  };
+
+  const handleBuyNow = () => {
+    handleAddToCart();
+    navigate('/cart');
+  };
+
+  // --- Image Swipe Logic ---
+  const minSwipeDistance = 50;
+
+  const onTouchStart = (e) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const onTouchMove = (e) => setTouchEnd(e.targetTouches[0].clientX);
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+
+    if (isLeftSwipe && currentImageIndex < medicine.images.length - 1) {
+      setCurrentImageIndex((prev) => prev + 1);
+    }
+    if (isRightSwipe && currentImageIndex > 0) {
+      setCurrentImageIndex((prev) => prev - 1);
     }
   };
 
@@ -154,43 +166,120 @@ function MedicineIdDetails({ addToCart }) {
         </button>
       </div>
 
-      <section className="medicine-details__card">
-        <div className="medicine-details__image-col">
-          <img
-            src={medicine.imageSrc}
-            alt={medicine.name}
-            className="medicine-details__image"
-            loading="lazy"
-            onError={(e) => {
-              e.currentTarget.onerror = null;
-              e.currentTarget.src = FALLBACK_IMAGE;
-            }}
-          />
-        </div>
+      <div className="medicine-details__layout">
+        {/* TOP SECTION: Image + Core Info (Responsive grid) */}
+        <section className="medicine-details__top">
+          <div 
+            className="medicine-details__image-col"
+            onTouchStart={onTouchStart}
+            onTouchMove={onTouchMove}
+            onTouchEnd={onTouchEnd}
+          >
+            <div className="medicine-details__image-carousel">
+              <div className="medicine-details__image-wrapper">
+                {medicine.images.length > 1 && (
+                  <button 
+                    className="carousel-btn medicine-details__prev-btn" 
+                    onClick={() => setCurrentImageIndex(prev => prev === 0 ? medicine.images.length - 1 : prev - 1)}
+                    aria-label="Previous Image"
+                  >
+                    &#10094;
+                  </button>
+                )}
+                
+                <img
+                  src={medicine.images[currentImageIndex]}
+                  alt={`${medicine.name} - image ${currentImageIndex + 1}`}
+                  className="medicine-details__image"
+                  loading="lazy"
+                  onClick={() => setIsEnlarged(true)}
+                  style={{ cursor: "zoom-in" }}
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = FALLBACK_IMAGE;
+                  }}
+                />
 
-        <div className="medicine-details__info-col">
-          <h1 id="medicine-title" className="medicine-details__title">
-            {medicine.name}
-          </h1>
-          <p className="medicine-details__pharmacy">{medicine.pharmacy}</p>
-
-          <div className="medicine-details__price-row">
-            <span className="medicine-details__price">{formattedPrice}</span>
-            {typeof addToCart === "function" && (
-              <button
-                type="button"
-                className="btn btn--primary"
-                onClick={handleAddToCart}
-                aria-label={`Add ${medicine.name} to cart`}
-              >
-                Add to Cart
-              </button>
+                {medicine.images.length > 1 && (
+                  <button 
+                    className="carousel-btn medicine-details__next-btn" 
+                    onClick={() => setCurrentImageIndex(prev => prev === medicine.images.length - 1 ? 0 : prev + 1)}
+                    aria-label="Next Image"
+                  >
+                    &#10095;
+                  </button>
+                )}
+              </div>
+            </div>
+            
+            {medicine.images.length > 1 && (
+              <div className="medicine-details__carousel-dots">
+                {medicine.images.map((_, idx) => (
+                  <span 
+                    key={idx} 
+                    className={`dot ${idx === currentImageIndex ? 'active' : ''}`}
+                    onClick={() => setCurrentImageIndex(idx)}
+                  />
+                ))}
+              </div>
             )}
           </div>
 
-          <p className="medicine-details__description">{medicine.description}</p>
+          <div className="medicine-details__summary-col">
+            <h1 id="medicine-title" className="medicine-details__title">
+              {medicine.name}
+            </h1>
+            
+            {medicine.prescription && (
+              <div className="medicine-details__prescription-badge">
+                Rx Prescription Required
+              </div>
+            )}
 
-          <div className="medicine-details__sections">
+            <p className="medicine-details__pharmacy">Sold by: {medicine.pharmacy}</p>
+            
+            <div className="medicine-details__price-box">
+              <span className="medicine-details__price">{formattedPrice}</span>
+              <span className="medicine-details__tax-info">Inclusive of all taxes</span>
+            </div>
+
+            <div className="medicine-details__actions-box">
+              <div className="qty-selector">
+                <button type="button" onClick={decrementQty} aria-label="Decrease quantity">−</button>
+                <span className="qty-value">{quantity}</span>
+                <button type="button" onClick={incrementQty} aria-label="Increase quantity">+</button>
+              </div>
+
+              <div className="action-buttons">
+                <button
+                  type="button"
+                  className="btn btn--outline"
+                  onClick={handleAddToCart}
+                  aria-label={`Add ${medicine.name} to cart`}
+                >
+                  Add to Cart
+                </button>
+                <button
+                  type="button"
+                  className="btn btn--primary"
+                  onClick={handleBuyNow}
+                  aria-label={`Buy ${medicine.name} now`}
+                >
+                  Buy Now
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* BOTTOM SECTION: Detailed Info */}
+        <section className="medicine-details__bottom">
+          <div className="medicine-details__description-card">
+            <h2>Product Description</h2>
+            <p className="medicine-details__description">{medicine.description}</p>
+          </div>
+
+          <div className="medicine-details__grid-info">
             <div className="medicine-details__section">
               <h2>Ingredients</h2>
               <ul>
@@ -219,8 +308,62 @@ function MedicineIdDetails({ addToCart }) {
               <p>{medicine.storageSafety}</p>
             </div>
           </div>
+        </section>
+      </div>
+      {/* ENLARGED IMAGE MODAL */}
+      {isEnlarged && (
+        <div className="medicine-details__enlarged-overlay" onClick={() => setIsEnlarged(false)}>
+          <button className="medicine-details__enlarged-close" onClick={() => setIsEnlarged(false)}>
+            &times;
+          </button>
+          
+          <div 
+            className="medicine-details__enlarged-content"
+            onClick={(e) => e.stopPropagation()}
+            onTouchStart={onTouchStart}
+            onTouchMove={onTouchMove}
+            onTouchEnd={onTouchEnd}
+          >
+            {medicine.images.length > 1 && (
+              <button 
+                className="carousel-btn medicine-details__prev-btn" 
+                onClick={() => setCurrentImageIndex(prev => prev === 0 ? medicine.images.length - 1 : prev - 1)}
+                aria-label="Previous Image"
+              >
+                &#10094;
+              </button>
+            )}
+
+            <img
+              src={medicine.images[currentImageIndex]}
+              alt={`${medicine.name} - enlarged image ${currentImageIndex + 1}`}
+              className="medicine-details__enlarged-image"
+            />
+
+            {medicine.images.length > 1 && (
+              <button 
+                className="carousel-btn medicine-details__next-btn" 
+                onClick={() => setCurrentImageIndex(prev => prev === medicine.images.length - 1 ? 0 : prev + 1)}
+                aria-label="Next Image"
+              >
+                &#10095;
+              </button>
+            )}
+            
+            {medicine.images.length > 1 && (
+              <div className="medicine-details__carousel-dots medicine-details__enlarged-dots">
+                {medicine.images.map((_, idx) => (
+                  <span 
+                    key={idx} 
+                    className={`dot ${idx === currentImageIndex ? 'active' : ''}`}
+                    onClick={() => setCurrentImageIndex(idx)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
         </div>
-      </section>
+      )}
     </main>
   );
 }

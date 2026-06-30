@@ -132,6 +132,8 @@ function App() {
         <Route path="/payment" element={<PaymentScreen />} />
         <Route path="/doctors" element={<DoctorsScreen />} />
         <Route path="/doctor-detail" element={<DoctorDetailPage />} />
+        <Route path="/medicines" element={<MedicinesScreen />} />
+        <Route path="/medicines/:id" element={<MedicineIdDetails />} />
 
         <Route path="/signup-patient" element={<SignUpPatientScreen />} />
         <Route path="/signup-doctor" element={<SignUpDoctorScreen />} />
@@ -176,13 +178,9 @@ function App() {
           <Route path="/patient-list" element={<PatientList />} />
           <Route path="/health-blogs" element={<HealthBlogs />} />
           <Route path="/notifications" element={<Notification />} />
-          <Route path="/medicines" element={<MedicinesScreen />} />
-
           {/* make chane */}
-          <Route
-            path="/medicines/:id"
-            element={<MedicineIdDetails />}
-          />
+
+
 
           <Route path="/retailer-home" element={<RetailerDashboard />} />
           <Route path="/doctor-notifications" element={<DoctorNotification />} />

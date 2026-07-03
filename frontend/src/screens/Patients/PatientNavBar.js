@@ -105,16 +105,7 @@ function PatientNavBar() {
 	};
 
 	const handleProfileClick = () => {
-		setShowModal(!showModal);
-	};
-
-	const handleChangeAddress = () => {
-		// Add functionality to update address via a form or API call
-		const newAddress = prompt("Enter new address:", userAddress);
-		if (newAddress && newAddress !== userAddress) {
-			setUserAddress(newAddress);
-			// Call an API to update the user's address in the database
-		}
+		navigate("/profile/patient");
 	};
 
 	return (
@@ -172,56 +163,7 @@ function PatientNavBar() {
 				</NavLink>
 			</div>
 
-			{
-				showModal && (
-					<div className="profile-shadow" style={{
-						height: "100vh", width: "100vw", backdropFilter: "blur(15px)",
-						position: "absolute", top: "0", zIndex: "-100"
-					}}></div>
-				)
-			}
-
-			{showModal && (
-				<div className="profile-modal" ref={modalRef}>
-					<div className="close-modal" onClick={handleProfileClick}>
-						&times;
-					</div>
-					<div className="user-profile" >
-						<img
-							src={profilePic || defaultProfilePic}
-							alt="Profile"
-						/>
-					</div>
-					<h2>User Profile</h2>
-					<div className="profile-details">
-						<p>
-							<strong>Name:</strong> {userName}
-						</p>
-						<p>
-							<strong>Email:</strong> {userEmail}
-						</p>
-						<p>
-							<strong>Phone:</strong> {userPhone}
-						</p>
-						<p>
-							<strong>Address: </strong> {userAddress}
-							<a
-								href="#"
-								onClick={handleChangeAddress}
-								className="change-address-link"
-							>
-								{" "}
-								(Change){" "}
-							</a>
-						</p>
-					</div>
-					<div className="modal-btn-container">
-						<button onClick={handleSignOut} className="signout-btn">
-							Sign Out
-						</button>
-					</div>
-				</div>
-			)}
+			{/* Modal has been replaced by a dedicated profile page */}
 
 			<nav className="navbar">
 				<div className="left-item">

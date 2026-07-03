@@ -34,7 +34,7 @@ function DoctorHomeScreen() {
       <div className="doctor-options">
         <div className="doctor-options-row">
           {userId ? (
-            <Link to={`/profile/doctor/${userId}`}><button className="option-btn">Your Profile</button></Link>
+            <Link to={`/profile/doctor`}><button className="option-btn">Your Profile</button></Link>
           ) : (
             <button className="option-btn" disabled>Your Profile</button>
           )}

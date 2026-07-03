@@ -446,3 +446,38 @@ exports.forceChangePassword = async (req, res) => {
 		res.status(500).json({ message: "Server error" });
 	}
 };
+
+// Change password for logged-in user
+exports.changePassword = async (req, res) => {
+	try {
+		const { currentPassword, newPassword } = req.body;
+		if (!currentPassword || !newPassword) {
+			return res.status(400).json({ message: "Current and new passwords are required" });
+		}
+
+		const Model = modelMap[req.user.role];
+		if (!Model) {
+			return res.status(400).json({ message: "Invalid role" });
+		}
+
+		const user = await Model.findById(req.user._id);
+		if (!user) {
+			return res.status(404).json({ message: "User not found" });
+		}
+
+		const isMatch = await bcrypt.compare(currentPassword, user.password);
+		if (!isMatch) {
+			return res.status(400).json({ message: "Incorrect current password" });
+		}
+
+		const hashedPassword = await bcrypt.hash(newPassword, 10);
+		user.password = hashedPassword;
+		user.passwordChangedAt = new Date();
+		await user.save();
+
+		res.status(200).json({ message: "Password successfully updated" });
+	} catch (error) {
+		console.error("Change Password Error:", error);
+		res.status(500).json({ message: "Server error" });
+	}
+};

@@ -93,7 +93,7 @@ function DoctorNavBar() {
 	};
 
 	const handleProfileClick = () => {
-		setShowModal(!showModal); // Toggle modal visibility
+		navigate("/profile/doctor");
 	};
 
 	const handleSignOut = () => {
@@ -157,42 +157,7 @@ function DoctorNavBar() {
 				</NavLink>
 			</div>
 
-			{
-				showModal && (
-					<div className="profile-shadow" style={{
-						height: "100vh", width: "100vw", backdropFilter: "blur(15px)",
-						position: "absolute", top: "0", zIndex: "-100"
-					}}></div>
-				)
-			}
-
-			{showModal && (
-				<div className="profile-modal" ref={modalRef}>
-					<div className="user-profile" >
-						<img src={profilePic || defaultProfilePic} alt="Profile" />
-                    </div>
-					<h2>User Profile</h2>
-					<div className="profile-details">
-						<p>
-							<strong>Name:</strong> {userName}
-						</p>
-						<p>
-							<strong>Phone:</strong> {userPhone}
-						</p>
-						<p>
-							<strong>Email:</strong> {userEmail}
-						</p>
-					</div>
-					<div className="modal-btn-container">
-						<button onClick={handleSignOut} className="signout-btn">
-							Sign Out
-						</button>
-						<button onClick={handleProfileClick} className="close-btn">
-							Close
-						</button>
-					</div>
-				</div>
-			)}
+			{/* Modal has been replaced by a dedicated profile page */}
 
 			<nav className="navbar">
 				<div className="left-item">

@@ -93,7 +93,7 @@ function RetailerNavBar() {
 	};
 
 	const handleProfileClick = () => {
-		setShowModal(!showModal); // Toggle modal visibility
+		navigate("/profile/retailer");
 	};
 
 	const handleSignOut = () => {
@@ -154,42 +154,6 @@ function RetailerNavBar() {
 					/>
 				</NavLink>
 			</div>
-
-			{
-				showModal && (
-					<div className="profile-shadow" style={{
-						height: "100vh", width: "100vw", backdropFilter: "blur(15px)",
-						position: "absolute", top: "0", zIndex: "-100"
-					}}></div>
-				)
-			}
-
-			{showModal && (
-				<div className="profile-modal" ref={modalRef}>
-					<div className="user-profile" >
-						<img src="https://images.unsplash.com/photo-1458696352784-ffe1f47c2edc?q=80&w=2071&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" alt="imgae" /></div>
-					<h2>User Profile</h2>
-					<div className="profile-details">
-						<p>
-							<strong>Name:</strong> {userName}
-						</p>
-						<p>
-							<strong>Phone:</strong> {userPhone}
-						</p>
-						<p>
-							<strong>Email:</strong> {userEmail}
-						</p>
-					</div>
-					<div className="modal-btn-container">
-						<button onClick={handleSignOut} className="signout-btn">
-							Sign Out
-						</button>
-						<button onClick={handleProfileClick} className="close-btn">
-							Close
-						</button>
-					</div>
-				</div>
-			)}
 
 			<nav className="navbar">
 				<div className="left-item">

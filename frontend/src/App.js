@@ -73,6 +73,9 @@ import DoctorFullDetails from './screens/admin/doctors/DoctorFullDetails';
 import Transactions from './screens/admin/transactions';
 import RetailerManagement from './screens/admin/Retailer/RetailerManagement';
 import Patientprofile from './screens/admin/patient/PatientProfile';
+import PatientProfileNew from './screens/Patients/PatientProfile'; // New patient profile
+import DoctorProfileNew from './screens/Doctors/DoctorProfile';    // New doctor profile
+import RetailerProfileNew from './screens/Retailers/RetailerProfile'; // New retailer profile
 import DoctorList from './screens/admin/doctors/DoctorList';
 import RetailerFullDetails from './screens/admin/Retailer/RetailerFullDetails';
 import { PatientHeader } from './screens/Doctors/doctorPrescribe/PatientHeader';
@@ -166,6 +169,9 @@ function App() {
 
 
         <Route element={<ProtectedRoute />}>
+          <Route path="/profile/patient" element={<PatientProfileNew />} />
+          <Route path="/profile/doctor" element={<DoctorProfileNew />} />
+          <Route path="/profile/retailer" element={<RetailerProfileNew />} />
           <Route path="/current-requests" element={<CurrentRequests />} />
           {/* my changes */}
 

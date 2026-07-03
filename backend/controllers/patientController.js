@@ -43,6 +43,7 @@ exports.updatePatient = async (req, res) => {
 			if (updates.gender) patient.gender = updates.gender;
 			if (updates.pincode) patient.zipCode = updates.pincode;
 			if (updates.address) patient.address = updates.address;
+			if (updates.phone) patient.phone = updates.phone;
 
 			await patient.save();
 			console.log("Updated Patient details successfully");

@@ -68,6 +68,7 @@ const PasswordInput = ({ value, onChange, placeholder, name }) => {
 };
 
 function SignUpRetailerScreen() {
+  // Triggering recompile
   const navigate = useNavigate();
   const { setAuth } = useContext(AuthContext);
   const [formData, setFormData] = useState({

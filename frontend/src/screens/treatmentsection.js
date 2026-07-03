@@ -1,26 +1,34 @@
 import './treatmentsection.css';
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import capsuleImage from '../media/capsule.jpg';
 
-const medicines = [
-  { name: 'Ashwagandha Capsules', price: '₹499', image: capsuleImage },
-  { name: 'Triphala Churna', price: '₹349', image: capsuleImage },
-  { name: 'Brahmi Syrup', price: '₹299', image: capsuleImage },
-  { name: 'Neem Tablets', price: '₹399', image: capsuleImage },
-  { name: 'Amla Powder', price: '₹259', image: capsuleImage },
-  { name: 'Shilajit Resin', price: '₹899', image: capsuleImage },
-  { name: 'Giloy Juice', price: '₹599', image: capsuleImage },
-  { name: 'Moringa Capsules', price: '₹699', image: capsuleImage },
-  { name: 'Turmeric Tablets', price: '₹399', image: capsuleImage },
-  { name: 'Herbal Tea', price: '₹199', image: capsuleImage },
-  { name: 'Ayurvedic Face Cream', price: '₹499', image: capsuleImage }, 
-  { name: 'Chyawanprash', price: '₹549', image: capsuleImage },
-  { name: 'Herbal Shampoo', price: '₹349', image: capsuleImage },
-  { name: 'Joint Pain Oil', price: '₹799', image: capsuleImage },
-  { name: 'Aloe Vera Gel', price: '₹299', image: capsuleImage }
-];
-
 const Medicines = () => {
+  const [medicines, setMedicines] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchMedicines = async () => {
+      try {
+        const response = await axios.get(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL || 'http://localhost:8080'}/api/medicines`);
+        if (Array.isArray(response.data)) {
+          setMedicines(response.data);
+        } else if (response.data && Array.isArray(response.data.medicines)) {
+          setMedicines(response.data.medicines);
+        }
+        setLoading(false);
+      } catch (err) {
+        console.error("Failed to fetch medicines:", err);
+        setError("Failed to load medicines.");
+        setLoading(false);
+      }
+    };
+    fetchMedicines();
+  }, []);
+
   const [visibleCount, setVisibleCount] = useState(5);
 
   const updateVisibleCount = () => {
@@ -55,13 +63,48 @@ const Medicines = () => {
         <h2 className="section-title">Explore All Medicines</h2>
       </div>
       <div className="medicines-grid">
-        {medicines.slice(0, visibleCount).map((medicine, index) => (
-          <div className="medicine-cardt" key={index}>
-            <img src={medicine.image} alt={medicine.name} className="medicine-image" />
-            <h3 className="medicine-name">{medicine.name}</h3>
-            <p className="medicine-price">{medicine.price}</p>
-          </div>
-        ))}
+        {loading ? (
+          <p>Loading medicines...</p>
+        ) : error ? (
+          <p>{error}</p>
+        ) : (
+          medicines.slice(0, visibleCount).map((medicine) => (
+            <div className="medicine-cardt" key={medicine._id} onClick={() => navigate(`/medicines/${medicine._id}`)}>
+              <img 
+                src={(medicine.images && medicine.images.length > 0) ? medicine.images[0] : capsuleImage} 
+                alt={medicine.name} 
+                className="medicine-image" 
+                onError={(e) => { e.target.onerror = null; e.target.src = capsuleImage; }}
+              />
+              <div className="medicine-cardt-info">
+                <h3 className="medicine-name">{medicine.name}</h3>
+                <p className="medicine-price">₹{medicine.price}</p>
+                <button 
+                  className="medicine-add-btn" 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const patientId = localStorage.getItem("userId");
+                    const token = localStorage.getItem("token");
+                    if (!patientId) {
+                      alert("Please login first to add items to cart");
+                      navigate('/signin');
+                      return;
+                    }
+                    axios.post(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL || 'http://localhost:8080'}/api/cart/add`, {
+                      patientId,
+                      medicineId: medicine._id,
+                      quantity: 1
+                    }, { headers: { Authorization: `Bearer ${token}` } })
+                    .then(() => alert("Added to cart successfully!"))
+                    .catch(err => alert("Failed to add to cart"));
+                  }}
+                >
+                  Add to Cart
+                </button>
+              </div>
+            </div>
+          ))
+        )}
       </div>
       {visibleCount < medicines.length && (
         <div className="see-more-wrapper">

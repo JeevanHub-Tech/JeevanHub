@@ -11,7 +11,6 @@ import TreatmentSection from "./treatmentsection";
 import TalkOfTheTown from "./TalkOfTheTown";
 import TopTransformationStories from "./TopTransformationStories";
 import SuccessRate from "./SuccessRate";
-import PlansSection from "./PlansSection";
 import RequestCallback from "./RequestCallback";
 import WhatToAchieve from "./WhatToAchieve";
 import HeroSection from "./HeroSection";
@@ -134,8 +133,6 @@ function HomeScreen() {
 			<TopTransformationStories />
 
 			<SuccessRate />
-
-			<PlansSection />
 
 			<RequestCallback />
 

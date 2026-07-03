@@ -49,46 +49,7 @@ const videos = [
 	},
 ];
 
-const blogs = [
-	{
-		id: 1,
-		title: "Mindset for Transformation",
-		description: "How a change in mindset can lead to life transformation.",
-		imageUrl: logo,
-		link: "https://bestselfatlanta.com/blog1",
-	},
-	{
-		id: 2,
-		title: "Healthy Eating Tips",
-		description: "Learn the best eating habits to stay fit and healthy.",
-		imageUrl: logo,
-		link: "https://bestselfatlanta.com/blog2",
-	},
-	{
-		id: 3,
-		title: "Fitness and Mental Health",
-		description:
-			"Explore the connection between fitness and mental well-being.",
-		imageUrl: logo,
-		link: "https://bestselfatlanta.com/blog3",
-	},
-	{
-		id: 4,
-		title: "Overcoming Obstacles",
-		description:
-			"How to push through challenges on your transformation journey.",
-		imageUrl: logo,
-		link: "https://bestselfatlanta.com/blog4",
-	},
-	{
-		id: 5,
-		title: "Importance of Rest",
-		description:
-			"Why rest is essential for your fitness and health transformation.",
-		imageUrl: logo,
-		link: "https://bestselfatlanta.com/blog5",
-	},
-];
+// Dynamic blogs fetched from backend
 
 const SwiperCarouselSection = ({ items, sectionType }) => {
 	const handleVideoClick = (videoElement) => {
@@ -142,13 +103,16 @@ const SwiperCarouselSection = ({ items, sectionType }) => {
 									controls={false}
 								/>
 							) : (
-								<a href={item.link} target="_blank" rel="noopener noreferrer">
+								<div 
+									onClick={() => window.location.href = `/blog/${item.id}`} 
+									style={{ cursor: "pointer" }}
+								>
 									<img
 										className="swiper-slide-image"
 										src={item.imageUrl}
 										alt={item.title}
 									/>
-								</a>
+								</div>
 							)}
 							<div className="swiper-slide-text">
 								<h2>{item.title}</h2>
@@ -166,10 +130,44 @@ const SwiperCarouselSection = ({ items, sectionType }) => {
 };
 
 const TopTransformation = () => {
+	const [dynamicBlogs, setDynamicBlogs] = React.useState([]);
+
+	useEffect(() => {
+		const fetchBlogs = async () => {
+			try {
+				const response = await fetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL || 'http://localhost:8080'}/api/webhook/getAllBlogs`);
+				const data = await response.json();
+				if (Array.isArray(data)) {
+					// Map backend blog data to the format expected by the carousel
+					const mappedBlogs = data.slice(0, 5).map(blog => {
+						const rawHtmlContent = blog.description;
+						const previewText = rawHtmlContent
+							? rawHtmlContent.replace(/<[^>]*>/g, "").slice(0, 80)
+							: "No content available...";
+							
+						return {
+							id: blog._id,
+							title: blog.title,
+							description: previewText + "...",
+							imageUrl: blog.url || blog.image || logo, // use logo as fallback
+							link: `/blog/${blog._id}`
+						};
+					});
+					setDynamicBlogs(mappedBlogs);
+				}
+			} catch (error) {
+				console.error("Failed to fetch blogs for home page:", error);
+			}
+		};
+		fetchBlogs();
+	}, []);
+
 	return (
 		<div className="top-transformation">
 			<SwiperCarouselSection items={videos} sectionType="Video" />
-			<SwiperCarouselSection items={blogs} sectionType="Blog" />
+			{dynamicBlogs.length > 0 && (
+				<SwiperCarouselSection items={dynamicBlogs} sectionType="Blog" />
+			)}
 		</div>
 	);
 };

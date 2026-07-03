@@ -436,8 +436,7 @@ const DoctorFullDetails = () => {
 						pincode: typeof doctor.zipCode === "object" && doctor.zipCode !== null
 							? (doctor.zipCode.specific || doctor.zipCode.pincode || "")
 							: (doctor.zipCode || ""),
-						profileImage:
-							"https://images.unsplash.com/photo-1599566150163-29194dcaad36?q=80&w=400&auto=format&fit=crop",
+						profileImage: doctor.profileImage || "",
 					}}
 				/>
 			)}

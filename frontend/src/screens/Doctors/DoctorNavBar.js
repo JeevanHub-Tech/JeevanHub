@@ -18,7 +18,7 @@ function DoctorNavBar() {
 	const [showModal, setShowModal] = useState(false);
 	const modalRef = useRef(null);
 	const navigate = useNavigate();
-	const profilePic = ""; // Logic to fetch user's profile picture URL
+	const profilePic = auth.user?.profileImage || "";
 	const userFirstName = auth.user ? auth.user.firstName : "Guest";
 	const userLastName = auth.user ? auth.user.lastName : "";
 	const [showMenu, setShowMenu] = useState(false);
@@ -169,7 +169,8 @@ function DoctorNavBar() {
 			{showModal && (
 				<div className="profile-modal" ref={modalRef}>
 					<div className="user-profile" >
-						<img src="https://images.unsplash.com/photo-1458696352784-ffe1f47c2edc?q=80&w=2071&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" alt="imgae" /></div>
+						<img src={profilePic || defaultProfilePic} alt="Profile" />
+                    </div>
 					<h2>User Profile</h2>
 					<div className="profile-details">
 						<p>

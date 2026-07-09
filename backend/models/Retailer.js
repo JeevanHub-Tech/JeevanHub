@@ -11,6 +11,8 @@ const RetailerSchema = new mongoose.Schema({
   age: { type: Number, required: true },
   gender: { type: String, required: true },
   zipCode: { type: String, required: true },
+  address: { type: String },
+  profileImage: { type: String },
   password: { type: String, required: true },
   status: { type: String, enum: ['active', 'inactive'], default: 'active' },
   role: { type: String, default: 'retailer' },

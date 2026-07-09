@@ -1,14 +1,15 @@
 import React, { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
+import axios from 'axios';
 import "./AppointmentSlots.css";
+import SlotManagement from "../../components/SlotManagement";
 
 function AppointmentSlots() {
 	const [appointments, setAppointments] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
-	const [showInput, setShowInput] = useState({});
-	const [meetLink, setMeetLink] = useState({});
+	const [showManageSlots, setShowManageSlots] = useState(false);
 
 	const { auth } = useContext(AuthContext);
 	// Get the doctorId from the authenticated user context
@@ -61,6 +62,7 @@ function AppointmentSlots() {
 					}
 				);
 
+
 				if (!response.ok) {
 					throw new Error("Failed to fetch appointments");
 				}
@@ -101,15 +103,6 @@ function AppointmentSlots() {
 						return dateA.getTime() - dateB.getTime();
 					});
 
-				// Initialize meetLinks state based on fetched appointments
-				const meetLinks = {};
-				filteredAppointments.forEach((appointment) => {
-					if (appointment.meetLink && appointment.meetLink !== "no") {
-						meetLinks[appointment._id] = appointment.meetLink;
-					}
-				});
-
-				setMeetLink(meetLinks);
 				setAppointments(filteredAppointments);
 				setLoading(false);
 				console.log("Fetched Appointments:", filteredAppointments);
@@ -150,6 +143,8 @@ function AppointmentSlots() {
 		return now >= startTime && now <= endTime;
 	};
 
+
+
 	if (loading) {
 		return <p style={{ marginTop: "150px", padding: "15px", background: "white", width: "max-content", borderRadius: "15px", marginLeft: "50px" }}>Loading...</p>;
 	}
@@ -160,7 +155,21 @@ function AppointmentSlots() {
 
 	return (
 		<div className="appointments-container">
-			<h1>My Appointment Slots</h1>
+			<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+				<h1 style={{ margin: 0 }}>My Appointment Slots</h1>
+				<button 
+					onClick={() => setShowManageSlots(!showManageSlots)}
+					style={{ padding: '10px 20px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
+				>
+					{showManageSlots ? 'Close Manage Slots' : 'Manage Slots'}
+				</button>
+			</div>
+
+			{showManageSlots && (
+				<div style={{ marginBottom: '30px' }}>
+					<SlotManagement doctorId={doctorId} token={auth.token} defaultPrice={auth.user?.price || 500} />
+				</div>
+			)}
 
 			<p>Showing upcoming appointments and those from the past 30 minutes.</p>
 			{appointments.length === 0 ? (

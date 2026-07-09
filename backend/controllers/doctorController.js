@@ -146,7 +146,7 @@ exports.getPublicDoctorsData = async (req, res) => {
 			education: doc.education,
 			approvalStatus: doc.approvalStatus || 'Pending',
 			profileImage: doc.profileImage
-				? `${process.env.BASE_URL || "http://localhost:5000"}/${doc.profileImage}`
+				? (doc.profileImage.startsWith('http') ? doc.profileImage : `${process.env.BASE_URL || "http://localhost:5000"}/${doc.profileImage}`)
 				: null,
 			rating: ratingMap[doc._id.toString()] || null
 		}));
@@ -231,6 +231,14 @@ exports.getDoctorById = async (req, res) => {
 				experience: doc.experience,
 				certificate: doc.certificate,
 				price: doc.price,
+				availableSlots: doc.availableSlots || {},
+				scheduleOverrides: (doc.scheduleOverrides || []).filter(o => {
+					const overrideDate = new Date(o.date);
+					overrideDate.setHours(0,0,0,0);
+					const today = new Date();
+					today.setHours(0,0,0,0);
+					return overrideDate >= today;
+				}),
 				education: doc.education,
 				dob: doc.dob,
 				approvalStatus: doc.approvalStatus || 'Pending',
@@ -238,7 +246,7 @@ exports.getDoctorById = async (req, res) => {
 					? `${process.env.BASE_URL || "http://localhost:5000"}/${doc.qrCode}`
 					: null,
 				profileImage: doc.profileImage
-					? `${process.env.BASE_URL || "http://localhost:5000"}/${doc.profileImage}`
+					? (doc.profileImage.startsWith('http') ? doc.profileImage : `${process.env.BASE_URL || "http://localhost:5000"}/${doc.profileImage}`)
 					: null,
 			};
 			return res.status(200).json(formattedDoctor);
@@ -269,15 +277,22 @@ exports.updateDoctor = async (req, res) => {
         let doctor = await Doctor.findById(id);
 
         if (doctor) {
-            if (updates.firstName) doctor.firstName = updates.firstName;
-            if (updates.lastName) doctor.lastName = updates.lastName;
-            if (updates.email) doctor.email = updates.email;
-            if (updates.yearsOfExperience) doctor.experience = updates.yearsOfExperience;
-            if (updates.specialization) doctor.specialization = updates.specialization; 
-            if (updates.gender) doctor.gender = updates.gender;
-            if (updates.pincode) doctor.zipCode = updates.pincode; 
-            if (updates.address) doctor.address = updates.address;
-            if (updates.profileImage) doctor.profileImage = updates.profileImage;
+            if (updates.firstName !== undefined) doctor.firstName = updates.firstName;
+            if (updates.lastName !== undefined) doctor.lastName = updates.lastName;
+            if (updates.email !== undefined) doctor.email = updates.email;
+            if (updates.phone !== undefined) doctor.phone = updates.phone;
+            if (updates.registrationNumber !== undefined) doctor.registrationNumber = updates.registrationNumber;
+            if (updates.experience !== undefined) doctor.experience = updates.experience;
+            if (updates.specialization !== undefined) doctor.specialization = updates.specialization; 
+            if (updates.gender !== undefined) doctor.gender = updates.gender;
+            if (updates.zipCode !== undefined) doctor.zipCode = updates.zipCode; 
+            if (updates.address !== undefined) doctor.address = updates.address;
+            if (updates.price !== undefined) doctor.price = updates.price;
+            if (updates.age !== undefined) doctor.age = updates.age;
+            if (updates.education !== undefined) doctor.education = updates.education;
+            if (updates.designation !== undefined) doctor.designation = updates.designation;
+            if (updates.profileImage !== undefined) doctor.profileImage = updates.profileImage;
+            if (updates.availableSlots !== undefined) doctor.availableSlots = updates.availableSlots;
 
 			await doctor.save();
 			console.log("Updated Doctor details successfully");

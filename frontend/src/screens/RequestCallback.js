@@ -13,8 +13,8 @@ const RequestCallback = () => {
             <i className="icon-arrow-right"></i>
           </div>
           <button className="request-callback-btn">Request Callback</button>
-          <a href="tel:+91999999999" className="call-us-link">
-            Or call us on +91 99999 99999
+          <a href="tel:+918688324518" className="call-us-link">
+            Or call us on +91 8688324518
           </a>
         </div>
         <div className="image-wrapper">

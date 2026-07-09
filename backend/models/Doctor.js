@@ -1,5 +1,30 @@
 const mongoose = require("mongoose");
 
+const SlotTemplateSchema = new mongoose.Schema({
+    startTime: { type: String, required: true }, // e.g. "09:00"
+    duration: { type: Number, required: true }, // in minutes
+    fee: { type: Number },
+    consultationType: { type: String, enum: ['Online', 'In-Person', 'Both'], default: 'Online' },
+    sessionType: { type: String, enum: ['1-to-1', 'Group'], default: '1-to-1' },
+    maxCapacity: { type: Number, default: 1 },
+    isDisabled: { type: Boolean, default: false }
+});
+
+const ScheduleOverrideSchema = new mongoose.Schema({
+    date: { type: Date, required: true },
+    type: { type: String, enum: ['cancelled', 'rescheduled', 'added'], required: true },
+    originalStartTime: { type: String }, // Required for 'cancelled' or 'rescheduled'
+    
+    // Details if 'rescheduled' or 'added'
+    newStartTime: { type: String },
+    newDuration: { type: Number },
+    newFee: { type: Number },
+    newConsultationType: { type: String, enum: ['Online', 'In-Person', 'Both'] },
+    newSessionType: { type: String, enum: ['1-to-1', 'Group'] },
+    newMaxCapacity: { type: Number },
+    newBufferTime: { type: Number }
+});
+
 const doctorSchema = new mongoose.Schema({
     firstName: { type: String, required: true },
     lastName: { type: String, required: true },
@@ -24,6 +49,16 @@ const doctorSchema = new mongoose.Schema({
     introduction: { type: String },
     languages: [{ type: String }],
     timings: { type: String },
+    availableSlots: {
+        Monday: [SlotTemplateSchema],
+        Tuesday: [SlotTemplateSchema],
+        Wednesday: [SlotTemplateSchema],
+        Thursday: [SlotTemplateSchema],
+        Friday: [SlotTemplateSchema],
+        Saturday: [SlotTemplateSchema],
+        Sunday: [SlotTemplateSchema]
+    },
+    scheduleOverrides: [ScheduleOverrideSchema],
     paymentMethods: [{ type: String }],
     approvalStatus: { 
         type: String, 

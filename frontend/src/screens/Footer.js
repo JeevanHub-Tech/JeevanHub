@@ -21,7 +21,7 @@ function Footer() {
         <div className="footer-section">
           <h4>Contact Us</h4>
           <p>Email: support@ayurvedic.com</p>
-          <p>Phone: +1 (555) 123-4567</p>
+          <p>Phone: 8688324518</p>
         </div>
         <div className="footer-section">
           <h4>Follow Us</h4>

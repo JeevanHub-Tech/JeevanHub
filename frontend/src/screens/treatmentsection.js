@@ -30,21 +30,20 @@ const Medicines = () => {
   }, []);
 
   const [visibleCount, setVisibleCount] = useState(5);
+  const [defaultVisibleCount, setDefaultVisibleCount] = useState(5);
 
   const updateVisibleCount = () => {
     const width = window.innerWidth;
-    if (width > 1000) {
-      setVisibleCount(5); 
-    } else if (width <= 1000 && width > 700) {
-      setVisibleCount(4); 
-    } else if (width <= 700 && width > 530){
-      setVisibleCount(3); 
-    } else if (width <= 530 && width > 430){
-      setVisibleCount(2); 
-    }
-    else if (width <= 431){
-      setVisibleCount(1); 
-    }
+    let count = 5;
+    if (width > 1000) count = 5;
+    else if (width <= 1000 && width > 700) count = 4;
+    else if (width <= 700 && width > 530) count = 3;
+    else if (width <= 530 && width > 430) count = 2;
+    else if (width <= 431) count = 1;
+    
+    setDefaultVisibleCount(count);
+    // Only reset visible count if it's currently at the default
+    setVisibleCount(prev => prev <= count ? count : prev);
   };
 
   useEffect(() => {
@@ -54,7 +53,11 @@ const Medicines = () => {
   }, []);
 
   const showMore = () => {
-    setVisibleCount(prevCount => Math.min(prevCount + visibleCount, medicines.length));
+    setVisibleCount(prevCount => Math.min(prevCount + defaultVisibleCount, medicines.length));
+  };
+
+  const showLess = () => {
+    setVisibleCount(defaultVisibleCount);
   };
 
   return (
@@ -106,13 +109,18 @@ const Medicines = () => {
           ))
         )}
       </div>
-      {visibleCount < medicines.length && (
-        <div className="see-more-wrapper">
+      <div className="see-more-wrapper" style={{ display: 'flex', justifyContent: 'center', gap: '20px' }}>
+        {visibleCount < medicines.length && (
           <a className="see-more-link" onClick={showMore}>
             See More <span className="arrow-icon">&#9662;</span>
           </a>
-        </div>
-      )}
+        )}
+        {visibleCount > defaultVisibleCount && (
+          <a className="see-more-link" onClick={showLess}>
+            See Less <span className="arrow-icon" style={{ transform: 'rotate(180deg)', display: 'inline-block' }}>&#9662;</span>
+          </a>
+        )}
+      </div>
     </section>
   );
 };

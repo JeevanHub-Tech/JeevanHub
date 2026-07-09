@@ -592,7 +592,7 @@ exports.getBookingsByDoctorId = async (req, res) => {
 		const bookings = await Booking.find({ doctorId }).sort({ createdAt: -1 });
 
 		if (!bookings || bookings.length === 0) {
-			return res.status(404).json({ message: "No bookings found for this doctor" });
+			return res.status(200).json({ bookings: [] });
 		}
 
 		return res.status(200).json({

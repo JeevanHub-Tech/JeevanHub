@@ -321,7 +321,8 @@ const SanjeevaniChatbot = ({ isFullScreen = false }) => {
                                                     location: doc.location || '',
                                                     languages: doc.languages || '',
                                                     about: doc.about || '',
-                                                    rating: doc.rating || 0
+                                                    rating: doc.rating || 0,
+                                                    profileImage: doc.profileImage || null
                                                 };
                                                 if (isFullScreen) {
                                                     // PWA: can't pass state, open doctors list instead

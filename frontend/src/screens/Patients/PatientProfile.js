@@ -31,6 +31,8 @@ const PatientProfile = () => {
     });
 
     useEffect(() => {
+        window.scrollTo(0, 0);
+        
         // Fetch full patient data
         const fetchPatientData = async () => {
             try {

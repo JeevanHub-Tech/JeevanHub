@@ -13,7 +13,7 @@
 	display: flex;
 	align-items: center;
 	justify-content: space-around;
-	padding: 10px 30px;
+	padding: 5px 30px;
 	background-color: #d2b48c;
 }
 
@@ -83,7 +83,8 @@
 
 .text-container {
 	display: flex;
-	flex-direction: column;
+	flex-direction: row;
+	align-items: baseline;
 	justify-content: center;
 	font-family: "Arbutus Slab", serif;
 }
@@ -95,8 +96,9 @@
 }
 
 .consultations-text {
-	font-size: 16px;
+	font-size: 28px;
 	font-weight: bold;
+	color: #2b3a1a; /* slightly darker green for contrast, optional */
 }
 
 .search-input {

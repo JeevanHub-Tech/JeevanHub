@@ -33,17 +33,15 @@ exports.updatePatient = async (req, res) => {
 		let patient = await Patient.findById(id);
 
 		if (patient) {
-			if (updates.profileImage && updates.profileImage !== "") {
-				patient.profileImage = updates.profileImage;
-			}
-			if (updates.firstName) patient.firstName = updates.firstName;
-			if (updates.lastName) patient.lastName = updates.lastName;
-			if (updates.email) patient.email = updates.email;
-			if (updates.dateOfBirth) patient.dob = updates.dateOfBirth;
-			if (updates.gender) patient.gender = updates.gender;
-			if (updates.pincode) patient.zipCode = updates.pincode;
-			if (updates.address) patient.address = updates.address;
-			if (updates.phone) patient.phone = updates.phone;
+			if (updates.profileImage !== undefined) patient.profileImage = updates.profileImage;
+			if (updates.firstName !== undefined) patient.firstName = updates.firstName;
+			if (updates.lastName !== undefined) patient.lastName = updates.lastName;
+			if (updates.email !== undefined) patient.email = updates.email;
+			if (updates.dateOfBirth !== undefined) patient.dob = updates.dateOfBirth;
+			if (updates.gender !== undefined) patient.gender = updates.gender;
+			if (updates.pincode !== undefined) patient.zipCode = updates.pincode;
+			if (updates.address !== undefined) patient.address = updates.address;
+			if (updates.phone !== undefined) patient.phone = updates.phone;
 
 			await patient.save();
 			console.log("Updated Patient details successfully");

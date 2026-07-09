@@ -16,6 +16,7 @@ const { getAllDoctors,
     bulkDeleteDoctors,
     bulkVerifyDoctors,
     verifyDoctor } = require("../controllers/doctorController");
+const slotController = require("../controllers/slotController");
 
 // Admin/Doctor Routes
 router.get("/", auth, (req, res, next) => {
@@ -280,6 +281,17 @@ router.get("/publicDoctors", require("../controllers/doctorController").getPubli
 
 // New route to get doctor by ID from both collections
 router.get("/getDoctorById/:id", auth, getDoctorById);
+
+// --- Slot Management Routes ---
+router.post("/slots/template", auth, slotController.addSlotTemplate);
+router.put("/slots/template/:day/toggle-disable-all", auth, slotController.toggleDisableDay);
+router.put("/slots/template/:day/:slotId", auth, slotController.editSlotTemplate);
+router.delete("/slots/template/:day/:slotId", auth, slotController.deleteSlotTemplate);
+router.post("/slots/overrides", auth, slotController.addScheduleOverride);
+router.delete("/slots/overrides", auth, slotController.removeScheduleOverride);
+router.post("/slots/cancel-date", auth, slotController.cancelDateSlots);
+router.get("/:doctorId/slots/:date", auth, slotController.getProcessedSlotsForDate);
+
 
 // update doctor details
 router.put("/updateDoctor/:id", auth, updateDoctor);

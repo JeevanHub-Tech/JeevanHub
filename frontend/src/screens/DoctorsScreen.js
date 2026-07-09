@@ -45,7 +45,7 @@ function DoctorsScreen() {
         const mappedDoctors = approvedDoctors.map((doctor) => ({
           id: doctor._id,
           name: `${doctor.firstName} ${doctor.lastName}`,
-          specialization: doctor.specialization?.[0] || "N/A",
+          specialization: Array.isArray(doctor.specialization) ? doctor.specialization.join(', ') || "N/A" : doctor.specialization || "N/A",
           experience: doctor.experience ? `${doctor.experience} years` : "0 years",
           email: `${doctor.email}`,
           education: doctor.education ? doctor.education : "N/A",
@@ -63,6 +63,7 @@ function DoctorsScreen() {
             ? doctor.gender.charAt(0).toUpperCase() + doctor.gender.slice(1)
             : "N/A",
           age: `${doctor.age || "N/A"}`,
+          profileImage: doctor.profileImage || null,
         }));
         setDoctors(mappedDoctors);
       })

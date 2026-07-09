@@ -35,6 +35,8 @@ const DoctorProfile = () => {
         confirmPassword: ''
     });
 
+    const [zoomImage, setZoomImage] = useState(false);
+
     useEffect(() => {
         // Fetch full doctor data
         const fetchDoctorData = async () => {
@@ -185,8 +187,8 @@ const DoctorProfile = () => {
                 }
             );
 
-            if (res.data.imageUrl) {
-                const newImageUrl = res.data.imageUrl;
+            const newImageUrl = res.data.url || res.data.imageUrl;
+            if (newImageUrl) {
                 setDoctorData({ ...doctorData, profileImage: newImageUrl });
                 
                 // Immediately save the image update to backend
@@ -218,6 +220,10 @@ const DoctorProfile = () => {
         navigate("/signin");
     };
 
+    const currentProfilePic = (doctorData.profileImage && doctorData.profileImage !== "undefined" && doctorData.profileImage !== "null") 
+        ? doctorData.profileImage 
+        : defaultProfilePic;
+
     return (
         <div className="premium-profile-wrapper">
             <div className="premium-profile-container">
@@ -225,9 +231,11 @@ const DoctorProfile = () => {
                 <div className="profile-sidebar">
                     <div className="profile-image-container">
                         <img 
-                            src={doctorData.profileImage || defaultProfilePic} 
+                            src={currentProfilePic} 
                             alt="Profile" 
                             className="profile-avatar"
+                            style={{ cursor: 'zoom-in' }}
+                            onClick={() => setZoomImage(true)}
                         />
                         <label htmlFor="profile-upload" className="image-upload-overlay">
                             <Camera size={24} />
@@ -395,7 +403,6 @@ const DoctorProfile = () => {
                             </div>
                         </div>
                     </div>
-
                     <div className="password-section">
                         <h3>Change Password</h3>
                         <form className="password-form" onSubmit={handlePasswordSubmit}>
@@ -437,6 +444,22 @@ const DoctorProfile = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Zoom Modal */}
+            {zoomImage && (
+                <div 
+                    className="image-zoom-overlay" 
+                    onClick={() => setZoomImage(false)}
+                    style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.85)', zIndex: 1000, display: 'flex', justifyContent: 'center', alignItems: 'center', cursor: 'zoom-out' }}
+                >
+                    <img 
+                        src={currentProfilePic} 
+                        alt="Enlarged Profile" 
+                        style={{ maxWidth: '90%', maxHeight: '90vh', borderRadius: '12px', boxShadow: '0 10px 30px rgba(0,0,0,0.5)', objectFit: 'contain' }}
+                        onClick={(e) => e.stopPropagation()}
+                    />
+                </div>
+            )}
         </div>
     );
 };

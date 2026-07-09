@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import defaultProfilePic from '../media/default-profile.png';
 import './TalkOfTheTown.css';
 
 const DoctorsSection = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [doctors, setDoctors] = useState([]);
   const [itemsPerPage, setItemsPerPage] = useState(3);
+  const navigate = useNavigate();
 
   // Mapped items per page based on viewport width
   useEffect(() => {
@@ -28,32 +31,37 @@ const DoctorsSection = () => {
       .then((response) => response.json())
       .then((data) => {
         const mappedDoctors = data.map((doctor) => ({
+          ...doctor, // spread to keep original fields for booking page
+          id: doctor._id,
           name: `${doctor.firstName} ${doctor.lastName}`,
-          specialization: doctor.designation || "N/A",
-          experience: `${doctor.experience} years`,
+          specialization: Array.isArray(doctor.specialization) ? doctor.specialization.join(', ') || "N/A" : doctor.specialization || doctor.designation || "N/A",
+          experience: doctor.experience ? `${doctor.experience} years` : "0 years",
           age: `${doctor.age || 'N/A'}`,
-          thumbnail: doctor.thumbnail || '',
-          price: doctor.price || 'N/A',
+          profileImage: doctor.profileImage || null,
+          rating: doctor.rating || 0,
         }));
-        setDoctors(mappedDoctors);
+        
+        // Sort by rating descending and take top 5
+        const topDoctors = mappedDoctors.sort((a, b) => b.rating - a.rating).slice(0, 5);
+        setDoctors(topDoctors);
       })
       .catch((error) => {
         console.error("Error fetching doctors:", error);
       });
   }, []);
 
-  const getDoctorImageUrl = (thumbnail) => {
-    if (!thumbnail || thumbnail === 'null' || thumbnail === 'undefined') {
-      return 'https://res.cloudinary.com/dmezmffej/image/upload/v1721891477/Frame_48097829.avif';
+  const getDoctorImageUrl = (profileImage) => {
+    if (!profileImage || profileImage === 'null' || profileImage === 'undefined') {
+      return defaultProfilePic;
     }
-    if (thumbnail.startsWith('http://') || thumbnail.startsWith('https://')) {
-      return thumbnail;
+    if (profileImage.startsWith('http://') || profileImage.startsWith('https://')) {
+      return profileImage;
     }
     const backendUrl = process.env.REACT_APP_AYURVEDA_BACKEND_URL || 'http://localhost:8080';
-    if (thumbnail.startsWith('/')) {
-      return `${backendUrl}${thumbnail}`;
+    if (profileImage.startsWith('/')) {
+      return `${backendUrl}${profileImage}`;
     }
-    return `${backendUrl}/${thumbnail}`;
+    return `${backendUrl}/${profileImage}`;
   };
 
   const handleLeftClick = () => {
@@ -82,16 +90,20 @@ const DoctorsSection = () => {
         >
           {doctors.map((doctor, index) => (
             <div className="slick-slide1" key={index} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              <div className="video-card1" style={{ display: 'flex', flexDirection: 'column', height: 'auto', minHeight: '0', alignSelf: 'stretch' }}>
+              <div 
+                className="video-card1" 
+                style={{ display: 'flex', flexDirection: 'column', height: 'auto', minHeight: '0', alignSelf: 'stretch', cursor: 'pointer' }}
+                onClick={() => navigate('/doctor-detail', { state: { doctor } })}
+              >
                 <div className="video-thumbnail" style={{ height: '180px', overflow: 'hidden', position: 'relative' }}>
                   <img
-                    src={getDoctorImageUrl(doctor.thumbnail)}
+                    src={getDoctorImageUrl(doctor.profileImage)}
                     alt={doctor.name}
                     className="thumbnail-img"
                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                     onError={(e) => {
                       e.target.onerror = null;
-                      e.target.src = 'https://res.cloudinary.com/dmezmffej/image/upload/v1721891477/Frame_48097829.avif';
+                      e.target.src = defaultProfilePic;
                     }}
                   />
                 </div>
@@ -100,8 +112,7 @@ const DoctorsSection = () => {
                   <p className="video-title" style={{ margin: '2px 0', fontSize: '0.9rem', color: '#666', textAlign: 'center' }}>{doctor.specialization}</p>
                   <div className="separator" style={{ height: '1px', backgroundColor: '#eee', margin: '8px auto', width: '80%' }}></div>
                   <p className="followers" style={{ margin: '2px 0', fontSize: '0.85rem', color: '#444', textAlign: 'center' }}>Experience: {doctor.experience}</p>
-                  <p className="followers" style={{ margin: '2px 0', fontSize: '0.85rem', color: '#444', textAlign: 'center' }}>Doctors Age: {doctor.age}</p>
-                  <p className="followers" style={{ margin: '2px 0', fontSize: '0.85rem', color: '#444', textAlign: 'center' }}>Price: {doctor.price}</p>
+                  <p className="followers" style={{ margin: '2px 0', fontSize: '0.85rem', color: '#444', textAlign: 'center' }}>Rating: ⭐ {Number(doctor.rating).toFixed(1)} / 5</p>
                 </div>
               </div>
             </div>

@@ -26,6 +26,10 @@ function TreatmentsScreen() {
   return (
     <div className="treatmentsScreen">
       <h1>Treatments</h1>
+      <p className="subtitle">
+        Explore holistic Ayurvedic care across every area of health. Pick a
+        concern to see remedies, approaches, and expert guidance.
+      </p>
       <div className="grid-container">
         {treatments.map((treatment, index) => (
           <div 

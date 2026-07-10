@@ -42,7 +42,7 @@ const treatmentData = {
           "Rest and hydration are key. Avoid heavy, oily, and dairy-rich foods.",
           "Herbs: Bilva (Bael fruit), Kutaj (Holarrhena), and Pippali help restore gut balance.",
         ],
-        image: "../images/Diarrhea & Loose Motions.jpeg",
+        image: "/images/Diarrhea & Loose Motions.jpeg",
         //"/images/diarrhea.jpg",
         callToAction: "Experiencing recurring issues? Get a personalized Ayurvedic gut-healing plan from our experts."
       },
@@ -89,7 +89,7 @@ const treatmentData = {
           "Lifestyle: Steam inhalation with eucalyptus oil and Pranayama (breathing exercises) for lung strength.",
           "Herbs: Vasaka (Malabar Nut), Yashtimadhu (Licorice), Tulsi (Holy Basil) help open airways.",
         ],
-        image: "../images/asthma.jpg",
+        image: "/images/asthma.jpg",
         callToAction: "Struggling with asthma? Book a consultation to get a customized herbal plan!"
       },
       {
@@ -101,7 +101,7 @@ const treatmentData = {
           "Lifestyle: Keep the body warm, do oil massage (Abhyanga) to balance Vata.",
           "Herbs: Sitopaladi Churna, Mulethi (Licorice), and Pippali (Long Pepper) help relieve congestion.",
         ],
-        image:"../images/cough.jpg",
+        image:"/images/cough.jpg",
         // "/images/cough.jpg",
         callToAction: "Chronic cough troubling you? Get an expert Ayurvedic consultation for lasting relief!"
       },
@@ -114,7 +114,7 @@ const treatmentData = {
           "Lifestyle: Neti Kriya (nasal cleansing with saline water) and steam inhalation help clear sinuses.",
           "Herbs: Trikatu (Ginger, Black Pepper, Pippali), Neem, and Dashmool work effectively.",
         ],
-        image: "../images/sinu.jpg",
+        image: "/images/sinu.jpg",
         callToAction: "Suffering from blocked sinuses? Consult an Ayurvedic expert for relief!"
       },
       {
@@ -126,7 +126,7 @@ const treatmentData = {
           "Lifestyle: Steam inhalation, chest massage with warm mustard oil, and gargling with turmeric water.",
           "Herbs: Vasaka, Tulsi, and Licorice help soothe the airways.",
         ],
-        image: "../images/chestpain.jpg",
+        image: "/images/chestpain.jpg",
         // "/images/bronchitis.jpg",
         callToAction: "Need long-term lung care? Get a personalized Ayurvedic treatment plan!"
       }
@@ -147,7 +147,7 @@ const treatmentData = {
           "Lifestyle: Wash face with rose water, apply sandalwood & turmeric paste for cooling.",
           "Herbs: Neem, Manjistha, and Aloe Vera help purify blood and clear acne.",
         ],
-        image:  "../images/skinacne.jpg",
+        image:  "/images/skinacne.jpg",
         //"/images/acne.jpg",
         callToAction: "Struggling with breakouts? Get a personalized Ayurvedic skincare plan!"
       },
@@ -160,7 +160,7 @@ const treatmentData = {
           "Lifestyle: Oil massage (Abhyanga) with coconut or almond oil before bathing. Use Aloe Vera gel for soothing skin.",
           "Herbs: Neem, Guduchi, and Triphala help detox the liver and reduce inflammation.",
         ],
-        image: "../images/Eczema & Dry Skin Issues.jpeg",
+        image: "/images/Eczema & Dry Skin Issues.jpeg",
         //"/images/eczema.jpg",
         callToAction: "Dealing with chronic eczema? Consult an Ayurvedic expert for deep healing!"
       },
@@ -173,7 +173,7 @@ const treatmentData = {
           "Lifestyle: Apply Aloe Vera & Turmeric paste, take oil baths with medicated sesame oil.",
           "Herbs: Triphala, Manjistha, and Bakuchi help cleanse the skin and blood.",
         ],
-        image: "../images/psoriasis.jpg",
+        image: "/images/psoriasis.jpg",
         callToAction: "Need holistic care for psoriasis? Book a consultation for Ayurvedic guidance!"
       },
       {
@@ -185,7 +185,7 @@ const treatmentData = {
           "Lifestyle: Use Bhringraj & Amla oil for scalp massage, and wash hair with herbal powders like Shikakai & Reetha.",
           "Herbs: Bhringraj, Brahmi, and Fenugreek strengthen hair roots and prevent fall.",
         ],
-        image: "../images/Dandruff.jpg",
+        image: "/images/Dandruff.jpg",
         callToAction: "Facing severe hair loss? Get a custom Ayurvedic hair care routine!"
       },
       {
@@ -197,7 +197,7 @@ const treatmentData = {
           "Lifestyle: Massage scalp with Bhringraj & coconut oil for melanin restoration. Reduce stress with meditation & yoga.",
           "Herbs: Amla, Brahmi, and Ashwagandha boost hair pigmentation.",
         ],
-        image: "../images/Premature Greying of Hair.jpeg",
+        image: "/images/Premature Greying of Hair.jpeg",
         callToAction: "Want to restore natural hair color? Consult our Ayurvedic specialists today!"
       }
     ],
@@ -217,7 +217,7 @@ const treatmentData = {
           "Lifestyle: Daily oil massage (Abhyanga) with Mahanarayan oil reduces pain and stiffness. Regular gentle yoga & stretching improve flexibility.",
           "Herbs: Ashwagandha, Guggulu, and Shallaki (Boswellia) reduce inflammation & strengthen joints.",
         ],
-        image: "../images/jointpain.jpg",
+        image: "/images/jointpain.jpg",
         //"/images/arthritis.jpg",
         callToAction: "Struggling with joint pain? Get a customized Ayurvedic arthritis plan!"
       },
@@ -230,7 +230,7 @@ const treatmentData = {
           "Lifestyle: Warm oil massages with Dhanwantharam oil, gentle stretching, and Panchakarma therapy (Kati Basti) for nerve healing.",
           "Herbs: Dashmool, Ashwagandha, and Shatavari help strengthen nerves and reduce stiffness.",
         ],
-        image: "../images/backpain.jpg",
+        image: "/images/backpain.jpg",
         callToAction: "Need relief from chronic back pain? Book an Ayurvedic consultation today!"
       },
       {
@@ -242,7 +242,7 @@ const treatmentData = {
           "Lifestyle: Oil massage (Abhyanga) with sesame oil, regular mild weight-bearing exercises like yoga.",
           "Herbs: Hadjod (Cissus quadrangularis), Arjuna, and Ashwagandha boost bone density & strength.",
         ],
-        image: "../images/Osteoporosis.jpg",
+        image: "/images/Osteoporosis.jpg",
         callToAction: "Worried about weak bones? Get expert Ayurvedic guidance for bone health!"
       },
       {
@@ -254,7 +254,7 @@ const treatmentData = {
           "Lifestyle: Steam therapy (Swedana), warm oil massages, and light exercise improve circulation.",
           "Herbs: Guggulu, Rasna, and Guduchi cleanse toxins and support joint flexibility.",
         ],
-        image: "../images/Rheumatism.jpg",
+        image: "/images/Rheumatism.jpg",
         callToAction: "Suffering from chronic stiffness? Start an Ayurvedic detox today!"
       }
     ],
@@ -274,7 +274,7 @@ const treatmentData = {
           "Lifestyle: Practice deep breathing (Pranayama), meditation, and daily walks to calm the mind.",
           "Herbs: Arjuna, Brahmi, and Jatamansi reduce stress and regulate blood pressure naturally.",
         ],
-        image: "../images/bloodpressure.jpg",
+        image: "/images/bloodpressure.jpg",
         //"/images/hypertension.jpg"
         callToAction: "Struggling with high BP? Get a natural Ayurvedic heart health plan!"
       },
@@ -287,7 +287,7 @@ const treatmentData = {
           "Lifestyle: Regular exercise, yoga, and detoxification therapies (Panchakarma) help clear arteries.",
           "Herbs: Triphala, Guggulu, and Arjuna help dissolve plaque and regulate lipid metabolism.",
         ],
-        image: "../images/cholesterol.jpg",
+        image: "/images/cholesterol.jpg",
         callToAction: "Concerned about cholesterol? Try a heart-cleansing Ayurvedic program!"
       },
       {
@@ -299,7 +299,7 @@ const treatmentData = {
           "Lifestyle: Daily self-massage (Abhyanga) with warm sesame or mustard oil stimulates circulation.",
           "Herbs: Ashwagandha, Guggulu, and Manjistha strengthen blood flow and purify the blood.",
         ],
-        image: "../images/Poor Blood Circulation.jpg",
+        image: "/images/Poor Blood Circulation.jpg",
         callToAction: "Feeling tired or sluggish? Improve circulation with an Ayurvedic plan!"
       }
     ],
@@ -319,7 +319,7 @@ const treatmentData = {
           "Lifestyle: Daily oil massage (Abhyanga) with sesame oil, yoga, and meditation calm the nervous system.",
           "Herbs: Brahmi, Ashwagandha, and Shankhpushpi help relieve anxiety and uplift mood.",
         ],
-        image: "../images/anxiety.jpg",
+        image: "/images/anxiety.jpg",
         callToAction: "Feeling anxious or low? Try an Ayurvedic mind-calming therapy!"
       },
       {
@@ -331,7 +331,7 @@ const treatmentData = {
           "Lifestyle: Follow a fixed sleep schedule, use calming essential oils (lavender, sandalwood), and practice Shirodhara (forehead oil therapy).",
           "Herbs: Tagara (Indian valerian), Brahmi, and Jatamansi promote deep and restful sleep.",
         ],
-        image: "../images/insomniaS.jpg",
+        image: "/images/insomniaS.jpg",
         callToAction: "Struggling with sleep? Try Ayurveda's natural sleep therapy!"
       },
       {
@@ -343,7 +343,7 @@ const treatmentData = {
           "Lifestyle: Practice daily breathing exercises (Pranayama), Yoga Nidra, and Abhyanga (self-massage) for relaxation.",
           "Herbs: Ashwagandha, Tulsi, and Gotu Kola reduce stress and promote emotional balance.",
         ],
-        image: "../images/Stress.jpg",
+        image: "/images/Stress.jpg",
         callToAction: "Feeling overwhelmed? Start Ayurvedic stress relief today!"
       },
       {
@@ -355,7 +355,7 @@ const treatmentData = {
           "Lifestyle: Practice Trataka (candle gazing), meditation, and Brahmi oil head massage for mental clarity.",
           "Herbs: Brahmi, Shankhpushpi, and Jyotishmati improve cognitive function and enhance memory.",
         ],
-        image: "../images/Memory  Improvement.jpg",
+        image: "/images/Memory  Improvement.jpg",
         callToAction: "Want sharper focus & better memory? Boost your brain naturally with Ayurveda!"
       }
     ],
@@ -384,7 +384,7 @@ const treatmentData = {
           "Lifestyle: Perform Ujjayi Pranayama (breathwork), and maintain a regular sleep cycle.",
           "Herbs: Ashwagandha, Guggulu, and Kanchanar Guggulu help regulate thyroid function naturally."
         ],
-        image: "../images/thyroidperson.jpg",
+        image: "/images/thyroidperson.jpg",
         callToAction: "Thyroid imbalance? Get Ayurvedic solutions for hormonal balance!"
       },
       {
@@ -395,7 +395,7 @@ const treatmentData = {
           "Lifestyle: Daily self-massage (Udwarthanam) with herbal powders, morning yoga, and intermittent fasting (Ayurvedic Upavasa) enhance metabolism.",
           "Herbs: Triphala, Guggulu, and Punarnava help in natural weight loss and detoxification."
         ],
-        image: "../images/Weight loss.jpg",
+        image: "/images/Weight loss.jpg",
         callToAction: "Want to shed extra weight? Try Ayurvedic weight management therapy!"
       },
       {
@@ -406,7 +406,7 @@ const treatmentData = {
           "Lifestyle: Regular exercise, yoga (Baddha Konasana, Malasana), and meditation help regulate periods.",
           "Herbs: Shatavari, Ashoka, and Lodhra restore hormonal balance and support reproductive health."
         ],
-        image: "../images/period pain.jpg",
+        image: "/images/period pain.jpg",
         callToAction: "Struggling with PCOS? Get natural Ayurvedic support for your cycle!"
       }
     ]
@@ -423,7 +423,7 @@ const treatmentData = {
           "Lifestyle: Daily morning sunlight exposure, yoga (Surya Namaskar), and meditation enhance Ojas.",
           "Herbs: Chyawanprash, Ashwagandha, and Giloy (Amrita) naturally boost immunity."
         ],
-        image: "../images/Immunity Boosting.jpg",
+        image: "/images/Immunity Boosting.jpg",
         callToAction: "Want to strengthen your immunity? Try Ayurveda's Ojas-enhancing therapy!"
       },
       {
@@ -434,7 +434,7 @@ const treatmentData = {
           "Lifestyle: Daily nasal cleansing (Neti Kriya) and steam inhalation with eucalyptus oil reduce sinus congestion.",
           "Herbs: Turmeric, Tulsi (Holy Basil), and Mulethi (Licorice) provide natural allergy relief."
         ],
-        image: "../images/Frequent Allergies & Sinus Issues.jpg",
+        image: "/images/Frequent Allergies & Sinus Issues.jpg",
         callToAction: "Struggling with allergies? Get Ayurvedic remedies for long-term relief!"
       },
       {
@@ -445,7 +445,7 @@ const treatmentData = {
           "Lifestyle: Panchakarma detox, stress management, and regular Pranayama (breathwork) support immune balance.",
           "Herbs: Guduchi (Giloy), Ashwagandha, and Amla help regulate immunity naturally."
         ],
-        image: "../images/autoimmuneS.jpg",
+        image: "/images/autoimmuneS.jpg",
         callToAction: "Managing an autoimmune condition? Ayurveda provides holistic, side-effect-free solutions!"
       }
     ]
@@ -462,7 +462,7 @@ const treatmentData = {
           "Lifestyle: Gentle yoga (Supta Baddha Konasana), Abhyanga (oil massage), and warm compresses ease cramps.",
           "Herbs: Ashoka, Shatavari, and Ajwain (Carom seeds) help regulate cycles and reduce pain."
         ],
-        image: "../images/irpain.jpg",
+        image: "/images/irpain.jpg",
         callToAction: "Experiencing period issues? Try Ayurveda's natural hormone-balancing therapy!"
       },
       {
@@ -473,7 +473,7 @@ const treatmentData = {
           "Lifestyle: Daily self-massage (warm sesame oil), meditation, and gentle stretching help ease symptoms.",
           "Herbs: Shatavari, Brahmi, and Licorice naturally support hormonal balance."
         ],
-        image: "../images/hrchanges.jpg",
+        image: "/images/hrchanges.jpg",
         callToAction: "Going through menopause? Get personalized Ayurvedic remedies for smoother transitions!"
       },
       {
@@ -484,7 +484,7 @@ const treatmentData = {
           "Lifestyle: Preconception Panchakarma detox, daily yoga (Butterfly Pose), and deep breathing improve fertility.",
           "Herbs: Shatavari, Ashwagandha, and Guduchi nourish reproductive tissues and support pregnancy."
         ],
-        image: "../images/Fertility.jpg",
+        image: "/images/Fertility.jpg",
         callToAction: "Planning for a baby? Ayurveda offers a natural path to fertility and pregnancy wellness!"
       },
       {
@@ -495,7 +495,7 @@ const treatmentData = {
           "Lifestyle: Maintain intimate hygiene, practice Yoni Prakshalana (herbal washes), and wear breathable cotton clothing.",
           "Herbs: Neem, Triphala, and Lodhra help cleanse and maintain vaginal health."
         ],
-        image: "../images/vinfection.jpg",
+        image: "/images/vinfection.jpg",
         callToAction: "Dealing with vaginal discomfort? Ayurveda provides gentle, effective care!"
       }
     ]
@@ -512,7 +512,7 @@ const treatmentData = {
           "Lifestyle: Regular exercise, yoga (Kegel exercises, Ashwini Mudra), and adequate sleep improve sexual stamina.",
           "Herbs: Ashwagandha, Shilajit, Safed Musli, and Kaunch Beej enhance vigor and testosterone levels."
         ],
-        image: "../images/staminaBoostings.jpg",
+        image: "/images/staminaBoostings.jpg",
         callToAction: "Struggling with energy and stamina? Ayurveda offers natural performance enhancement!"
       },
       {
@@ -523,7 +523,7 @@ const treatmentData = {
           "Lifestyle: Avoid holding urine for long, practice deep squats, and stay hydrated.",
           "Herbs: Gokshura, Punarnava, Varuna, and Shatavari support prostate health and improve urine flow."
         ],
-        image: "../images/Prostate Health 1.jpg",
+        image: "/images/Prostate Health 1.jpg",
         callToAction: "Facing prostate concerns? Ayurveda ensures long-term relief with natural solutions!"
       },
       {
@@ -534,7 +534,7 @@ const treatmentData = {
           "Lifestyle: Scalp massage (Shiro Abhyanga) with Bhringraj oil, stress reduction, and adequate hydration help reduce hair fall.",
           "Herbs: Bhringraj, Brahmi, Amla, and Fenugreek nourish hair follicles and prevent premature greying."
         ],
-        image: "../images/Hairlos.jpg",
+        image: "/images/Hairlos.jpg",
         callToAction: "Struggling with hair loss? Ayurveda helps restore hair strength and volume naturally!"
       }
     ]
@@ -551,7 +551,7 @@ const treatmentData = {
           "Lifestyle: Stay hydrated, avoid holding urine for long, and practice mild yoga stretches.",
           "Herbs: Gokshura (Tribulus terrestris) Improves urinary flow and dissolves stones, Varuna (Crataeva nurvala) - Prevents stone formation and relieves pain, Punarnava (Boerhavia diffusa) - Natural diuretic that flushes toxins."
         ],
-        image: "../images/kidneystone.jpg",
+        image: "/images/kidneystone.jpg",
         callToAction: "Suffering from kidney stones? Ayurveda provides safe, natural stone removal therapies! Consult an Ayurvedic expert today."
       },
       {
@@ -562,7 +562,7 @@ const treatmentData = {
           "Lifestyle: Practice morning detox drinks (warm water with lemon & turmeric), engage in light exercises like Surya Namaskar to stimulate digestion.",
           "Herbs: Bhumyamalaki (Phyllanthus niruri) Best for liver detox and hepatitis, Kutki (Picrorhiza kurroa) - Enhances bile production and detoxifies the liver, Amla (Indian Gooseberry) - Restores liver strength and removes toxins."
         ],
-        image: "../images/Fatty Liver Treatment.png",
+        image: "/images/Fatty Liver Treatment.png",
         callToAction: "Want a healthier liver? Ayurveda offers gentle but powerful detox solutions! Start your liver cleansing journey today."
       },
       {
@@ -573,7 +573,7 @@ const treatmentData = {
           "Lifestyle: Oil pulling with coconut oil helps eliminate toxins from the system, while Pranayama (deep breathing) & meditation reduce stress, which can aggravate liver disorders.",
           "Herbs: Kalmegh (Andrographis paniculata) A powerful antiviral & liver tonic, Guduchi (Tinospora cordifolia) - Boosts immunity and fights infections, Neem (Azadirachta indica) - Purifies blood and reduces liver inflammation."
         ],
-        image: "../images/Liver Infections.jpeg",
+        image: "/images/Liver Infections.jpeg",
         callToAction: "Struggling with hepatitis or liver infection? Ayurveda provides a holistic healing approach! Take the first step towards natural recovery."
       }
     ]
@@ -590,7 +590,7 @@ const treatmentData = {
           "Lifestyle: Follow the 20-20-20 Rule (Every 20 minutes, look 20 feet away for 20 seconds). Blink often to naturally lubricate the eyes. Wash eyes with rose water or apply cotton pads soaked in Triphala water.",
           "Herbs & Remedies: Netra Tarpana (Ghee Eye Therapy) strengthens and nourishes dry eyes. Triphala Ghrita (Herbal Ghee) improves eye moisture & reduces strain. Anu Tailam (Herbal Nasal Drops) lubricates the eyes through nasal therapy."
         ],
-        image: "../images/dry eye.jpg",
+        image: "/images/dry eye.jpg",
         callToAction: "Tired of dry, strained eyes? Ayurveda restores natural eye hydration!"
       },
       {
@@ -601,7 +601,7 @@ const treatmentData = {
           "Lifestyle: Practice the palming technique—rub hands together and place over closed eyes for relaxation. Sun gazing (Surya Trataka) helps strengthen vision by gently looking at the rising sun for a few seconds.",
           "Herbs & Remedies: Triphala Churna (Herbal Eye Cleanser) soaked in water overnight helps wash eyes. Brahmi & Shankhapushpi boost memory & eye clarity. Bilberry & Saffron Extracts support retinal function & night vision."
         ],
-        image: "../images/weak eyes.jpg",
+        image: "/images/weak eyes.jpg",
         callToAction: "Want sharper, clearer vision? Ayurveda naturally enhances eye strength!"
       },
       {
@@ -612,7 +612,7 @@ const treatmentData = {
           "Lifestyle: Wash eyes with sterile Triphala water to clear mucus and redness. Avoid touching/rubbing eyes to prevent spreading infection.",
           "Herbs & Remedies: Rose water eye drops cool and reduce redness. Neem & Turmeric decoction is a natural antiseptic wash for eye infections. Coriander seed eye wash reduces swelling & irritation."
         ],
-        image: "../images/Eye Infections.jpeg",
+        image: "/images/Eye Infections.jpeg",
         callToAction: "Struggling with eye infections? Ayurveda provides natural relief without side effects!"
       }
     ]
@@ -631,7 +631,7 @@ const treatmentData = {
           "Lifestyle: Practice oil pulling with sesame or coconut oil daily. Massage gums with Triphala powder or honey.",
           "Herbs & Remedies: Use Babool (Acacia bark) & Neem twig brushing. Rinse with Triphala decoction. Apply Clove oil to stop bleeding."
         ],
-        image: "../images/gumbleeding.jpeg",
+        image: "/images/gumbleeding.jpeg",
         callToAction: "Struggling with bleeding gums? Ayurveda heals them naturally!"
       },
       {
@@ -643,7 +643,7 @@ const treatmentData = {
           "Lifestyle: Use oil pulling to prevent plaque and decay. Brush with herbal tooth powders like Neem, Babool, and Clove.",
           "Herbs & Remedies: Apply Babool bark & Clove powder paste. Rinse with Triphala & Neem decoction. Massage with Rock salt & Mustard oil."
         ],
-        image: "../images/teeth cavity.jpeg",
+        image: "/images/teeth cavity.jpeg",
         callToAction: "Prevent cavities with Ayurvedic oral care!"
       },
       {
@@ -655,7 +655,7 @@ const treatmentData = {
           "Lifestyle: Chew fennel seeds or cardamom after meals. Rinse mouth with Triphala or mint water daily.",
           "Herbs & Remedies: Apply Licorice root & Mulethi paste. Use Aloe vera & Honey gel for ulcer relief. Chew Clove & Cardamom for fresh breath."
         ],
-        image: "../images/Mouth Ulcers.png",
+        image: "/images/Mouth Ulcers.png",
         callToAction: "Struggling with bad breath or ulcers? Ayurveda restores oral freshness!"
       }
     ]
@@ -674,7 +674,7 @@ const treatmentData = {
           "Lifestyle: Practice intermittent fasting, yoga, and deep breathing. Start mornings with warm lemon water and Triphala tea.",
           "Herbs & Remedies: Use Triphala, Neem, and Guduchi for detox. Drink coriander, fennel, and cumin tea to flush out toxins."
         ],
-        image: "../images/Detox.jpg",
+        image: "/images/Detox.jpg",
         callToAction: "Need a full-body cleanse? Ayurveda purifies naturally!"
       },
       {
@@ -686,7 +686,7 @@ const treatmentData = {
           "Lifestyle: Follow a daily skincare routine with oil massage (Abhyanga) using sesame or almond oil. Practice meditation to reduce stress.",
           "Herbs & Remedies: Apply sandalwood & turmeric face masks. Use Ashwagandha & Shatavari for tissue regeneration. Drink saffron milk for glowing skin."
         ],
-        image: "../images/Anti-Aging & Skin Rejuvenation.jpg",
+        image: "/images/Anti-Aging & Skin Rejuvenation.jpg",
         callToAction: "Want youthful skin? Ayurveda reverses aging naturally!"
       },
       {
@@ -698,7 +698,7 @@ const treatmentData = {
           "Lifestyle: Maintain a proper sleep schedule, practice yoga, and engage in regular physical activity. Sun exposure in the morning boosts vitality.",
           "Herbs & Remedies: Use Ashwagandha, Brahmi, and Shatavari for energy. Drink warm milk with turmeric & ghee for strength."
         ],
-        image: "../images/energy boost.jpg",
+        image: "/images/energy boost.jpg",
         callToAction: "Feeling drained? Ayurveda naturally restores energy!"
       }
     ]
@@ -717,7 +717,7 @@ const treatmentData = {
           "Lifestyle: Stay warm, rest adequately, practice steam inhalation with eucalyptus or tulsi leaves, and gargle with salt water.",
           "Herbs & Remedies: Use tulsi, ginger, black pepper, and honey in herbal teas. Drink turmeric milk to reduce inflammation and boost immunity."
         ],
-        image: "../images/CommoncoldTreatment.jpg",
+        image: "/images/CommoncoldTreatment.jpg",
         callToAction: "Want to prevent colds naturally? Ayurveda enhances immunity!"
       },
       {
@@ -729,7 +729,7 @@ const treatmentData = {
           "Lifestyle: Maintain good hygiene, practice daily oil pulling, and take warm showers to prevent infections. Engage in pranayama for lung cleansing.",
           "Herbs & Remedies: Use neem, giloy, and turmeric for their antibacterial and antiviral properties. Apply aloe vera or neem paste for skin infections."
         ],
-        image: "../images/Bacteriall Infections.jpg",
+        image: "/images/Bacteriall Infections.jpg",
         callToAction: "Struggling with infections? Ayurveda treats them naturally!"
       },
       {
@@ -741,7 +741,7 @@ const treatmentData = {
           "Lifestyle: Follow a proper sleep schedule, practice gentle yoga, and get morning sunlight exposure to restore energy and enhance immunity.",
           "Herbs & Remedies: Use ashwagandha, shatavari, and chyawanprash for strength. Drink herbal decoctions with mulethi and ginger for faster recovery."
         ],
-        image: "../images/recovery_after_illnes.jpg",
+        image: "/images/recovery_after_illnes.jpg",
         callToAction: "Feeling weak after an illness? Ayurveda speeds up recovery!"
       }
     ]
@@ -760,7 +760,7 @@ const treatmentData = {
           "Lifestyle: Practice gentle yoga, avoid prolonged sitting, and engage in daily oil massages (Abhyanga) to improve circulation.",
           "Herbs & Remedies: Use ashwagandha, guggulu, and turmeric for pain relief. Apply warm sesame oil or mahanarayan oil to affected areas."
         ],
-        image: "../images/crpain.jpg",
+        image: "/images/crpain.jpg",
         callToAction: "Struggling with pain for months? Ayurveda can help!",
       },
       {
@@ -772,7 +772,7 @@ const treatmentData = {
           "Lifestyle: Engage in stretching exercises, get regular massages with warm oils, and practice deep breathing for muscle relaxation.",
           "Herbs & Remedies: Apply a paste of ginger and turmeric to sore muscles. Take triphala to remove toxins and improve blood circulation."
         ],
-        image: "../images/Muscle Cramps.jpg",
+        image: "/images/Muscle Cramps.jpg",
         callToAction: "Tired of constant aches? Try Ayurveda for relief!",
       },
       {
@@ -784,7 +784,7 @@ const treatmentData = {
           "Lifestyle: Maintain a regular sleep schedule, practice stress management techniques like meditation, and avoid excessive screen time.",
           "Herbs & Remedies: Use Brahmi and Shankhpushpi for mental relaxation. Apply sandalwood paste on the forehead and drink tulsi tea for relief."
         ],
-        image: "../images/Headache Relief.jpg",
+        image: "/images/Headache Relief.jpg",
         callToAction: "Suffering from migraines? Ayurveda treats the root cause!",
       },
       {
@@ -796,7 +796,7 @@ const treatmentData = {
           "Lifestyle: Engage in daily warm oil massages (especially with sesame or mahanarayan oil), gentle yoga, and pranayama to improve nerve function.",
           "Herbs & Remedies: Use ashwagandha and Bala (Sida cordifolia) for nerve strength. Apply a turmeric and castor oil paste to affected areas."
         ],
-        image: "../images/Nerve Pain.jpg",
+        image: "/images/Nerve Pain.jpg",
         callToAction: "Nerve pain troubling you? Ayurveda offers long-term relief!",
       },
       {
@@ -808,7 +808,7 @@ const treatmentData = {
           "Lifestyle: Get adequate rest, practice mild movement to prevent stiffness, and use warm oil therapy for tissue repair.",
           "Herbs & Remedies: Take chyawanprash for immunity, ashwagandha for strength, and drink herbal milk with turmeric and saffron for recovery."
         ],
-        image: "../images/Post-Surgery.jpg",
+        image: "/images/Post-Surgery.jpg",
         callToAction: "Need a natural recovery plan? Ayurveda supports your healing!",
       },
     ],
@@ -857,8 +857,15 @@ function TreatmentDetailsScreen() {
 	const details = treatmentData[decodeURIComponent(category)];
 
 	if (!details) {
-		return <h2>Category not found.</h2>;
-	} 
+		return (
+			<div className="treatment-details td-notfound">
+				<h2>Category not found.</h2>
+				<Link to="/treatments" className="back-link">
+					← Back to Treatments
+				</Link>
+			</div>
+		);
+	}
 
 	// Rotate consultation messages based on category index
 	const consultationIndex =
@@ -868,36 +875,66 @@ function TreatmentDetailsScreen() {
 
 	return (
 		<div className="treatment-details">
-			<Link to="/treatments" className="back-link">
-				← Back
-			</Link>
-			<h1>{details.title}</h1>
-			<p>{details.description}</p>
-			<h2 className="ttitle">Common Concerns & Ayurvedic Approach</h2>
+			{/* Hero header */}
+			<header className="td-hero">
+				<Link to="/treatments" className="back-link">
+					<span className="back-arrow">←</span> Back to Treatments
+				</Link>
+				<h1 className="td-title">{details.title}</h1>
+				<p className="td-description">{details.description}</p>
+			</header>
 
-			{details.concerns.map((concern, index) => (
-				<div
-					key={index}
-					className={`concern-row ${index % 2 === 0 ? "row-reverse" : ""}`}
-				>
-					<img
-						src={concern.image}
-						alt={concern.title}
-						className="concern-image"
-					/>
-					<div className="concern-content">
-						<h3>{concern.title}</h3>
-						<p>{concern.description}</p>
-						<h4>Ayurvedic Approach:</h4>
-						<ul>
-							{concern.approach.map((step, i) => (
-								<li key={i}>{step}</li>
-							))}
-						</ul>
-						<p>{concern.callToAction}</p>
-					</div>
-				</div>
-			))}
+			<div className="td-section-heading">
+				<h2 className="ttitle">Common Concerns &amp; Ayurvedic Approach</h2>
+				<span className="td-section-underline" />
+			</div>
+
+			<div className="concern-list">
+				{details.concerns.map((concern, index) => (
+					<article
+						key={index}
+						className={`concern-row ${index % 2 === 0 ? "row-reverse" : ""}`}
+					>
+						<div className="concern-image-wrap">
+							<img
+								src={concern.image}
+								alt={concern.title}
+								className="concern-image"
+								loading="lazy"
+								onError={(e) => {
+									e.target.onerror = null;
+									e.target.parentElement.classList.add("img-fallback");
+								}}
+							/>
+							<span className="concern-number">
+								{String(index + 1).padStart(2, "0")}
+							</span>
+						</div>
+						<div className="concern-content">
+							<span className="concern-eyebrow">Common Concern</span>
+							<h3 className="concern-title">{concern.title}</h3>
+							<p className="concern-desc">{concern.description}</p>
+							<h4 className="approach-label">
+								<span className="leaf-icon">🌿</span> Ayurvedic Approach
+							</h4>
+							<ul className="approach-list">
+								{concern.approach.map((step, i) => (
+									<li key={i}>{step}</li>
+								))}
+							</ul>
+							<div className="concern-cta">
+								<p>{concern.callToAction}</p>
+								<button
+									className="concern-cta-btn"
+									onClick={() => navigate("/doctors")}
+								>
+									Book Consultation →
+								</button>
+							</div>
+						</div>
+					</article>
+				))}
+			</div>
 
 			{/* Ayurvedic Consultation Section (Rotating Messages) */}
 			<div className="consultation-section">
@@ -907,7 +944,13 @@ function TreatmentDetailsScreen() {
 						<li key={index}>{point}</li>
 					))}
 				</ul>
-				<p>{selectedConsultation.callToAction}</p>
+				<p className="consultation-cta">{selectedConsultation.callToAction}</p>
+				<button
+					className="consultation-btn"
+					onClick={() => navigate("/doctors")}
+				>
+					Find an Ayurvedic Doctor
+				</button>
 			</div>
 		</div>
 	);

@@ -100,9 +100,9 @@ const bookingSchema = new mongoose.Schema({
 		type: Number,
 		required: true,
 	},
-	paymentScreenshot: {
-		type: String, // Path to the uploaded screenshot
-		required: false, // This is optional initially, as the user will upload it after making the payment
+	paymentScreenshots: {
+		type: [String], // Array of paths to the uploaded screenshots
+		default: [], 
 	},
 	paymentStatus: {
 		type: String,

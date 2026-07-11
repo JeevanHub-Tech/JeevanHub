@@ -70,7 +70,7 @@ function DoctorNavBar() {
 					const data = await response.json();
 					const requestsArray = Array.isArray(data.bookings) ? data.bookings : [];
 					const activeRequests = requestsArray.filter(
-						(request) => request.requestAccept === "pending" && (request.amountPaid === 0 || request.paymentScreenshot)
+						(request) => request.requestAccept === "pending" && (request.amountPaid === 0 || (request.paymentScreenshots && request.paymentScreenshots.length > 0))
 					);
 					setPendingCount(activeRequests.length);
 				}

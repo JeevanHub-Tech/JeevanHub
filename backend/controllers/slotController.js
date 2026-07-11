@@ -351,7 +351,7 @@ exports.getProcessedSlotsForDate = async (req, res) => {
         endOfDay.setHours(23,59,59,999);
 
         const Booking = require('../models/Booking');
-        const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+        const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
         const bookings = await Booking.find({
             doctorId,
             dateOfAppointment: { $gte: startOfDay, $lte: endOfDay },
@@ -362,8 +362,8 @@ exports.getProcessedSlotsForDate = async (req, res) => {
                     requestAccept: 'pending', 
                     amountPaid: { $gt: 0 },
                     $or: [
-                        { paymentScreenshot: { $exists: true, $ne: "" } },
-                        { createdAt: { $gte: fiveMinutesAgo } }
+                        { 'paymentScreenshots.0': { $exists: true } },
+                        { createdAt: { $gte: tenMinutesAgo } }
                     ]
                 }
             ]

@@ -117,7 +117,7 @@ exports.createBooking = async (req, res) => {
 		const endOfDay = new Date(dateObj);
 		endOfDay.setHours(23,59,59,999);
 
-		const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+		const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
 		const activeBookings = await Booking.find({
 			doctorId: doctor._id,
 			dateOfAppointment: { $gte: startOfDay, $lte: endOfDay },
@@ -128,8 +128,8 @@ exports.createBooking = async (req, res) => {
 					requestAccept: 'pending', 
 					amountPaid: { $gt: 0 },
 					$or: [
-						{ paymentScreenshot: { $exists: true, $ne: "" } },
-						{ createdAt: { $gte: fiveMinutesAgo } }
+						{ 'paymentScreenshots.0': { $exists: true } },
+						{ createdAt: { $gte: tenMinutesAgo } }
 					]
 				}
 			]
@@ -263,7 +263,7 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({
 	storage: storage,
 	fileFilter: fileFilter,
-}).single("paymentScreenshot");
+}).array("paymentScreenshots", 5);
 
 exports.uploadPaymentScreenshot = (req, res) => {
 	upload(req, res, async function (err) {
@@ -273,12 +273,12 @@ exports.uploadPaymentScreenshot = (req, res) => {
 			return res.status(400).json({ error: err.message });
 		}
 
-		console.log("🟡 Uploading payment screenshot...");
-		console.log(req.file);
+		console.log("🟡 Uploading payment screenshots...");
+		console.log(req.files);
 
 		const { id } = req.params;
 
-		if (!req.file) {
+		if (!req.files || req.files.length === 0) {
 			return res.status(400).json({ error: "Payment screenshot is required" });
 		}
 
@@ -291,7 +291,8 @@ exports.uploadPaymentScreenshot = (req, res) => {
 				return res.status(403).json({ error: "Not authorized" });
 			}
 
-			booking.paymentScreenshot = req.file.path;
+			// Save all uploaded file paths
+			booking.paymentScreenshots = req.files.map(file => file.path);
 			// C5-1: Server dictates status, not client
 			booking.paymentStatus = "Pending";
 
@@ -325,8 +326,8 @@ exports.verifyPaymentProof = async (req, res) => {
 		if (booking.doctorId.toString() !== req.user._id.toString()) {
 			return res.status(403).json({ error: "Not authorized to verify payment for this booking" });
 		}
-		if (!booking.paymentScreenshot) {
-			return res.status(400).json({ error: "No payment screenshot has been uploaded" });
+		if (!booking.paymentScreenshots || booking.paymentScreenshots.length === 0) {
+			return res.status(400).json({ error: "No payment screenshots have been uploaded" });
 		}
 
 		booking.paymentStatus = "Completed";
@@ -709,6 +710,10 @@ exports.getBookingsByDoctorId = async (req, res) => {
 			return res.status(200).json({ bookings: [] });
 		}
 
+		// Pre-calculate returning patients (any accepted booking in the past)
+		const pastAcceptedBookings = await Booking.find({ doctorId, requestAccept: 'accepted' }, 'patientEmail');
+		const returningEmails = new Set(pastAcceptedBookings.map(b => b.patientEmail).filter(Boolean));
+
 		const doctor = await Doctor.findById(doctorId);
 		let processedBookings = bookings;
 		if (doctor) {
@@ -745,6 +750,14 @@ exports.getBookingsByDoctorId = async (req, res) => {
 						}
 					}
 				}
+
+				// Tag returning patient status
+				if (booking.patientEmail && returningEmails.has(booking.patientEmail)) {
+					bookingObj.isReturningPatient = true;
+				} else {
+					bookingObj.isReturningPatient = false;
+				}
+
 				return bookingObj;
 			});
 		}

@@ -39,12 +39,34 @@ function DoctorDetail() {
 	const [doctorUpiId, setDoctorUpiId] = useState(doctor.upiId || "");
 	const [paymentModalOpen, setPaymentModalOpen] = useState(false);
 	const [currentBooking, setCurrentBooking] = useState(null);
-	const [screenshotFile, setScreenshotFile] = useState(null);
+	const [screenshotFiles, setScreenshotFiles] = useState([]);
 	const [uploadingScreenshot, setUploadingScreenshot] = useState(false);
+	const [uploadAlert, setUploadAlert] = useState(null);
+	const [timeLeft, setTimeLeft] = useState(600);
 	const [loadingSlots, setLoadingSlots] = useState(false);
 	const [showAllSlots, setShowAllSlots] = useState(false);
 	const [zoomImage, setZoomImage] = useState(false);
 	const [carouselStartDate, setCarouselStartDate] = useState(getLocalDateString());
+
+	useEffect(() => {
+		if (!paymentModalOpen || !currentBooking) return;
+		
+		const bookingTime = new Date(currentBooking.createdAt).getTime();
+		const updateTimer = () => {
+			const now = new Date().getTime();
+			const diffInSeconds = Math.floor((bookingTime + 10 * 60 * 1000 - now) / 1000);
+			if (diffInSeconds <= 0) {
+				setTimeLeft(0);
+				handleCancelPayment(true); // pass flag for auto-cancel
+			} else {
+				setTimeLeft(diffInSeconds);
+			}
+		};
+
+		updateTimer();
+		const interval = setInterval(updateTimer, 1000);
+		return () => clearInterval(interval);
+	}, [paymentModalOpen, currentBooking]);
 
 	const filteredSlots = useMemo(() => {
 		let slots = availableSlots || [];
@@ -240,14 +262,16 @@ function DoctorDetail() {
 
 	const handleUploadProof = async (e) => {
 		e.preventDefault();
-		if (!screenshotFile) {
-			alert("Please choose a screenshot file to upload.");
+		if (screenshotFiles.length === 0) {
+			alert("Please choose at least one screenshot file to upload.");
 			return;
 		}
 
 		setUploadingScreenshot(true);
 		const formData = new FormData();
-		formData.append("paymentScreenshot", screenshotFile);
+		screenshotFiles.forEach(file => {
+			formData.append("paymentScreenshots", file);
+		});
 
 		try {
 			const token = localStorage.getItem("token");
@@ -263,7 +287,7 @@ function DoctorDetail() {
 			if (response.ok) {
 				setPaymentModalOpen(false);
 				setCurrentBooking(null);
-				setScreenshotFile(null);
+				setScreenshotFiles([]);
 				alert("Payment proof uploaded successfully! Your appointment request is sent for verification.");
 				fetchSlots(); // Refresh slots to update UI
 			} else {
@@ -277,11 +301,19 @@ function DoctorDetail() {
 		}
 	};
 
-	const handleCancelPayment = async () => {
-		if (!window.confirm("Are you sure you want to cancel booking? The held slot will be released immediately.")) return;
+	const handleCancelPayment = async (autoCancel = false) => {
+		if (!autoCancel && !window.confirm("Are you sure you want to cancel booking? The held slot will be released immediately.")) return;
+		
+		const bookingIdToCancel = currentBooking._id;
+
+		// Immediately close the modal to avoid infinite setInterval loops
+		setPaymentModalOpen(false);
+		setCurrentBooking(null);
+		setScreenshotFiles([]);
+
 		try {
 			const token = localStorage.getItem("token");
-			const response = await fetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/bookings/delete/${currentBooking._id}`, {
+			const response = await fetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/bookings/delete/${bookingIdToCancel}`, {
 				method: "DELETE",
 				headers: {
 					Authorization: `Bearer ${token}`
@@ -289,18 +321,27 @@ function DoctorDetail() {
 			});
 
 			if (response.ok) {
-				alert("Booking cancelled. The slot has been released.");
-				setPaymentModalOpen(false);
-				setCurrentBooking(null);
-				setScreenshotFile(null);
+				if (autoCancel) {
+					alert("Your 10-minute payment window has expired. The slot has been released.");
+				} else {
+					alert("Booking cancelled. The slot has been released.");
+				}
 				fetchSlots(); // Refresh slots to update UI
 			} else {
 				const result = await response.json();
-				alert(result.error || "Failed to release the slot.");
+				if (autoCancel) {
+					alert("Your 10-minute payment window has expired.");
+				} else {
+					alert(result.error || "Failed to release the slot.");
+				}
 			}
 		} catch (error) {
 			console.error("Error cancelling booking:", error);
-			alert("Failed to cancel booking.");
+			if (autoCancel) {
+				alert("Your 10-minute payment window has expired.");
+			} else {
+				alert("Failed to cancel booking.");
+			}
 		}
 	};
 
@@ -651,6 +692,13 @@ function DoctorDetail() {
 
 									{/* Desktop Option: QR Code Scan */}
 									<div className="upi-option-section qr-section">
+										<div className="timer-pill">
+											<span className="timer-icon">⏳</span>
+											<span className="timer-text" style={{ color: timeLeft < 60 ? '#ef4444' : 'inherit' }}>
+												{Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
+											</span>
+											<span className="timer-label">remaining to complete payment</span>
+										</div>
 										<p className="qr-title">Scan QR Code to Pay</p>
 										<div className="qr-image-container">
 											<img 
@@ -665,14 +713,55 @@ function DoctorDetail() {
 								{/* Screenshot Upload Form */}
 								<form className="upi-proof-form" onSubmit={handleUploadProof}>
 									<div className="proof-input-group">
-										<label htmlFor="screenshot-input">Upload Payment Screenshot</label>
-										<p className="proof-tip">💡 Tip: Take a screenshot of the successful transaction page. When you click 'Choose File', select the latest image from your gallery/screenshots.</p>
+										<label>Upload Payment Screenshots (Max 5)</label>
+										<p className="proof-tip">💡 Tip: Upload screenshots of the successful transaction. You can add multiple images.</p>
+										
+										<div className="upload-grid">
+											{screenshotFiles.map((file, index) => (
+												<div key={index} className="upload-preview-box">
+													{file.type.startsWith("image/") ? (
+														<img src={URL.createObjectURL(file)} alt={`preview-${index}`} />
+													) : (
+														<div className="pdf-preview">PDF</div>
+													)}
+													<button 
+														type="button" 
+														className="remove-file-btn" 
+														onClick={() => setScreenshotFiles(prev => prev.filter((_, i) => i !== index))}
+													>
+														×
+													</button>
+												</div>
+											))}
+											{screenshotFiles.length < 5 && (
+												<div className="upload-add-box" onClick={() => document.getElementById("multi-screenshot-input").click()}>
+													<span>+</span>
+												</div>
+											)}
+										</div>
 										<input 
 											type="file" 
-											id="screenshot-input" 
-											accept="image/*" 
-											onChange={(e) => setScreenshotFile(e.target.files[0])}
-											required
+											id="multi-screenshot-input" 
+											multiple
+											accept="image/*,application/pdf" 
+											style={{ display: "none" }}
+											onChange={(e) => {
+												const files = Array.from(e.target.files);
+												const availableSpace = 5 - screenshotFiles.length;
+												
+												if (files.length > availableSpace) {
+													const discardedFiles = files.slice(availableSpace);
+													const discardedNames = discardedFiles.map(f => f.name);
+													setUploadAlert({
+														message: "Maximum 5 files allowed. The following files were discarded:",
+														files: discardedNames
+													});
+												}
+												
+												const newFiles = [...screenshotFiles, ...files];
+												setScreenshotFiles(newFiles.slice(0, 5));
+												e.target.value = null;
+											}}
 										/>
 									</div>
 									<div className="upi-modal-actions">
@@ -695,6 +784,22 @@ function DoctorDetail() {
 								</form>
 							</div>
 						</div>
+					</div>
+				</div>
+			)}
+
+			{/* Custom Upload Alert Modal */}
+			{uploadAlert && (
+				<div className="upload-alert-overlay" onClick={() => setUploadAlert(null)}>
+					<div className="upload-alert-modal" onClick={e => e.stopPropagation()}>
+						<div className="upload-alert-icon">⚠️</div>
+						<p className="upload-alert-text">{uploadAlert.message}</p>
+						<div className="discarded-files-list">
+							{uploadAlert.files.map((name, i) => (
+								<span key={i} className="discarded-file-pill">{name}</span>
+							))}
+						</div>
+						<button className="upload-alert-btn" onClick={() => setUploadAlert(null)}>OK</button>
 					</div>
 				</div>
 			)}

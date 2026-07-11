@@ -471,14 +471,19 @@ function PatientList() {
 									>
 										Prescribe Medicine & Diet - Yoga Plan
 								</button>
-								{appointment.paymentScreenshot && appointment.paymentStatus === "Pending" && (
+								{appointment.paymentScreenshots && appointment.paymentScreenshots.length > 0 && appointment.paymentStatus === "Pending" && (
 									<div style={{ marginTop: '10px' }}>
-										<p><strong>Payment Proof:</strong></p>
-										<img 
-											src={`${process.env.REACT_APP_AYURVEDA_BACKEND_URL || 'http://localhost:8080'}/${appointment.paymentScreenshot}`} 
-											alt="Payment Proof" 
-											style={{ maxWidth: '100%', height: 'auto', marginBottom: '10px', borderRadius: '5px' }} 
-										/>
+										<p><strong>Payment Proofs:</strong></p>
+										<div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '10px' }}>
+											{appointment.paymentScreenshots.map((proof, index) => (
+												<img 
+													key={index}
+													src={`${process.env.REACT_APP_AYURVEDA_BACKEND_URL || 'http://localhost:8080'}/${proof}`} 
+													alt={`Payment Proof ${index + 1}`} 
+													style={{ maxWidth: '200px', height: 'auto', borderRadius: '5px' }} 
+												/>
+											))}
+										</div>
 										<button 
 											className="action-button suggest-button" 
 											onClick={() => handleVerifyPayment(appointment._id)}

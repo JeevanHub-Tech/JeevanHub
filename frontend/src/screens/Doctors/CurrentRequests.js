@@ -11,6 +11,32 @@ function CurrentRequests() {
 	const [acceptingRequest, setAcceptingRequest] = useState(null);
 	const [doctorsMessage, setDoctorsMessage] = useState("");
 	const [meetLink, setMeetLink] = useState("");
+	const [galleryImages, setGalleryImages] = useState([]);
+	const [currentImageIndex, setCurrentImageIndex] = useState(0);
+	const [selectedIllness, setSelectedIllness] = useState(null);
+
+	const format12HourTime = (timeStr) => {
+		if (!timeStr) return '';
+		if (timeStr.toLowerCase().includes('am') || timeStr.toLowerCase().includes('pm')) return timeStr;
+		let [hours, minutes] = timeStr.split(':');
+		hours = parseInt(hours, 10);
+		const ampm = hours >= 12 ? 'PM' : 'AM';
+		hours = hours % 12;
+		hours = hours ? hours : 12; // the hour '0' should be '12'
+		hours = hours < 10 ? '0' + hours : hours;
+		return `${hours}:${minutes} ${ampm}`;
+	};
+
+	const timeElapsed = (dateStr) => {
+		if (!dateStr) return 'Recently';
+		const diff = Date.now() - new Date(dateStr).getTime();
+		const minutes = Math.floor(diff / 60000);
+		if (minutes < 60) return `${minutes}m ago`;
+		const hours = Math.floor(minutes / 60);
+		if (hours < 24) return `${hours}h ago`;
+		const days = Math.floor(hours / 24);
+		return `${days}d ago`;
+	};
 
 	const { auth } = useContext(AuthContext);
 	const firstName = auth.user?.firstName || "Doctor";
@@ -18,7 +44,6 @@ function CurrentRequests() {
 	const email = localStorage.getItem("email");
 	const role = localStorage.getItem("role");
 	const doctorId = auth.user?.id;
-
 
 	// Fetch data from API when component mounts
 	useEffect(() => {
@@ -47,7 +72,7 @@ function CurrentRequests() {
 				// Filter the requests based on the logged-in doctor's email
 				// Hide bookings requiring payment where the patient hasn't uploaded a proof yet
 				const filteredRequests = requestsArray.filter(
-					(request) => request.requestAccept === "pending" && (request.amountPaid === 0 || request.paymentScreenshot)
+					(request) => request.requestAccept === "pending" && (request.amountPaid === 0 || (request.paymentScreenshots && request.paymentScreenshots.length > 0))
 				);
 
 				setRequests(filteredRequests);
@@ -58,7 +83,9 @@ function CurrentRequests() {
 			}
 		};
 
-		fetchRequests();
+		if (doctorId) {
+			fetchRequests();
+		}
 	}, [doctorId]);
 
 	// Function to accept request with optional meetLink
@@ -146,111 +173,189 @@ function CurrentRequests() {
 			{console.log(requests)}
 			{requests.length > 0 ? (
 				requests.map((request) => (
-					<div key={request._id} className="request-card">
-						<div className="line">
-							<p>
-								<strong>Date:</strong>{" "}
-								{new Date(request.dateOfAppointment).toLocaleDateString(
-									"en-GB"
-								)}{" "}
-								(dd/mm/yyyy)
-							</p>
-							<p className="centered">
-								<strong>Time Slot:</strong> {request.timeSlot}
-							</p>
-						</div>
-						<div className="line">
-							<p>
-								<strong>Patient Name:</strong> {request.patientName}
-							</p>
-							<p className="centered">
-								<strong>Patient Email:</strong> {request.patientEmail}
-							</p>
-						</div>
-						<div className="line">
-							<p>
-								<strong>Patient Gender:</strong> {request.patientGender}
-							</p>
-							<p className="centered">
-								<strong>Patient Age:</strong> {request.patientAge}
-							</p>
-						</div>
-						<p>
-							<strong>Patient's Illness:</strong> {request.patientIllness}
-						</p>
-						{request.amountPaid > 0 && request.paymentScreenshot && (
-							<div className="payment-proof-preview">
-								<strong>Payment Proof:</strong>
-								<div className="proof-image-box">
-									<a href={request.paymentScreenshot} target="_blank" rel="noreferrer">
-										<img 
-											src={request.paymentScreenshot} 
-											alt="Payment Proof Screenshot" 
-											className="proof-thumbnail"
+					<div key={request._id} className="req-card">
+						<div className="req-card-grid">
+							{/* Left Column: Patient Profile */}
+							<div className="req-col req-patient">
+								<div className="req-patient-header">
+									<h3 title="Patient Name">{request.patientName}</h3>
+									{request.isReturningPatient ? (
+										<span className="req-badge returning" title="Has previously booked appointments with you">Returning</span>
+									) : (
+										<span className="req-badge new" title="First-time booking with you">New</span>
+									)}
+								</div>
+								<p className="req-subtext" title={`Age: ${request.patientAge} yrs | Gender: ${request.patientGender} | Email: ${request.patientEmail}`}>
+									{request.patientAge} yrs • {request.patientGender} • {request.patientEmail}
+								</p>
+								<div className="req-illness">
+									<strong>Illness:</strong>{" "}
+									{request.patientIllness.length > 80 ? (
+										<>
+											{request.patientIllness.substring(0, 80)}...
+											<button className="req-btn-link" onClick={() => setSelectedIllness(request.patientIllness)}>More</button>
+										</>
+									) : (
+										request.patientIllness
+									)}
+								</div>
+								<div className="req-time" title="Time since the appointment was requested">
+									⏱ Requested {timeElapsed(request.createdAt)}
+								</div>
+							</div>
+
+							{/* Middle Column: Appointment & Payment */}
+							<div className="req-col req-appointment">
+								<div className="req-schedule">
+									<div className="req-date-time-col">
+										<div className="req-date" title="Date of Appointment">
+											📅 {new Date(request.dateOfAppointment).toLocaleDateString("en-GB", { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
+										</div>
+										<div className="req-time-slot" title="Time of Appointment">
+											⏰ {format12HourTime(request.timeSlot)}
+										</div>
+									</div>
+									<div className="req-price-wrapper">
+										<div className="req-price-badge" title="Consultation Fee">
+											{request.amountPaid === 0 ? (
+												<span className="req-badge free">Free</span>
+											) : (
+												<span className="req-badge paid">₹{request.amountPaid}</span>
+											)}
+										</div>
+									</div>
+								</div>
+								{request.amountPaid > 0 && request.paymentScreenshots && request.paymentScreenshots.length > 0 && (
+									<div className="req-gallery">
+										<p className="req-gallery-title">Payment Proofs ({request.paymentScreenshots.length}):</p>
+										<div className="req-gallery-grid">
+											{request.paymentScreenshots.map((proof, idx) => {
+												const imgUrl = proof.startsWith("http") ? proof : `${process.env.REACT_APP_AYURVEDA_BACKEND_URL || 'http://localhost:8080'}/${proof}`;
+												return (
+												<img 
+													key={idx}
+													src={imgUrl} 
+													alt={`Proof ${idx + 1}`} 
+													className="req-thumb"
+													onClick={() => {
+														setGalleryImages(request.paymentScreenshots);
+														setCurrentImageIndex(idx);
+													}}
+												/>
+												);
+											})}
+										</div>
+									</div>
+								)}
+							</div>
+
+							{/* Right Column: Actions */}
+							<div className="req-col req-actions">
+								{!acceptingRequest && !denyingRequest ? (
+									<>
+										<button className="req-btn accept" onClick={() => setAcceptingRequest(request._id)}>
+											Accept Request
+										</button>
+										<button className="req-btn deny" onClick={() => { setDenyingRequest(request._id); setDoctorsMessage(""); }}>
+											Deny Request
+										</button>
+									</>
+								) : null}
+
+								{acceptingRequest === request._id && (
+									<div className="req-action-form">
+										<p className="req-tip">💡 Optional custom link (Zoom/Meet).<br/>Blank = Auto Jitsi.</p>
+										<input
+											type="text"
+											value={meetLink}
+											onChange={(e) => setMeetLink(e.target.value)}
+											placeholder="Custom meeting link"
+											className="req-input"
 										/>
-									</a>
-								</div>
+										<div className="req-btn-group">
+											<button className="req-btn confirm-accept" onClick={() => acceptRequest(request._id, meetLink)}>Confirm</button>
+											<button className="req-btn cancel" onClick={() => setAcceptingRequest(null)}>Cancel</button>
+										</div>
+									</div>
+								)}
+
+								{denyingRequest === request._id && (
+									<div className="req-action-form">
+										<input
+											type="text"
+											value={doctorsMessage}
+											onChange={(e) => setDoctorsMessage(e.target.value)}
+											placeholder="Provide reason for denial"
+											className="req-input"
+										/>
+										<div className="req-btn-group">
+											<button className="req-btn confirm-deny" onClick={() => denyRequest(request._id)}>Submit</button>
+											<button className="req-btn cancel" onClick={() => setDenyingRequest(null)}>Cancel</button>
+										</div>
+									</div>
+								)}
 							</div>
-						)}
-
-						<div className="action-buttons">
-							<button onClick={() => { setAcceptingRequest(request._id); setDenyingRequest(null); setMeetLink(""); }}>
-								Accept Request
-							</button>
-
-							{/* Show the deny button */}
-							<button
-								onClick={() => { setDenyingRequest(request._id); setAcceptingRequest(null); setDoctorsMessage(""); }} // Set the denying request state
-								className="deny-button"
-							>
-								Deny Request
-							</button>
 						</div>
-
-						{/* Show the input field if acceptingRequest matches this request's ID */}
-						{acceptingRequest === request._id && (
-							<div className="inline-action-form accept-link-form">
-								<p className="form-tip">💡 You can optionally paste your custom Google Meet, Zoom, or other consultation link below. If left blank, a secure Jitsi link will be generated automatically.</p>
-								<div className="input-with-button">
-									<input
-										type="text"
-										value={meetLink}
-										onChange={(e) => setMeetLink(e.target.value)}
-										placeholder="Custom meeting link (Google Meet, Zoom, etc.)"
-									/>
-									<button className="confirm-accept-btn" onClick={() => acceptRequest(request._id, meetLink)}>
-										Confirm Accept
-									</button>
-									<button className="cancel-action-btn" onClick={() => setAcceptingRequest(null)}>
-										Cancel
-									</button>
-								</div>
-							</div>
-						)}
-
-						{/* Show the input field if denyingRequest matches this request's ID */}
-						{denyingRequest === request._id && (
-							<div className="inline-action-form denial-reason">
-								<div className="input-with-button">
-									<input
-										type="text"
-										value={doctorsMessage}
-										onChange={(e) => setDoctorsMessage(e.target.value)} // Update the doctor's message state
-										placeholder="Provide reason for denial"
-									/>
-									<button className="confirm-deny-btn" onClick={() => denyRequest(request._id)}>
-										Submit Denial
-									</button>
-									<button className="cancel-action-btn" onClick={() => setDenyingRequest(null)}>
-										Cancel
-									</button>
-								</div>
-							</div>
-						)}
 					</div>
 				))
 			) : (
 				<p className="noRequest">There are no current requests for you.</p>
+			)}
+		
+			{/* Image Gallery Modal */}
+			{galleryImages.length > 0 && (
+				<div className="gallery-overlay" onClick={() => setGalleryImages([])}>
+					<div className="gallery-modal" onClick={e => e.stopPropagation()}>
+						<button className="gallery-close" onClick={() => setGalleryImages([])}>×</button>
+						
+						{galleryImages.length > 1 && (
+							<button 
+								className="gallery-nav prev" 
+								onClick={() => setCurrentImageIndex((prev) => (prev === 0 ? galleryImages.length - 1 : prev - 1))}
+							>
+								&#10094;
+							</button>
+						)}
+
+						<img 
+							src={galleryImages[currentImageIndex]?.startsWith("http") ? galleryImages[currentImageIndex] : `${process.env.REACT_APP_AYURVEDA_BACKEND_URL || 'http://localhost:8080'}/${galleryImages[currentImageIndex]}`} 
+							alt="Enlarged Proof" 
+							className="gallery-image-large" 
+						/>
+
+						{galleryImages.length > 1 && (
+							<button 
+								className="gallery-nav next" 
+								onClick={() => setCurrentImageIndex((prev) => (prev === galleryImages.length - 1 ? 0 : prev + 1))}
+							>
+								&#10095;
+							</button>
+						)}
+
+						{galleryImages.length > 1 && (
+							<div className="gallery-dots">
+								{galleryImages.map((_, idx) => (
+									<span 
+										key={idx} 
+										className={`gallery-dot ${idx === currentImageIndex ? 'active' : ''}`}
+										onClick={() => setCurrentImageIndex(idx)}
+									></span>
+								))}
+							</div>
+						)}
+					</div>
+				</div>
+			)}
+
+			{/* Illness Modal */}
+			{selectedIllness && (
+				<div className="gallery-overlay" onClick={() => setSelectedIllness(null)}>
+					<div className="gallery-modal" style={{ padding: '32px', maxWidth: '600px', backgroundColor: '#fff', borderRadius: '16px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', textAlign: 'left' }} onClick={e => e.stopPropagation()}>
+						<button className="gallery-close" style={{ color: '#1e293b', background: '#f1f5f9' }} onClick={() => setSelectedIllness(null)}>×</button>
+						<h3 style={{ marginTop: 0, fontSize: '20px', fontWeight: '700', color: '#0f172a', marginBottom: '16px' }}>Patient's Illness Details</h3>
+						<p style={{ lineHeight: '1.6', color: '#334155', fontSize: '15px', margin: 0, whiteSpace: 'pre-wrap' }}>{selectedIllness}</p>
+					</div>
+				</div>
 			)}
 		</div>
 	);

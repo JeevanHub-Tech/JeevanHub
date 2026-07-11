@@ -324,22 +324,22 @@ const SlotManagement = ({ doctorId, token, defaultPrice }) => {
         let baseSlots = [...(availableSlots[dayName] || [])];
         
         const wholeDayCancel = scheduleOverrides.find(o => 
-            new Date(o.date).toDateString() === dateObj.toDateString() && o.type === 'cancelled' && !o.originalStartTime
+            new Date(o.date).toDateString() === dateObj.toDateString() && o.type === 'cancelled' && !o.targetSlotId
         );
         if (wholeDayCancel) {
-            return baseSlots.map(s => ({ ...s, isCancelledOverride: true, originalStartTime: s.startTime }));
+            return baseSlots.map(s => ({ ...s, isCancelledOverride: true, targetSlotId: s._id }));
         }
         
         const dateOverrides = scheduleOverrides.filter(o => new Date(o.date).toDateString() === dateObj.toDateString());
         
         for (const override of dateOverrides) {
-            if (override.type === 'cancelled' && override.originalStartTime) {
-                const idx = baseSlots.findIndex(s => s.startTime === override.originalStartTime);
+            if (override.type === 'cancelled' && override.targetSlotId) {
+                const idx = baseSlots.findIndex(s => !s.isOverride && s._id.toString() === override.targetSlotId.toString());
                 if (idx !== -1) {
-                    baseSlots[idx] = { ...baseSlots[idx], isCancelledOverride: true, originalStartTime: override.originalStartTime };
+                    baseSlots[idx] = { ...baseSlots[idx], isCancelledOverride: true, targetSlotId: override.targetSlotId };
                 }
-            } else if (override.type === 'rescheduled' && override.originalStartTime) {
-                const idx = baseSlots.findIndex(s => s.startTime === override.originalStartTime);
+            } else if (override.type === 'rescheduled' && override.targetSlotId) {
+                const idx = baseSlots.findIndex(s => !s.isOverride && s._id.toString() === override.targetSlotId.toString());
                 if (idx !== -1) {
                     baseSlots[idx] = {
                         ...baseSlots[idx],
@@ -350,7 +350,7 @@ const SlotManagement = ({ doctorId, token, defaultPrice }) => {
                         sessionType: override.newSessionType || baseSlots[idx].sessionType,
                         maxCapacity: override.newMaxCapacity || baseSlots[idx].maxCapacity,
                         isOverride: true,
-                        originalStartTime: override.originalStartTime
+                        targetSlotId: override.targetSlotId
                     };
                 }
             } else if (override.type === 'added') {
@@ -457,7 +457,7 @@ const SlotManagement = ({ doctorId, token, defaultPrice }) => {
     };
 
     const handleDeleteSlot = async (slotId) => {
-        if (!window.confirm("Delete this slot template?")) return;
+        if (!window.confirm("Deleting this template will cancel all existing bookings for this time on future dates. Proceed anyway?")) return;
         setLoading(true);
         try {
             const res = await axios.delete(
@@ -488,7 +488,7 @@ const SlotManagement = ({ doctorId, token, defaultPrice }) => {
                     `${process.env.REACT_APP_AYURVEDA_BACKEND_URL || 'http://localhost:5000'}/api/doctors/slots/overrides`,
                     { 
                         headers: { Authorization: `Bearer ${token}` },
-                        data: { date: selectedExceptionDate, originalStartTime: editSlotData.originalStartTime }
+                        data: { date: selectedExceptionDate, targetSlotId: editSlotData.targetSlotId }
                     }
                 );
                 // Create the updated added override
@@ -513,7 +513,7 @@ const SlotManagement = ({ doctorId, token, defaultPrice }) => {
                     { 
                         date: selectedExceptionDate, 
                         type: 'rescheduled',
-                        originalStartTime: editSlotData.originalStartTime,
+                        targetSlotId: editSlotData.targetSlotId,
                         newStartTime: editSlotData.startTime,
                         newDuration: editSlotData.duration,
                         newFee: editSlotData.fee,
@@ -552,7 +552,7 @@ const SlotManagement = ({ doctorId, token, defaultPrice }) => {
         const daySlots = getActiveSlots().filter(s => !s.isCancelledOverride);
         for (const slot of daySlots) {
             if (viewMode === 'template' && slot._id === editSlot?._id) continue;
-            if (viewMode === 'exceptions' && (slot.startTime === editSlot?.originalStartTime || slot.originalStartTime === editSlot?.originalStartTime)) continue;
+            if (viewMode === 'exceptions' && (slot._id === editSlot?._id || slot.targetSlotId === editSlot?.targetSlotId)) continue;
             const startMins = timeToMinutes(slot.startTime);
             const endMins = startMins + slot.duration;
             if (checkMins < endMins && checkEndMins > startMins) return true;
@@ -568,7 +568,7 @@ const SlotManagement = ({ doctorId, token, defaultPrice }) => {
         let nextBlockStart = 24 * 60;
         for (const slot of daySlots) {
             if (viewMode === 'template' && slot._id === editSlot._id) continue;
-            if (viewMode === 'exceptions' && (slot.startTime === editSlot?.originalStartTime || slot.originalStartTime === editSlot?.originalStartTime)) continue;
+            if (viewMode === 'exceptions' && (slot._id === editSlot?._id || slot.targetSlotId === editSlot?.targetSlotId)) continue;
             const slotStartMins = timeToMinutes(slot.startTime);
             if (slotStartMins > startMins && slotStartMins < nextBlockStart) nextBlockStart = slotStartMins;
         }
@@ -600,7 +600,7 @@ const SlotManagement = ({ doctorId, token, defaultPrice }) => {
             for (const slot of daySlots) {
                 if (editSlot) {
                     if (viewMode === 'template' && slot._id === editSlot._id) continue;
-                    if (viewMode === 'exceptions' && (slot.startTime === editSlot.originalStartTime || slot.originalStartTime === editSlot.originalStartTime)) continue;
+                    if (viewMode === 'exceptions' && (slot._id === editSlot._id || slot.targetSlotId === editSlot.targetSlotId)) continue;
                 }
                 const slotStartMins = timeToMinutes(slot.startTime);
                 if (slotStartMins > startMins && slotStartMins < nextBlockStart) nextBlockStart = slotStartMins;
@@ -866,7 +866,7 @@ const SlotManagement = ({ doctorId, token, defaultPrice }) => {
                                                         `${process.env.REACT_APP_AYURVEDA_BACKEND_URL || 'http://localhost:5000'}/api/doctors/slots/overrides`,
                                                         { 
                                                             headers: { Authorization: `Bearer ${token}` },
-                                                            data: { date: selectedExceptionDate, originalStartTime: selectedSlot.originalStartTime || selectedSlot.startTime }
+                                                            data: { date: selectedExceptionDate, targetSlotId: selectedSlot.targetSlotId || selectedSlot._id }
                                                         }
                                                     );
                                                     setScheduleOverrides(res.data.scheduleOverrides);
@@ -882,7 +882,7 @@ const SlotManagement = ({ doctorId, token, defaultPrice }) => {
                                     ) : (
                                         <>
                                             <button 
-                                                onClick={() => { if(typeof setIsEditingSlot !== 'undefined') { setIsEditingSlot(true); setEditSlotData({...selectedSlot, originalStartTime: selectedSlot.originalStartTime || selectedSlot.startTime}); } }}
+                                                onClick={() => { if(typeof setIsEditingSlot !== 'undefined') { setIsEditingSlot(true); setEditSlotData({...selectedSlot, targetSlotId: selectedSlot.targetSlotId || selectedSlot._id}); } }}
                                                 style={{ background: '#3b82f6', color: 'white', border: 'none', padding: '6px', borderRadius: '4px', cursor: 'pointer', flex: 1, fontSize: '12px' }}
                                             >Reschedule</button>
                                             
@@ -896,7 +896,7 @@ const SlotManagement = ({ doctorId, token, defaultPrice }) => {
                                                                 `${process.env.REACT_APP_AYURVEDA_BACKEND_URL || 'http://localhost:5000'}/api/doctors/slots/overrides`,
                                                                 { 
                                                                     headers: { Authorization: `Bearer ${token}` },
-                                                                    data: { date: selectedExceptionDate, originalStartTime: selectedSlot.startTime }
+                                                                    data: { date: selectedExceptionDate, targetSlotId: selectedSlot.targetSlotId || selectedSlot._id }
                                                                 }
                                                             );
                                                             setScheduleOverrides(res.data.scheduleOverrides);
@@ -917,7 +917,7 @@ const SlotManagement = ({ doctorId, token, defaultPrice }) => {
                                                         try {
                                                             const res = await axios.post(
                                                                 `${process.env.REACT_APP_AYURVEDA_BACKEND_URL || 'http://localhost:5000'}/api/doctors/slots/overrides`,
-                                                                { date: selectedExceptionDate, type: 'cancelled', originalStartTime: selectedSlot.originalStartTime || selectedSlot.startTime },
+                                                                { date: selectedExceptionDate, type: 'cancelled', targetSlotId: selectedSlot.targetSlotId || selectedSlot._id },
                                                                 { headers: { Authorization: `Bearer ${token}` } }
                                                             );
                                                             setScheduleOverrides(res.data.scheduleOverrides);

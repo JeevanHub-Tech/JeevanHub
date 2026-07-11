@@ -19,9 +19,11 @@ function DoctorNavBar() {
 	const modalRef = useRef(null);
 	const navigate = useNavigate();
 	const profilePic = auth.user?.profileImage || "";
+	const doctorId = auth.user?.id || auth.user?._id;
 	const userFirstName = auth.user ? auth.user.firstName : "Guest";
 	const userLastName = auth.user ? auth.user.lastName : "";
 	const [showMenu, setShowMenu] = useState(false);
+	const [pendingCount, setPendingCount] = useState(0);
 	const handleMenuClose = () => {
 		setShowMenu(!showMenu);
 	};
@@ -50,6 +52,52 @@ function DoctorNavBar() {
 
 		fetchLocation();
 	}, []);
+
+	useEffect(() => {
+		const fetchPendingCount = async () => {
+			if (!doctorId) return;
+			try {
+				const token = localStorage.getItem("token");
+				const response = await fetch(
+					`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/bookings/doctor/${doctorId}`,
+					{
+						headers: {
+							Authorization: `Bearer ${token}`
+						}
+					}
+				);
+				if (response.ok) {
+					const data = await response.json();
+					const requestsArray = Array.isArray(data.bookings) ? data.bookings : [];
+					const activeRequests = requestsArray.filter(
+						(request) => request.requestAccept === "pending" && (request.amountPaid === 0 || request.paymentScreenshot)
+					);
+					setPendingCount(activeRequests.length);
+				}
+			} catch (error) {
+				console.error("Error fetching pending requests count:", error);
+			}
+		};
+
+		fetchPendingCount();
+
+		const token = localStorage.getItem("token");
+		const sseUrl = `${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/bookings/stream-notifications/${doctorId}?token=${token}`;
+		const eventSource = new EventSource(sseUrl);
+
+		eventSource.onmessage = (event) => {
+			try {
+				const data = JSON.parse(event.data);
+				if (data.type === 'booking_update') {
+					fetchPendingCount(); // Instantly update when a change occurs
+				}
+			} catch (e) {
+				console.error("Error parsing SSE data:", e);
+			}
+		};
+
+		return () => eventSource.close();
+	}, [doctorId]);
 
 	// Close modal when clicking outside of it
 	useEffect(() => {
@@ -187,8 +235,8 @@ function DoctorNavBar() {
 									</NavLink>
 								</li>
 								<li>
-									<NavLink to="/current-requests">
-										Current Requests
+									<NavLink to="/current-requests" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+										Current Requests {pendingCount > 0 && <span className="nav-badge-badge">{pendingCount}</span>}
 									</NavLink>
 								</li>
 								<li>
@@ -229,8 +277,8 @@ function DoctorNavBar() {
 							</NavLink>
 						</li>
 						<li>
-							<NavLink to="/current-requests">
-								Current Requests
+							<NavLink to="/current-requests" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+								Current Requests {pendingCount > 0 && <span className="nav-badge-badge">{pendingCount}</span>}
 							</NavLink>
 						</li>
 						<li>

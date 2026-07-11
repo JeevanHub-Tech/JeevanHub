@@ -69,9 +69,8 @@ router.get("/reviews/:doctorEmail", async (req, res) => {
 router.post("/:id/payment", auth, bookingController.uploadPaymentScreenshot);
 router.put("/:id/verify-payment", auth, bookingController.verifyPaymentProof);
 
-// Removed duplicate GET / here
-
-// Removed duplicate GET / here
+// Stream notifications for doctor dashboard (SSE)
+router.get("/stream-notifications/:doctorId", auth, bookingController.streamNotifications);
 
 // Get bookings by patient ID
 router.get("/patient/:patientId", auth, getBookingsByPatientId);

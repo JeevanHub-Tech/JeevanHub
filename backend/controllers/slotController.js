@@ -118,7 +118,28 @@ exports.deleteSlotTemplate = async (req, res) => {
         doctor.availableSlots[day] = doctor.availableSlots[day].filter(s => s._id.toString() !== slotId);
         
         await doctor.save();
-        res.status(200).json({ message: "Slot deleted successfully", availableSlots: doctor.availableSlots });
+
+        // Mass-cancel future bookings pointing to this slot template
+        const Booking = require('../models/Booking');
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        await Booking.updateMany(
+            { 
+                doctorId, 
+                slotId, 
+                dateOfAppointment: { $gte: today },
+                requestAccept: { $nin: ['denied', 'completed'] }
+            },
+            { 
+                $set: { 
+                    requestAccept: 'denied',
+                    doctorsMessage: 'This slot was removed from the doctor\'s weekly schedule.'
+                } 
+            }
+        );
+
+        res.status(200).json({ message: "Slot deleted successfully and active bookings cancelled", availableSlots: doctor.availableSlots });
     } catch (error) {
         res.status(500).json({ message: "Server error", error: error.message });
     }
@@ -126,7 +147,7 @@ exports.deleteSlotTemplate = async (req, res) => {
 
 exports.addScheduleOverride = async (req, res) => {
     try {
-        const { date, type, originalStartTime, newStartTime, newDuration, newFee, newConsultationType, newSessionType, newMaxCapacity, newBufferTime } = req.body;
+        const { date, type, targetSlotId, newStartTime, newDuration, newFee, newConsultationType, newSessionType, newMaxCapacity, newBufferTime } = req.body;
         const doctorId = req.user._id;
 
         const doctor = await Doctor.findById(doctorId);
@@ -135,7 +156,7 @@ exports.addScheduleOverride = async (req, res) => {
         const override = {
             date: new Date(date),
             type,
-            originalStartTime,
+            targetSlotId,
             newStartTime, newDuration, newFee, newConsultationType, newSessionType, newMaxCapacity, newBufferTime
         };
 
@@ -143,7 +164,7 @@ exports.addScheduleOverride = async (req, res) => {
             const isSameDate = new Date(o.date).toDateString() === new Date(date).toDateString();
             if (!isSameDate) return false;
             if (type === 'added') return o.type === 'added' && o.newStartTime === newStartTime;
-            return o.originalStartTime === originalStartTime;
+            return o.targetSlotId && targetSlotId && o.targetSlotId.toString() === targetSlotId.toString();
         });
 
         if (existingIndex !== -1) {
@@ -179,14 +200,14 @@ exports.cancelDateSlots = async (req, res) => {
 
         // Check if there's already a full date cancellation
         const existingCancel = doctor.scheduleOverrides.find(
-            o => new Date(o.date).toDateString() === new Date(date).toDateString() && o.type === 'cancelled' && !o.originalStartTime
+            o => new Date(o.date).toDateString() === new Date(date).toDateString() && o.type === 'cancelled' && !o.targetSlotId
         );
 
         if (!existingCancel) {
             doctor.scheduleOverrides.push({
                 date: new Date(date),
                 type: 'cancelled'
-                // leaving originalStartTime blank means the WHOLE DATE is cancelled
+                // leaving targetSlotId blank means the WHOLE DATE is cancelled
             });
         }
 
@@ -209,7 +230,7 @@ exports.cancelDateSlots = async (req, res) => {
 
 exports.removeScheduleOverride = async (req, res) => {
     try {
-        const { date, originalStartTime } = req.body;
+        const { date, targetSlotId, originalStartTime } = req.body;
         const doctorId = req.user._id;
 
         const doctor = await Doctor.findById(doctorId);
@@ -218,8 +239,8 @@ exports.removeScheduleOverride = async (req, res) => {
         doctor.scheduleOverrides = doctor.scheduleOverrides.filter(o => {
             const isSameDate = new Date(o.date).toDateString() === new Date(date).toDateString();
             if (!isSameDate) return true;
-            if (o.type === 'added') return o.newStartTime !== originalStartTime;
-            return o.originalStartTime !== originalStartTime;
+            if (o.type === 'added') return o.newStartTime !== originalStartTime; // added slots don't have targetSlotId initially
+            return o.targetSlotId?.toString() !== targetSlotId?.toString();
         });
 
         // Clean up old overrides while we're saving
@@ -252,7 +273,7 @@ exports.getProcessedSlotsForDate = async (req, res) => {
         
         // 1. Check for whole day cancel
         const wholeDayCancel = doctor.scheduleOverrides.find(o => 
-            new Date(o.date).toDateString() === dateObj.toDateString() && o.type === 'cancelled' && !o.originalStartTime
+            new Date(o.date).toDateString() === dateObj.toDateString() && o.type === 'cancelled' && !o.targetSlotId
         );
         
         if (wholeDayCancel) {
@@ -263,19 +284,22 @@ exports.getProcessedSlotsForDate = async (req, res) => {
         const dateOverrides = doctor.scheduleOverrides.filter(o => new Date(o.date).toDateString() === dateObj.toDateString());
         
         for (const override of dateOverrides) {
-            if (override.type === 'cancelled' && override.originalStartTime) {
-                baseSlots = baseSlots.filter(s => s.startTime !== override.originalStartTime);
-            } else if (override.type === 'rescheduled' && override.originalStartTime) {
-                const idx = baseSlots.findIndex(s => s.startTime === override.originalStartTime);
+            if (override.type === 'cancelled' && override.targetSlotId) {
+                baseSlots = baseSlots.filter(s => s.isOverride || s._id.toString() !== override.targetSlotId.toString());
+            } else if (override.type === 'rescheduled' && override.targetSlotId) {
+                const idx = baseSlots.findIndex(s => !s.isOverride && s._id.toString() === override.targetSlotId.toString());
                 if (idx !== -1) {
                     baseSlots[idx] = {
                         ...(baseSlots[idx].toObject ? baseSlots[idx].toObject() : baseSlots[idx]),
+                        targetSlotId: override.targetSlotId, // Keep track of the original slot id
                         startTime: override.newStartTime || baseSlots[idx].startTime,
                         duration: override.newDuration || baseSlots[idx].duration,
                         fee: override.newFee !== undefined ? override.newFee : baseSlots[idx].fee,
                         consultationType: override.newConsultationType || baseSlots[idx].consultationType,
                         sessionType: override.newSessionType || baseSlots[idx].sessionType,
-                        maxCapacity: override.newMaxCapacity || baseSlots[idx].maxCapacity
+                        maxCapacity: override.newMaxCapacity || baseSlots[idx].maxCapacity,
+                        isOverride: true,
+                        isRescheduledOverride: true
                     };
                 }
             } else if (override.type === 'added') {
@@ -298,6 +322,17 @@ exports.getProcessedSlotsForDate = async (req, res) => {
         // 3. Remove disabled slots
         baseSlots = baseSlots.filter(s => !s.isDisabled);
 
+        // Deduplicate baseSlots by startTime (giving preference to overrides/newer entries)
+        const uniqueSlotsMap = {};
+        for (const slot of baseSlots) {
+            const time = slot.startTime;
+            if (!uniqueSlotsMap[time] || (slot.isOverride && !uniqueSlotsMap[time].isOverride)) {
+                uniqueSlotsMap[time] = slot;
+            }
+        }
+        baseSlots = Object.values(uniqueSlotsMap);
+
+
         // 4. Sort by time
         const timeToMinutes = (time) => {
             if (!time) return 0;
@@ -316,16 +351,31 @@ exports.getProcessedSlotsForDate = async (req, res) => {
         endOfDay.setHours(23,59,59,999);
 
         const Booking = require('../models/Booking');
+        const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
         const bookings = await Booking.find({
             doctorId,
             dateOfAppointment: { $gte: startOfDay, $lte: endOfDay },
-            requestAccept: { $in: ['pending', 'accepted'] }
+            $or: [
+                { requestAccept: 'accepted' },
+                { requestAccept: 'pending', amountPaid: 0 },
+                { 
+                    requestAccept: 'pending', 
+                    amountPaid: { $gt: 0 },
+                    $or: [
+                        { paymentScreenshot: { $exists: true, $ne: "" } },
+                        { createdAt: { $gte: fiveMinutesAgo } }
+                    ]
+                }
+            ]
         });
 
         // 6. Map slots with capacity
         const finalSlots = baseSlots.map(slot => {
             const slotObj = slot.toObject ? slot.toObject() : slot;
-            const slotBookings = bookings.filter(b => b.timeSlot === slotObj.startTime);
+            // Match bookings targeting this exact slot ID
+            const slotBookings = bookings.filter(b => 
+                b.slotId && slotObj._id && b.slotId.toString() === slotObj._id.toString()
+            );
             const maxCap = slotObj.maxCapacity || 1;
             const remainingCapacity = maxCap - slotBookings.length;
 
@@ -335,7 +385,7 @@ exports.getProcessedSlotsForDate = async (req, res) => {
             };
         });
 
-        res.status(200).json({ slots: finalSlots });
+        res.status(200).json({ slots: finalSlots, upiId: doctor.upiId || "" });
     } catch (error) {
         res.status(500).json({ message: "Server error", error: error.message });
     }

@@ -7,6 +7,12 @@ const fs = require("fs");
 const multer = require("multer");
 const path = require("path");
 
+// Global registry for SSE doctor connections
+const doctorConnections = new Map();
+
+// Export the connections so we can theoretically emit from other controllers if needed
+exports.doctorConnections = doctorConnections;
+
 // Add or update rating and review
 exports.updateRatingAndReview = async (req, res) => {
 	const { id } = req.params;
@@ -79,7 +85,7 @@ exports.createBooking = async (req, res) => {
 		doctorName,
 		doctorId,
 		doctorEmail,
-		timeSlot,
+		slotId,
 		dateOfAppointment,
 		email,
 		patientName,
@@ -87,13 +93,14 @@ exports.createBooking = async (req, res) => {
 		patientAge,
 		patientIllness,
 		meetLink,
+		amountPaid,
 	} = req.body; // Destructure the request body
 	const patientId = req.user._id; // Enforce ownership
 
 	if (!doctorName) {
 		return res.status(400).json({ error: "Doctor name are required" });
-	} else if (!timeSlot) {
-		return res.status(400).json({ error: "Time slot is required" });
+	} else if (!slotId) {
+		return res.status(400).json({ error: "Slot ID is required" });
 	} else if (!email) {
 		return res.status(400).json({ error: "Patient email is required" });
 	}
@@ -103,17 +110,70 @@ exports.createBooking = async (req, res) => {
 		if (!doctor) {
 			return res.status(404).json({ error: "Doctor not found" });
 		}
-		// Check if a booking already exists for the doctor and time slot
-		const existingBooking = await Booking.findOne({
+		// Check slot availability considering overrides and active bookings (max capacity)
+		const dateObj = new Date(dateOfAppointment);
+		const startOfDay = new Date(dateObj);
+		startOfDay.setHours(0,0,0,0);
+		const endOfDay = new Date(dateObj);
+		endOfDay.setHours(23,59,59,999);
+
+		const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+		const activeBookings = await Booking.find({
 			doctorId: doctor._id,
-			timeSlot,
-			dateOfAppointment,
+			dateOfAppointment: { $gte: startOfDay, $lte: endOfDay },
+			$or: [
+				{ requestAccept: 'accepted' },
+				{ requestAccept: 'pending', amountPaid: 0 },
+				{ 
+					requestAccept: 'pending', 
+					amountPaid: { $gt: 0 },
+					$or: [
+						{ paymentScreenshot: { $exists: true, $ne: "" } },
+						{ createdAt: { $gte: fiveMinutesAgo } }
+					]
+				}
+			]
 		});
-		if (existingBooking) {
-			return res.status(400).json({
-				error:
-					"This time slot is already booked for the selected doctor. Please Choose a different date or time slot.",
-			});
+
+		const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][dateObj.getDay()];
+		let baseSlots = [...(doctor.availableSlots[dayName] || [])].map(s => s.toObject ? s.toObject() : s);
+		const dateOverrides = doctor.scheduleOverrides.filter(o => new Date(o.date).toDateString() === dateObj.toDateString());
+		
+		if (dateOverrides.some(o => o.type === 'cancelled' && !o.targetSlotId)) {
+			return res.status(400).json({ error: "Doctor is unavailable on this date." });
+		}
+
+		for (const override of dateOverrides) {
+			if (override.type === 'cancelled' && override.targetSlotId) {
+				baseSlots = baseSlots.filter(s => s.isOverride || s._id.toString() !== override.targetSlotId.toString());
+			} else if (override.type === 'rescheduled' && override.targetSlotId) {
+				const idx = baseSlots.findIndex(s => !s.isOverride && s._id.toString() === override.targetSlotId.toString());
+				if (idx !== -1) {
+					baseSlots[idx] = {
+                        ...baseSlots[idx],
+                        startTime: override.newStartTime || baseSlots[idx].startTime,
+                        maxCapacity: override.newMaxCapacity || baseSlots[idx].maxCapacity,
+                        isOverride: true,
+                    };
+				}
+			} else if (override.type === 'added') {
+				baseSlots.push({
+					_id: override._id,
+					startTime: override.newStartTime,
+					maxCapacity: override.newMaxCapacity || 1,
+					isOverride: true
+				});
+			}
+		}
+
+		const foundSlot = baseSlots.find(s => s._id.toString() === slotId.toString());
+		if (!foundSlot) {
+			return res.status(400).json({ error: "Invalid or cancelled time slot." });
+		}
+		
+		const slotBookings = activeBookings.filter(b => b.slotId.toString() === slotId.toString());
+		if (slotBookings.length >= (foundSlot.maxCapacity || 1)) {
+			return res.status(400).json({ error: "This time slot is already booked for the selected doctor. Please Choose a different date or time slot." });
 		}
 
 		// Create a new booking
@@ -121,7 +181,7 @@ exports.createBooking = async (req, res) => {
 			doctorId: doctor._id,
 			doctorName,
 			doctorEmail,
-			timeSlot,
+			slotId,
 			patientId,
 			dateOfAppointment,
 			patientEmail: email,
@@ -130,11 +190,14 @@ exports.createBooking = async (req, res) => {
 			patientAge,
 			patientIllness,
 			meetLink,
-			amountPaid: doctor.price,
+			amountPaid: amountPaid !== undefined ? amountPaid : (doctor.price || 0),
 		});
 
 		// Save the booking to the database
 		await newBooking.save();
+
+		// Notify doctor of new pending booking
+		notifyDoctor(doctor._id);
 
 		return res.status(201).json({
 			message: "Appointment booked successfully",
@@ -234,6 +297,9 @@ exports.uploadPaymentScreenshot = (req, res) => {
 
 			await booking.save();
 
+			// Notify doctor of new screenshot upload
+			notifyDoctor(booking.doctorId);
+
 			return res.status(200).json({
 				message: "Payment screenshot uploaded and booking updated",
 				booking,
@@ -265,8 +331,10 @@ exports.verifyPaymentProof = async (req, res) => {
 
 		booking.paymentStatus = "Completed";
 		await booking.save();
+		
+		notifyDoctor(booking.doctorId);
 
-		return res.status(200).json({ message: "Payment verified successfully", booking });
+		res.status(200).json({ message: "Booking status updated successfully", booking });
 	} catch (error) {
 		console.error("Error verifying payment:", error);
 		return res.status(500).json({ error: "Server error" });
@@ -319,10 +387,14 @@ exports.updateBookingStatus = async (req, res) => {
 
         // Logic to generate Jitsi link if the request is accepted
         if (requestAccept === "accepted") {
-            // Create a unique room name using the booking ID and a short random string
-            // Jitsi rooms are accessed via: https://meet.jit.si/RoomName
-            const uniqueRoomName = `AyuHub-${id}-${Math.random().toString(36).substring(7)}`;
-            updateData.meetLink = `https://meet.jit.si/${uniqueRoomName}`;
+            if (req.body.meetLink && req.body.meetLink.trim() !== "") {
+                updateData.meetLink = req.body.meetLink.trim();
+            } else {
+                // Create a unique room name using the booking ID and a short random string
+                // Jitsi rooms are accessed via: https://meet.jit.si/RoomName
+                const uniqueRoomName = `AyuHub-${id}-${Math.random().toString(36).substring(7)}`;
+                updateData.meetLink = `https://meet.jit.si/${uniqueRoomName}`;
+            }
         }
 
         // Find the booking by ID and update the fields, ensuring doctor owns it
@@ -335,6 +407,8 @@ exports.updateBookingStatus = async (req, res) => {
         if (!updatedBooking) {
             return res.status(404).json({ error: "Booking not found" });
         }
+        
+        notifyDoctor(updatedBooking.doctorId);
 
         return res.status(200).json({
             message: `Booking ${requestAccept === "accepted" ? "accepted" : "denied"} successfully`,
@@ -386,8 +460,10 @@ exports.deleteBooking = async (req, res) => {
 		const deletedBooking = await Booking.findOneAndDelete({ _id: id, patientId: req.user._id });
 
 		if (!deletedBooking) {
-			return res.status(404).json({ error: "Booking not found" });
+			return res.status(404).json({ message: "Booking not found or not authorized to delete" });
 		}
+		
+		notifyDoctor(deletedBooking.doctorId);
 
 		return res.status(200).json({ message: "Booking deleted successfully" });
 	} catch (error) {
@@ -561,15 +637,53 @@ exports.getBookingsByPatientId = async (req, res) => {
 	}
 
 	try {
-		const bookings = await Booking.find({ patientId }).sort({ createdAt: -1 });
+		const bookings = await Booking.find({ patientId }).populate('doctorId').sort({ createdAt: -1 });
 
 		if (!bookings || bookings.length === 0) {
 			return res.status(200).json({ bookings: [] });
 		}
 
+		// Process bookings with doctor schedule overrides (cancellations and reschedules)
+		const processedBookings = bookings.map(booking => {
+			const bookingObj = booking.toObject ? booking.toObject() : booking;
+			const doctor = booking.doctorId;
+			
+			// Resolve the current startTime for the booking based on base template
+			if (doctor && doctor.availableSlots) {
+				const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][new Date(booking.dateOfAppointment).getDay()];
+				const baseSlots = doctor.availableSlots[dayName] || [];
+				const baseSlot = baseSlots.find(s => s._id.toString() === booking.slotId.toString());
+				if (baseSlot) {
+					bookingObj.timeSlot = baseSlot.startTime;
+				}
+			}
+
+			if (doctor && Array.isArray(doctor.scheduleOverrides)) {
+				const bookingDateStr = new Date(booking.dateOfAppointment).toDateString();
+				const override = doctor.scheduleOverrides.find(o => {
+					return new Date(o.date).toDateString() === bookingDateStr && 
+						   o.targetSlotId && o.targetSlotId.toString() === booking.slotId.toString();
+				});
+
+				if (override) {
+					if (override.type === 'cancelled') {
+						bookingObj.isCancelledByDoctor = true;
+						bookingObj.requestAccept = "denied"; // Render as denied/cancelled
+						bookingObj.doctorsMessage = override.newReason || "This slot was cancelled by the doctor.";
+					} else if (override.type === 'rescheduled') {
+						bookingObj.isRescheduledByDoctor = true;
+						bookingObj.rescheduledTimeSlot = override.newStartTime;
+						bookingObj.originalTimeSlot = bookingObj.timeSlot;
+						bookingObj.timeSlot = override.newStartTime; // Dynamically show new time
+					}
+				}
+			}
+			return bookingObj;
+		});
+
 		return res.status(200).json({
 			message: "Bookings retrieved successfully for patient",
-			bookings,
+			bookings: processedBookings,
 		});
 	} catch (error) {
 		console.error("❌ Error fetching bookings by patient ID:", error);
@@ -595,9 +709,49 @@ exports.getBookingsByDoctorId = async (req, res) => {
 			return res.status(200).json({ bookings: [] });
 		}
 
+		const doctor = await Doctor.findById(doctorId);
+		let processedBookings = bookings;
+		if (doctor) {
+			processedBookings = bookings.map(booking => {
+				const bookingObj = booking.toObject ? booking.toObject() : booking;
+				
+				if (doctor.availableSlots) {
+					const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][new Date(booking.dateOfAppointment).getDay()];
+					const baseSlots = doctor.availableSlots[dayName] || [];
+					const baseSlot = baseSlots.find(s => s._id.toString() === booking.slotId.toString());
+					if (baseSlot) {
+						bookingObj.timeSlot = baseSlot.startTime;
+					}
+				}
+
+				// Process bookings with doctor schedule overrides (cancellations and reschedules)
+				if (Array.isArray(doctor.scheduleOverrides)) {
+					const bookingDateStr = new Date(booking.dateOfAppointment).toDateString();
+					const override = doctor.scheduleOverrides.find(o => {
+						return new Date(o.date).toDateString() === bookingDateStr && 
+							   o.targetSlotId && o.targetSlotId.toString() === booking.slotId.toString();
+					});
+
+					if (override) {
+						if (override.type === 'cancelled') {
+							bookingObj.isCancelledByDoctor = true;
+							bookingObj.requestAccept = "denied"; // Render as denied/cancelled
+							bookingObj.doctorsMessage = override.newReason || "This slot was cancelled by you.";
+						} else if (override.type === 'rescheduled') {
+							bookingObj.isRescheduledByDoctor = true;
+							bookingObj.rescheduledTimeSlot = override.newStartTime;
+							bookingObj.originalTimeSlot = bookingObj.timeSlot;
+							bookingObj.timeSlot = override.newStartTime; // Dynamically show new time
+						}
+					}
+				}
+				return bookingObj;
+			});
+		}
+
 		return res.status(200).json({
 			message: "Bookings retrieved successfully for doctor",
-			bookings,
+			bookings: processedBookings,
 		});
 	} catch (error) {
 		console.error("❌ Error fetching bookings by doctor ID:", error);
@@ -672,5 +826,42 @@ exports.getReviewedBookingsForDoctorId = async (req, res) => {
 	}
 };
 
+// Helper function to emit events to a doctor's open SSE connections
+const notifyDoctor = (doctorId) => {
+	const doctorConns = doctorConnections.get(doctorId.toString());
+	if (doctorConns) {
+		doctorConns.forEach((res) => {
+			res.write(`data: {"type": "booking_update"}\n\n`);
+		});
+	}
+};
 
+exports.streamNotifications = (req, res) => {
+	const { doctorId } = req.params;
 
+	// Set headers for SSE
+	res.setHeader('Content-Type', 'text/event-stream');
+	res.setHeader('Cache-Control', 'no-cache');
+	res.setHeader('Connection', 'keep-alive');
+	res.flushHeaders(); // flush the headers to establish connection
+
+	// Add the connection to our map
+	if (!doctorConnections.has(doctorId.toString())) {
+		doctorConnections.set(doctorId.toString(), new Set());
+	}
+	doctorConnections.get(doctorId.toString()).add(res);
+
+	// Send an initial connected message
+	res.write('data: {"type": "connected"}\n\n');
+
+	// Remove connection when client closes it
+	req.on('close', () => {
+		const doctorConns = doctorConnections.get(doctorId.toString());
+		if (doctorConns) {
+			doctorConns.delete(res);
+			if (doctorConns.size === 0) {
+				doctorConnections.delete(doctorId.toString());
+			}
+		}
+	});
+};

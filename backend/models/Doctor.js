@@ -13,7 +13,7 @@ const SlotTemplateSchema = new mongoose.Schema({
 const ScheduleOverrideSchema = new mongoose.Schema({
     date: { type: Date, required: true },
     type: { type: String, enum: ['cancelled', 'rescheduled', 'added'], required: true },
-    originalStartTime: { type: String }, // Required for 'cancelled' or 'rescheduled'
+    targetSlotId: { type: mongoose.Schema.Types.ObjectId }, // Required for 'cancelled' or 'rescheduled'
     
     // Details if 'rescheduled' or 'added'
     newStartTime: { type: String },
@@ -46,6 +46,16 @@ const doctorSchema = new mongoose.Schema({
     dob: { type: String, required: false }, // Date as string or Date format
     profileImage: { type: String, required: false }, // from DoctorData imageLink
     qrCode: { type: String }, // payment qr
+    upiId: {
+        type: String,
+        required: false,
+        validate: {
+            validator: function(v) {
+                return !v || /^[a-zA-Z0-9.\-_]{1,256}@[a-zA-Z0-9.\-_]{1,64}$/.test(v);
+            },
+            message: props => `${props.value} is not a valid UPI ID!`
+        }
+    },
     introduction: { type: String },
     languages: [{ type: String }],
     timings: { type: String },

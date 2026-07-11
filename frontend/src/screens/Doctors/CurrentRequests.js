@@ -8,7 +8,9 @@ function CurrentRequests() {
 	const [error, setError] = useState(null);
 
 	const [denyingRequest, setDenyingRequest] = useState(null);
+	const [acceptingRequest, setAcceptingRequest] = useState(null);
 	const [doctorsMessage, setDoctorsMessage] = useState("");
+	const [meetLink, setMeetLink] = useState("");
 
 	const { auth } = useContext(AuthContext);
 	const firstName = auth.user?.firstName || "Doctor";
@@ -43,8 +45,9 @@ function CurrentRequests() {
 				console.log("Fetched Requests:", requestsArray);
 
 				// Filter the requests based on the logged-in doctor's email
+				// Hide bookings requiring payment where the patient hasn't uploaded a proof yet
 				const filteredRequests = requestsArray.filter(
-					(request) => request.requestAccept === "pending"
+					(request) => request.requestAccept === "pending" && (request.amountPaid === 0 || request.paymentScreenshot)
 				);
 
 				setRequests(filteredRequests);
@@ -58,8 +61,8 @@ function CurrentRequests() {
 		fetchRequests();
 	}, [doctorId]);
 
-	// Function to accept request
-	const acceptRequest = async (id) => {
+	// Function to accept request with optional meetLink
+	const acceptRequest = async (id, customMeetLink) => {
 		try {
 			const response = await fetch(
 				`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/bookings/update/${id}`,
@@ -69,7 +72,7 @@ function CurrentRequests() {
 						"Content-Type": "application/json",
 						Authorization: `Bearer ${localStorage.getItem("token")}`
 					},
-					body: JSON.stringify({ requestAccept: "accepted" }),
+					body: JSON.stringify({ requestAccept: "accepted", meetLink: customMeetLink }),
 				}
 			);
 
@@ -82,7 +85,9 @@ function CurrentRequests() {
 				prevRequests.filter((request) => request._id !== id)
 			);
 
-			alert(`Request ${id} accepted!`);
+			setAcceptingRequest(null);
+			setMeetLink("");
+			alert(`Request accepted successfully!`);
 		} catch (error) {
 			console.error("Error accepting request:", error);
 			alert("Error accepting the request.");
@@ -173,32 +178,73 @@ function CurrentRequests() {
 						<p>
 							<strong>Patient's Illness:</strong> {request.patientIllness}
 						</p>
+						{request.amountPaid > 0 && request.paymentScreenshot && (
+							<div className="payment-proof-preview">
+								<strong>Payment Proof:</strong>
+								<div className="proof-image-box">
+									<a href={request.paymentScreenshot} target="_blank" rel="noreferrer">
+										<img 
+											src={request.paymentScreenshot} 
+											alt="Payment Proof Screenshot" 
+											className="proof-thumbnail"
+										/>
+									</a>
+								</div>
+							</div>
+						)}
+
 						<div className="action-buttons">
-							<button onClick={() => acceptRequest(request._id)}>
+							<button onClick={() => { setAcceptingRequest(request._id); setDenyingRequest(null); setMeetLink(""); }}>
 								Accept Request
 							</button>
 
 							{/* Show the deny button */}
 							<button
-								onClick={() => setDenyingRequest(request._id)} // Set the denying request state
+								onClick={() => { setDenyingRequest(request._id); setAcceptingRequest(null); setDoctorsMessage(""); }} // Set the denying request state
 								className="deny-button"
 							>
 								Deny Request
 							</button>
 						</div>
 
+						{/* Show the input field if acceptingRequest matches this request's ID */}
+						{acceptingRequest === request._id && (
+							<div className="inline-action-form accept-link-form">
+								<p className="form-tip">💡 You can optionally paste your custom Google Meet, Zoom, or other consultation link below. If left blank, a secure Jitsi link will be generated automatically.</p>
+								<div className="input-with-button">
+									<input
+										type="text"
+										value={meetLink}
+										onChange={(e) => setMeetLink(e.target.value)}
+										placeholder="Custom meeting link (Google Meet, Zoom, etc.)"
+									/>
+									<button className="confirm-accept-btn" onClick={() => acceptRequest(request._id, meetLink)}>
+										Confirm Accept
+									</button>
+									<button className="cancel-action-btn" onClick={() => setAcceptingRequest(null)}>
+										Cancel
+									</button>
+								</div>
+							</div>
+						)}
+
 						{/* Show the input field if denyingRequest matches this request's ID */}
 						{denyingRequest === request._id && (
-							<div className="denial-reason">
-								<input
-									type="text"
-									value={doctorsMessage}
-									onChange={(e) => setDoctorsMessage(e.target.value)} // Update the doctor's message state
-									placeholder="Provide reason for denial"
-								/>
-								<button onClick={() => denyRequest(request._id)}>
-									Submit Denial
-								</button>
+							<div className="inline-action-form denial-reason">
+								<div className="input-with-button">
+									<input
+										type="text"
+										value={doctorsMessage}
+										onChange={(e) => setDoctorsMessage(e.target.value)} // Update the doctor's message state
+										placeholder="Provide reason for denial"
+									/>
+									<button className="confirm-deny-btn" onClick={() => denyRequest(request._id)}>
+										Submit Denial
+									</button>
+									<button className="cancel-action-btn" onClick={() => setDenyingRequest(null)}>
+										Cancel
+									</button>
+								</div>
 							</div>
 						)}
 					</div>

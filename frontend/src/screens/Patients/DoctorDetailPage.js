@@ -36,10 +36,26 @@ function DoctorDetail() {
 	}, []);
 	const [dateOfAppointment, setDateOfAppointment] = useState(getLocalDateString()); // Default to today
 	const [availableSlots, setAvailableSlots] = useState([]);
+	const [doctorUpiId, setDoctorUpiId] = useState(doctor.upiId || "");
+	const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+	const [currentBooking, setCurrentBooking] = useState(null);
+	const [screenshotFile, setScreenshotFile] = useState(null);
+	const [uploadingScreenshot, setUploadingScreenshot] = useState(false);
 	const [loadingSlots, setLoadingSlots] = useState(false);
 	const [showAllSlots, setShowAllSlots] = useState(false);
 	const [zoomImage, setZoomImage] = useState(false);
 	const [carouselStartDate, setCarouselStartDate] = useState(getLocalDateString());
+
+	const filteredSlots = useMemo(() => {
+		let slots = availableSlots || [];
+		if (!doctorUpiId) {
+			slots = slots.filter(slot => {
+				const fee = slot.fee !== undefined ? slot.fee : (doctor.pricepoint || doctor.price || 0);
+				return fee <= 0;
+			});
+		}
+		return slots;
+	}, [availableSlots, doctorUpiId, doctor.pricepoint, doctor.price]);
 	const dates = useMemo(() => {
 		const d = [];
 		const [year, month, day] = carouselStartDate.split("-").map(Number);
@@ -70,6 +86,28 @@ function DoctorDetail() {
 	};
 
 	const patientId = getPatientIdFromToken();
+
+	const fetchSlots = async () => {
+		if (!dateOfAppointment) return;
+		setLoadingSlots(true);
+		try {
+			const token = localStorage.getItem("token");
+			const res = await fetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/doctors/${doctor.id || doctor._id}/slots/${dateOfAppointment}`, {
+				headers: { Authorization: `Bearer ${token}` }
+			});
+			const data = await res.json();
+			if (res.ok) {
+				setAvailableSlots(data.slots || []);
+				if (data.upiId !== undefined) {
+					setDoctorUpiId(data.upiId);
+				}
+			}
+		} catch (e) {
+			console.error("Error fetching slots", e);
+		} finally {
+			setLoadingSlots(false);
+		}
+	};
 
 	const handleTimeSlotClick = (time) => {
 		setSelectedTime(time); // Set the selected time slot
@@ -141,7 +179,7 @@ function DoctorDetail() {
 				doctorId: doctor.id || doctor._id,
 				doctorName: doctor.name,
 				doctorEmail: doctor.email,
-				timeSlot: selectedTime.startTime,
+				slotId: selectedTime._id,
 				dateOfAppointment: dateOfAppointment,
 				patientId: patientId,
 				patientEmail: patientEmail,
@@ -179,7 +217,12 @@ function DoctorDetail() {
 				const result = await response.json();
 
 				if (response.ok) {
-					alert("Appointment request sent successfully!");
+					if (bookingData.amountPaid > 0) {
+						setCurrentBooking(result.booking);
+						setPaymentModalOpen(true);
+					} else {
+						alert("Appointment booked successfully!");
+					}
 					console.log("Booking response:", result); // Optional: log the server response
 				} else {
 					alert(result.error || "Failed to book appointment");
@@ -192,6 +235,72 @@ function DoctorDetail() {
 				message: "Please fill all fields and select a time slot.",
 				type: "error"
 			});
+		}
+	};
+
+	const handleUploadProof = async (e) => {
+		e.preventDefault();
+		if (!screenshotFile) {
+			alert("Please choose a screenshot file to upload.");
+			return;
+		}
+
+		setUploadingScreenshot(true);
+		const formData = new FormData();
+		formData.append("paymentScreenshot", screenshotFile);
+
+		try {
+			const token = localStorage.getItem("token");
+			const response = await fetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/bookings/${currentBooking._id}/payment`, {
+				method: "POST",
+				headers: {
+					Authorization: `Bearer ${token}`
+				},
+				body: formData
+			});
+
+			const result = await response.json();
+			if (response.ok) {
+				setPaymentModalOpen(false);
+				setCurrentBooking(null);
+				setScreenshotFile(null);
+				alert("Payment proof uploaded successfully! Your appointment request is sent for verification.");
+				fetchSlots(); // Refresh slots to update UI
+			} else {
+				alert(result.error || "Failed to upload payment proof.");
+			}
+		} catch (error) {
+			console.error("Error uploading payment proof:", error);
+			alert("Failed to upload payment proof.");
+		} finally {
+			setUploadingScreenshot(false);
+		}
+	};
+
+	const handleCancelPayment = async () => {
+		if (!window.confirm("Are you sure you want to cancel booking? The held slot will be released immediately.")) return;
+		try {
+			const token = localStorage.getItem("token");
+			const response = await fetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/bookings/delete/${currentBooking._id}`, {
+				method: "DELETE",
+				headers: {
+					Authorization: `Bearer ${token}`
+				}
+			});
+
+			if (response.ok) {
+				alert("Booking cancelled. The slot has been released.");
+				setPaymentModalOpen(false);
+				setCurrentBooking(null);
+				setScreenshotFile(null);
+				fetchSlots(); // Refresh slots to update UI
+			} else {
+				const result = await response.json();
+				alert(result.error || "Failed to release the slot.");
+			}
+		} catch (error) {
+			console.error("Error cancelling booking:", error);
+			alert("Failed to cancel booking.");
 		}
 	};
 
@@ -209,24 +318,6 @@ function DoctorDetail() {
 	}, [doctor.email]);
 
 	useEffect(() => {
-		const fetchSlots = async () => {
-			if (!dateOfAppointment) return;
-			setLoadingSlots(true);
-			try {
-				const token = localStorage.getItem("token");
-				const res = await fetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/doctors/${doctor.id || doctor._id}/slots/${dateOfAppointment}`, {
-					headers: { Authorization: `Bearer ${token}` }
-				});
-				const data = await res.json();
-				if (res.ok) {
-					setAvailableSlots(data.slots || []);
-				}
-			} catch (e) {
-				console.error("Error fetching slots", e);
-			} finally {
-				setLoadingSlots(false);
-			}
-		};
 		fetchSlots();
 	}, [dateOfAppointment, doctor._id, doctor.id]);
 
@@ -360,8 +451,8 @@ function DoctorDetail() {
 					<div className="availability-slots" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '15px', marginBottom: '8px' }}>
 						{loadingSlots ? (
 							<p>Loading slots...</p>
-						) : availableSlots.length > 0 ? (
-							(showAllSlots ? availableSlots : availableSlots.slice(0, 4)).map((slot, idx) => {
+						) : filteredSlots.length > 0 ? (
+							(showAllSlots ? filteredSlots : filteredSlots.slice(0, 4)).map((slot, idx) => {
 								const isBooked = slot.remainingCapacity <= 0;
 								const isPast = isSlotPassed(slot.startTime);
 								const isDisabled = isBooked || isPast;
@@ -397,9 +488,15 @@ function DoctorDetail() {
 										}}
 									>
 										<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-											<span style={{ fontSize: '16px', fontWeight: 'bold', color: isDisabled ? '#94a3b8' : '#0f172a' }}>
-												{formatTime12Hour(slot.startTime)}
-											</span>
+											<div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+												<span style={{ fontSize: '16px', fontWeight: 'bold', color: isDisabled ? '#94a3b8' : '#0f172a' }}>
+													{formatTime12Hour(slot.startTime)}
+												</span>
+												<span style={{ fontSize: '14px', color: isDisabled ? '#94a3b8' : '#cbd5e1' }}>|</span>
+												<span style={{ fontSize: '12px', fontWeight: '600', color: isDisabled ? '#94a3b8' : '#64748b' }}>
+													{slot.duration} min
+												</span>
+											</div>
 											<span style={{ fontSize: '14px', fontWeight: 'bold', color: '#10b981' }}>
 												₹{slot.fee !== undefined ? slot.fee : doctor.pricepoint}
 											</span>
@@ -427,7 +524,7 @@ function DoctorDetail() {
 						)}
 					</div>
 					
-					{!loadingSlots && availableSlots.length > 4 && (
+					{!loadingSlots && filteredSlots.length > 4 && (
 						<div style={{ textAlign: 'center', marginBottom: '10px' }}>
 							<button 
 								onClick={() => setShowAllSlots(!showAllSlots)} 
@@ -436,7 +533,7 @@ function DoctorDetail() {
 								{showAllSlots ? (
 									<>Show Less <span>▲</span></>
 								) : (
-									<>Show {availableSlots.length - 4} More <span>▼</span></>
+									<>Show {filteredSlots.length - 4} More <span>▼</span></>
 								)}
 							</button>
 						</div>
@@ -497,6 +594,108 @@ function DoctorDetail() {
 						style={{ maxWidth: '90%', maxHeight: '90vh', borderRadius: '12px', boxShadow: '0 10px 30px rgba(0,0,0,0.5)', objectFit: 'contain' }}
 						onClick={(e) => e.stopPropagation()}
 					/>
+				</div>
+			)}
+
+			{/* UPI P2P Payment & Hold Modal */}
+			{paymentModalOpen && currentBooking && (
+				<div className="upi-payment-overlay">
+					<div className="upi-payment-modal" onClick={(e) => e.stopPropagation()}>
+						<div className="upi-modal-body">
+							{/* Left Pane: Summary and Info */}
+							<div className="upi-modal-left-pane">
+								<div className="upi-modal-header">
+									<h3>Secure UPI Payment</h3>
+									<p className="upi-hold-warning">⚠️ Your slot is temporarily locked for you. Complete payment now to confirm.</p>
+								</div>
+								
+								<div className="upi-payment-summary">
+									<div className="summary-item">
+										<span>Doctor</span>
+										<strong>Dr. {doctor.firstName} {doctor.lastName}</strong>
+									</div>
+									<div className="summary-item">
+										<span>Consultation Fee</span>
+										<strong className="fee-amt">₹{currentBooking.amountPaid}</strong>
+									</div>
+								</div>
+
+								<div className="upi-left-actions">
+									<button 
+										type="button" 
+										className="cancel-booking-btn desktop-cancel"
+										onClick={handleCancelPayment}
+										disabled={uploadingScreenshot}
+									>
+										Cancel Booking & Release Slot
+									</button>
+								</div>
+							</div>
+
+							{/* Right Pane: Payment Actions */}
+							<div className="upi-modal-right-pane">
+								<div className="upi-payment-options">
+									{/* Mobile Option: Click to Launch UPI Deep Link */}
+									<div className="upi-option-section mobile-only-intent">
+										<button 
+											className="upi-intent-btn"
+											onClick={() => {
+												const upiUrl = `upi://pay?pa=${doctorUpiId}&pn=Dr.%20${doctor.firstName}%20${doctor.lastName}&am=${currentBooking.amountPaid}&cu=INR&tn=AyuHub-${currentBooking._id}`;
+												window.open(upiUrl, "_self");
+											}}
+										>
+											Pay Using Any UPI App (Mobile)
+										</button>
+										<span className="or-divider">OR</span>
+									</div>
+
+									{/* Desktop Option: QR Code Scan */}
+									<div className="upi-option-section qr-section">
+										<p className="qr-title">Scan QR Code to Pay</p>
+										<div className="qr-image-container">
+											<img 
+												src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`upi://pay?pa=${doctorUpiId}&pn=Dr.%20${doctor.firstName}%20${doctor.lastName}&am=${currentBooking.amountPaid}&cu=INR&tn=AyuHub-${currentBooking._id}`)}`}
+												alt="UPI Payment QR Code"
+												className="payment-qr-img"
+											/>
+										</div>
+									</div>
+								</div>
+
+								{/* Screenshot Upload Form */}
+								<form className="upi-proof-form" onSubmit={handleUploadProof}>
+									<div className="proof-input-group">
+										<label htmlFor="screenshot-input">Upload Payment Screenshot</label>
+										<p className="proof-tip">💡 Tip: Take a screenshot of the successful transaction page. When you click 'Choose File', select the latest image from your gallery/screenshots.</p>
+										<input 
+											type="file" 
+											id="screenshot-input" 
+											accept="image/*" 
+											onChange={(e) => setScreenshotFile(e.target.files[0])}
+											required
+										/>
+									</div>
+									<div className="upi-modal-actions">
+										<button 
+											type="submit" 
+											className="submit-proof-btn"
+											disabled={uploadingScreenshot}
+										>
+											{uploadingScreenshot ? "Uploading..." : "Submit Payment Proof"}
+										</button>
+										<button 
+											type="button" 
+											className="cancel-booking-btn mobile-cancel"
+											onClick={handleCancelPayment}
+											disabled={uploadingScreenshot}
+										>
+											Cancel Booking & Release Slot
+										</button>
+									</div>
+								</form>
+							</div>
+						</div>
+					</div>
 				</div>
 			)}
 		</div>

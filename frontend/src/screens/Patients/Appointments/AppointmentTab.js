@@ -35,7 +35,7 @@ const AppointmentTab = ({
 										(dd/mm/yyyy)
 									</li>
 									<li>
-										<strong>Timeslot:</strong> {upcomingAppointment.timeSlot}
+										<strong>Timeslot:</strong> {upcomingAppointment.timeSlot} {upcomingAppointment.isRescheduledByDoctor && <span style={{ backgroundColor: '#fef3c7', color: '#d97706', padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 'bold', marginLeft: '8px', border: '1px solid #fde68a', display: 'inline-block' }}>Rescheduled</span>}
 									</li>
 									<li>
 										<strong>Doctor's Email:</strong>{" "}
@@ -129,7 +129,7 @@ const AppointmentTab = ({
 										(dd/mm/yyyy)
 									</li>
 									<li>
-										<strong>Timeslot:</strong> {pendingDoctor.timeSlot}
+										<strong>Timeslot:</strong> {pendingDoctor.timeSlot} {pendingDoctor.isRescheduledByDoctor && <span style={{ backgroundColor: '#fef3c7', color: '#d97706', padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 'bold', marginLeft: '8px', border: '1px solid #fde68a', display: 'inline-block' }}>Rescheduled</span>}
 									</li>
 									<li>
 										<strong>Doctor's Email:</strong>{" "}
@@ -162,7 +162,7 @@ const AppointmentTab = ({
 								<h2>with Dr. {deniedDoctor.doctorName}</h2>
 								<ul>
 									<li>
-										<strong>Status:</strong> Denied
+										<strong>Status:</strong> {deniedDoctor.isCancelledByDoctor ? <span style={{ color: '#ef4444', fontWeight: 'bold' }}>Cancelled by Doctor</span> : "Denied"}
 									</li>
 									<li>
 										<strong>Date:</strong>{" "}

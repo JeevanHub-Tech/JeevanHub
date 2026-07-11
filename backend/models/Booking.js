@@ -16,8 +16,8 @@ const bookingSchema = new mongoose.Schema({
 		type: String,
 		required: true,
 	},
-	timeSlot: {
-		type: String,
+	slotId: {
+		type: mongoose.Schema.Types.ObjectId,
 		required: true,
 	},
 	dateOfAppointment: {

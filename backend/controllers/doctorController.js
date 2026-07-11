@@ -78,6 +78,7 @@ exports.getAllDoctorsData = async (req, res) => {
 			lastName: doc.lastName,
 			email: doc.email,
 			phone: doc.phone,
+			upiId: doc.upiId || "",
 			age: doc.age,
 			gender: doc.gender,
 			zipCode: doc.zipCode || "Not specified",
@@ -218,6 +219,7 @@ exports.getDoctorById = async (req, res) => {
 				lastName: doc.lastName,
 				email: doc.email,
 				phone: doc.phone,
+				upiId: doc.upiId || "",
 				age: doc.age,
 				gender: doc.gender,
 				zipCode: doc.zipCode || "Not specified",
@@ -293,6 +295,12 @@ exports.updateDoctor = async (req, res) => {
             if (updates.designation !== undefined) doctor.designation = updates.designation;
             if (updates.profileImage !== undefined) doctor.profileImage = updates.profileImage;
             if (updates.availableSlots !== undefined) doctor.availableSlots = updates.availableSlots;
+            if (updates.upiId !== undefined) {
+                if (updates.upiId && !/^[a-zA-Z0-9.\-_]{1,256}@[a-zA-Z0-9.\-_]{1,64}$/.test(updates.upiId)) {
+                    return res.status(400).json({ success: false, message: "Invalid UPI ID format" });
+                }
+                doctor.upiId = updates.upiId;
+            }
 
 			await doctor.save();
 			console.log("Updated Doctor details successfully");

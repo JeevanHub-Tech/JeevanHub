@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { AuthContext } from '../../context/AuthContext';
 import defaultProfilePic from '../../media/default-profile.png';
-import { Camera } from 'lucide-react';
+import { Camera, AlertTriangle, CreditCard, Pencil, Check } from 'lucide-react';
 import './DoctorProfile.css';
 
 const DoctorProfile = () => {
@@ -11,6 +11,8 @@ const DoctorProfile = () => {
     const navigate = useNavigate();
 
     const [isEditing, setIsEditing] = useState(false);
+    const [isEditingUpi, setIsEditingUpi] = useState(false);
+    const [tempUpiId, setTempUpiId] = useState('');
     const [loading, setLoading] = useState(false);
     const [doctorData, setDoctorData] = useState({
         firstName: '',
@@ -26,7 +28,8 @@ const DoctorProfile = () => {
         zipCode: '',
         education: '',
         designation: '',
-        profileImage: ''
+        profileImage: '',
+        upiId: ''
     });
 
     const [passwords, setPasswords] = useState({
@@ -66,7 +69,8 @@ const DoctorProfile = () => {
                     zipCode: data.zipCode || '',
                     education: data.education || '',
                     designation: data.designation || '',
-                    profileImage: data.profileImage || ''
+                    profileImage: data.profileImage || '',
+                    upiId: data.upiId || ''
                 });
             } catch (error) {
                 console.error("Error fetching doctor data:", error);
@@ -109,7 +113,8 @@ const DoctorProfile = () => {
                 zipCode: doctorData.zipCode,
                 education: doctorData.education,
                 designation: doctorData.designation,
-                profileImage: doctorData.profileImage
+                profileImage: doctorData.profileImage,
+                upiId: doctorData.upiId
             };
 
             const response = await axios.put(
@@ -138,6 +143,32 @@ const DoctorProfile = () => {
         } catch (error) {
             console.error("Error updating profile:", error);
             alert("Failed to update profile.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleSaveUpiId = async () => {
+        const upiRegex = /^[a-zA-Z0-9.\-_]{1,256}@[a-zA-Z0-9.\-_]{1,64}$/;
+        if (tempUpiId && !upiRegex.test(tempUpiId)) {
+            alert("Please enter a valid UPI ID format (e.g., doctor@upi).");
+            return;
+        }
+
+        setLoading(true);
+        try {
+            await axios.put(
+                `${process.env.REACT_APP_AYURVEDA_BACKEND_URL || 'http://localhost:8080'}/api/doctors/updateDoctor/${auth.user.id}`,
+                { upiId: tempUpiId },
+                { headers: { Authorization: `Bearer ${auth.token}` } }
+            );
+
+            setDoctorData(prev => ({ ...prev, upiId: tempUpiId }));
+            alert("UPI ID updated successfully!");
+            setIsEditingUpi(false);
+        } catch (error) {
+            console.error("Error updating UPI ID:", error);
+            alert(error.response?.data?.message || "Failed to update UPI ID.");
         } finally {
             setLoading(false);
         }
@@ -273,6 +304,60 @@ const DoctorProfile = () => {
                                 <button className="edit-btn" onClick={() => setIsEditing(true)}>Edit Profile</button>
                             )}
                         </div>
+                    </div>
+
+                    {/* Dedicated Payment / UPI ID Setup Section */}
+                    <div className="upi-payment-setup-container">
+                        {isEditingUpi ? (
+                            <div className="upi-setup-card editing">
+                                <div className="upi-card-header">
+                                    <CreditCard className="card-icon blue-icon" size={22} />
+                                    <h4>Configure UPI ID</h4>
+                                </div>
+                                <p className="upi-setup-desc">Enter your UPI ID to receive direct payments for consultation slots.</p>
+                                <div className="upi-input-group">
+                                    <input 
+                                        type="text" 
+                                        placeholder="e.g. doctorname@okaxis" 
+                                        value={tempUpiId}
+                                        onChange={(e) => setTempUpiId(e.target.value)}
+                                        className="upi-input"
+                                    />
+                                    <div className="upi-input-actions">
+                                        <button className="upi-save-btn" onClick={handleSaveUpiId} disabled={loading} title="Save UPI ID">
+                                            <Check size={18} />
+                                        </button>
+                                        <button className="upi-cancel-btn" onClick={() => setIsEditingUpi(false)}>Cancel</button>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : !doctorData.upiId ? (
+                            <div className="upi-setup-card missing">
+                                <div className="upi-card-info">
+                                    <AlertTriangle className="card-icon orange-icon" size={24} />
+                                    <div className="upi-text-content">
+                                        <h4>UPI ID Missing</h4>
+                                        <p>Your paid slots will not be visible to the patients until you configure a valid UPI ID.</p>
+                                    </div>
+                                </div>
+                                <button className="upi-action-btn add-btn" onClick={() => { setIsEditingUpi(true); setTempUpiId(''); }}>
+                                    Add UPI ID
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="upi-setup-card configured">
+                                <div className="upi-card-info">
+                                    <CreditCard className="card-icon green-icon" size={24} />
+                                    <div className="upi-text-content">
+                                        <h4>UPI ID Configured</h4>
+                                        <p className="upi-id-val">{doctorData.upiId}</p>
+                                    </div>
+                                </div>
+                                <button className="edit-btn-circle" onClick={() => { setIsEditingUpi(true); setTempUpiId(doctorData.upiId); }} title="Edit UPI ID">
+                                    <Pencil size={18} />
+                                </button>
+                            </div>
+                        )}
                     </div>
                     
                     <div className="info-section">

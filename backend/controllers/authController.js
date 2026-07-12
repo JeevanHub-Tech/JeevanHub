@@ -19,14 +19,26 @@ const generateRefreshToken = (user) => {
 	return jwt.sign({ id: user._id, role: user.role }, process.env.REFRESH_TOKEN_SECRET, { expiresIn: '30d' });
 };
 
+// Frontend and backend live on different registrable domains in production
+// (e.g. onrender.com subdomains are each their own site per the public
+// suffix list), which makes every API call cross-site there. A `sameSite:
+// 'lax'` cookie is never sent on cross-site fetch/XHR requests -- only on
+// top-level navigations -- so the refresh endpoint always saw no cookie,
+// refresh always failed, and users got silently logged out ~15 minutes
+// (the access-token lifetime) after login. `sameSite: 'none'` is required
+// for cross-site requests, which in turn requires `secure: true`. Locally
+// frontend/backend share `localhost` so `lax` + non-secure keeps working
+// over plain http.
+const isProdEnv = process.env.NODE_ENV === 'production';
+const REFRESH_COOKIE_OPTIONS = {
+	httpOnly: true,
+	secure: isProdEnv,
+	sameSite: isProdEnv ? 'none' : 'lax',
+	path: '/api/auth',
+};
+
 const setRefreshCookie = (res, token) => {
-	res.cookie('refreshToken', token, {
-		httpOnly: true,
-		secure: process.env.NODE_ENV === 'production',
-		sameSite: 'lax',
-		path: '/api/auth',
-		maxAge: 30 * 24 * 60 * 60 * 1000
-	});
+	res.cookie('refreshToken', token, { ...REFRESH_COOKIE_OPTIONS, maxAge: 30 * 24 * 60 * 60 * 1000 });
 };
 
 // Register Admin (Manually done by an existing admin)
@@ -522,7 +534,7 @@ exports.refreshToken = async (req, res) => {
 		try {
 			decoded = jwt.verify(token, process.env.REFRESH_TOKEN_SECRET);
 		} catch (err) {
-			res.clearCookie('refreshToken', { path: '/api/auth' });
+			res.clearCookie('refreshToken', REFRESH_COOKIE_OPTIONS);
 			return res.status(401).json({ message: "Invalid or expired refresh token." });
 		}
 
@@ -533,7 +545,7 @@ exports.refreshToken = async (req, res) => {
 
 		const user = await Model.findById(decoded.id);
 		if (!user) {
-			res.clearCookie('refreshToken', { path: '/api/auth' });
+			res.clearCookie('refreshToken', REFRESH_COOKIE_OPTIONS);
 			return res.status(401).json({ message: "User not found." });
 		}
 
@@ -542,7 +554,7 @@ exports.refreshToken = async (req, res) => {
 		if (user.passwordChangedAt) {
 			const changedTimestamp = parseInt(user.passwordChangedAt.getTime() / 1000, 10);
 			if (decoded.iat < changedTimestamp) {
-				res.clearCookie('refreshToken', { path: '/api/auth' });
+				res.clearCookie('refreshToken', REFRESH_COOKIE_OPTIONS);
 				return res.status(401).json({ message: "Session expired, please log in again." });
 			}
 		}
@@ -560,6 +572,6 @@ exports.refreshToken = async (req, res) => {
 
 // Clear the refresh-token cookie on sign-out
 exports.logoutUser = async (req, res) => {
-	res.clearCookie('refreshToken', { path: '/api/auth' });
+	res.clearCookie('refreshToken', REFRESH_COOKIE_OPTIONS);
 	res.status(200).json({ message: "Logged out successfully." });
 };

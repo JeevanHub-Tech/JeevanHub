@@ -21,6 +21,17 @@ const loginLimiter = rateLimit({
   message: { message: "Too many login attempts from this IP, please try again after 15 minutes." }
 });
 
+// Refresh-token is called automatically by every logged-in tab roughly once
+// per access-token lifetime (15 min), not typed by a human, so it needs a
+// much looser budget than login. Sharing loginLimiter here meant any IP with
+// a handful of concurrent users (office/campus/carrier NAT) could exhaust the
+// brute-force budget on ordinary silent refreshes and get mass-logged-out.
+const refreshLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 120, // generous: many legitimate tabs/users can share one IP
+  message: { message: "Too many refresh attempts from this IP, please try again shortly." }
+});
+
 const otpLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 5, // limit each IP to 5 OTP attempts
@@ -84,7 +95,7 @@ router.post("/login", loginLimiter, loginUser);
 // No `auth` middleware here on purpose: the whole point is to mint a new
 // access token once the old one has already expired, using the httpOnly
 // refresh-token cookie instead of an Authorization header.
-router.post("/refresh-token", loginLimiter, refreshToken);
+router.post("/refresh-token", refreshLimiter, refreshToken);
 router.post("/logout", logoutUser);
 
 // Force change password route

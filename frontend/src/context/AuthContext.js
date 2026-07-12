@@ -50,7 +50,13 @@ function AuthProvider({ children }) {
 					return newToken;
 				})
 				.catch((err) => {
-					logout();
+					// Only a definitive "this refresh token is invalid/expired" (401)
+					// means the session is actually over. A 429 (rate limit), a 5xx,
+					// or a dropped connection is transient -- logging the user out on
+					// those turns a momentary blip into a forced re-login.
+					if (err.response?.status === 401) {
+						logout();
+					}
 					throw err;
 				})
 				.finally(() => {
@@ -58,6 +64,15 @@ function AuthProvider({ children }) {
 				});
 		}
 		return refreshPromiseRef.current;
+	}, [logout]);
+
+	// authFetch (src/utils/authFetch.js) covers fetch()-based call sites that
+	// can't reach this component's `logout` directly; it signals a definitive
+	// refresh failure via this event instead.
+	useEffect(() => {
+		const onAuthLogout = () => logout();
+		window.addEventListener('auth:logout', onAuthLogout);
+		return () => window.removeEventListener('auth:logout', onAuthLogout);
 	}, [logout]);
 
 	// Transparently swap an expired access token for a fresh one via the

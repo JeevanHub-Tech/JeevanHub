@@ -64,6 +64,7 @@ const Medicines = () => {
     <section className="medicines-section">
       <div className="medicines-header">
         <h2 className="section-title">Explore All Medicines</h2>
+        <p className="medicines-subtitle">Authentic, quality-checked Ayurvedic remedies delivered to your door.</p>
       </div>
       <div className="medicines-grid">
         {loading ? (
@@ -72,20 +73,33 @@ const Medicines = () => {
           <p>{error}</p>
         ) : (
           medicines.slice(0, visibleCount).map((medicine) => (
-            <div className="medicine-cardt" key={medicine._id} onClick={() => navigate(`/medicines/${medicine._id}`)}>
-              <img 
-                src={(medicine.images && medicine.images.length > 0) ? medicine.images[0] : capsuleImage} 
-                alt={medicine.name} 
-                className="medicine-image" 
-                onError={(e) => { e.target.onerror = null; e.target.src = capsuleImage; }}
-              />
-              <div className="medicine-cardt-info">
-                <h3 className="medicine-name">{medicine.name}</h3>
-                <p className="medicine-price">₹{medicine.price}</p>
-                <button 
-                  className="medicine-add-btn" 
-                  onClick={(e) => {
-                    e.stopPropagation();
+            <div className="medicine-cardt" key={medicine._id}>
+              <button
+                type="button"
+                className="medicine-cardt__open"
+                aria-label={`View ${medicine.name}`}
+                onClick={() => navigate(`/medicines/${medicine._id}`)}
+              >
+                <span className="medicine-image-wrap">
+                  <img
+                    src={(medicine.images && medicine.images.length > 0) ? medicine.images[0] : capsuleImage}
+                    alt={medicine.name}
+                    className="medicine-image"
+                    loading="lazy"
+                    onError={(e) => { e.target.onerror = null; e.target.src = capsuleImage; }}
+                  />
+                </span>
+                <span className="medicine-cardt-info">
+                  {medicine.category && <span className="medicine-cat-chip">{medicine.category}</span>}
+                  <span className="medicine-name">{medicine.name}</span>
+                </span>
+              </button>
+              <div className="medicine-cardt-foot">
+                <span className="medicine-price">₹{medicine.price}</span>
+                <button
+                  type="button"
+                  className="medicine-add-btn"
+                  onClick={() => {
                     const patientId = localStorage.getItem("userId");
                     const token = localStorage.getItem("token");
                     if (!patientId) {
@@ -111,14 +125,14 @@ const Medicines = () => {
       </div>
       <div className="see-more-wrapper" style={{ display: 'flex', justifyContent: 'center', gap: '20px' }}>
         {visibleCount < medicines.length && (
-          <a className="see-more-link" onClick={showMore}>
-            See More <span className="arrow-icon">&#9662;</span>
-          </a>
+          <button type="button" className="see-more-link" onClick={showMore}>
+            See More <span className="arrow-icon" aria-hidden="true">&#9662;</span>
+          </button>
         )}
         {visibleCount > defaultVisibleCount && (
-          <a className="see-more-link" onClick={showLess}>
-            See Less <span className="arrow-icon" style={{ transform: 'rotate(180deg)', display: 'inline-block' }}>&#9662;</span>
-          </a>
+          <button type="button" className="see-more-link" onClick={showLess}>
+            See Less <span className="arrow-icon" aria-hidden="true" style={{ transform: 'rotate(180deg)', display: 'inline-block' }}>&#9662;</span>
+          </button>
         )}
       </div>
     </section>

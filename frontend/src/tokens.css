@@ -1,0 +1,74 @@
+/* ==========================================================================
+   JeevanHub design tokens — single source of truth for the patient-facing UI.
+   Mirrors .impeccable/context/DESIGN.md. Prefer var(--jh-token) over raw hex in
+   component CSS so the palette stays coherent and drift can't creep in.
+   All tokens are namespaced --jh-* so nothing outside this file can clobber them.
+   ========================================================================== */
+
+:root {
+	/* --- Brand: olive (identity + action) --- */
+	--jh-olive-leaf: #556b2f; /* primary brand / headings / accents */
+	--jh-olive-action: #4a5c28; /* button fills */
+	--jh-olive-deep: #3f4f22; /* darkest display / section framing */
+	--jh-olive-hover: #3a4a1f; /* button hover */
+	--jh-olive-light: #6b8536; /* lighter olive — top of green gradients/banners */
+
+	/* --- Accents (seasoning, keep < ~10% of a surface) --- */
+	--jh-turmeric-gold: #c8a24a;
+	--jh-bark-brown: #8b4513;
+
+	/* --- Ink & neutrals --- */
+	--jh-ink: #2f3524; /* body text — green-tuned near-black */
+	--jh-ink-strong: #26301a; /* hero / display text */
+	--jh-muted: #5f6a55; /* secondary text (verified ≥4.5:1 on cream) */
+	--jh-cream: #f8f4eb; /* warm page background */
+	--jh-cream-tint: #eef3e4; /* top of page gradients */
+	--jh-sage-pale: #eef2e3; /* icon chips / light tints */
+	--jh-sage-pale-2: #dbe4c6; /* deeper tint end */
+	--jh-surface: #ffffff; /* cards, inputs */
+	--jh-line: rgba(85, 107, 47, 0.14); /* hairline dividers (olive tint) */
+	--jh-line-strong: rgba(85, 107, 47, 0.3);
+
+	/* --- Elevation: green-tinted, never black --- */
+	--jh-shadow-rest: 0 8px 22px rgba(47, 53, 36, 0.07);
+	--jh-shadow-card: 0 10px 28px rgba(47, 53, 36, 0.12);
+	--jh-shadow-hover: 0 24px 46px rgba(47, 53, 36, 0.24);
+
+	/* --- Radii --- */
+	--jh-radius-sm: 4px;
+	--jh-radius-md: 12px;
+	--jh-radius-lg: 20px;
+	--jh-radius-pill: 999px;
+
+	/* --- Motion --- */
+	--jh-ease-organic: cubic-bezier(0.22, 1, 0.36, 1);
+
+	/* --- Type --- */
+	--jh-font-display: "Arbutus Slab", Georgia, serif;
+	--jh-font-body: "Quicksand", Inter, system-ui, sans-serif;
+}
+
+/* Visible keyboard focus for all interactive elements — olive ring, never a
+   bare blue outline. Keyboard-only (pointer clicks stay clean). */
+a:focus-visible,
+button:focus-visible,
+[role="button"]:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+	outline: 3px solid var(--jh-olive-leaf);
+	outline-offset: 2px;
+	border-radius: 4px;
+}
+
+/* Motion sensitivity: honor the OS "reduce motion" setting everywhere. */
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+		scroll-behavior: auto !important;
+	}
+}

@@ -236,8 +236,6 @@ function MedicineIdDetails({ addToCart }) {
               </div>
             )}
 
-            <p className="medicine-details__pharmacy">Sold by: {medicine.pharmacy}</p>
-            
             <div className="medicine-details__price-box">
               <span className="medicine-details__price">{formattedPrice}</span>
               <span className="medicine-details__tax-info">Inclusive of all taxes</span>

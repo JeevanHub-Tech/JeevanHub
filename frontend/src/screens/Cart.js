@@ -1,8 +1,15 @@
 import React, { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
-import { Loader2, ShoppingCart, AlertCircle } from "lucide-react";
+import { Loader2, ShoppingBag, AlertCircle, Minus, Plus, Trash2 } from "lucide-react";
 import "./Cart.css";
 import { AuthContext } from "../context/AuthContext";
+import { authFetch } from "../utils/authFetch";
+
+// Olive-tinted botanical placeholder, used when a medicine has no image or
+// the image URL fails to load — keeps the fallback on-brand instead of a
+// generic gray box or an external placeholder.com request.
+const FALLBACK_IMAGE =
+	'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="%23556b2f" stroke-width="1.5"><path d="M12 2C9 6 6 9 6 13a6 6 0 0 0 12 0c0-4-3-7-6-11Z"/><path d="M12 13v9"/></svg>';
 
 const CartScreen = () => {
 	const navigate = useNavigate();
@@ -24,7 +31,7 @@ const CartScreen = () => {
 			}
 
 			try {
-				const response = await fetch(
+				const response = await authFetch(
 					`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/cart/${patientId}`,
 					{
 						method: 'GET',
@@ -67,7 +74,7 @@ const CartScreen = () => {
 		const action = delta > 0 ? "increment" : "decrement";
 
 		try {
-			const response = await fetch(
+			const response = await authFetch(
 				`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/cart/update-quantity`,
 				{
 					method: 'PUT',
@@ -104,7 +111,7 @@ const CartScreen = () => {
 		if (!patientId) return;
 
 		try {
-			const response = await fetch(
+			const response = await authFetch(
 				`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/cart/remove`,
 				{
 					method: 'DELETE',
@@ -144,6 +151,7 @@ const CartScreen = () => {
 	};
 
 	// Calculate Total Price
+	const itemCount = cartItems.reduce((count, item) => count + item.quantity, 0);
 	const totalPrice = cartItems.reduce((total, item) => {
 		const price = item.medicineId?.price || 0;
 		return total + (price * item.quantity);
@@ -152,96 +160,129 @@ const CartScreen = () => {
 	// --- 3. Render Helpers ---
 	if (loading) {
 		return (
-			<div className="cart-page loading-container">
-				<Loader2 className="animate-spin" size={48} color="#2E7D32" />
-				<p>Loading your prescriptions...</p>
+			<div className="cart-page">
+				<div className="cart-status-container">
+					<Loader2 className="cart-spinner" size={40} />
+					<p>Loading your cart&hellip;</p>
+				</div>
 			</div>
 		);
 	}
 
 	if (error) {
 		return (
-			<div className="cart-page error-container">
-				<AlertCircle size={48} color="#d32f2f" />
-				<p>Error: {error}</p>
-				<button onClick={() => window.location.reload()} className="retry-btn">Retry</button>
+			<div className="cart-page">
+				<div className="cart-status-container">
+					<AlertCircle size={40} className="cart-status-icon cart-status-icon--danger" />
+					<p>{error}</p>
+					<button onClick={() => window.location.reload()} className="cart-btn cart-btn--primary">
+						Retry
+					</button>
+				</div>
 			</div>
 		);
 	}
 
 	// Helper to get image URL safely
 	const getImageUrl = (imagePath) => {
-		if (!imagePath) return 'https://via.placeholder.com/100';
+		if (!imagePath) return FALLBACK_IMAGE;
 		if (imagePath.startsWith('http')) return imagePath;
 		return `${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/${imagePath}`;
 	};
 
 	return (
 		<div className="cart-page">
-			<div className="cart-header">
-				<h1><ShoppingCart size={32} style={{ marginRight: '10px' }} /> Your Cart</h1>
-			</div>
-
-			<div className="cart-items">
-				{cartItems.length === 0 ? (
-					<div className="empty-cart">
-						<p>Your cart is empty.</p>
-						<button onClick={() => navigate('/')} className="continue-shopping-btn">
-							Browse Medicines
-						</button>
-					</div>
-				) : (
-					cartItems.map((item) => (
-						<div key={item._id} className="cart-item">
-							<img
-								src={getImageUrl(item.medicineId?.image)}
-								alt={item.medicineId?.name || "Medicine"}
-							/>
-
-							<div className="cart-details">
-								<h3>{item.medicineId?.name || "Unknown Medicine"}</h3>
-								<p className="item-price">Price: ₹{item.medicineId?.price?.toFixed(2)}</p>
-
-								{item.medicineId?.retailerId?.BusinessName && (
-									<p className="retailer-name">
-										Sold by: {item.medicineId.retailerId.BusinessName}
-									</p>
-								)}
-
-								<div className="quantity-controls">
-									{/* Pass medicineId._id instead of item._id because the controller matches by medicineId */}
-									<button onClick={() => handleQuantityChange(item.medicineId._id, -1)}>-</button>
-									<span>{item.quantity}</span>
-									<button onClick={() => handleQuantityChange(item.medicineId._id, 1)}>+</button>
-								</div>
-
-								<button
-									onClick={() => handleRemoveItem(item.medicineId._id)}
-									className="remove-item-btn"
-								>
-									Remove
-								</button>
-							</div>
-						</div>
-					))
+			<header className="cart-header">
+				<h1>Your Cart</h1>
+				<span className="cart-header__accent" aria-hidden="true" />
+				{cartItems.length > 0 && (
+					<p className="cart-header__count">
+						{itemCount} {itemCount === 1 ? "item" : "items"} ready for checkout
+					</p>
 				)}
-			</div>
+			</header>
 
-			{cartItems.length > 0 && (
-				<div className="cart-summary">
-					<div className="summary-row">
-						<span>Subtotal:</span>
-						<span>₹{totalPrice.toFixed(2)}</span>
-					</div>
-					<div className="summary-total">
-						<h2>Total: ₹{totalPrice.toFixed(2)}</h2>
-					</div>
-					<button
-						onClick={handleProceedToCheckout}
-						className="checkout-btn"
-					>
-						Proceed to Checkout
+			{cartItems.length === 0 ? (
+				<div className="cart-empty">
+					<ShoppingBag size={40} className="cart-empty__icon" aria-hidden="true" />
+					<h2>Your cart is empty</h2>
+					<p>Browse our ayurvedic medicines and add what you need — we&rsquo;ll keep it here for you.</p>
+					<button onClick={() => navigate('/medicines')} className="cart-btn cart-btn--primary">
+						Browse Medicines
 					</button>
+				</div>
+			) : (
+				<div className="cart-layout">
+					<ul className="cart-items">
+						{cartItems.map((item) => {
+							const lineTotal = (item.medicineId?.price || 0) * item.quantity;
+							return (
+								<li key={item._id} className="cart-item">
+									<img
+										src={getImageUrl(item.medicineId?.image)}
+										alt={item.medicineId?.name || "Medicine"}
+										onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = FALLBACK_IMAGE; }}
+									/>
+
+									<div className="cart-details">
+										<div className="cart-details__info">
+											<h3>{item.medicineId?.name || "Unknown Medicine"}</h3>
+											<p className="item-price">₹{item.medicineId?.price?.toFixed(2)} each</p>
+										</div>
+
+										<div className="cart-details__controls">
+											<div className="quantity-controls">
+												{/* Pass medicineId._id instead of item._id because the controller matches by medicineId */}
+												<button
+													onClick={() => handleQuantityChange(item.medicineId._id, -1)}
+													disabled={item.quantity <= 1}
+													aria-label={`Decrease quantity of ${item.medicineId?.name || "item"}`}
+												>
+													<Minus size={16} />
+												</button>
+												<span>{item.quantity}</span>
+												<button
+													onClick={() => handleQuantityChange(item.medicineId._id, 1)}
+													aria-label={`Increase quantity of ${item.medicineId?.name || "item"}`}
+												>
+													<Plus size={16} />
+												</button>
+											</div>
+
+											<p className="item-subtotal">₹{lineTotal.toFixed(2)}</p>
+										</div>
+
+										<button
+											onClick={() => handleRemoveItem(item.medicineId._id)}
+											className="remove-item-btn"
+											aria-label={`Remove ${item.medicineId?.name || "item"} from cart`}
+										>
+											<Trash2 size={15} />
+											Remove
+										</button>
+									</div>
+								</li>
+							);
+						})}
+					</ul>
+
+					<aside className="cart-summary">
+						<h2>Order summary</h2>
+						<div className="cart-summary__row">
+							<span>{itemCount} {itemCount === 1 ? "item" : "items"}</span>
+							<span>₹{totalPrice.toFixed(2)}</span>
+						</div>
+						<div className="cart-summary__total">
+							<span>Total</span>
+							<span>₹{totalPrice.toFixed(2)}</span>
+						</div>
+						<button
+							onClick={handleProceedToCheckout}
+							className="cart-btn cart-btn--primary cart-btn--full"
+						>
+							Proceed to Checkout
+						</button>
+					</aside>
 				</div>
 			)}
 		</div>

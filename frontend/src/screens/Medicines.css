@@ -8,8 +8,17 @@
 /* Theme tokens -- mapped onto the site's real brand palette (tokens.css,
    --jh-*) instead of the generic blue placeholder this page shipped with.
    No prefers-color-scheme override here: the rest of the site is a single
-   "Modern Apothecary" light identity, not OS-driven dark mode. */
-:root {
+   "Modern Apothecary" light identity, not OS-driven dark mode.
+
+   Scoped to .ay-meds-page, NOT :root: several other page stylesheets
+   (OrderHistory.css, Cart.css, MedicineIdDetails.css) also declare
+   generic --bg/--text/--primary/etc at :root, and since CRA doesn't
+   scope plain CSS imports, those all collide in the same global scope --
+   whichever file lands last in the bundle wins for every page. Declaring
+   these directly on this page's own wrapper makes them immune to that,
+   since a value specified on an element always wins over one merely
+   inherited from :root, regardless of the other file's specificity. */
+.ay-meds-page {
   --bg: var(--jh-cream);
   --surface: var(--jh-surface);
   --surface-2: var(--jh-cream-tint);

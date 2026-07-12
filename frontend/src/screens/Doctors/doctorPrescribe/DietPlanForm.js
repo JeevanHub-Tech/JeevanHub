@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 // Import Lucide icons
 import { Salad, Coffee, Sun, Moon, GlassWater, Sprout, Leaf, Plus, X, Send, Loader2 } from 'lucide-react';
 import './DietPlanForm.css';
+import { authFetch } from '../../../utils/authFetch';
 
 // --- Constants ---
 const DAYS_OF_WEEK = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
@@ -68,7 +69,7 @@ export function DietPlanForm({ bookingId, patientId, doctorId }) {
 		setError(null);
 
 		try {
-			const response = await fetch(
+			const response = await authFetch(
 				`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/diet-yoga/`,
 				{
 					method: 'POST',

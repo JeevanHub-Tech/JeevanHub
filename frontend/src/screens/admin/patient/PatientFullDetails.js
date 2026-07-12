@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import "./PatientFullDetails.css";
 import { useNavigate } from "react-router-dom";
+import { authFetch } from "../../../utils/authFetch";
 
 const PatientManagement = () => {
     const [patients, setPatients] = useState([]);
@@ -14,7 +15,7 @@ const PatientManagement = () => {
         const fetchPatients = async () => {
             try {
                 const token = localStorage.getItem("token");
-                const res = await fetch(
+                const res = await authFetch(
                     `${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/patients/getAllPatients`,
                     {
                         headers: {
@@ -51,7 +52,7 @@ const PatientManagement = () => {
         if (!window.confirm("Are you sure you want to delete this patient?")) return;
 
         try {
-            const res = await fetch(
+            const res = await authFetch(
                 `${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/patients/deletePatient/${id}`,
                 { 
                     method: "DELETE",

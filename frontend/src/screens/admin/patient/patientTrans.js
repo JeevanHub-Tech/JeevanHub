@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './patientTrans.css'; // Assuming your CSS file is named this
 import { ReceiptText, Search } from 'lucide-react';
+import { authFetch } from '../../../utils/authFetch';
 
 const Transactions = ({ bookings, patientId }) => {
 	const [searchTerm, setSearchTerm] = useState('');
@@ -12,7 +13,7 @@ const Transactions = ({ bookings, patientId }) => {
 	useEffect(() => {
 		const fetchPatientOrders = async () => {
 			try {
-				const res = await fetch(
+				const res = await authFetch(
 					`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/patients/orders/${patientId}`,
 					{
 						headers: {

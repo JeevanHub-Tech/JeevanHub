@@ -4,6 +4,7 @@ import { Frown, Meh, Smile, Laugh, ArrowLeft } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
 
 import "./BuyerFeedback.css";
+import { authFetch } from "../../utils/authFetch";
 
 const BuyerFeedback = () => {
 	// ✅ Demo data (replace this with your API/backend data later)
@@ -48,7 +49,7 @@ const BuyerFeedback = () => {
 
 			try {
 				const token = localStorage.getItem("token");
-				const res = await fetch(
+				const res = await authFetch(
 					`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/orders/updateOrderReview/${orderId}`, {
 					method: "PUT",
 					headers: {

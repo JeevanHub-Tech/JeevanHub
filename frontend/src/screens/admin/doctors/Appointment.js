@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import "./Appointment.css";
 import { CalendarClock, History as HistoryIcon } from "lucide-react";
+import { authFetch } from "../../../utils/authFetch";
 
 const Appointments = ({ doctorId }) => {
 	const [doctorBookings, setDoctorBookings] = useState([]);
@@ -13,7 +14,7 @@ const Appointments = ({ doctorId }) => {
 		const fetchDoctorBookings = async () => {
 			try {
 				const token = localStorage.getItem("token");
-				const res = await fetch(
+				const res = await authFetch(
 					`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/bookings/doctor/${doctorId}`,
 					{
 						headers: {

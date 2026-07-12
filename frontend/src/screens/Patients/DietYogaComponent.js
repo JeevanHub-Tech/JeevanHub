@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { AuthContext } from '../../context/AuthContext';
 import './DietYogaComponent.css';
+import { authFetch } from '../../utils/authFetch';
 
 const DAY_UI_META = {
     monday: { label: "Light Detox", icon: <Leaf size={18} /> },
@@ -50,7 +51,7 @@ const DietYogaComponent = () => {
         const fetchPrakritiData = async () => {
             if (!patientId) return;
             try {
-                const response = await fetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/prakriti/assessment/getall`, {
+                const response = await authFetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/prakriti/assessment/getall`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const data = await response.json();
@@ -70,7 +71,7 @@ const DietYogaComponent = () => {
             if (!patientId) return;
             setLoadingDiet(true);
             try {
-                const res = await fetch(
+                const res = await authFetch(
                     `${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/patients/dietYoga/${patientId}`,
                     { headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } }
                 );

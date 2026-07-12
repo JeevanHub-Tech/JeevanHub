@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './RetailerFeedbackTab.css';
 import { MessageSquareText, Star, Package } from 'lucide-react';
+import { authFetch } from '../../../utils/authFetch';
 
 // A helper component to render read-only stars
 const StarRating = ({ rating }) => {
@@ -22,7 +23,7 @@ const fetchFeedbackByRetailerId = async (retailerId, setFeedback, setLoading, se
 	setError(null);
 	try {
 		const token = localStorage.getItem("token");
-		const response = await fetch(
+		const response = await authFetch(
 			`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/orders/getFeedbackByRetailerId/${retailerId}`,
 			{
 				headers: {

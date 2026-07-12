@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ReceiptText, Search } from 'lucide-react';
 import './transactions.css';
+import { authFetch } from '../../utils/authFetch';
 
 /**
  * Fetch function logic
@@ -14,7 +15,7 @@ const fetchTransactions = async (setTransactions, setLoading, setError) => {
             throw new Error('No authentication token found.');
         }
 
-        const response = await fetch(
+        const response = await authFetch(
             `${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/orders/getAllTransactions`,
             {
                 method: 'GET',

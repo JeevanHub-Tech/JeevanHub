@@ -2,6 +2,7 @@ import React, { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
 import "./PatientList.css";
+import { authFetch } from "../../utils/authFetch";
 
 // Assuming parseAppointmentDateTime is available somewhere, or we define a simple version:
 const parseAppointmentDateTime = (dateString, timeSlot) => {
@@ -82,7 +83,7 @@ function PatientList() {
 				}
 
 				const token = localStorage.getItem("token"); // Assuming token is stored in localStorage
-				const response = await fetch(
+				const response = await authFetch(
 					// Fetch ALL bookings for the doctor ID
 					`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/bookings/doctor/${doctorId}`,
 					{
@@ -167,7 +168,7 @@ function PatientList() {
 			setCurrentAppointment(appointment);
 
 			// This endpoint should fetch supplements attached to the specific booking
-			const response = await fetch(
+			const response = await authFetch(
 				`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/bookings/supplements/${appointmentId}`,
 				{
 					headers: {
@@ -267,7 +268,7 @@ function PatientList() {
 	const handleVerifyPayment = async (bookingId) => {
 		try {
 			const token = localStorage.getItem("token");
-			const response = await fetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/bookings/${bookingId}/verify-payment`, {
+			const response = await authFetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/bookings/${bookingId}/verify-payment`, {
 				method: "PUT",
 				headers: {
 					Authorization: `Bearer ${token}`,
@@ -298,7 +299,7 @@ function PatientList() {
 		setCurrentAppointment(appointment);
 
 		try {
-			const response = await fetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/diet-yoga/booking/${appointmentId}`, {
+			const response = await authFetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/diet-yoga/booking/${appointmentId}`, {
 				headers: {
 					Authorization: `Bearer ${localStorage.getItem("token")}`
 				}
@@ -356,7 +357,7 @@ function PatientList() {
 				return;
 			}
 
-			const response = await fetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/diet-yoga`, {
+			const response = await authFetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/diet-yoga`, {
 				method: "POST",
 				headers: {
 					"Content-Type": "application/json",

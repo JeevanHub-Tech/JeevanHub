@@ -4,6 +4,7 @@ import RatingModal from "./RatingModal";
 import AppointmentTab from "./AppointmentTab";
 import { fetchDoctorData, fetchSupplements } from "./AppointmentUtils";
 import { useNavigate } from 'react-router-dom';
+import { authFetch } from "../../../utils/authFetch";
 
 function AppointedDoctor() {
 	const navigate = useNavigate();
@@ -29,7 +30,7 @@ function AppointedDoctor() {
 		}
 
 		try {
-			const response = await fetch(
+			const response = await authFetch(
 				`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/bookings/rating-review/${currentAppointmentId}`,
 				{
 					method: "PUT",
@@ -170,7 +171,7 @@ function AppointedDoctor() {
 
 	const handlePayFees = async (doctorId, bookingId) => {
 		try {
-			const response = await fetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/doctors/${doctorId}/qr-code`, {
+			const response = await authFetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/doctors/${doctorId}/qr-code`, {
 				headers: {
 					Authorization: `Bearer ${localStorage.getItem("token")}`
 				}

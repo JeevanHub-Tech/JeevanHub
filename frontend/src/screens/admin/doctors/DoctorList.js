@@ -25,6 +25,7 @@ import {
 	AlertTriangle,
 	CheckCircle
 } from "lucide-react";
+import { authFetch } from "../../../utils/authFetch";
 
 const DoctorManagement = () => {
 	const [doctors, setDoctors] = useState([]);
@@ -59,7 +60,7 @@ const DoctorManagement = () => {
 	const fetchAllDoctors = async () => {
 		try {
 			const token = localStorage.getItem("token") || "";
-			const res = await fetch(
+			const res = await authFetch(
 				`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/doctors/allDoctors`,
 				{
 					headers: {
@@ -182,7 +183,7 @@ const DoctorManagement = () => {
 		if (window.confirm("Are you sure you want to delete this doctor?")) {
 			try {
 				const token = localStorage.getItem("token") || "";
-				const res = await fetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/doctors/${id}`, {
+				const res = await authFetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/doctors/${id}`, {
 					method: "DELETE",
 					headers: { Authorization: `Bearer ${token}` }
 				});
@@ -207,7 +208,7 @@ const DoctorManagement = () => {
 
 		try {
 			const token = localStorage.getItem("token") || "";
-			const res = await fetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/doctors/upload`, {
+			const res = await authFetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/doctors/upload`, {
 				method: "POST",
 				headers: { Authorization: `Bearer ${token}` },
 				body: formData,
@@ -247,7 +248,7 @@ const DoctorManagement = () => {
 	const handleSaveChanges = async (updatedDoctor) => {
 		try {
 			const token = localStorage.getItem("token") || "";
-			const res = await fetch(
+			const res = await authFetch(
 				`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/doctors/updateDoctor/${updatedDoctor._id}`,
 				{
 					method: "PUT",
@@ -294,7 +295,7 @@ const DoctorManagement = () => {
 
 		try {
 			const token = localStorage.getItem("token") || "";
-			const res = await fetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/doctors/bulk-verify`, {
+			const res = await authFetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/doctors/bulk-verify`, {
 				method: "PUT",
 				headers: {
 					"Content-Type": "application/json",
@@ -322,7 +323,7 @@ const DoctorManagement = () => {
 
 		try {
 			const token = localStorage.getItem("token") || "";
-			const res = await fetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/doctors/bulk-delete`, {
+			const res = await authFetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/doctors/bulk-delete`, {
 				method: "DELETE",
 				headers: {
 					"Content-Type": "application/json",

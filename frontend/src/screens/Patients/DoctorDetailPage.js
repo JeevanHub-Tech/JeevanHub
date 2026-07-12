@@ -4,6 +4,7 @@ import "./DoctorDetailPage.css"; // Ensure this path matches the location of you
 import { AuthContext } from "../../context/AuthContext";
 import { jwtDecode } from "jwt-decode";
 import defaultProfilePic from '../../media/default-profile.png';
+import { authFetch } from "../../utils/authFetch";
 
 const getLocalDateString = (d = new Date()) => {
     const year = d.getFullYear();
@@ -114,7 +115,7 @@ function DoctorDetail() {
 		setLoadingSlots(true);
 		try {
 			const token = localStorage.getItem("token");
-			const res = await fetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/doctors/${doctor.id || doctor._id}/slots/${dateOfAppointment}`, {
+			const res = await authFetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/doctors/${doctor.id || doctor._id}/slots/${dateOfAppointment}`, {
 				headers: { Authorization: `Bearer ${token}` }
 			});
 			const data = await res.json();
@@ -226,7 +227,7 @@ function DoctorDetail() {
 
 			try {
 				const token = localStorage.getItem("token");
-				const response = await fetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/bookings`, {
+				const response = await authFetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/bookings`, {
 					// Replace with your API URL
 					method: "POST",
 					headers: {
@@ -275,7 +276,7 @@ function DoctorDetail() {
 
 		try {
 			const token = localStorage.getItem("token");
-			const response = await fetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/bookings/${currentBooking._id}/payment`, {
+			const response = await authFetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/bookings/${currentBooking._id}/payment`, {
 				method: "POST",
 				headers: {
 					Authorization: `Bearer ${token}`
@@ -313,7 +314,7 @@ function DoctorDetail() {
 
 		try {
 			const token = localStorage.getItem("token");
-			const response = await fetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/bookings/delete/${bookingIdToCancel}`, {
+			const response = await authFetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/bookings/delete/${bookingIdToCancel}`, {
 				method: "DELETE",
 				headers: {
 					Authorization: `Bearer ${token}`

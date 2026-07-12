@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom';
 import axios from 'axios';
 import './BulkMedicineUpload.css';
 import ImageUploaderCell from '../../components/ImageUploaderCell';
+import { authFetch } from '../../utils/authFetch';
 
 // Initial structure for a single medicine row
 const createEmptyRow = (id) => ({
@@ -447,7 +448,7 @@ const BulkMedicineUpload = () => {
         try {
             const token = localStorage.getItem("token");
             setZipError("Parsing file..."); // Provide loading feedback
-            const response = await fetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL || 'http://localhost:8080'}/api/medicines/parse-bulk-upload`, {
+            const response = await authFetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL || 'http://localhost:8080'}/api/medicines/parse-bulk-upload`, {
                 method: "POST",
                 headers: {
                     Authorization: `Bearer ${token}`,

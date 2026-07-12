@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { authFetch } from "../../utils/authFetch";
 
 const AddItem = () => {
 	const [file, setFile] = useState(null);
@@ -23,7 +24,7 @@ const AddItem = () => {
 
 		try {
 			const token = localStorage.getItem("token");
-			const response = await fetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/medicines/add`, {
+			const response = await authFetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/medicines/add`, {
 				method: "POST",
 				headers: {
 					Authorization: `Bearer ${token}`,

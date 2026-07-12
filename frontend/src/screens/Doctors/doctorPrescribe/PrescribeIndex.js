@@ -3,7 +3,8 @@ import { PatientHeader } from './PatientHeader';
 import { PrescriptionHistory } from './PrescriptionHistory';
 import { PrescriptionTabs } from './PrescriptionTabs';
 import { useLocation } from 'react-router-dom';
-import './PrescribeIndex.css'; 
+import './PrescribeIndex.css';
+import { authFetch } from '../../../utils/authFetch';
 
 const samplePatient = {
 	id: "PT-2024-001",
@@ -87,7 +88,7 @@ const PrescribeIndex = () => {
 
 			setLoading(true);
 			try {
-				const response = await fetch(
+				const response = await authFetch(
 					`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/patients/getPatient/${patientId}`,
 					{ headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
 				);
@@ -118,7 +119,7 @@ const PrescribeIndex = () => {
 
 			setLoadingPrescriptions(true);
 			try {
-				const response = await fetch(
+				const response = await authFetch(
 					`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/bookings/patient/${patientId}`,
 					{ headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
 				);

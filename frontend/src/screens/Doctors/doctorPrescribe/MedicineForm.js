@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { ClipboardPlus, PlusCircle, Link as LinkIcon, Loader2, Send } from 'lucide-react';
 import './MedicineForm.css';
+import { authFetch } from '../../../utils/authFetch';
 
 // List of available medicines
 const AVAILABLE_MEDICINES = [
@@ -84,7 +85,7 @@ export function MedicineForm({ bookingId, patientId, doctorId }) {
 
 		try {
 			// CHECK THIS ENDPOINT: Ensure this matches your backend route for medicines
-			const response = await fetch(
+			const response = await authFetch(
 				`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/bookings/supplements`,
 				{
 					method: 'PUT',

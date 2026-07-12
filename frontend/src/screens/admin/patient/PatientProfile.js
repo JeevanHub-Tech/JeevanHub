@@ -7,6 +7,7 @@ import PatientFeedback from "./PatientFeedback";
 import PatientHistory from "./PatientHistory";
 import DietPlan from "./DietPlan"; // ← your DietPlan component
 import Prescription from "./Prescription";
+import { authFetch } from "../../../utils/authFetch";
 
 
 import {
@@ -47,7 +48,7 @@ const PatientProfile = () => {
 	useEffect(() => {
 		const fetchPatientBookings = async () => {
 			try {
-				const res = await fetch(
+				const res = await authFetch(
 					`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/bookings/patient/${patientId}`,
 					{ headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
 				);
@@ -76,7 +77,7 @@ const PatientProfile = () => {
 	useEffect(() => {
 		const fetchPatient = async () => {
 			try {
-				const res = await fetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/patients/getPatient/${patientId}`, {
+				const res = await authFetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/patients/getPatient/${patientId}`, {
 					headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
 				});
 				if (!res.ok) throw new Error("Failed to fetch patient");
@@ -96,7 +97,7 @@ const PatientProfile = () => {
 	useEffect(() => {
 		const fetchDietYoga = async () => {
 			try {
-				const res = await fetch(
+				const res = await authFetch(
 					`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/patients/dietYoga/${patientId}`,
 					{ headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
 				);
@@ -122,7 +123,7 @@ const PatientProfile = () => {
 	// Update profile info
 	const handleUpdateProfile = async (updatedData) => {
 		try {
-			const res = await fetch(
+			const res = await authFetch(
 				`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/patients/updatePatient/${patientId}`,
 				{
 					method: "PUT",

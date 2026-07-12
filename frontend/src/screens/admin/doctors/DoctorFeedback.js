@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './DoctorFeedback.css';
 import { MessageSquareText, Star } from 'lucide-react';
+import { authFetch } from '../../../utils/authFetch';
 
 // ⭐ Read-only stars
 const StarRating = ({ rating }) => (
@@ -29,7 +30,7 @@ const Feedback = ({ doctorId }) => {
 		const fetchReviewedBookings = async () => {
 			try {
 				const token = localStorage.getItem("token");
-				const res = await fetch(
+				const res = await authFetch(
 					`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/bookings/doctor/reviews/${doctorId}`,
 					{
 						headers: {
@@ -63,7 +64,7 @@ const Feedback = ({ doctorId }) => {
 		const fetchReviewedOrders = async () => {
 			try {
 				const token = localStorage.getItem("token");
-				const res = await fetch(
+				const res = await authFetch(
 					`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/orders/reviews/${doctorId}`,
 					{
 						headers: {

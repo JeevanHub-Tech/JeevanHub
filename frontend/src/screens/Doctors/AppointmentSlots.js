@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
 import "./AppointmentSlots.css"; // We copied CurrentRequests.css logic here
 import SlotManagement from "../../components/SlotManagement";
+import { authFetch } from "../../utils/authFetch";
 
 function AppointmentSlots() {
 	const [appointments, setAppointments] = useState([]);
@@ -69,7 +70,7 @@ function AppointmentSlots() {
 					return;
 				}
 
-				const response = await fetch(
+				const response = await authFetch(
 					`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/bookings/doctor/${doctorId}`,
 					{
 						headers: {

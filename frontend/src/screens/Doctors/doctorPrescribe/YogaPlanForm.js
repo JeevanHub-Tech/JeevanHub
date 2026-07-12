@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { HeartPulse, Sun, Moon, Plus, X, ListTodo, Send, ExternalLink, Loader2 } from 'lucide-react';
 import './YogaPlanForm.css';
+import { authFetch } from '../../../utils/authFetch';
 
 // const COMMON_ASANAS = [
 // 	"Surya Namaskara (Sun Salutation)", "Vrikshasana (Tree Pose)",
@@ -167,7 +168,7 @@ export function YogaPlanForm({ bookingId, patientId, doctorId }) {
 		setError(null);
 
 		try {
-			const response = await fetch(
+			const response = await authFetch(
 				`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/diet-yoga/yoga`,
 				{
 					method: 'POST',

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './PatientFeedback.css';
 import { MessageSquareText, Star } from 'lucide-react';
+import { authFetch } from '../../../utils/authFetch';
 
 const StarRating = ({ rating }) => {
 	return (
@@ -27,7 +28,7 @@ const Feedback = ({ patientId }) => {
 	useEffect(() => {
 		const fetchReviewedBookings = async () => {
 			try {
-				const res = await fetch(
+				const res = await authFetch(
 					`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/bookings/patient/reviews/${patientId}`,
 					{
 						headers: {
@@ -61,7 +62,7 @@ const Feedback = ({ patientId }) => {
 	useEffect(() => {
 		const fetchReviewedOrders = async () => {
 			try {
-				const res = await fetch(
+				const res = await authFetch(
 					`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/orders/reviews/${patientId}`,
 					{
 						headers: {

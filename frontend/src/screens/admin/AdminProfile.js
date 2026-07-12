@@ -1,6 +1,7 @@
 import React, { useState, useContext } from 'react';
 import { AuthContext } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { authFetch } from '../../utils/authFetch';
 
 const AdminProfile = () => {
     const { auth, setAuth, logout } = useContext(AuthContext);
@@ -55,7 +56,7 @@ const AdminProfile = () => {
         setProfileLoading(true);
         try {
             const token = localStorage.getItem("token");
-            const response = await fetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/auth/admin/update-profile`, {
+            const response = await authFetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/auth/admin/update-profile`, {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
@@ -87,7 +88,7 @@ const AdminProfile = () => {
         setPasswordLoading(true);
         try {
             const token = localStorage.getItem("token");
-            const response = await fetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/auth/admin/change-password`, {
+            const response = await authFetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/auth/admin/change-password`, {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",

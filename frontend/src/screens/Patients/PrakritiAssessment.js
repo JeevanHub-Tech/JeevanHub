@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { jwtDecode } from "jwt-decode";
 import './PrakritiAssessment.css';
+import { authFetch } from '../../utils/authFetch';
 
 // Bilingual UI Text Dictionary
 const UI_TEXT = {
@@ -129,7 +130,7 @@ const PrakritiAssessment = () => {
 		if (!auth) return;
 
 		try {
-			const response = await fetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/prakriti/assessment/getall`, {
+			const response = await authFetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/prakriti/assessment/getall`, {
 				method: "POST",
 				headers: {
 					"Content-Type": "application/json",
@@ -169,7 +170,7 @@ const PrakritiAssessment = () => {
 
 		setIsSubmitting(true);
 		try {
-			const response = await fetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/prakriti/assessment`, {
+			const response = await authFetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/prakriti/assessment`, {
 				method: "POST",
 				headers: {
 					"Content-Type": "application/json",

@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { Package, CheckCircle2, Truck, AlertTriangle } from 'lucide-react';
 import './RetailerOrdersTab.css';
+import { authFetch } from '../../../utils/authFetch';
 
 // Helper function to determine the class and icon for a given status
 const getStatusBadge = (status) => {
@@ -21,7 +22,7 @@ const fetchRetailerOrders = async (retailerId, setOrders, setLoading, setError) 
 	setError(null);
 	try {
 		const token = localStorage.getItem("token");
-		const response = await fetch(
+		const response = await authFetch(
 			`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/orders/getOrdersByRetailerId/${retailerId}`,
 			{
 				headers: {

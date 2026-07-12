@@ -9,6 +9,7 @@ import { AuthContext } from "../../context/AuthContext"; // Import AuthContext
 import notificationIcon from "../../media/notifications.png";
 import menu_close from "../../media/menu-close.svg";
 import menu from "../../media/menu.svg";
+import { authFetch } from "../../utils/authFetch";
 
 const API_KEY = process.env.REACT_APP_OPENCAGE_API_KEY;
 
@@ -58,7 +59,7 @@ function DoctorNavBar() {
 			if (!doctorId) return;
 			try {
 				const token = localStorage.getItem("token");
-				const response = await fetch(
+				const response = await authFetch(
 					`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/bookings/doctor/${doctorId}`,
 					{
 						headers: {

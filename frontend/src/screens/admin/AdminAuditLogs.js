@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../../context/AuthContext';
+import { authFetch } from '../../utils/authFetch';
 
 const AdminAuditLogs = () => {
     const { auth } = useContext(AuthContext);
@@ -14,7 +15,7 @@ const AdminAuditLogs = () => {
     const fetchLogs = async () => {
         try {
             const token = localStorage.getItem("token");
-            const response = await fetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/auth/admin/audit-logs`, {
+            const response = await authFetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/auth/admin/audit-logs`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             if (response.ok) {

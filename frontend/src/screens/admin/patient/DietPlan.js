@@ -17,6 +17,7 @@ import {
 	Video
 } from "lucide-react";
 import "./DietPlan.css";
+import { authFetch } from "../../../utils/authFetch";
 
 /* ==============================
    UI METADATA LAYER (Static Visuals Only)
@@ -43,7 +44,7 @@ const DietPlan = ({ patientId }) => {
 	useEffect(() => {
 		const fetchDietYoga = async () => {
 			try {
-				const res = await fetch(
+				const res = await authFetch(
 					`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/patients/dietYoga/${patientId}`,
 					{
 						headers: {

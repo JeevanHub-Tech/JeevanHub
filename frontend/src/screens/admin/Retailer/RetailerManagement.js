@@ -11,6 +11,7 @@ import {
 	Pencil,
 	X,
 } from "lucide-react";
+import { authFetch } from "../../../utils/authFetch";
 const initialRetailersData = [
 	{
 		_id: "dummy1",
@@ -34,7 +35,7 @@ const RetailerManagement = () => {
 		const fetchAllRetailers = async () => {
 			try {
 				const token = localStorage.getItem("token");
-				const res = await fetch(
+				const res = await authFetch(
 					`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/retailers/getAllRetailers`,
 					{
 						headers: {

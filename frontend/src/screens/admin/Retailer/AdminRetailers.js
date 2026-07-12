@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import './AdminRetailers.css';
+import { authFetch } from '../../../utils/authFetch';
 
 const AdminRetailers = () => {
     const [retailers, setRetailers] = useState([]);
@@ -48,7 +49,7 @@ const AdminRetailers = () => {
             }
 
             console.log("Fetching retailers...");
-            const response = await fetch(`${process.env.AYURVEDA_BACKEND_URL}/api/auth/retailers`, {
+            const response = await authFetch(`${process.env.AYURVEDA_BACKEND_URL}/api/auth/retailers`, {
                 method: "GET",
                 headers: {
                     Authorization: `Bearer ${token}`,
@@ -83,7 +84,7 @@ const AdminRetailers = () => {
 
             console.log("Deleting retailer with ID:", id);
 
-            const response = await fetch(`${process.env.AYURVEDA_BACKEND_URL}/api/auth/retailers/${id}`, {
+            const response = await authFetch(`${process.env.AYURVEDA_BACKEND_URL}/api/auth/retailers/${id}`, {
                 method: "DELETE",
                 headers: {
                     Authorization: `Bearer ${token}`,

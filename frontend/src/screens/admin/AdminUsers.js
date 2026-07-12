@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { recordsData } from "./Patientdata";
+import { authFetch } from "../../utils/authFetch";
 
 const AdminUsers = () => {
   const [users, setUsers] = useState([]);
@@ -29,7 +30,7 @@ const AdminUsers = () => {
         return;
       }
 
-      const response = await fetch(
+      const response = await authFetch(
         `${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/patient-records/getAllRecords`,
         {
           method: "GET",
@@ -58,7 +59,7 @@ const AdminUsers = () => {
     if (window.confirm("Are you sure you want to delete this user?")) {
       try {
         const token = localStorage.getItem("token");
-        const response = await fetch(
+        const response = await authFetch(
           `${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/auth/users/${userId}`,
           {
             method: "DELETE",

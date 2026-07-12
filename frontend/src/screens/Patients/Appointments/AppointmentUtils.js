@@ -1,5 +1,6 @@
 // Utility functions for AppointedDoctor component
 import { jwtDecode } from 'jwt-decode';
+import { authFetch } from '../../../utils/authFetch';
 
 // Fetch all booking data
 export const fetchDoctorData = async () => {
@@ -23,7 +24,7 @@ export const fetchDoctorData = async () => {
 		throw error;
 	}
 
-	const response = await fetch(
+	const response = await authFetch(
 		`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/bookings/patient/${userId}`,
 		{
 			headers: {
@@ -44,7 +45,7 @@ export const fetchDoctorData = async () => {
 export const fetchSupplements = async (appointmentId) => {
 	try {
         const token = localStorage.getItem('token');
-		const response = await fetch(
+		const response = await authFetch(
 			`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/bookings/supplements/${appointmentId}`,
             {
                 headers: {

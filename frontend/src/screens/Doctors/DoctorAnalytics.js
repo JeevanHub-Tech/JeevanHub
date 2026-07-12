@@ -17,6 +17,7 @@ import {
   ResponsiveContainer
 } from "recharts";
 import "./DoctorAnalytics.css";
+import { authFetch } from "../../utils/authFetch";
 
 // Customized label for Pie/Donut Chart
 const RADIAN = Math.PI / 180;
@@ -49,7 +50,7 @@ function DoctorAnalytics() {
   useEffect(() => {
     const fetchBookings = async () => {
       try {
-        const response = await fetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/bookings/bookings`, {
+        const response = await authFetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/bookings/bookings`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`
           }

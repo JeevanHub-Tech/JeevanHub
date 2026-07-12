@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import "./PaymentPage.css"; // Create your styles here
 import { useNavigate } from "react-router-dom";
+import { authFetch } from "../../../utils/authFetch";
 
 function PaymentPage() {
     const navigate = useNavigate();
@@ -52,7 +53,7 @@ function PaymentPage() {
         console.log(formData);
 
         try {
-            const response = await fetch(
+            const response = await authFetch(
                 `${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/bookings/${bookingId}/payment`,
                 {
                     method: "POST",

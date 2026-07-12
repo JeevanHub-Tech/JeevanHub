@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext } from "react";
 import "./CurrentRequests.css";
 import { AuthContext } from "../../context/AuthContext";
+import { authFetch } from "../../utils/authFetch";
 
 function CurrentRequests() {
 	const [requests, setRequests] = useState([]);
@@ -50,7 +51,7 @@ function CurrentRequests() {
 		const fetchRequests = async () => {
 			try {
 				const token = localStorage.getItem("token"); // Assuming token is stored in localStorage
-				const response = await fetch(
+				const response = await authFetch(
 					`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/bookings/doctor/${doctorId}`,
 					{
 						headers: {
@@ -91,7 +92,7 @@ function CurrentRequests() {
 	// Function to accept request with optional meetLink
 	const acceptRequest = async (id, customMeetLink) => {
 		try {
-			const response = await fetch(
+			const response = await authFetch(
 				`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/bookings/update/${id}`,
 				{
 					method: "PUT",
@@ -128,7 +129,7 @@ function CurrentRequests() {
 		}
 
 		try {
-			const response = await fetch(
+			const response = await authFetch(
 				`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/bookings/update/${id}`,
 				{
 					method: "PUT",

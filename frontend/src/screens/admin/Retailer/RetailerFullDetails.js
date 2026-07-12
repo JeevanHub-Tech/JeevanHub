@@ -15,6 +15,7 @@ import {
 	Briefcase,
 	IndianRupee,
 } from "lucide-react";
+import { authFetch } from "../../../utils/authFetch";
 
 
 const dummyRetailerData = [
@@ -40,7 +41,7 @@ const fetchRetailerById = async (retailerId, setRetailer, setLoading, setError) 
 	setError(null);
 	try {
 		const token = localStorage.getItem("token");
-		const res = await fetch(
+		const res = await authFetch(
 			`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/retailers/getSingleRetailer/${retailerId}`,
 			{
 				headers: {

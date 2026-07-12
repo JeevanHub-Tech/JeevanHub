@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import React from "react";
 import "./Precription.css";
 import { Pill } from "lucide-react";
+import { authFetch } from "../../../utils/authFetch";
 
 const DoctorPrescriptions = ({ doctorId }) => {
 	const [doctorBookings, setDoctorBookings] = useState([]);
@@ -12,7 +13,7 @@ const DoctorPrescriptions = ({ doctorId }) => {
 		const fetchDoctorBookings = async () => {
 			try {
 				const token = localStorage.getItem("token");
-				const res = await fetch(
+				const res = await authFetch(
 					`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/bookings/doctor/${doctorId}`,
 					{
 						headers: {

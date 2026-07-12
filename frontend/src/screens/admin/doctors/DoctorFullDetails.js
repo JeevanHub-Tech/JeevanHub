@@ -22,6 +22,7 @@ import {
 	Briefcase,
 	IndianRupee
 } from 'lucide-react';
+import { authFetch } from "../../../utils/authFetch";
 
 const DoctorFullDetails = () => {
 	const { auth } = useContext(AuthContext);
@@ -37,7 +38,7 @@ const DoctorFullDetails = () => {
 		const fetchDoctorById = async () => {
 			try {
 				const token = localStorage.getItem("token");
-				const res = await fetch(
+				const res = await authFetch(
 					`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/doctors/getDoctorById/${doctorId}`,
 					{
 						headers: {
@@ -102,7 +103,7 @@ const DoctorFullDetails = () => {
 	const handleVerify = async (status) => {
 		try {
 			const token = localStorage.getItem("token") || "";
-			const res = await fetch(
+			const res = await authFetch(
 				`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/doctors/verify/${doctorId}`,
 				{
 					method: "PUT",

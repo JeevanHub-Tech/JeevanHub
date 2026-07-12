@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import "./DoctorsScreen.css";
+import { authFetch } from "../utils/authFetch";
 
 function isValidImage(src) {
   return Boolean(src) && src !== "undefined" && src !== "null";
@@ -68,7 +69,7 @@ function DoctorsScreen() {
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-    fetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/doctors/publicDoctors`, {
+    authFetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/doctors/publicDoctors`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },

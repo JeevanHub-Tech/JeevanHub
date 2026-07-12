@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ReceiptText, Search } from 'lucide-react';
 import './DoctorTrans.css';
+import { authFetch } from '../../../utils/authFetch';
 
 const Transactions = ({ doctorId }) => {
 	const [searchTerm, setSearchTerm] = useState('');
@@ -15,7 +16,7 @@ const Transactions = ({ doctorId }) => {
 		const fetchOrders = async () => {
 			try {
 				const token = localStorage.getItem("token");
-				const res = await fetch(
+				const res = await authFetch(
 					`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/orders/getOrdersByBuyerId/${doctorId}`,
 					{
 						headers: {
@@ -50,7 +51,7 @@ const Transactions = ({ doctorId }) => {
 		const fetchDoctorBookings = async () => {
 			try {
 				const token = localStorage.getItem("token");
-				const res = await fetch(
+				const res = await authFetch(
 					`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/bookings/doctor/${doctorId}`,
 					{
 						headers: {

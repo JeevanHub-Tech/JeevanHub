@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../../context/AuthContext';
+import { authFetch } from '../../utils/authFetch';
 
 const AdminManagement = () => {
     const { auth } = useContext(AuthContext);
@@ -40,7 +41,7 @@ const AdminManagement = () => {
     const fetchAdmins = async () => {
         try {
             const token = localStorage.getItem("token");
-            const response = await fetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/auth/admin/all`, {
+            const response = await authFetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/auth/admin/all`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             if (response.ok) {
@@ -59,7 +60,7 @@ const AdminManagement = () => {
         if (!adminForm.email) return;
         try {
             const token = localStorage.getItem("token");
-            const response = await fetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/auth/admin/check-email/${adminForm.email}`, {
+            const response = await authFetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/auth/admin/check-email/${adminForm.email}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             const data = await response.json();
@@ -78,7 +79,7 @@ const AdminManagement = () => {
         e.preventDefault();
         try {
             const token = localStorage.getItem("token");
-            const response = await fetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/auth/admin/register`, {
+            const response = await authFetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/auth/admin/register`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -127,7 +128,7 @@ const AdminManagement = () => {
     const executeUpdateStatus = async (adminId, payload) => {
         try {
             const token = localStorage.getItem("token");
-            const response = await fetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/auth/admin/update-status/${adminId}`, {
+            const response = await authFetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/auth/admin/update-status/${adminId}`, {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
@@ -152,7 +153,7 @@ const AdminManagement = () => {
     const handleDeleteAdmin = async (adminId) => {
         try {
             const token = localStorage.getItem("token");
-            const response = await fetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/auth/admin/${adminId}`, {
+            const response = await authFetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/auth/admin/${adminId}`, {
                 method: "DELETE",
                 headers: { Authorization: `Bearer ${token}` }
             });

@@ -15,6 +15,7 @@ import medicineImage from "../../media/capsule.jpg";
 import yogaImage from "../../media/yoga-diet.jpg";
 import { jwtDecode } from 'jwt-decode';
 import PrakritiAssessment from "./PrakritiAssessment";
+import { authFetch } from "../../utils/authFetch";
 
 //import step1Icon from "../../media/step1.png"; // Import icons for steps
 //import step2Icon from "../../media/step2.png";
@@ -54,7 +55,7 @@ function PatientPage() {
 		const token = localStorage.getItem('token');
 		const fetchPrakritiData = async () => {
 			try {
-				const response = await fetch(
+				const response = await authFetch(
 					`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/prakriti/assessment/getall`,
 					{
 						method: "POST",

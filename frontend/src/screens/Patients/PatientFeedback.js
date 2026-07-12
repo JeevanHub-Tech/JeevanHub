@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import "./PatientFeedback.css";
 import { Star, Calendar, Clock, Pill } from "lucide-react";
+import { authFetch } from "../../utils/authFetch";
 
 const StarIcon = (props) => <Star {...props} />;
 const CalendarIcon = (props) => <Calendar {...props} />;
@@ -22,7 +23,7 @@ const PatientFeedback = () => {
 
 		try {
 			const token = localStorage.getItem("token"); 
-			const response = await fetch(
+			const response = await authFetch(
 				`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/bookings/rating-review/${appointmentId}`,
 				{
 					method: "PUT",

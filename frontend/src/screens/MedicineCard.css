@@ -11,10 +11,10 @@
 .medicine-card {
   display: flex;
   flex-direction: column;
-  background: #ffffff;
+  background: var(--jh-surface);
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--jh-shadow-rest);
   transition: all 0.25s ease;
   outline: none;
   width: 100%;
@@ -24,8 +24,8 @@
 .medicine-card:hover,
 .medicine-card:focus {
   transform: translateY(-4px);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
-  border: 1px solid #e2e8f0;
+  box-shadow: var(--jh-shadow-hover);
+  border: 1px solid var(--jh-line);
 }
 
 /* Image */
@@ -34,7 +34,7 @@
   width: 100%;
   padding-top: 75%; /* 4:3 ratio */
   overflow: hidden;
-  background: #f8f9fa;
+  background: var(--jh-cream-tint);
 }
 
 .medicine-card__image {
@@ -64,7 +64,7 @@
   margin: 0;
   font-size: 1.1rem;
   font-weight: 600;
-  color: #1a202c;
+  color: var(--jh-ink);
   line-height: 1.4;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -77,7 +77,7 @@
   margin: 0;
   font-size: 1.3rem;
   font-weight: 700;
-  color: #526237;
+  color: var(--jh-olive-leaf);
 }
 
 /* Prescription badge */
@@ -103,8 +103,8 @@
 }
 
 .medicine-card__badge--optional {
-  background: #d1fae5;
-  color: #065f46;
+  background: var(--jh-sage-pale);
+  color: var(--jh-olive-deep);
 }
 
 /* Actions */
@@ -116,8 +116,8 @@
 
 /* Add to Cart Button */
 .medicine-card__add-btn {
-  background: #748556;
-  color: white;
+  background: var(--jh-olive-action);
+  color: var(--jh-cream);
   border: none;
   border-radius: 8px;
   padding: 10px 16px;
@@ -129,7 +129,7 @@
 }
 
 .medicine-card__add-btn:hover {
-  background: #4b5539;
+  background: var(--jh-olive-hover);
 }
 
 /* Quantity Controls */
@@ -138,8 +138,8 @@
   align-items: center;
   justify-content: center;
   gap: 12px;
-  background: #f7fafc;
-  border: 1px solid #e2e8f0;
+  background: var(--jh-cream-tint);
+  border: 1px solid var(--jh-line);
   border-radius: 8px;
   padding: 6px;
   width: 100%;
@@ -148,12 +148,12 @@
 .medicine-card__qty-btn {
   width: 36px;
   height: 36px;
-  background: white;
-  border: 1px solid #cbd5e0;
+  background: var(--jh-surface);
+  border: 1px solid var(--jh-line-strong);
   border-radius: 8px;
   font-size: 1.25rem;
   font-weight: bold;
-  color: #2d3748;
+  color: var(--jh-ink);
   cursor: pointer;
   transition: all 0.2s;
   display: flex;
@@ -162,8 +162,8 @@
 }
 
 .medicine-card__qty-btn:hover {
-  background: #edf2f7;
-  border-color: #a0aec0;
+  background: var(--jh-sage-pale);
+  border-color: var(--jh-olive-leaf);
 }
 
 .medicine-card__qty-value {

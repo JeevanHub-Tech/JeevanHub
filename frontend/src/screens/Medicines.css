@@ -290,6 +290,20 @@
   border: 1px solid var(--border);
   color: var(--text);
   border-radius: 999px;
+  font: inherit;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.ay-meds-cart:hover {
+  background: var(--surface);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.ay-meds-cart:focus-visible {
+  outline: none;
+  box-shadow: var(--ring);
 }
 
 /* Empty state */

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import MedicineCard from './MedicineCard';
 import './Medicines.css';
@@ -18,6 +19,7 @@ const Medicines = () => {
 	const { auth } = useContext(AuthContext);
 	const patientId = auth?.user?.id;
 	const token = localStorage.getItem('token');
+	const navigate = useNavigate();
 
 	const [medicines, setMedicines] = useState([]);
 	const [filteredMedicines, setFilteredMedicines] = useState([]);
@@ -339,10 +341,14 @@ const Medicines = () => {
 						Showing <strong>{filteredMedicines.length}</strong> of <strong>{medicines.length}</strong> medicines
 					</p>
 					{cart.length > 0 && (
-						<div className="ay-meds-cart">
+						<button
+							type="button"
+							className="ay-meds-cart"
+							onClick={() => navigate('/cart')}
+						>
 							<ShoppingCart size={18} />
 							<span>{cart.reduce((acc, item) => acc + item.quantity, 0)} items in cart</span>
-						</div>
+						</button>
 					)}
 				</div>
 

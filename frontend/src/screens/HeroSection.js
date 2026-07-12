@@ -1,10 +1,8 @@
 import React, { useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import v from '../media/mov_bbb.mp4';
-import v1 from '../media/v1.mp4';
 import './HeroSection.css';
-import myPicture from '../media/bgpic.jpg';
+import heroBg from '../media/homebg.png';
 
 function HeroSection() {
   const navigate = useNavigate();
@@ -19,44 +17,44 @@ function HeroSection() {
   };
 
   return (
-    <div className="hero-section" style={{ position: 'relative', height: '100vh', overflow: 'hidden' }}>
-      {/* Background Video */}
-      {/* <video autoPlay muted loop className="hero-video" style={{ width: '100%', height: '100%', objectFit: 'cover', marginRight:"-10px" }}>
-        <source src={v1} type="video/mp4" />
-        Your browser does not support the video tag.
-      </video> */}
-
-        <img 
-          src={myPicture} 
-          alt="Description of my picture" 
-          style={{ 
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            zIndex: -1
-          }} 
-        />
-
-
-
-      {/* Hero Content */}
+    <section
+      className="hero-section"
+      style={{ backgroundImage: `url(${heroBg})` }}
+      aria-label="Find Ayurvedic care"
+    >
       <div className="hero-content">
-        <h2>Find Natural Healing with Ayurveda</h2>
-        <p>Consult Certified Ayurvedic Doctors for Holistic Well-Being</p>
+        <h1>
+          Find natural healing
+          <br />
+          with Ayurveda
+        </h1>
+        <p>
+          Consult certified Ayurvedic doctors and follow a plan built around your
+          body — diet, herbs, and daily rhythm, not quick fixes.
+        </p>
 
-        <button
-          className="consult-btn"
-          onClick={handleConsultButtonClick}
-        >
-          Book Your Appointment Today
-        </button>
+        <div className="hero-actions">
+          <button
+            type="button"
+            className="consult-btn"
+            onClick={handleConsultButtonClick}
+          >
+            Book an appointment
+          </button>
+          <button
+            type="button"
+            className="consult-btn-secondary"
+            onClick={() => navigate('/treatments')}
+          >
+            Explore treatments
+          </button>
+        </div>
 
-        {/* Tabbed Navigation */}
+        <p className="hero-note">
+          Trusted by thousands across India · consultations from ₹500
+        </p>
       </div>
-    </div>
+    </section>
   );
 }
 

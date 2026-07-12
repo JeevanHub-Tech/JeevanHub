@@ -18,77 +18,64 @@ import "swiper/css/pagination";
 const videos = [
 	{
 		id: 1,
-		title: "Video 1: Fitness Transformation",
-		description: "Watch how this individual transformed their fitness journey.",
+		title: "Reversing Fatty Liver Naturally",
+		description: "How Ayurvedic diet and herbs helped restore liver health in months.",
 		videoUrl: v,
+		poster: "/images/Fatty Liver Treatment.jpg",
 	},
 	{
 		id: 2,
-		title: "Video 2: Weight Loss Success",
-		description: "A story of a dramatic weight loss transformation.",
+		title: "Calming Anxiety with Ayurveda",
+		description: "Brahmi, pranayama, and routine — a real journey to a calmer mind.",
 		videoUrl: v,
+		poster: "/images/Detox.jpg",
 	},
 	{
 		id: 3,
-		title: "Video 3: Health Transformation",
-		description:
-			"See how someone changed their life through a health-focused approach.",
+		title: "Healing Chronic Joint Pain",
+		description: "Panchakarma and Ayurvedic care that brought lasting relief.",
 		videoUrl: v,
+		poster: "/images/jointpain.jpg",
 	},
 	{
 		id: 4,
-		title: "Video 4: Bodybuilding Journey",
-		description: "A bodybuilding transformation story that will inspire you.",
+		title: "Clearing Skin the Natural Way",
+		description: "A holistic skincare transformation rooted in Ayurvedic wisdom.",
 		videoUrl: v,
+		poster: "/images/skinacne.jpg",
 	},
 	{
 		id: 5,
-		title: "Video 5: Overcoming Adversity",
-		description: "A powerful story of overcoming challenges through fitness.",
+		title: "Building Immunity with Ojas",
+		description: "Daily rituals and herbs that rebuilt strength and vitality.",
 		videoUrl: v,
+		poster: "/images/Immunity Boosting.jpg",
 	},
 ];
 
 // Dynamic blogs fetched from backend
 
 const SwiperCarouselSection = ({ items, sectionType }) => {
-	const handleVideoClick = (videoElement) => {
-		if (videoElement.paused || videoElement.ended) {
-			videoElement.play();
-		} else {
-			videoElement.pause();
-		}
-	};
-
 	return (
 		<div className="swiper-carousel-section">
-			<h2>{sectionType} Highlights</h2>
+			<div className="stories-head">
+					<h2>{sectionType === "Video" ? "Real journeys, real healing" : "From the journal"}</h2>
+					<p>{sectionType === "Video" ? "Short films from people who chose the Ayurvedic path." : "Notes and guidance from our practitioners."}</p>
+				</div>
 			<Swiper
-				effect={"coverflow"}
 				grabCursor={true}
-				centeredSlides={true}
-				slidesPerView={"auto"}
-				spaceBetween={0}
-				coverflowEffect={{
-					rotate: 0,
-					stretch: 0,
-					depth: 100,
-					modifier: 1,
-					slideShadows: true,
-				}}
+				slidesPerView={1.1}
+				spaceBetween={20}
 				keyboard={{ enabled: true }}
 				mousewheel={{ thresholdDelta: 70 }}
-				loop={true}
 				pagination={{
 					el: `.swiper-pagination-${sectionType.toLowerCase()}`,
 					clickable: true,
 				}}
-				modules={[EffectCoverflow, Pagination, Keyboard, Mousewheel]}
+				modules={[Pagination, Keyboard, Mousewheel]}
 				breakpoints={{
-					640: { slidesPerView: "auto", spaceBetween: 0 },
-					768: { slidesPerView: "auto", spaceBetween: 0 },
-					1024: { slidesPerView: "auto", spaceBetween: 0 },
-					1560: { slidesPerView: "auto", spaceBetween: 0 },
+					640: { slidesPerView: 2.1, spaceBetween: 22 },
+					1024: { slidesPerView: 3, spaceBetween: 26 },
 				}}
 			>
 				{items.map((item) => (
@@ -98,13 +85,18 @@ const SwiperCarouselSection = ({ items, sectionType }) => {
 								<video
 									className="swiper-slide-video"
 									src={item.videoUrl}
-									preload="metadata"
-									onClick={(e) => handleVideoClick(e.target)}
-									controls={false}
+									poster={item.poster}
+									preload="none"
+									aria-label={item.title}
+									controls
 								/>
 							) : (
 								<div 
-									onClick={() => window.location.href = `/blog/${item.id}`} 
+									role="link"
+										tabIndex={0}
+										aria-label={item.title}
+										onKeyDown={(e) => { if (e.key === 'Enter') window.location.href = `/blog/${item.id}`; }}
+										onClick={() => window.location.href = `/blog/${item.id}`}
 									style={{ cursor: "pointer" }}
 								>
 									<img

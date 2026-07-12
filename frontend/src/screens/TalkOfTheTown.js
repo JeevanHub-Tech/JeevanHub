@@ -75,7 +75,10 @@ const DoctorsSection = () => {
   return (
     <section className="talk-of-the-town">
       <div className="header1">
-        <div className="title">Meet Our Doctors</div>
+        <h2 className="title">Meet our doctors</h2>
+        <p className="section-sub">
+          Certified Ayurvedic practitioners, ready to build a plan around you.
+        </p>
         <div className="gradient-border"></div>
       </div>
 
@@ -88,40 +91,54 @@ const DoctorsSection = () => {
             '--items-per-page': itemsPerPage
           }}
         >
-          {doctors.map((doctor, index) => (
-            <div className="slick-slide1" key={index} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              <div 
-                className="video-card1" 
-                style={{ display: 'flex', flexDirection: 'column', height: 'auto', minHeight: '0', alignSelf: 'stretch', cursor: 'pointer' }}
-                onClick={() => navigate('/doctor-detail', { state: { doctor } })}
-              >
-                <div className="video-thumbnail" style={{ height: '180px', overflow: 'hidden', position: 'relative' }}>
-                  <img
-                    src={getDoctorImageUrl(doctor.profileImage)}
-                    alt={doctor.name}
-                    className="thumbnail-img"
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                    onError={(e) => {
-                      e.target.onerror = null;
-                      e.target.src = defaultProfilePic;
-                    }}
-                  />
-                </div>
-                <div className="content" style={{ padding: '12px 15px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', flexGrow: 0, flexShrink: 1 }}>
-                  <p className="influencer-name" style={{ margin: '0 0 4px 0', fontSize: '1.2rem', fontWeight: '600', color: '#333', textAlign: 'center' }}>{doctor.name}</p>
-                  <p className="video-title" style={{ margin: '2px 0', fontSize: '0.9rem', color: '#666', textAlign: 'center' }}>{doctor.specialization}</p>
-                  <div className="separator" style={{ height: '1px', backgroundColor: '#eee', margin: '8px auto', width: '80%' }}></div>
-                  <p className="followers" style={{ margin: '2px 0', fontSize: '0.85rem', color: '#444', textAlign: 'center' }}>Experience: {doctor.experience}</p>
-                  <p className="followers" style={{ margin: '2px 0', fontSize: '0.85rem', color: '#444', textAlign: 'center' }}>Rating: ⭐ {Number(doctor.rating).toFixed(1)} / 5</p>
+          {doctors.map((doctor, index) => {
+            const isNew = !doctor.rating || Number(doctor.rating) <= 0;
+            return (
+              <div className="slick-slide1" key={index}>
+                <div
+                  className="doc-card"
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`View profile of ${doctor.name}`}
+                  onClick={() => navigate('/doctor-detail', { state: { doctor } })}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      navigate('/doctor-detail', { state: { doctor } });
+                    }
+                  }}
+                >
+                  <div className="doc-avatar">
+                    <img
+                      src={getDoctorImageUrl(doctor.profileImage)}
+                      alt={doctor.name}
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = defaultProfilePic;
+                      }}
+                    />
+                    <span className={`doc-badge ${isNew ? 'is-new' : ''}`}>
+                      {isNew ? 'New' : `★ ${Number(doctor.rating).toFixed(1)}`}
+                    </span>
+                  </div>
+                  <div className="doc-body">
+                    <p className="doc-name">{doctor.name}</p>
+                    <span className="doc-spec">{doctor.specialization}</span>
+                    <div className="doc-exp">
+                      <span>Experience</span>
+                      <strong>{doctor.experience}</strong>
+                    </div>
+                    <span className="doc-view">View Profile →</span>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
         {doctors.length > itemsPerPage && (
           <>
-            <button className="arrow-button left" onClick={handleLeftClick}>←</button>
-            <button className="arrow-button right" onClick={handleRightClick}>→</button>
+            <button className="arrow-button left" onClick={handleLeftClick} aria-label="Previous doctors">←</button>
+            <button className="arrow-button right" onClick={handleRightClick} aria-label="Next doctors">→</button>
           </>
         )}
       </div>

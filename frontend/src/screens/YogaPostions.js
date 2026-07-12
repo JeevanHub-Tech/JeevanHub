@@ -179,7 +179,7 @@ const YogaPositions = () => {
 						clickable: true,
 					}}
 					speed={300}
-					spaceBetween={0}
+					spaceBetween={26}
 					onSlideChange={handleSlideChange}
 					onSlideChangeTransitionEnd={handleSlideChangeTransitionEnd}
 					onInit={handleSlideChangeTransitionEnd}
@@ -187,18 +187,17 @@ const YogaPositions = () => {
 				>
 					{yogaPositions.map((pose) => (
 						<SwiperSlide key={pose.id} className="news-slider__item">
-							<a
-								href="#"
+							<div
 								className="news__item"
 								onMouseOver={handleMouseOver}
 								onMouseLeave={handleMouseLeave}
 							>
-								<div className="news__title">{pose.name}</div>
-								<p className="news__txt">{pose.description}</p>
 								<div className="news__img">
 									<img src={pose.image} alt={pose.name} />
 								</div>
-							</a>
+								<div className="news__title">{pose.name}</div>
+								<p className="news__txt">{pose.description}</p>
+							</div>
 						</SwiperSlide>
 					))}
 				</Swiper>
@@ -206,9 +205,9 @@ const YogaPositions = () => {
 				<div className="news-slider__ctr">
 					<div className="news-slider__arrows">
 						<button 
-							className="news-slider__arrow news-slider-prev"
+							className="news-slider__arrow news-slider-prev" aria-label="Previous pose"
 							style={{ 
-								backgroundColor: '#8f9f6d', 
+								backgroundColor: 'var(--jh-olive-leaf)',
 								border: 'none', 
 								width: '45px', 
 								height: '45px', 
@@ -217,8 +216,7 @@ const YogaPositions = () => {
 								alignItems: 'center', 
 								justifyContent: 'center', 
 								cursor: 'pointer', 
-								boxShadow: '0 4px 10px rgba(0,0,0,0.15)', 
-								outline: 'none',
+								boxShadow: '0 8px 18px rgba(47,53,36,0.18)',
 								padding: 0,
 								transition: 'background-color 0.2s ease-in-out'
 							}}
@@ -230,9 +228,9 @@ const YogaPositions = () => {
 							</span>
 						</button>
 						<button 
-							className="news-slider__arrow news-slider-next"
+							className="news-slider__arrow news-slider-next" aria-label="Next pose"
 							style={{ 
-								backgroundColor: '#8f9f6d', 
+								backgroundColor: 'var(--jh-olive-leaf)',
 								border: 'none', 
 								width: '45px', 
 								height: '45px', 
@@ -241,8 +239,7 @@ const YogaPositions = () => {
 								alignItems: 'center', 
 								justifyContent: 'center', 
 								cursor: 'pointer', 
-								boxShadow: '0 4px 10px rgba(0,0,0,0.15)', 
-								outline: 'none',
+								boxShadow: '0 8px 18px rgba(47,53,36,0.18)',
 								padding: 0,
 								transition: 'background-color 0.2s ease-in-out'
 							}}

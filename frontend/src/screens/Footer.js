@@ -1,10 +1,18 @@
 import React from 'react';
 import './Footer.css'; // Import your CSS for styling
+import logo from '../media/logo.png';
 
 function Footer() {
   return (
     <footer className="footer">
       <div className="footer-content">
+        <div className="footer-section footer-brand">
+          <div className="footer-brand-row">
+            <img src={logo} alt="JeevanHub" className="footer-logo" />
+            <span className="footer-brand-name">JeevanHub</span>
+          </div>
+          <p>Authentic Ayurvedic care — connecting you with certified doctors, natural remedies, and holistic wellness guidance.</p>
+        </div>
         <div className="footer-section">
           <h4>About Us</h4>
           <p>Learn more about our mission and values.</p>

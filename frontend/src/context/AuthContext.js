@@ -17,6 +17,12 @@ function AuthProvider({ children }) {
 		role: localStorage.getItem('role') || 'guest',
 	});
 
+	// True until the initial /api/auth/user bootstrap check settles. A stored
+	// token means `auth.user` is legitimately null for a moment while it's
+	// being verified -- that is NOT the same thing as "not logged in", so
+	// route guards must wait for this instead of treating null-user as guest.
+	const [loading, setLoading] = useState(true);
+
 	// Interceptor closures below run outside React's render cycle, so they need
 	// a ref to read the *current* auth instead of a stale one from mount time.
 	const authRef = useRef(auth);
@@ -100,13 +106,14 @@ function AuthProvider({ children }) {
 				setAuth({ token: null, user: null, role: 'guest' });
 				localStorage.removeItem('role');
 			}
+			setLoading(false);
 		};
 
 		fetchUser();
 	}, [auth.token, auth.role]);
 
 	return (
-		<AuthContext.Provider value={{ auth, setAuth, logout }}>
+		<AuthContext.Provider value={{ auth, setAuth, logout, loading }}>
 			{children}
 		</AuthContext.Provider>
 	);

@@ -7,7 +7,7 @@ import { Camera, AlertTriangle, CreditCard, Pencil, Check } from 'lucide-react';
 import './DoctorProfile.css';
 
 const DoctorProfile = () => {
-    const { auth, setAuth, logout } = useContext(AuthContext);
+    const { auth, setAuth, logout, loading: authLoading } = useContext(AuthContext);
     const navigate = useNavigate();
 
     const [isEditing, setIsEditing] = useState(false);
@@ -78,12 +78,17 @@ const DoctorProfile = () => {
             }
         };
 
+        // Wait for AuthContext's bootstrap check to settle -- right after a hard
+        // refresh auth.user is legitimately null for a moment, and redirecting
+        // here before that resolves bounces a logged-in user off this page.
+        if (authLoading) return;
+
         if (auth.token && auth.user?.id) {
             fetchDoctorData();
         } else {
             navigate('/signin');
         }
-    }, [auth, navigate]);
+    }, [auth, authLoading, navigate]);
 
     const handleInputChange = (e) => {
         setDoctorData({ ...doctorData, [e.target.name]: e.target.value });

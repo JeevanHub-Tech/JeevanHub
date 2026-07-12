@@ -4,6 +4,7 @@ import axios from 'axios';
 import { AuthContext } from '../../context/AuthContext';
 import defaultProfilePic from '../../media/default-profile.png';
 import { Camera, FileText, Trash2, UploadCloud } from 'lucide-react';
+import { DocumentViewerModal } from '../../components/DocumentViewerModal';
 import './PatientProfile.css';
 
 const PatientProfile = () => {
@@ -32,6 +33,7 @@ const PatientProfile = () => {
 
     const [medicalHistory, setMedicalHistory] = useState([]);
     const [uploadingDocs, setUploadingDocs] = useState(false);
+    const [viewingDoc, setViewingDoc] = useState(null);
 
     useEffect(() => {
         window.scrollTo(0, 0);
@@ -458,10 +460,10 @@ const PatientProfile = () => {
                             ) : (
                                 medicalHistory.map((doc) => (
                                     <div className="medical-history-item" key={doc._id}>
-                                        <a href={doc.url} target="_blank" rel="noopener noreferrer" className="medical-history-link">
+                                        <button type="button" className="medical-history-link" onClick={() => setViewingDoc(doc)}>
                                             <FileText size={18} />
                                             <span>{doc.fileName}</span>
-                                        </a>
+                                        </button>
                                         <button
                                             type="button"
                                             className="delete-doc-btn"
@@ -477,6 +479,8 @@ const PatientProfile = () => {
                     </div>
                 </div>
             </div>
+
+            {viewingDoc && <DocumentViewerModal doc={viewingDoc} onClose={() => setViewingDoc(null)} />}
         </div>
     );
 };

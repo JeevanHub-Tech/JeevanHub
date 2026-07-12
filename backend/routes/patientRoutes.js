@@ -39,6 +39,11 @@ const medicalHistoryStorage = new CloudinaryStorage({
     params: async (req, file) => ({
         folder: 'jeevanhub/patients/medical-history',
         resource_type: 'auto', // handles pdf, jpg, png, etc.
+        // Medical records are sensitive and Cloudinary blocks unsigned public
+        // delivery of PDFs by default -- store them as "authenticated" so
+        // access requires a freshly-signed URL (see buildSignedUrl below),
+        // rather than a permanently-public, guessable link.
+        type: 'authenticated',
         public_id: Date.now() + '-' + file.originalname.split('.')[0]
     }),
 });

@@ -2,12 +2,14 @@ import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import { FileText } from 'lucide-react';
 import { AuthContext } from '../../../context/AuthContext';
+import { DocumentViewerModal } from '../../../components/DocumentViewerModal';
 import './PrescriptionHistory.css';
 
 export function MedicalHistoryViewer({ patientId }) {
 	const { auth } = useContext(AuthContext);
 	const [documents, setDocuments] = useState([]);
 	const [loading, setLoading] = useState(true);
+	const [viewingDoc, setViewingDoc] = useState(null);
 
 	useEffect(() => {
 		const fetchMedicalHistory = async () => {
@@ -41,23 +43,24 @@ export function MedicalHistoryViewer({ patientId }) {
 				<div className="record-list">
 					{documents.length > 0 ? (
 						documents.map((doc) => (
-							<a
+							<button
 								key={doc._id}
-								href={doc.url}
-								target="_blank"
-								rel="noopener noreferrer"
+								type="button"
+								onClick={() => setViewingDoc(doc)}
 								className="record-card"
-								style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none' }}
+								style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none', width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', font: 'inherit' }}
 							>
 								<FileText className="record-item-icon" />
 								<span>{doc.fileName}</span>
-							</a>
+							</button>
 						))
 					) : (
 						<p className="empty-state">No medical history documents uploaded by this patient.</p>
 					)}
 				</div>
 			</div>
+
+			{viewingDoc && <DocumentViewerModal doc={viewingDoc} onClose={() => setViewingDoc(null)} />}
 		</div>
 	);
 }

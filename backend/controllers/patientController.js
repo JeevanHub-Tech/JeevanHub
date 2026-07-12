@@ -3,6 +3,27 @@ const DietYoga = require("../models/DietYoga");
 const Order = require("../models/Order");
 const Medicine = require("../models/Medicine");
 const cloudinary = require("../config/cloudinary");
+const path = require("path");
+
+// Medical history files are uploaded as Cloudinary "authenticated" resources
+// (see patientRoutes.js), so the plain stored URL 401s on its own. Plain
+// `cloudinary.url({ sign_url: true })` also 401s for "authenticated" assets --
+// that only signs transformation params, it doesn't grant delivery access.
+// private_download_url() goes through Cloudinary's Admin API (signed with our
+// api_secret) and actually authorizes the download, so every response needs
+// one of these generated fresh instead of using the stored URL.
+const buildSignedUrl = (doc) => {
+	const format = path.extname(doc.fileName || '').replace('.', '') || undefined;
+	return cloudinary.utils.private_download_url(doc.publicId, format, {
+		resource_type: 'image', // jpeg/jpg/png/pdf all land in Cloudinary's "image" bucket
+		type: 'authenticated'
+	});
+};
+
+const withSignedUrls = (medicalHistory) => medicalHistory.map(doc => {
+	const plain = doc.toObject ? doc.toObject() : doc;
+	return { ...plain, url: plain.publicId ? buildSignedUrl(plain) : plain.url };
+});
 
 // Get All Patients (Public)
 exports.getAllPatients = async (req, res) => {
@@ -366,7 +387,7 @@ exports.uploadMedicalHistory = async (req, res) => {
 		patient.medicalHistory.push(...newDocs);
 		await patient.save();
 
-		res.status(201).json({ message: "Medical history uploaded successfully", medicalHistory: patient.medicalHistory });
+		res.status(201).json({ message: "Medical history uploaded successfully", medicalHistory: withSignedUrls(patient.medicalHistory) });
 	} catch (error) {
 		console.error("Error uploading medical history:", error);
 		res.status(500).json({ message: "Failed to upload medical history", error: error.message });
@@ -387,7 +408,7 @@ exports.getMedicalHistory = async (req, res) => {
 			return res.status(404).json({ message: "Patient not found" });
 		}
 
-		res.status(200).json({ medicalHistory: patient.medicalHistory });
+		res.status(200).json({ medicalHistory: withSignedUrls(patient.medicalHistory) });
 	} catch (error) {
 		console.error("Error fetching medical history:", error);
 		res.status(500).json({ message: "Failed to fetch medical history", error: error.message });
@@ -417,8 +438,10 @@ exports.deleteMedicalHistoryDoc = async (req, res) => {
 			try {
 				// Cloudinary's `destroy` doesn't accept resource_type "auto" (that's an
 				// upload-only option) -- jpeg/jpg/png/pdf (the only types this route's
-				// fileFilter allows) are always stored as resource_type "image".
-				await cloudinary.uploader.destroy(doc.publicId, { resource_type: 'image' });
+				// fileFilter allows) are always stored as resource_type "image". `type`
+				// must match the upload-time value ("authenticated") too, or destroy
+				// silently no-ops (wrong asset triple = not found).
+				await cloudinary.uploader.destroy(doc.publicId, { resource_type: 'image', type: 'authenticated' });
 			} catch (cloudErr) {
 				console.error("Cloudinary delete failed (continuing to remove DB record):", cloudErr.message);
 			}
@@ -427,7 +450,7 @@ exports.deleteMedicalHistoryDoc = async (req, res) => {
 		doc.deleteOne();
 		await patient.save();
 
-		res.status(200).json({ message: "Document deleted successfully", medicalHistory: patient.medicalHistory });
+		res.status(200).json({ message: "Document deleted successfully", medicalHistory: withSignedUrls(patient.medicalHistory) });
 	} catch (error) {
 		console.error("Error deleting medical history document:", error);
 		res.status(500).json({ message: "Failed to delete document", error: error.message });

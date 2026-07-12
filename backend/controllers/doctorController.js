@@ -219,6 +219,7 @@ exports.getDoctorById = async (req, res) => {
 				lastName: doc.lastName,
 				email: doc.email,
 				phone: doc.phone,
+				registrationNumber: doc.registrationNumber || "",
 				upiId: doc.upiId || "",
 				age: doc.age,
 				gender: doc.gender,

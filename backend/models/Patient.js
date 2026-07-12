@@ -35,14 +35,21 @@ const PatientSchema = new mongoose.Schema({
     type: Date,
     default: null
   },
-  hasTakenAssessment: { 
-    type: Boolean, 
-    default: false 
+  hasTakenAssessment: {
+    type: Boolean,
+    default: false
   },
-  lastAssessmentDate: { 
-    type: Date, 
-    default: null 
+  lastAssessmentDate: {
+    type: Date,
+    default: null
   },
+  medicalHistory: [{
+    fileName: { type: String, required: true },
+    url: { type: String, required: true },
+    publicId: { type: String },
+    mimeType: { type: String },
+    uploadedAt: { type: Date, default: Date.now }
+  }],
   passwordChangedAt: Date
 }, { timestamps: true });
 

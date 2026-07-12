@@ -2,6 +2,7 @@ const Patient = require("../models/Patient");
 const DietYoga = require("../models/DietYoga");
 const Order = require("../models/Order");
 const Medicine = require("../models/Medicine");
+const cloudinary = require("../config/cloudinary");
 
 // Get All Patients (Public)
 exports.getAllPatients = async (req, res) => {
@@ -307,6 +308,126 @@ exports.createTempOrder = async (req, res) => {
 			message: "Failed to create order",
 			error: error.message
 		});
+	}
+};
+
+// Upload / replace the patient's profile image
+exports.uploadProfileImage = async (req, res) => {
+	const { id } = req.params;
+
+	try {
+		if (req.user.role !== 'admin' && req.user._id.toString() !== id) {
+			return res.status(403).json({ message: "Not authorized to update this patient's image" });
+		}
+		if (!req.file) {
+			return res.status(400).json({ message: "No image file uploaded" });
+		}
+
+		const patient = await Patient.findById(id);
+		if (!patient) {
+			return res.status(404).json({ message: "Patient not found" });
+		}
+
+		patient.profileImage = req.file.path;
+		await patient.save();
+
+		res.status(200).json({ message: "Profile image updated successfully", url: req.file.path });
+	} catch (error) {
+		console.error("Error uploading profile image:", error);
+		res.status(500).json({ message: "Failed to upload profile image", error: error.message });
+	}
+};
+
+// Upload previous medical history documents (for doctors' reference)
+exports.uploadMedicalHistory = async (req, res) => {
+	const { id } = req.params;
+
+	try {
+		if (req.user.role !== 'admin' && req.user._id.toString() !== id) {
+			return res.status(403).json({ message: "Not authorized to upload documents for this patient" });
+		}
+		if (!req.files || req.files.length === 0) {
+			return res.status(400).json({ message: "No files uploaded" });
+		}
+
+		const patient = await Patient.findById(id);
+		if (!patient) {
+			return res.status(404).json({ message: "Patient not found" });
+		}
+
+		const newDocs = req.files.map(file => ({
+			fileName: file.originalname,
+			url: file.path,
+			publicId: file.filename,
+			mimeType: file.mimetype,
+			uploadedAt: new Date()
+		}));
+
+		patient.medicalHistory.push(...newDocs);
+		await patient.save();
+
+		res.status(201).json({ message: "Medical history uploaded successfully", medicalHistory: patient.medicalHistory });
+	} catch (error) {
+		console.error("Error uploading medical history:", error);
+		res.status(500).json({ message: "Failed to upload medical history", error: error.message });
+	}
+};
+
+// Get a patient's previous medical history documents (self, admin, or a doctor reviewing the patient)
+exports.getMedicalHistory = async (req, res) => {
+	const { id } = req.params;
+
+	try {
+		if (req.user.role !== 'admin' && req.user.role !== 'doctor' && req.user._id.toString() !== id) {
+			return res.status(403).json({ message: "Not authorized to view this patient's medical history" });
+		}
+
+		const patient = await Patient.findById(id).select('medicalHistory');
+		if (!patient) {
+			return res.status(404).json({ message: "Patient not found" });
+		}
+
+		res.status(200).json({ medicalHistory: patient.medicalHistory });
+	} catch (error) {
+		console.error("Error fetching medical history:", error);
+		res.status(500).json({ message: "Failed to fetch medical history", error: error.message });
+	}
+};
+
+// Delete a previously uploaded medical history document
+exports.deleteMedicalHistoryDoc = async (req, res) => {
+	const { id, docId } = req.params;
+
+	try {
+		if (req.user.role !== 'admin' && req.user._id.toString() !== id) {
+			return res.status(403).json({ message: "Not authorized to delete this patient's documents" });
+		}
+
+		const patient = await Patient.findById(id);
+		if (!patient) {
+			return res.status(404).json({ message: "Patient not found" });
+		}
+
+		const doc = patient.medicalHistory.id(docId);
+		if (!doc) {
+			return res.status(404).json({ message: "Document not found" });
+		}
+
+		if (doc.publicId) {
+			try {
+				await cloudinary.uploader.destroy(doc.publicId, { resource_type: 'auto' });
+			} catch (cloudErr) {
+				console.error("Cloudinary delete failed (continuing to remove DB record):", cloudErr.message);
+			}
+		}
+
+		doc.deleteOne();
+		await patient.save();
+
+		res.status(200).json({ message: "Document deleted successfully", medicalHistory: patient.medicalHistory });
+	} catch (error) {
+		console.error("Error deleting medical history document:", error);
+		res.status(500).json({ message: "Failed to delete document", error: error.message });
 	}
 };
 

@@ -475,7 +475,10 @@ exports.changePassword = async (req, res) => {
 		user.passwordChangedAt = new Date();
 		await user.save();
 
-		res.status(200).json({ message: "Password successfully updated" });
+		// passwordChangedAt invalidates tokens issued before now (see auth middleware),
+		// so hand back a fresh one or the caller's current session breaks immediately.
+		const token = generateToken(user);
+		res.status(200).json({ message: "Password successfully updated", token });
 	} catch (error) {
 		console.error("Change Password Error:", error);
 		res.status(500).json({ message: "Server error" });

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { AuthContext } from '../../context/AuthContext';
 import defaultProfilePic from '../../media/default-profile.png';
-import { Camera } from 'lucide-react';
+import { Camera, FileText, Trash2, UploadCloud } from 'lucide-react';
 import './PatientProfile.css';
 
 const PatientProfile = () => {
@@ -29,6 +29,9 @@ const PatientProfile = () => {
         newPassword: '',
         confirmPassword: ''
     });
+
+    const [medicalHistory, setMedicalHistory] = useState([]);
+    const [uploadingDocs, setUploadingDocs] = useState(false);
 
     useEffect(() => {
         window.scrollTo(0, 0);
@@ -65,8 +68,21 @@ const PatientProfile = () => {
             }
         };
 
+        const fetchMedicalHistory = async () => {
+            try {
+                const response = await axios.get(
+                    `${process.env.REACT_APP_AYURVEDA_BACKEND_URL || 'http://localhost:8080'}/api/patients/${auth.user?.id}/medical-history`,
+                    { headers: { Authorization: `Bearer ${auth.token}` } }
+                );
+                setMedicalHistory(response.data.medicalHistory || []);
+            } catch (error) {
+                console.error("Error fetching medical history:", error);
+            }
+        };
+
         if (auth.token && auth.user?.id) {
             fetchPatientData();
+            fetchMedicalHistory();
         } else {
             navigate('/signin');
         }
@@ -133,7 +149,7 @@ const PatientProfile = () => {
         }
 
         try {
-            await axios.put(
+            const response = await axios.put(
                 `${process.env.REACT_APP_AYURVEDA_BACKEND_URL || 'http://localhost:8080'}/api/auth/change-password`,
                 {
                     currentPassword: passwords.currentPassword,
@@ -141,6 +157,13 @@ const PatientProfile = () => {
                 },
                 { headers: { Authorization: `Bearer ${auth.token}` } }
             );
+
+            // Changing the password invalidates the old token server-side, so the
+            // session must pick up the fresh one or every following request 401s.
+            if (response.data.token) {
+                setAuth(prev => ({ ...prev, token: response.data.token }));
+                localStorage.setItem("token", response.data.token);
+            }
 
             alert("Password changed successfully!");
             setPasswords({ currentPassword: '', newPassword: '', confirmPassword: '' });
@@ -160,7 +183,7 @@ const PatientProfile = () => {
         try {
             setLoading(true);
             const res = await axios.post(
-                `${process.env.REACT_APP_AYURVEDA_BACKEND_URL || 'http://localhost:8080'}/api/medicines/upload-image`,
+                `${process.env.REACT_APP_AYURVEDA_BACKEND_URL || 'http://localhost:8080'}/api/patients/${auth.user.id}/profile-image`,
                 formData,
                 {
                     headers: {
@@ -170,16 +193,9 @@ const PatientProfile = () => {
                 }
             );
 
-            if (res.data.imageUrl) {
-                const newImageUrl = res.data.imageUrl;
+            if (res.data.url) {
+                const newImageUrl = res.data.url;
                 setPatientData({ ...patientData, profileImage: newImageUrl });
-                
-                // Immediately save the image update to backend
-                await axios.put(
-                    `${process.env.REACT_APP_AYURVEDA_BACKEND_URL || 'http://localhost:8080'}/api/patients/updatePatient/${auth.user.id}`,
-                    { profileImage: newImageUrl },
-                    { headers: { Authorization: `Bearer ${auth.token}` } }
-                );
 
                 setAuth(prev => ({
                     ...prev,
@@ -193,6 +209,49 @@ const PatientProfile = () => {
             alert("Failed to upload image.");
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleMedicalHistoryUpload = async (e) => {
+        const files = Array.from(e.target.files || []);
+        if (files.length === 0) return;
+
+        const formData = new FormData();
+        files.forEach(file => formData.append("documents", file));
+
+        try {
+            setUploadingDocs(true);
+            const res = await axios.post(
+                `${process.env.REACT_APP_AYURVEDA_BACKEND_URL || 'http://localhost:8080'}/api/patients/${auth.user.id}/medical-history`,
+                formData,
+                {
+                    headers: {
+                        "Content-Type": "multipart/form-data",
+                        Authorization: `Bearer ${auth.token}`
+                    }
+                }
+            );
+            setMedicalHistory(res.data.medicalHistory || []);
+        } catch (error) {
+            console.error("Error uploading medical history:", error);
+            alert(error.response?.data?.message || "Failed to upload document(s).");
+        } finally {
+            setUploadingDocs(false);
+            e.target.value = '';
+        }
+    };
+
+    const handleDeleteMedicalHistoryDoc = async (docId) => {
+        if (!window.confirm("Remove this document?")) return;
+        try {
+            const res = await axios.delete(
+                `${process.env.REACT_APP_AYURVEDA_BACKEND_URL || 'http://localhost:8080'}/api/patients/${auth.user.id}/medical-history/${docId}`,
+                { headers: { Authorization: `Bearer ${auth.token}` } }
+            );
+            setMedicalHistory(res.data.medicalHistory || []);
+        } catch (error) {
+            console.error("Error deleting medical history document:", error);
+            alert("Failed to delete document.");
         }
     };
 
@@ -368,6 +427,50 @@ const PatientProfile = () => {
                             </div>
                             <button type="submit" className="change-pwd-btn">Update Password</button>
                         </form>
+                    </div>
+
+                    <div className="medical-history-section">
+                        <h3>Medical History</h3>
+                        <p className="medical-history-hint">
+                            Upload previous medical records (PDF, JPG, PNG) so doctors you consult can reference them.
+                        </p>
+
+                        <label htmlFor="medical-history-upload" className="upload-docs-btn">
+                            <UploadCloud size={18} />
+                            {uploadingDocs ? 'Uploading...' : 'Upload Documents'}
+                        </label>
+                        <input
+                            type="file"
+                            id="medical-history-upload"
+                            className="upload-input"
+                            accept=".pdf,.jpg,.jpeg,.png"
+                            multiple
+                            onChange={handleMedicalHistoryUpload}
+                            disabled={uploadingDocs}
+                        />
+
+                        <div className="medical-history-list">
+                            {medicalHistory.length === 0 ? (
+                                <p className="empty-state">No documents uploaded yet.</p>
+                            ) : (
+                                medicalHistory.map((doc) => (
+                                    <div className="medical-history-item" key={doc._id}>
+                                        <a href={doc.url} target="_blank" rel="noopener noreferrer" className="medical-history-link">
+                                            <FileText size={18} />
+                                            <span>{doc.fileName}</span>
+                                        </a>
+                                        <button
+                                            type="button"
+                                            className="delete-doc-btn"
+                                            onClick={() => handleDeleteMedicalHistoryDoc(doc._id)}
+                                            aria-label="Delete document"
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </div>
+                                ))
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>

@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
-import { Pill, Salad, HeartPulse } from 'lucide-react';
+import { Pill, Salad, HeartPulse, FileText } from 'lucide-react';
 import './PrescriptionTabs.css';
 import { MedicineForm } from './MedicineForm';
 import { DietPlanForm } from './DietPlanForm';
 import { YogaPlanForm } from './YogaPlanForm';
+import { MedicalHistoryViewer } from './MedicalHistoryViewer';
 
 const tabs = [
 	{ id: 'medicine', label: 'Medicine', Icon: Pill },
 	{ id: 'diet', label: 'Diet Plan', Icon: Salad },
 	{ id: 'yoga', label: 'Yoga / Wellness', Icon: HeartPulse },
+	{ id: 'history', label: 'Medical History', Icon: FileText },
 ];
 
 export function PrescriptionTabs({ bookingId, patientId, doctorId }) {
@@ -22,6 +24,8 @@ export function PrescriptionTabs({ bookingId, patientId, doctorId }) {
 				return <DietPlanForm bookingId={bookingId} patientId={patientId} doctorId={doctorId}/>;
 			case 'yoga':
 				return <YogaPlanForm bookingId={bookingId} patientId={patientId} doctorId={doctorId}/>;
+			case 'history':
+				return <MedicalHistoryViewer patientId={patientId} />;
 			default:
 				return null;
 		}

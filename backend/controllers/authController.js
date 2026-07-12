@@ -7,10 +7,26 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const { sendOTPWhatsApp } = require('../scheduler');
 
-// Helper function to generate JWT token
+// Helper function to generate a short-lived access token
 const generateToken = (user) => {
 	console.log("generating token : user : ", user.role);
-	return jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
+	return jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '15m' });
+};
+
+// Helper function to generate a long-lived refresh token (kept out of the JS-visible
+// response body; delivered only via an httpOnly cookie, see setRefreshCookie)
+const generateRefreshToken = (user) => {
+	return jwt.sign({ id: user._id, role: user.role }, process.env.REFRESH_TOKEN_SECRET, { expiresIn: '30d' });
+};
+
+const setRefreshCookie = (res, token) => {
+	res.cookie('refreshToken', token, {
+		httpOnly: true,
+		secure: process.env.NODE_ENV === 'production',
+		sameSite: 'lax',
+		path: '/api/auth',
+		maxAge: 30 * 24 * 60 * 60 * 1000
+	});
 };
 
 // Register Admin (Manually done by an existing admin)
@@ -29,6 +45,7 @@ exports.registerAdmin = async (req, res) => {
 
 		await admin.save();
 		const token = generateToken(admin);
+		setRefreshCookie(res, generateRefreshToken(admin));
 
 		res.status(201).json({
 			message: 'Admin registered successfully', token, user: {
@@ -96,7 +113,8 @@ exports.loginUser = async (req, res) => {
 
 		console.log("before token : user - ", user);
 		const token = generateToken(user);
-		
+		setRefreshCookie(res, generateRefreshToken(user));
+
 		const responsePayload = {
 			message: 'Login successful', token, user: {
 				id: user._id,
@@ -179,6 +197,7 @@ exports.registerDoctor = async (req, res) => {
 		});
 		await doctor.save();
 		const token = generateToken(doctor);
+		setRefreshCookie(res, generateRefreshToken(doctor));
 		res.status(201).json({
 			message: 'Doctor registered successfully', token, user: {
 				id: doctor._id,
@@ -213,6 +232,7 @@ exports.registerRetailer = async (req, res) => {
 		const retailer = new Retailer({ firstName, lastName, BusinessName, role: 'retailer', email, phone, dob, licenseNumber, age, gender, zipCode, password: hashedPassword, status: "active" });
 		await retailer.save();
 		const token = generateToken(retailer);
+		setRefreshCookie(res, generateRefreshToken(retailer));
 		res.status(201).json({
 			message: 'Retailer registered successfully', token, user: {
 				id: retailer._id,
@@ -246,6 +266,7 @@ exports.registerPatient = async (req, res) => {
 		const patient = new Patient({ firstName, lastName, email, phone, dob, role: 'patient', age, gender, zipCode, password: hashedPassword });
 		await patient.save();
 		const token = generateToken(patient);
+		setRefreshCookie(res, generateRefreshToken(patient));
 		console.log("Patient registered successfully:", patient);
 		res.status(201).json({
 			message: 'Patient registered successfully', token, user: {
@@ -274,7 +295,8 @@ exports.registerPatient = async (req, res) => {
 const modelMap = {
 	patient: Patient,
 	doctor: Doctor,
-	retailer: Retailer
+	retailer: Retailer,
+	admin: Admin
 };
 exports.handleForgotPassword = async (req, res) => {
 	try {
@@ -476,11 +498,68 @@ exports.changePassword = async (req, res) => {
 		await user.save();
 
 		// passwordChangedAt invalidates tokens issued before now (see auth middleware),
-		// so hand back a fresh one or the caller's current session breaks immediately.
+		// so hand back fresh ones or the caller's current session breaks immediately.
 		const token = generateToken(user);
+		setRefreshCookie(res, generateRefreshToken(user));
 		res.status(200).json({ message: "Password successfully updated", token });
 	} catch (error) {
 		console.error("Change Password Error:", error);
 		res.status(500).json({ message: "Server error" });
 	}
+};
+
+// Exchange the httpOnly refresh-token cookie for a new short-lived access token.
+// Called silently by the frontend whenever a request 401s, so a session survives
+// past the 15-minute access-token lifetime without forcing a re-login.
+exports.refreshToken = async (req, res) => {
+	try {
+		const token = req.cookies?.refreshToken;
+		if (!token) {
+			return res.status(401).json({ message: "No refresh token provided." });
+		}
+
+		let decoded;
+		try {
+			decoded = jwt.verify(token, process.env.REFRESH_TOKEN_SECRET);
+		} catch (err) {
+			res.clearCookie('refreshToken', { path: '/api/auth' });
+			return res.status(401).json({ message: "Invalid or expired refresh token." });
+		}
+
+		const Model = modelMap[decoded.role];
+		if (!Model) {
+			return res.status(400).json({ message: "Invalid role in refresh token." });
+		}
+
+		const user = await Model.findById(decoded.id);
+		if (!user) {
+			res.clearCookie('refreshToken', { path: '/api/auth' });
+			return res.status(401).json({ message: "User not found." });
+		}
+
+		// Same guard as the access-token check in auth middleware: a password
+		// change invalidates refresh tokens issued before it too.
+		if (user.passwordChangedAt) {
+			const changedTimestamp = parseInt(user.passwordChangedAt.getTime() / 1000, 10);
+			if (decoded.iat < changedTimestamp) {
+				res.clearCookie('refreshToken', { path: '/api/auth' });
+				return res.status(401).json({ message: "Session expired, please log in again." });
+			}
+		}
+
+		const newAccessToken = generateToken(user);
+		// Rotate the refresh token too, so a leaked one only has a short useful window.
+		setRefreshCookie(res, generateRefreshToken(user));
+
+		res.status(200).json({ token: newAccessToken });
+	} catch (error) {
+		console.error("Refresh Token Error:", error);
+		res.status(500).json({ message: "Internal server error during token refresh." });
+	}
+};
+
+// Clear the refresh-token cookie on sign-out
+exports.logoutUser = async (req, res) => {
+	res.clearCookie('refreshToken', { path: '/api/auth' });
+	res.status(200).json({ message: "Logged out successfully." });
 };

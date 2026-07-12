@@ -415,7 +415,10 @@ exports.deleteMedicalHistoryDoc = async (req, res) => {
 
 		if (doc.publicId) {
 			try {
-				await cloudinary.uploader.destroy(doc.publicId, { resource_type: 'auto' });
+				// Cloudinary's `destroy` doesn't accept resource_type "auto" (that's an
+				// upload-only option) -- jpeg/jpg/png/pdf (the only types this route's
+				// fileFilter allows) are always stored as resource_type "image".
+				await cloudinary.uploader.destroy(doc.publicId, { resource_type: 'image' });
 			} catch (cloudErr) {
 				console.error("Cloudinary delete failed (continuing to remove DB record):", cloudErr.message);
 			}

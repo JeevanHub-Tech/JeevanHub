@@ -7,7 +7,7 @@ import { Camera } from 'lucide-react';
 import '../Patients/PatientProfile.css'; // Reusing the premium styling from PatientProfile
 
 const RetailerProfile = () => {
-    const { auth, setAuth } = useContext(AuthContext);
+    const { auth, setAuth, logout } = useContext(AuthContext);
     const navigate = useNavigate();
 
     const [isEditing, setIsEditing] = useState(false);
@@ -178,9 +178,7 @@ const RetailerProfile = () => {
     };
 
     const handleSignOut = () => {
-        setAuth({ token: null, user: null, role: 'guest' });
-        localStorage.removeItem("token");
-        localStorage.removeItem("role");
+        logout();
         navigate("/signin");
     };
 

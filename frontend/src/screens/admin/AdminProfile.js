@@ -3,7 +3,7 @@ import { AuthContext } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
 const AdminProfile = () => {
-    const { auth, setAuth } = useContext(AuthContext);
+    const { auth, setAuth, logout } = useContext(AuthContext);
     const navigate = useNavigate();
 
     const [profileForm, setProfileForm] = useState({
@@ -46,9 +46,7 @@ const AdminProfile = () => {
     );
 
     const handleSignOut = () => {
-        setAuth({ token: null, user: null, role: 'guest' });
-        localStorage.removeItem("token");
-        localStorage.removeItem("role");
+        logout();
         navigate("/signin");
     };
 

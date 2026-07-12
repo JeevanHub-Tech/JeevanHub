@@ -14,7 +14,7 @@ const API_KEY = process.env.REACT_APP_OPENCAGE_API_KEY;
 
 function AdminNavBar() {
 	const navigate = useNavigate();
-	const { auth, setAuth } = useContext(AuthContext);
+	const { auth, logout } = useContext(AuthContext);
 	const profileRef = useRef(null);
 	const adminModalRef = useRef(null);
 	const [userLocation, setUserLocation] = useState("Fetching location...");
@@ -38,9 +38,7 @@ function AdminNavBar() {
 	};
 
 	const handleSignOut = () => {
-		setAuth({ token: null, user: null, role: 'guest' });
-		localStorage.removeItem("token");
-		localStorage.removeItem("role");
+		logout();
 		navigate("/signin");
 	};
 

@@ -14,7 +14,7 @@ const API_KEY = process.env.REACT_APP_OPENCAGE_API_KEY;
 
 function PatientNavBar() {
 	const navigate = useNavigate();
-	const { auth, setAuth } = useContext(AuthContext);
+	const { auth, logout } = useContext(AuthContext);
 	const [showModal, setShowModal] = useState(false);
 	const modalRef = useRef(null);
 	const [userLocation, setUserLocation] = useState("Fetching location...");
@@ -36,9 +36,7 @@ function PatientNavBar() {
 	};
 
 	const handleSignOut = () => {
-		setAuth({ token: null, user: null, role: 'guest' });
-		localStorage.removeItem("token");
-		localStorage.removeItem("role");
+		logout();
 		navigate("/signin");
 	};
 

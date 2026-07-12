@@ -4,7 +4,7 @@ const multer = require("multer");
 const auth = require("../middleware/auth");
 const Admin = require("../models/Admin");
 const AuditLog = require("../models/AuditLog");
-const { registerDoctor, registerRetailer, registerPatient, loginUser, handleForgotPassword, verifyOTP, resetPassword, forceChangePassword, changePassword } = require("../controllers/authController");
+const { registerDoctor, registerRetailer, registerPatient, loginUser, handleForgotPassword, verifyOTP, resetPassword, forceChangePassword, changePassword, refreshToken, logoutUser } = require("../controllers/authController");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const Patient = require("../models/Patient"); // Import the Patient model
@@ -80,6 +80,12 @@ router.post("/register/doctor", (req, res, next) => {
 router.post("/register/retailer", registerRetailer);
 router.post("/register/patient", registerPatient);
 router.post("/login", loginLimiter, loginUser);
+
+// No `auth` middleware here on purpose: the whole point is to mint a new
+// access token once the old one has already expired, using the httpOnly
+// refresh-token cookie instead of an Authorization header.
+router.post("/refresh-token", loginLimiter, refreshToken);
+router.post("/logout", logoutUser);
 
 // Force change password route
 router.put("/force-change-password", auth, forceChangePassword);

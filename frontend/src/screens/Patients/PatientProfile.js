@@ -7,7 +7,7 @@ import { Camera, FileText, Trash2, UploadCloud } from 'lucide-react';
 import './PatientProfile.css';
 
 const PatientProfile = () => {
-    const { auth, setAuth } = useContext(AuthContext);
+    const { auth, setAuth, logout } = useContext(AuthContext);
     const navigate = useNavigate();
 
     const [isEditing, setIsEditing] = useState(false);
@@ -256,9 +256,7 @@ const PatientProfile = () => {
     };
 
     const handleSignOut = () => {
-        setAuth({ token: null, user: null, role: 'guest' });
-        localStorage.removeItem("token");
-        localStorage.removeItem("role");
+        logout();
         navigate("/signin");
     };
 

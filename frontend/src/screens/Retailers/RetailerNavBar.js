@@ -12,7 +12,7 @@ import menu from "../../media/menu.svg";
 const API_KEY = process.env.REACT_APP_OPENCAGE_API_KEY;
 
 function RetailerNavBar() {
-	const { auth, setAuth } = useContext(AuthContext); // Get auth context to access user info
+	const { auth, logout } = useContext(AuthContext); // Get auth context to access user info
 	const [userLocation, setUserLocation] = useState("Fetching location...");
 	const [showModal, setShowModal] = useState(false);
 	const modalRef = useRef(null);
@@ -97,9 +97,7 @@ function RetailerNavBar() {
 	};
 
 	const handleSignOut = () => {
-		setAuth({ token: null, user: null, role: 'guest' });
-		localStorage.removeItem("token");
-		localStorage.removeItem("role");
+		logout();
 		navigate("/signin");
 	};
 

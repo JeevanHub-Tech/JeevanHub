@@ -7,7 +7,7 @@ import { Camera, AlertTriangle, CreditCard, Pencil, Check } from 'lucide-react';
 import './DoctorProfile.css';
 
 const DoctorProfile = () => {
-    const { auth, setAuth } = useContext(AuthContext);
+    const { auth, setAuth, logout } = useContext(AuthContext);
     const navigate = useNavigate();
 
     const [isEditing, setIsEditing] = useState(false);
@@ -245,9 +245,7 @@ const DoctorProfile = () => {
     };
 
     const handleSignOut = () => {
-        setAuth({ token: null, user: null, role: 'guest' });
-        localStorage.removeItem("token");
-        localStorage.removeItem("role");
+        logout();
         navigate("/signin");
     };
 

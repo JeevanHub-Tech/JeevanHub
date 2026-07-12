@@ -2,8 +2,12 @@
   "name": "backend-ayurvedic-app",
   "version": "1.0.0",
   "main": "index.js",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
-    "start": "nodemon index.js"
+    "start": "nodemon index.js",
+    "start:prod": "node index.js"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

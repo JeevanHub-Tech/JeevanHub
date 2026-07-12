@@ -114,6 +114,7 @@ function SignUpPatientScreen() {
     try {
       const response = await fetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/auth/register/patient`, {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },

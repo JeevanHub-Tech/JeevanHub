@@ -187,6 +187,7 @@ function SignUpDoctorScreen() {
 				`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/auth/register/doctor`,
 				{
 					method: "POST",
+					credentials: "include",
 					body: data,
 				}
 			);

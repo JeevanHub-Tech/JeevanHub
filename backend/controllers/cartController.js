@@ -1,6 +1,21 @@
 const Cart = require("../models/Cart");
 const Medicine = require("../models/Medicine");
 
+const CART_ITEM_POPULATE = {
+    path: 'items.medicineId',
+    select: 'name price images retailerId',
+    populate: {
+        path: 'retailerId',
+        select: 'BusinessName firstName lastName'
+    }
+};
+
+const recalcTotal = (cart) => {
+    cart.totalPrice = cart.items.reduce((total, item) => total + (item.price * item.quantity), 0);
+};
+
+// Fetches both the patient's own default cart and every per-doctor cart created
+// by a doctor's prescriptions, kept as separate documents (never merged).
 exports.getCartByPatientID = async (req, res) => {
     const { patientId } = req.params;
 
@@ -12,29 +27,26 @@ exports.getCartByPatientID = async (req, res) => {
             return res.status(403).json({ message: "Not authorized" });
         }
 
-        const cartItems = await Cart.findOne({ patientId: patientId }).populate({
-            path: 'items.medicineId',
-            select: 'name price image retailerId',
-            populate: {
-                path: 'retailerId',
-                select: 'BusinessName firstName lastName'
-            }
+        const [defaultCart, doctorCarts] = await Promise.all([
+            Cart.findOne({ patientId, doctorId: null }).populate(CART_ITEM_POPULATE),
+            // Most recently active (last prescribed/updated) doctor cart first.
+            Cart.find({ patientId, doctorId: { $ne: null } })
+                .sort({ updatedAt: -1 })
+                .populate(CART_ITEM_POPULATE)
+                .populate({ path: 'doctorId', select: 'firstName lastName' })
+        ]);
+
+        return res.status(200).json({
+            defaultCart: defaultCart || { items: [], totalPrice: 0 },
+            doctorCarts
         });
-
-        if (!cartItems) {
-            return res.status(200).json({
-                items: [],
-                totalPrice: 0,
-                message: "Cart is empty"
-            });
-        }
-
-        return res.status(200).json({ cartItems: cartItems });
     }
     catch (error) {
         return res.status(500).json({ message: "Server Error", error: error.message });
     }
 };
+
+// --- Patient's own default cart (doctorId: null) ---
 
 exports.updateCartItemQuantity = async (req, res) => {
     const { patientId, medicineId, action } = req.body;
@@ -47,25 +59,21 @@ exports.updateCartItemQuantity = async (req, res) => {
             return res.status(403).json({ message: "Not authorized" });
         }
 
-        // 2. Use 'Cart' (Model) to find, and assign to 'cart' (Variable)
-        const cart = await Cart.findOne({ patientId });
+        const cart = await Cart.findOne({ patientId, doctorId: null });
 
         if (!cart) {
             return res.status(404).json({ message: "Cart not found" });
         }
 
-        // 3. Now use 'cart' everywhere below (it holds the database document)
         const itemIndex = cart.items.findIndex(item => item.medicineId.toString() === medicineId);
 
         if (itemIndex === -1) {
             return res.status(404).json({ message: "Item not found in cart" });
         }
 
-        // This line caused your error before. Now it works because 'cart' is the document.
         let currentItem = cart.items[itemIndex];
         let newQuantity = currentItem.quantity;
 
-        // --- Logic Remains the Same ---
         if (action === "increment") {
             newQuantity += 1;
         } else if (action === "decrement") {
@@ -89,25 +97,13 @@ exports.updateCartItemQuantity = async (req, res) => {
             });
         }
 
-        // Apply changes to the 'cart' variable
         cart.items[itemIndex].quantity = newQuantity;
-
-        cart.totalPrice = cart.items.reduce((total, item) => {
-            return total + (item.price * item.quantity);
-        }, 0);
-
+        recalcTotal(cart);
         cart.updatedAt = Date.now();
 
         await cart.save();
 
-        const populatedCart = await Cart.findById(cart._id).populate({
-            path: 'items.medicineId',
-            select: 'name price image retailerId',
-            populate: {
-                path: 'retailerId',
-                select: 'BusinessName firstName lastName'
-            }
-        });
+        const populatedCart = await Cart.findById(cart._id).populate(CART_ITEM_POPULATE);
 
         return res.status(200).json({
             message: "Cart updated successfully",
@@ -131,43 +127,24 @@ exports.removeFromCart = async (req, res) => {
             return res.status(403).json({ message: "Not authorized" });
         }
 
-        // 1. Find the Cart
-        const cart = await Cart.findOne({ patientId });
+        const cart = await Cart.findOne({ patientId, doctorId: null });
 
         if (!cart) {
             return res.status(404).json({ message: "Cart not found" });
         }
 
-        // 2. Check if item exists (Optional, but good for validation)
         const itemExists = cart.items.some(item => item.medicineId.toString() === medicineId);
         if (!itemExists) {
             return res.status(404).json({ message: "Item not found in cart" });
         }
 
-        // 3. Filter out the item to remove it
         cart.items = cart.items.filter(item => item.medicineId.toString() !== medicineId);
-
-        // 4. Recalculate Total Price
-        // If cart is empty, reduce returns initial value (0)
-        cart.totalPrice = cart.items.reduce((total, item) => {
-            return total + (item.price * item.quantity);
-        }, 0);
-
+        recalcTotal(cart);
         cart.updatedAt = Date.now();
 
-        // 5. Save Changes
         await cart.save();
 
-        // 6. Return the updated cart (Populated)
-        // We populate so the frontend receives the full object structure immediately
-        const populatedCart = await Cart.findById(cart._id).populate({
-            path: 'items.medicineId',
-            select: 'name price image retailerId',
-            populate: {
-                path: 'retailerId',
-                select: 'BusinessName firstName lastName'
-            }
-        });
+        const populatedCart = await Cart.findById(cart._id).populate(CART_ITEM_POPULATE);
 
         return res.status(200).json({
             message: "Item removed successfully",
@@ -191,7 +168,6 @@ exports.addToCart = async (req, res) => {
             return res.status(403).json({ message: "Not authorized" });
         }
 
-        // 1. Fetch medicine to check price and validity
         const medicine = await Medicine.findById(medicineId);
         if (!medicine) {
             return res.status(404).json({ message: "Medicine not found" });
@@ -201,49 +177,33 @@ exports.addToCart = async (req, res) => {
             return res.status(400).json({ message: `Only ${medicine.quantity} units available in stock` });
         }
 
-        // 2. Find existing cart or create new one
-        let cart = await Cart.findOne({ patientId });
+        let cart = await Cart.findOne({ patientId, doctorId: null });
 
         if (!cart) {
-            // Create new cart
             cart = new Cart({
                 patientId,
+                doctorId: null,
                 items: [{ medicineId, quantity, price: medicine.price }],
-                totalPrice: 0 // Will be calculated below
+                totalPrice: 0
             });
         } else {
-            // Check if item exists
             const itemIndex = cart.items.findIndex(p => p.medicineId.toString() === medicineId);
 
             if (itemIndex > -1) {
                 if (cart.items[itemIndex].quantity + quantity > medicine.quantity) {
                     return res.status(400).json({ message: `Cannot add. Only ${medicine.quantity} units available in stock` });
                 }
-                // Update quantity
                 cart.items[itemIndex].quantity += quantity;
             } else {
-                // Add new item
                 cart.items.push({ medicineId, quantity, price: medicine.price });
             }
         }
 
-        // 3. Recalculate Total Price
-        cart.totalPrice = cart.items.reduce((total, item) => {
-            return total + (item.price * item.quantity);
-        }, 0);
-
+        recalcTotal(cart);
         cart.updatedAt = Date.now();
         await cart.save();
 
-        // 4. Return populated cart
-        const populatedCart = await Cart.findById(cart._id).populate({
-            path: 'items.medicineId',
-            select: 'name price image retailerId',
-            populate: {
-                path: 'retailerId',
-                select: 'BusinessName firstName lastName'
-            }
-        });
+        const populatedCart = await Cart.findById(cart._id).populate(CART_ITEM_POPULATE);
 
         return res.status(200).json({
             message: "Added to cart",
@@ -252,6 +212,155 @@ exports.addToCart = async (req, res) => {
 
     } catch (error) {
         console.error("Add to Cart Error:", error);
+        return res.status(500).json({ message: "Server Error", error: error.message });
+    }
+};
+
+// --- Doctor-created carts (RUD only — items only ever enter via a prescription) ---
+
+exports.updateDoctorCartItemQuantity = async (req, res) => {
+    const { doctorId } = req.params;
+    const { medicineId, action } = req.body;
+    const patientId = req.user._id;
+
+    try {
+        if (!medicineId || !action) {
+            return res.status(400).json({ message: "Missing required fields" });
+        }
+
+        const cart = await Cart.findOne({ patientId, doctorId });
+        if (!cart) {
+            return res.status(404).json({ message: "Cart not found" });
+        }
+
+        const itemIndex = cart.items.findIndex(item => item.medicineId.toString() === medicineId);
+        if (itemIndex === -1) {
+            return res.status(404).json({ message: "Item not found in cart" });
+        }
+
+        let newQuantity = cart.items[itemIndex].quantity;
+        if (action === "increment") newQuantity += 1;
+        else if (action === "decrement") newQuantity -= 1;
+        else return res.status(400).json({ message: "Invalid action" });
+
+        if (newQuantity < 1) {
+            return res.status(400).json({ message: "Quantity cannot be less than 1" });
+        }
+
+        const medicineInStock = await Medicine.findById(medicineId);
+        if (!medicineInStock) {
+            return res.status(404).json({ message: "Medicine details not found" });
+        }
+        if (newQuantity > medicineInStock.quantity) {
+            return res.status(400).json({ message: `Only ${medicineInStock.quantity} units available in stock` });
+        }
+
+        cart.items[itemIndex].quantity = newQuantity;
+        recalcTotal(cart);
+        cart.updatedAt = Date.now();
+        await cart.save();
+
+        const populatedCart = await Cart.findById(cart._id).populate(CART_ITEM_POPULATE);
+        return res.status(200).json({ message: "Cart updated successfully", cartItems: populatedCart });
+    } catch (error) {
+        console.error("Update Doctor Cart Error:", error);
+        return res.status(500).json({ message: "Server Error", error: error.message });
+    }
+};
+
+exports.removeFromDoctorCart = async (req, res) => {
+    const { doctorId } = req.params;
+    const { medicineId } = req.body;
+    const patientId = req.user._id;
+
+    try {
+        if (!medicineId) {
+            return res.status(400).json({ message: "Medicine ID is required" });
+        }
+
+        const cart = await Cart.findOne({ patientId, doctorId });
+        if (!cart) {
+            return res.status(404).json({ message: "Cart not found" });
+        }
+
+        const itemExists = cart.items.some(item => item.medicineId.toString() === medicineId);
+        if (!itemExists) {
+            return res.status(404).json({ message: "Item not found in cart" });
+        }
+
+        cart.items = cart.items.filter(item => item.medicineId.toString() !== medicineId);
+
+        if (cart.items.length === 0) {
+            await Cart.deleteOne({ _id: cart._id });
+            return res.status(200).json({ message: "Item removed; cart is now empty and was deleted", cartItems: null });
+        }
+
+        recalcTotal(cart);
+        cart.updatedAt = Date.now();
+        await cart.save();
+
+        const populatedCart = await Cart.findById(cart._id).populate(CART_ITEM_POPULATE);
+        return res.status(200).json({ message: "Item removed successfully", cartItems: populatedCart });
+    } catch (error) {
+        console.error("Remove From Doctor Cart Error:", error);
+        return res.status(500).json({ message: "Server Error", error: error.message });
+    }
+};
+
+exports.deleteDoctorCart = async (req, res) => {
+    const { doctorId } = req.params;
+    const patientId = req.user._id;
+
+    try {
+        const result = await Cart.deleteOne({ patientId, doctorId });
+        if (result.deletedCount === 0) {
+            return res.status(404).json({ message: "Cart not found" });
+        }
+        return res.status(200).json({ message: "Cart deleted successfully" });
+    } catch (error) {
+        console.error("Delete Doctor Cart Error:", error);
+        return res.status(500).json({ message: "Server Error", error: error.message });
+    }
+};
+
+// Merges a doctor-cart's items into the patient's default cart (combining
+// quantities for medicines already there), then clears the doctor-cart.
+exports.moveDoctorCartToDefault = async (req, res) => {
+    const { doctorId } = req.params;
+    const patientId = req.user._id;
+
+    try {
+        const doctorCart = await Cart.findOne({ patientId, doctorId });
+        if (!doctorCart || doctorCart.items.length === 0) {
+            return res.status(404).json({ message: "Cart not found or already empty" });
+        }
+
+        let defaultCart = await Cart.findOne({ patientId, doctorId: null });
+        if (!defaultCart) {
+            defaultCart = new Cart({ patientId, doctorId: null, items: [], totalPrice: 0 });
+        }
+
+        for (const item of doctorCart.items) {
+            const existingIndex = defaultCart.items.findIndex(
+                i => i.medicineId.toString() === item.medicineId.toString()
+            );
+            if (existingIndex > -1) {
+                defaultCart.items[existingIndex].quantity += item.quantity;
+            } else {
+                defaultCart.items.push({ medicineId: item.medicineId, quantity: item.quantity, price: item.price });
+            }
+        }
+
+        recalcTotal(defaultCart);
+        defaultCart.updatedAt = Date.now();
+        await defaultCart.save();
+
+        await Cart.deleteOne({ _id: doctorCart._id });
+
+        const populatedCart = await Cart.findById(defaultCart._id).populate(CART_ITEM_POPULATE);
+        return res.status(200).json({ message: "Items moved to your cart", cartItems: populatedCart });
+    } catch (error) {
+        console.error("Move Doctor Cart Error:", error);
         return res.status(500).json({ message: "Server Error", error: error.message });
     }
 };

@@ -36,6 +36,17 @@
 	background: var(--bg);
 	font-family: var(--jh-font-body);
 	color: var(--text);
+	transition: max-width 0.2s var(--jh-ease-organic);
+}
+
+/* The split layout needs real width to breathe — the single-column cart
+   doesn't, so only widen the container once doctor carts are showing.
+   No cap at all: fill the full page width, just leaving the existing 20px
+   side padding. !important here is deliberate: this is the one narrow,
+   single-purpose variant override where relying on selector order/
+   specificity proved unreliable in practice, so it's pinned to always win. */
+.cart-page.cart-page--wide {
+	max-width: none !important;
 }
 
 /* ==== Header ==== */
@@ -80,7 +91,14 @@
 	align-items: start;
 }
 
+/* container-type here is what lets .cart-item below respond to its own
+   available width (@container) instead of the viewport (@media) — needed
+   because the same item card renders both in the wide "My Cart" column and
+   the much narrower doctor-cart column, and only one of those actually has
+   room for a horizontal row layout. */
 .cart-items {
+	container-type: inline-size;
+	width: 100%;
 	list-style: none;
 	display: flex;
 	flex-direction: column;
@@ -106,7 +124,8 @@
 	border-color: var(--jh-olive-leaf);
 }
 
-.cart-item img {
+.cart-item img,
+.cart-item__thumb {
 	width: 128px;
 	height: 128px;
 	object-fit: cover;
@@ -114,6 +133,7 @@
 	background: var(--jh-sage-pale);
 	border-right: 1px solid var(--border);
 	flex-shrink: 0;
+	cursor: pointer;
 }
 
 /* ─── Details ─── */
@@ -126,6 +146,15 @@
 	gap: 0.85rem;
 }
 
+/* min-width: 0 is what lets a long medicine name wrap/truncate instead of
+   forcing the row wider than its column and pushing the quantity/remove
+   controls out of view — without it a flex item's min-width defaults to
+   its unwrapped content width. */
+.cart-details__info {
+	min-width: 0;
+	cursor: pointer;
+}
+
 .cart-details__info h3 {
 	font-family: var(--jh-font-display);
 	font-weight: 600;
@@ -133,6 +162,17 @@
 	color: var(--text-strong);
 	margin: 0 0 0.2rem;
 	line-height: 1.3;
+	overflow-wrap: break-word;
+	word-break: break-word;
+}
+
+/* Price-per-unit and the Remove action share a line, with Remove pushed to
+   the card's rightmost edge rather than sitting on its own row. */
+.cart-details__price-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.75rem;
 }
 
 .item-price {
@@ -221,13 +261,14 @@
 	font-weight: 600;
 	cursor: pointer;
 	transition: opacity 0.2s var(--jh-ease-organic);
-	align-self: flex-start;
+	flex-shrink: 0;
 	padding: 0.25rem 0;
 }
 
 .remove-item-btn:hover {
 	opacity: 0.75;
 }
+.remove-item-btn svg { flex-shrink: 0; }
 
 /* ==== Empty State ==== */
 .cart-empty {
@@ -338,6 +379,249 @@
 	width: 100%;
 }
 
+/* ==== Split layout: My Cart (55%) + doctor-prescribed carts (45%) ====
+   No grid gap on desktop — the separation is a deliberate hairline divider
+   with modest padding on each side, not empty dead space, so both columns
+   get to keep as much width as possible. */
+.cart-split {
+	display: grid;
+	grid-template-columns: 1fr;
+	gap: 2.5rem;
+	align-items: start;
+}
+
+@media (min-width: 900px) {
+	.cart-split {
+		grid-template-columns: 55% 1fr;
+		gap: 0;
+	}
+	.cart-split__mycart {
+		padding-right: 0.85rem;
+	}
+	.cart-split__doctors {
+		padding-left: 0.85rem;
+		border-left: 1px solid var(--border);
+	}
+}
+
+.cart-split__heading {
+	font-family: var(--jh-font-display);
+	font-weight: 600;
+	font-size: 1.4rem;
+	color: var(--text-strong);
+	margin: 0 0 1.25rem;
+}
+
+/* Within the split view, My Cart stacks items above the summary rather than
+   side-by-side — the 60% column isn't wide enough for a further inner split. */
+.cart-layout--stacked {
+	display: flex;
+	flex-direction: column;
+	gap: 1.5rem;
+}
+.cart-layout--stacked .cart-summary {
+	position: static;
+}
+
+.cart-mycart-empty {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	text-align: center;
+	gap: 0.5rem;
+	padding: 2.5rem 1.5rem;
+	background: var(--surface);
+	border: 1px dashed var(--border);
+	border-radius: var(--radius-lg);
+}
+.cart-mycart-empty p {
+	color: var(--muted);
+	max-width: 38ch;
+	margin: 0 0 0.5rem;
+}
+
+.cart-split__doctors {
+	min-width: 0;
+}
+
+.cart-doctor-section__title {
+	display: flex;
+	align-items: center;
+	gap: 0.6rem;
+	font-family: var(--jh-font-display);
+	font-weight: 600;
+	font-size: 1.2rem;
+	color: var(--text-strong);
+	margin: 0 0 0.4rem;
+}
+.cart-doctor-section__title svg { flex-shrink: 0; color: var(--jh-olive-leaf); }
+
+.cart-doctor-section__hint {
+	color: var(--muted);
+	font-size: 0.88rem;
+	margin: 0 0 1.25rem;
+}
+
+/* ── Doctor cart card — collapsible, most recent expanded by default ── */
+.cart-doctor-card {
+	background: var(--surface);
+	border: 1px solid var(--border);
+	border-radius: var(--radius-lg);
+	box-shadow: var(--jh-shadow-rest);
+	margin-bottom: 1rem;
+	overflow: hidden;
+	transition: box-shadow 0.2s var(--jh-ease-organic);
+}
+.cart-doctor-card.is-expanded {
+	box-shadow: var(--jh-shadow-card);
+}
+
+.cart-doctor-card__header {
+	width: 100%;
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	background: none;
+	border: none;
+	font: inherit;
+	text-align: left;
+	cursor: pointer;
+	padding: 1.1rem 1.25rem;
+}
+.cart-doctor-card.is-expanded .cart-doctor-card__header {
+	border-bottom: 1px dashed var(--border);
+}
+.cart-doctor-card__header:hover {
+	background: var(--jh-sage-pale);
+}
+
+.cart-doctor-card__header h3 {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	font-family: var(--jh-font-display);
+	font-weight: 600;
+	font-size: 1rem;
+	color: var(--text-strong);
+	margin: 0;
+	/* Shrinks (and truncates) before the count/chevron ever get pushed
+	   out of the card — those two stay flex-shrink:0 so they're always visible. */
+	flex-shrink: 1;
+	min-width: 40px;
+}
+.cart-doctor-card__header h3 svg { flex-shrink: 0; color: var(--jh-olive-leaf); }
+.cart-doctor-card__name-text {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	min-width: 0;
+}
+
+.cart-doctor-card__preview {
+	display: flex;
+	flex: 1;
+	min-width: 0;
+}
+.cart-doctor-card__preview-thumb {
+	width: 30px;
+	height: 30px;
+	border-radius: 50%;
+	object-fit: cover;
+	border: 2px solid var(--surface);
+	background: var(--jh-sage-pale);
+	box-shadow: 0 0 0 1px var(--border);
+	margin-left: -10px;
+	flex-shrink: 0;
+}
+.cart-doctor-card__preview-thumb:first-child {
+	margin-left: 0;
+}
+
+.cart-doctor-card__count {
+	font-size: 0.85rem;
+	color: var(--muted);
+	font-weight: 600;
+	white-space: nowrap;
+	flex-shrink: 0;
+	margin-left: auto;
+}
+
+.cart-doctor-card__chevron {
+	flex-shrink: 0;
+	width: 18px;
+	height: 18px;
+	color: var(--muted);
+	transition: transform 0.2s var(--jh-ease-organic);
+}
+.cart-doctor-card.is-expanded .cart-doctor-card__chevron {
+	transform: rotate(180deg);
+}
+
+.cart-doctor-card__body {
+	padding: 1.25rem;
+}
+
+.cart-doctor-card .cart-items {
+	margin-bottom: 1.25rem;
+}
+
+.cart-doctor-card__actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.75rem;
+}
+
+.cart-btn--secondary {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	background: var(--jh-sage-pale);
+	color: var(--primary);
+	border: 1.5px solid var(--jh-line-strong);
+}
+.cart-btn--secondary:hover {
+	background: var(--primary);
+	color: var(--jh-cream);
+	border-color: var(--primary);
+}
+.cart-btn--secondary svg { flex-shrink: 0; }
+
+.cart-btn--ghost-danger {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	background: transparent;
+	color: var(--danger);
+	border: 1.5px solid var(--danger);
+}
+.cart-btn--ghost-danger:hover {
+	background: var(--danger);
+	color: var(--jh-cream);
+}
+.cart-btn--ghost-danger svg { flex-shrink: 0; }
+
+.cart-btn--disabled {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	background: var(--jh-line-strong);
+	color: var(--muted);
+	border: 1.5px solid var(--jh-line-strong);
+	cursor: not-allowed;
+	margin-left: auto;
+}
+.cart-btn--disabled svg { flex-shrink: 0; }
+
+@media (max-width: 640px) {
+	.cart-doctor-card__actions {
+		flex-direction: column;
+		align-items: stretch;
+	}
+	.cart-btn--disabled {
+		margin-left: 0;
+	}
+}
+
 /* ==== Status states (loading / error) ==== */
 .cart-status-container {
 	display: flex;
@@ -375,7 +659,15 @@
 	.cart-layout {
 		grid-template-columns: 1fr 340px;
 	}
+}
 
+/* The item card's own row-vs-stacked layout responds to its actual available
+   width (its .cart-items container), not the viewport — the same card
+   renders in both the wide "My Cart" column and the much narrower doctor-cart
+   column, and only one of those has room for a horizontal row. Below this
+   threshold the base (mobile-style) stacked layout applies instead, which is
+   exactly what a card this narrow needs regardless of viewport size. */
+@container (min-width: 700px) {
 	.cart-details {
 		flex-direction: row;
 		align-items: center;
@@ -385,10 +677,11 @@
 
 	.cart-details__info {
 		flex: 1;
+		min-width: 0;
 	}
 
-	.remove-item-btn {
-		align-self: center;
+	.cart-details__controls {
+		flex-shrink: 0;
 	}
 }
 
@@ -425,7 +718,8 @@
 		font-size: 1.15rem;
 	}
 
-	.cart-item img {
+	.cart-item img,
+	.cart-item__thumb {
 		width: 96px;
 		height: 96px;
 	}

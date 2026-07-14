@@ -1,6 +1,7 @@
 import { useState, useEffect, useContext } from "react";
 import "../Patients/Notification.css";
-import { AuthContext } from "../../context/AuthContext"; 
+import { AuthContext } from "../../context/AuthContext";
+import { authFetch } from "../../utils/authFetch";
 
 const DoctorNotification = () => {
 	const { auth } = useContext(AuthContext);
@@ -25,10 +26,9 @@ const DoctorNotification = () => {
 
 			try {
 				// 2. Fetch from your backend
-				const response = await fetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/notifications?${queryParams}`, {
+				const response = await authFetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/notifications?${queryParams}`, {
 					method: 'GET',
 					headers: {
-						'Authorization': `Bearer ${auth.token}`,
 						'Content-Type': 'application/json'
 					}
 				});

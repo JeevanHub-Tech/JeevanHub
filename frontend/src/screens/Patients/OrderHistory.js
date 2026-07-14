@@ -3,7 +3,7 @@ import axios from 'axios';
 import './OrderHistory.css';
 import { AuthContext } from '../../context/AuthContext';
 import { useNavigate } from "react-router-dom";
-import { Star } from "lucide-react";
+import { Star, Loader2, AlertCircle, PackageSearch } from "lucide-react";
 
 const API_BASE_URL = `${process.env.REACT_APP_AYURVEDA_BACKEND_URL}`;
 const img = "https://images.unsplash.com/photo-1638310526160-ce17611bffff?q=80&w=627&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D";
@@ -20,16 +20,19 @@ const OrderHistory = () => {
 		const fetchOrders = async () => {
 			try {
 				setLoading(true);
-				const response = await axios.get(`${API_BASE_URL}/api/orders`, {
-					params: { userId },
+				const response = await axios.get(`${API_BASE_URL}/api/orders/getOrdersByBuyerId/${userId}`, {
 					headers: { Authorization: `Bearer ${auth.token}` }
 				});
-				setOrders(response.data);
-				console.log(response.data);
+				setOrders(response.data.orders || []);
 				setLoading(false);
 			} catch (error) {
-				console.error('Error fetching orders:', error);
-				setError('Failed to load your orders. Please try again later.');
+				if (error.response?.status === 404) {
+					// No orders yet -- not a failure, just an empty list.
+					setOrders([]);
+				} else {
+					console.error('Error fetching orders:', error);
+					setError('Failed to load your orders. Please try again later.');
+				}
 				setLoading(false);
 			}
 		};
@@ -66,159 +69,158 @@ const OrderHistory = () => {
 		}
 	};
 
-
-	// Function to map status to badge color
-	const getStatusColor = (status) => {
-		switch (status) {
-			case 'pending': return '#FFC107'; // yellow
-			case 'processing': return '#2196F3'; // blue
-			case 'shipped': return '#9C27B0'; // purple
-			case 'delivered': return '#4CAF50'; // green
-			case 'cancelled': return '#F44336'; // red
-			default: return '#757575'; // grey
-		}
-	};
-
 	return (
-		<div className="order-history" style={{ marginTop: '160px' }}>
-			<h1>Your Order History</h1>
+		<div className="order-history-page">
+			<header className="oh-header">
+				<h1>Your Orders</h1>
+				<span className="oh-header__accent" aria-hidden="true" />
+				{!loading && !error && orders.length > 0 && (
+					<p className="oh-header__count">
+						{orders.length} order{orders.length === 1 ? '' : 's'} placed
+					</p>
+				)}
+			</header>
 
 			{loading ? (
-				<p>Loading your orders...</p>
+				<div className="oh-status-container">
+					<Loader2 className="oh-spinner" size={40} />
+					<p>Loading your orders...</p>
+				</div>
 			) : error ? (
-				<p className="error-message">{error}</p>
+				<div className="oh-status-container">
+					<AlertCircle size={40} className="oh-status-icon oh-status-icon--danger" />
+					<p>{error}</p>
+				</div>
 			) : orders.length === 0 ? (
-				<div className="empty-state">
-					<p>You haven't placed any orders yet.</p>
+				<div className="oh-empty">
+					<PackageSearch size={40} className="oh-empty__icon" />
+					<h2>No orders yet</h2>
+					<p>Medicines you order will show up here so you can track them from purchase to delivery.</p>
 					<button
 						onClick={() => navigate('/medicines')}
-						className="shop-now-btn"
+						className="oh-btn oh-btn--primary"
 					>
 						Shop Now
 					</button>
 				</div>
 			) : (
-				<div className="orders-container" style={{ width: "100%" }}>
+				<div className="oh-orders">
 					{orders.map((order) => (
-						<div key={order._id} className="order-card">
-							<div className="order-header" style={{ width: "100%" }}>
-								<div>
-									<h3>Order #{order._id.slice(-6)}</h3>
-									<p className="order-date">{formatDate(order.createdAt)}</p>
-								</div>
-								<div
-									className="status-badge"
-									style={{ backgroundColor: getStatusColor(order.orderStatus) }}
-								>
-									{order.orderStatus.charAt(0).toUpperCase() + order.orderStatus.slice(1)}
-								</div>
-							</div>
-
-							<div className="order-items">
-								<h3>Items</h3>
-								<h4>Retailer: {order.retailer.BusinessName}</h4>
-								{order.items.map((item, index) => (
-									<div key={index} className="order-item">
-										<div className="item-image">
-											{item.image ? (
-												<img
-													src={getImageUrl(item.image)}
-													alt={item.name}
-													onError={(e) => {
-														e.target.onerror = null;
-														e.target.src = '/placeholder-image.png';
-													}}
-												/>
-											) : (
-												<img
-													src={img}
-													alt={item.name}
-												/>
-											)}
-										</div>
-										<div className="item-details">
-											<p className="item-name">{item.medicineId.name}</p>
-											<p className="item-price">
-												₹{(Number(item.medicineId.price) || 0).toFixed(2)} × {item.quantity}
-											</p>
-											<p className="item-subtotal">
-												Subtotal: ₹{(Number(item.subTotal) || 0).toFixed(2)}
-											</p>
-										</div>
+						<div key={order._id} className="oh-card">
+							<div className="oh-card__strip">
+								<div className="oh-card__meta">
+									<div className="oh-card__meta-item">
+										<span className="oh-card__meta-label">Order placed</span>
+										<span className="oh-card__meta-value">{formatDate(order.createdAt)}</span>
 									</div>
-								))}
+									<div className="oh-card__meta-item">
+										<span className="oh-card__meta-label">Total</span>
+										<span className="oh-card__meta-value">₹{(Number(order.totalPrice) || 0).toFixed(2)}</span>
+									</div>
+									<div className="oh-card__meta-item oh-card__meta-item--id">
+										<span className="oh-card__meta-label">Order #</span>
+										<span className="oh-card__meta-value">{order._id.slice(-6)}</span>
+									</div>
+								</div>
+								<span className={`oh-status oh-status--${order.orderStatus}`}>
+									{order.orderStatus.charAt(0).toUpperCase() + order.orderStatus.slice(1)}
+								</span>
 							</div>
 
-							<div className="order-footer" style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
-								<div className="payment-info">
-									<p><strong>Payment Method:</strong> {order.paymentMethod === 'cashOnDelivery' ? 'Cash On Delivery' : 'Online Payment'}</p>
-									<p><strong>Payment Status:</strong> {order.paymentStatus.charAt(0).toUpperCase() + order.paymentStatus.slice(1)}</p>
-								</div>
-								<div className="order-total">
-									<p><strong>Total Amount:</strong> ${(Number(order.totalPrice) || 0).toFixed(2)}</p>
-								</div>
-								{order.orderStatus.toLowerCase() === "delivered" && order.review && (
-									<div
-										className="order-feedback"
-										style={{
-											marginTop: "10px",
-											padding: "10px",
-											borderTop: "1px solid #ccc",
-											width: "100%",
-											display: "flex",
-											flexDirection: "column",
-											justifyContent: "center",
-											alignItems: "center",
-											textAlign: "center",
-										}}
-									>
-										<h4>Customer Feedback</h4>
+							<div className="oh-card__body">
+								{order.retailers?.length > 0 && (
+									<p className="oh-card__retailer">Sold by {order.retailers.join(', ')}</p>
+								)}
 
-										{/* Display star icons */}
-										<div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+								<ul className="oh-items">
+									{order.items.map((item, index) => {
+										const medicineImage = item.medicineId?.images?.[0];
+										return (
+											<li key={index} className="oh-item">
+												<div className="oh-item__image">
+													{medicineImage ? (
+														<img
+															src={getImageUrl(medicineImage)}
+															alt={item.medicineId?.name}
+															onError={(e) => {
+																e.target.onerror = null;
+																e.target.src = img;
+															}}
+														/>
+													) : (
+														<img
+															src={img}
+															alt={item.medicineId?.name}
+														/>
+													)}
+												</div>
+												<div className="oh-item__details">
+													<p className="oh-item__name">{item.medicineId?.name}</p>
+													<p className="oh-item__price">
+														₹{(Number(item.medicineId?.price) || 0).toFixed(2)} × {item.quantity}
+													</p>
+												</div>
+												<p className="oh-item__subtotal">
+													₹{(Number(item.subTotal) || 0).toFixed(2)}
+												</p>
+											</li>
+										);
+									})}
+								</ul>
+
+								{order.orderStatus.toLowerCase() === "delivered" && order.review && (
+									<div className="oh-feedback">
+										<h4>Your feedback</h4>
+										<div className="oh-feedback__stars">
 											{[1, 2, 3, 4, 5].map((i) => (
 												<Star
 													key={i}
 													size={16}
-													color={i <= order.review.rating ? "#FFD700" : "#ccc"}
+													fill={i <= order.review.rating ? "currentColor" : "none"}
+													className={i <= order.review.rating ? "oh-feedback__star oh-feedback__star--filled" : "oh-feedback__star"}
 												/>
 											))}
-											
 										</div>
-
 										{order.review.comment && (
-											<p style={{ marginTop: "5px" }}>
-											 {order.review.comment}
-											</p>
+											<p className="oh-feedback__comment">{order.review.comment}</p>
 										)}
 										{order.review.deliveredAt && (
-											<p style={{ marginTop: "5px" }}>
-												<strong>Delivered On:</strong>{" "}
-												{new Date(order.review.deliveredAt).toLocaleDateString()}
+											<p className="oh-feedback__delivered">
+												Delivered on {new Date(order.review.deliveredAt).toLocaleDateString()}
 											</p>
 										)}
 									</div>
 								)}
-								<div className="order-total">
-									<div className="order-total">
-										{order.orderStatus.toLowerCase() === "shipped" && (
-											<button
-												className="bf-btn-primary"
-												onClick={() => navigate(`/BuyerFeedback/${order._id}`)}
-											>
-												Update Order Status
-											</button>
-										)}
 
-										{order.orderStatus.toLowerCase() === "delivered" && (
-											<button
-												className="bf-btn-primary"
-												onClick={() => navigate(`/BuyerFeedback/${order._id}`)}
-											>
-												Update Feedback
-											</button>
-										)}
+								<div className="oh-card__footer">
+									<div className="oh-card__payment">
+										<p>
+											<span>Payment method</span>
+											{order.paymentMethod === 'cashOnDelivery' ? 'Cash On Delivery' : 'Online Payment'}
+										</p>
+										<p>
+											<span>Payment status</span>
+											{order.paymentStatus.charAt(0).toUpperCase() + order.paymentStatus.slice(1)}
+										</p>
 									</div>
+
+									{order.orderStatus.toLowerCase() === "shipped" && (
+										<button
+											className="oh-btn oh-btn--primary"
+											onClick={() => navigate(`/BuyerFeedback/${order._id}`)}
+										>
+											Update Order Status
+										</button>
+									)}
+
+									{order.orderStatus.toLowerCase() === "delivered" && (
+										<button
+											className="oh-btn oh-btn--secondary"
+											onClick={() => navigate(`/BuyerFeedback/${order._id}`)}
+										>
+											Update Feedback
+										</button>
+									)}
 								</div>
 							</div>
 						</div>

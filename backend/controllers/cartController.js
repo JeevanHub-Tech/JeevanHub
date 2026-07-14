@@ -3,7 +3,7 @@ const Medicine = require("../models/Medicine");
 
 const CART_ITEM_POPULATE = {
     path: 'items.medicineId',
-    select: 'name price images retailerId',
+    select: 'name price image images retailerId prescription',
     populate: {
         path: 'retailerId',
         select: 'BusinessName firstName lastName'

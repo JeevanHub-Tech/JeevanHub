@@ -1,65 +1,41 @@
-/* Container & Platform Styling */
-.platform-container {
-    max-width: 1000px;
-    margin: 2rem auto;
-    padding: 0 1rem;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    color: #334155;
-}
-
-.platform-header {
-    margin-bottom: 2rem;
-    text-align: center;
-}
-
-.platform-title {
-    color: #0f172a;
-    font-size: 1.875rem;
-    font-weight: 700;
-    margin-bottom: 0.25rem;
-}
-
-.platform-subtitle {
-    color: #64748b;
-    font-size: 1rem;
-}
-
-.header-divider {
-    height: 1px;
-    background: linear-gradient(to right, transparent, #e2e8f0, transparent);
-    margin: 1.5rem 0;
-}
-
 /* Main Patient Header Card */
 .patient-header-cards {
     background: #ffffff;
     border-radius: 12px;
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
     border: 1px solid #f1f5f9;
-    padding: 1.5rem;
-    padding-top: 29px;
-    margin-top: 10rem;
-    margin-bottom: 2rem;
-    margin-left: 5rem;
+    padding: 1.125rem 1.5rem;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 .patient-header-contents {
     display: flex;
     align-items: center;
-    gap: 2rem;
+    gap: 1.25rem;
 }
 
-/* Avatar Styles */
+/* Avatar — smaller, since the patient's name/dosha carry the visual weight now */
 .patient-avatars {
-    width: 100px;
-    height: 100px;
+    width: 56px;
+    height: 56px;
     border-radius: 50%;
     overflow: hidden;
     background-color: #f1f5f9;
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 3px solid #e2e8f0;
+    border: 2px solid #e2e8f0;
+    flex-shrink: 0;
+    padding: 0;
+}
+
+.patient-avatars-clickable {
+    cursor: pointer;
+    transition: border-color 0.15s, transform 0.15s;
+}
+.patient-avatars-clickable:hover {
+    border-color: #3b82f6;
+    transform: scale(1.05);
 }
 
 .patient-avatar-image {
@@ -69,132 +45,148 @@
 }
 
 .patient-avatar-fallback {
-    font-size: 2rem;
-    font-weight: 600;
+    font-size: 1.1rem;
+    font-weight: 700;
     color: #3b82f6;
     text-transform: uppercase;
 }
 
-/* Info Section Styling */
+/* Info Section */
 .patient-info-containers {
     flex: 1;
+    min-width: 0;
 }
 
 .patient-name-id-section {
     display: flex;
     align-items: center;
-    gap: 1rem;
-    margin-bottom: 1rem;
+    gap: 0.6rem;
+    margin-bottom: 0.3rem;
     flex-wrap: wrap;
 }
 
 .patient-name {
-    font-size: 1.5rem;
+    font-size: 1.15rem;
     font-weight: 700;
     color: #1e293b;
     margin: 0;
 }
 
-.patient-id-tag {
-    background-color: #eff6ff;
-    color: #3b82f6;
-    padding: 0.25rem 0.75rem;
+.patient-dosha-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    background-color: #f0fdf4;
+    color: #15803d;
+    border: 1px solid #bbf7d0;
+    padding: 0.15rem 0.6rem;
     border-radius: 9999px;
-    font-size: 0.875rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.patient-dosha-tag.muted {
+    background-color: #f8fafc;
+    color: #94a3b8;
+    border-color: #e2e8f0;
     font-weight: 500;
 }
 
-/* Details Grid */
-.patient-details-grids {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem;
-}
-
-.detail-item {
+/* Compact single-line meta strip — replaces the old grid of padded detail boxes */
+.patient-meta-line {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 0.75rem;
-    color: #475569;
+    gap: 0.4rem;
+    color: #64748b;
+    font-size: 0.85rem;
+    line-height: 1.4;
 }
 
-.detail-icon {
-    width: 18px;
-    height: 18px;
-    color: #3b82f6; /* Modern Blue */
+.patient-meta-dot {
+    color: #cbd5e1;
+}
+
+.patient-meta-contact {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+.patient-meta-contact svg {
+    color: #94a3b8;
     flex-shrink: 0;
 }
 
-.detail-text {
-    font-size: 0.9375rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-/* Content Placeholder Styling */
-.content-placeholder {
-    padding: 4rem 2rem;
-    text-align: center;
-    background-color: #f8fafc;
-    border: 2px dashed #e2e8f0;
-    border-radius: 12px;
-}
-
-.placeholder-text {
-    color: #94a3b8;
-    font-style: italic;
-}
-
-/* Responsive Adjustments */
+/* Responsive */
 @media (max-width: 640px) {
     .patient-header-contents {
-        flex-direction: column;
-        text-align: center;
+        gap: 1rem;
     }
-    
-    .patient-name-id-section {
-        justify-content: center;
+    .patient-avatars {
+        width: 48px;
+        height: 48px;
     }
-    
-    .patient-details-grids {
-        grid-template-columns: 1fr;
-    }
-    
-    .detail-item {
-        justify-content: center;
+    .patient-meta-line {
+        font-size: 0.8rem;
     }
 }
 
-@media (max-width: 640px) {
-  .detail-item {
+/* Enlarged photo modal */
+.patient-photo-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.65);
+    backdrop-filter: blur(3px);
+    z-index: 9999;
     display: flex;
-    align-items: flex-start;
-    gap: 8px;
-
-    padding: 10px 12px;
-
-    /* scrolling behavior */
-    overflow-x: auto;
-    overflow-y: hidden;
-
-    /* prevent awkward wrapping */
-    white-space: nowrap;
-
-    /* smooth touch scrolling */
-    -webkit-overflow-scrolling: touch;
-
-    /* optional visual polish */
-    border-radius: 8px;
-  }
-
-  /* hide scrollbar (optional but clean) */
-  .detail-item::-webkit-scrollbar {
-    height: 4px;
-  }
-
-  .detail-item::-webkit-scrollbar-thumb {
-    background-color: rgba(0, 0, 0, 0.25);
-    border-radius: 4px;
-  }
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
 }
+
+.patient-photo-modal {
+    position: relative;
+    background: #fff;
+    border-radius: 16px;
+    padding: 20px;
+    max-width: min(90vw, 480px);
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
+}
+
+.patient-photo-full {
+    max-width: 100%;
+    max-height: 65vh;
+    border-radius: 10px;
+    object-fit: contain;
+}
+
+.patient-photo-caption {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 700;
+    color: #1e293b;
+}
+
+.patient-photo-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f1f5f9;
+    border: none;
+    border-radius: 50%;
+    color: #475569;
+    cursor: pointer;
+}
+.patient-photo-close:hover { background: #e2e8f0; }
+.patient-photo-close svg { flex-shrink: 0; width: 20px; height: 20px; }

@@ -1,125 +1,118 @@
-import { useState, useCallback, useEffect } from 'react';
-import { ClipboardPlus, PlusCircle, Link as LinkIcon, Loader2, Send } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ClipboardPlus, Plus, Trash2, Loader2, ShoppingCart, Pill } from 'lucide-react';
+import { MedicinePickerModal } from './MedicinePickerModal';
 import './MedicineForm.css';
 import { authFetch } from '../../../utils/authFetch';
 
-// List of available medicines
-const AVAILABLE_MEDICINES = [
-	"Paracetamol", "Ibuprofen", "Amoxicillin", "Omeprazole", "Metformin",
-	"Lisinopril", "Simvastatin", "Amlodipine", "Aspirin", "Clopidogrel"
-];
+const BACKEND = process.env.REACT_APP_AYURVEDA_BACKEND_URL || 'http://localhost:8080';
+const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1587854692152-cbe660dbde88?q=80&w=300&auto=format&fit=crop';
 
-// 2. Define initial state as a constant for easy form resetting
-const INITIAL_FORM_STATE = {
-	medicineName: "",
-	externalLink: "",
-	startDate: "",
-	endDate: "",
-	reason: "",
-	dosage: "",
-	instructions: ""
+const resolveThumb = (images) => {
+	const imgs = (images || []).filter(Boolean).map(img => (img.startsWith('http') ? img : `${BACKEND}/${img}`));
+	return imgs.length ? imgs[0] : FALLBACK_IMAGE;
 };
 
-// 3. Receive IDs from props
-export function MedicineForm({ bookingId, patientId, doctorId }) {
-	const [formData, setFormData] = useState(INITIAL_FORM_STATE);
-	const [availableMedicines, setAvailableMedicines] = useState([]);
+export function MedicineForm({ bookingId, patientId, doctorId, onPrescribed }) {
+	const [rows, setRows] = useState([]); // { _id, medicineId, medicineName, dosage, instructions, thumb, price }
+	const [loading, setLoading] = useState(true);
+	const [pickerOpen, setPickerOpen] = useState(false);
+	const [adding, setAdding] = useState(false);
 
+	// Load the current medicines + a medicineId→image/price map (for thumbnails on existing rows)
 	useEffect(() => {
-		const fetchAvailableMedicines = async () => {
+		let active = true;
+		const load = async () => {
 			try {
-				const response = await fetch(
-					`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/medicines`,
-					{
-						method: 'GET',
-					}
-				);
+				const [medsRes, suppRes] = await Promise.all([
+					fetch(`${BACKEND}/api/medicines`),
+					authFetch(`${BACKEND}/api/bookings/supplements/${bookingId}`)
+				]);
+				const meds = medsRes.ok ? await medsRes.json() : [];
+				const map = {};
+				meds.forEach(m => { map[m._id] = { thumb: resolveThumb(m.images), price: m.price }; });
 
-				if (response.ok) {
-					const data = await response.json();
-
-					const medicineNames = data.map(med => med.name);
-					setAvailableMedicines(medicineNames);
-				} else {
-					console.error("Failed to fetch medicines");
-				}
-			} catch (err) {
-				console.error("Network Error while fetching medicines:", err);
+				const suppData = suppRes.ok ? await suppRes.json() : { supplements: [] };
+				const supps = (suppData.supplements || []).map(s => ({
+					_id: s._id,
+					medicineId: s.medicineId,
+					medicineName: s.medicineName,
+					dosage: s.dosage || '',
+					instructions: s.instructions || '',
+					thumb: map[s.medicineId]?.thumb || FALLBACK_IMAGE,
+					price: map[s.medicineId]?.price
+				}));
+				if (active) setRows(supps);
+			} catch (e) {
+				console.error('Error loading prescribed medicines:', e);
+			} finally {
+				if (active) setLoading(false);
 			}
+		};
+		load();
+		return () => { active = false; };
+	}, [bookingId]);
 
-		}
-		fetchAvailableMedicines();
-	}, []);
-
-	// 4. Setup Token, Loading, and Error states
-	const token = localStorage.getItem('token');
-	const [loading, setLoading] = useState(false);
-	const [error, setError] = useState(null);
-
-	// 5. Create a single, generic handler for most form inputs
-	const handleChange = useCallback((e) => {
-		const { name, value } = e.target;
-		setFormData(prev => ({ ...prev, [name]: value }));
-	}, []);
-
-	// Determine if the medicine is custom (not in the predefined list)
-	const isCustomMedicine = (
-		formData.medicineName.trim() !== "" &&
-		!availableMedicines.some(m => m.toLowerCase() === formData.medicineName.trim().toLowerCase())
-	);
-
-	// 6. The New Submit Function
-	const handleSubmit = async (e) => {
-		e.preventDefault();
-
-		const requiredFields = ['medicineName', 'startDate', 'endDate', 'reason', 'dosage'];
-		const isFormValid = requiredFields.every(field => formData[field].trim() !== "");
-
-		if (!isFormValid) {
-			alert("Please fill in all required fields marked with *");
-			return;
-		}
-
-		setLoading(true);
-		setError(null);
-
+	// A medicine was chosen in the picker → create the row on the backend, then append it.
+	const handleSelectMedicine = async (medicine) => {
+		setAdding(true);
 		try {
-			// CHECK THIS ENDPOINT: Ensure this matches your backend route for medicines
-			const response = await authFetch(
-				`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/bookings/supplements`,
-				{
-					method: 'PUT',
-					headers: {
-						'Content-Type': 'application/json',
-						'Authorization': `Bearer ${token}`
-					},
-					body: JSON.stringify({
-						bookingId,
-						patientId,
-						doctorId,
-						medicineData: formData
-					})
-				}
-			);
-
-			if (!response.ok) {
-				const errData = await response.json().catch(() => ({}));
-				throw new Error(errData.message || "Failed to prescribe medicine");
+			const res = await authFetch(`${BACKEND}/api/bookings/${bookingId}/supplements`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ medicineId: medicine._id })
+			});
+			if (!res.ok) {
+				const e = await res.json().catch(() => ({}));
+				throw new Error(e.error || 'Failed to add medicine');
 			}
-
-			const data = await response.json();
-			console.log("Medicine prescription submitted:", data);
-			alert(`${formData.medicineName} has been prescribed successfully.`);
-
-			// Reset form using the initial state constant
-			setFormData(INITIAL_FORM_STATE);
-
-		} catch (err) {
-			console.error("Submission Error:", err);
-			setError(err.message);
-			alert(`Error: ${err.message}`);
+			const data = await res.json();
+			const s = data.supplement;
+			setRows(prev => [...prev, {
+				_id: s._id,
+				medicineId: s.medicineId,
+				medicineName: s.medicineName,
+				dosage: '',
+				instructions: '',
+				thumb: resolveThumb(medicine.images),
+				price: medicine.price
+			}]);
+			onPrescribed?.();
+		} catch (e) {
+			alert(`Error: ${e.message}`);
 		} finally {
-			setLoading(false);
+			setAdding(false);
+		}
+	};
+
+	const updateRowLocal = (id, field, value) => {
+		setRows(prev => prev.map(r => (r._id === id ? { ...r, [field]: value } : r)));
+	};
+
+	// Persist a row's dosage/instructions on blur.
+	const saveRow = async (row) => {
+		try {
+			await authFetch(`${BACKEND}/api/bookings/${bookingId}/supplements/${row._id}`, {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ dosage: row.dosage, instructions: row.instructions })
+			});
+		} catch (e) {
+			console.error('Failed to save row:', e);
+		}
+	};
+
+	const deleteRow = async (id) => {
+		const snapshot = rows;
+		setRows(prev => prev.filter(r => r._id !== id)); // optimistic
+		try {
+			const res = await authFetch(`${BACKEND}/api/bookings/${bookingId}/supplements/${id}`, {
+				method: 'DELETE'
+			});
+			if (!res.ok) throw new Error();
+			onPrescribed?.();
+		} catch (e) {
+			setRows(snapshot); // rollback
+			alert('Failed to remove medicine. Please try again.');
 		}
 	};
 
@@ -130,144 +123,88 @@ export function MedicineForm({ bookingId, patientId, doctorId }) {
 					<ClipboardPlus className="form-icon" size={24} />
 					Prescribe Medicine
 				</h3>
+				<span className="med-cart-hint"><ShoppingCart size={14} /> Prescribed medicines are added to the patient's cart</span>
 			</div>
 
 			<div className="form-content">
-				<form onSubmit={handleSubmit} className="medicine-form">
-					<div className="form-grid">
-						{/* --- Medicine Name (type or choose) --- */}
-						<div className="form-group">
-							<label className="form-label" htmlFor="medicineName">Medicine Name *</label>
-							<input
-								id="medicineName"
-								name="medicineName"
-								className="form-input"
-								list="medicineOptions"
-								placeholder="Type or choose a medicine"
-								value={formData.medicineName}
-								onChange={handleChange}
-								required
-							/>
-							<datalist id="medicineOptions">
-								{availableMedicines.map((medicine) => (
-									<option key={medicine} value={medicine} />
-								))}
-							</datalist>
-							<small className="form-hint">Start typing or pick from suggestions, or enter a custom name.</small>
-						</div>
-
-						{/* --- External Link (shows for custom medicines) --- */}
-						{isCustomMedicine && (
-							<div className="form-group">
-								<label className="form-label" htmlFor="externalLink">External Medicine Link</label>
-								<div className="input-with-icon">
-									<LinkIcon className="input-icon" size={16} />
-									<input
-										id="externalLink"
-										name="externalLink"
-										type="url"
-										className="form-input"
-										placeholder="https://example.com/medicine"
-										value={formData.externalLink}
-										onChange={handleChange}
-									/>
+				{loading ? (
+					<p className="med-loading"><Loader2 className="med-spin" size={18} /> Loading prescription...</p>
+				) : (
+					<>
+						{rows.length === 0 ? (
+							<div className="med-empty">
+								<Pill size={32} />
+								<p>No medicines prescribed yet.</p>
+								<span>Click "Add Medicine" to pick from the store inventory.</span>
+							</div>
+						) : (
+							<div className="med-table">
+								<div className="med-table-head">
+									<div className="med-col-medicine">Medicine</div>
+									<div className="med-col-dosage">Dosage</div>
+									<div className="med-col-instructions">Instructions</div>
+									<div className="med-col-action" />
 								</div>
+
+								{rows.map((row) => (
+									<div key={row._id} className="med-row">
+										<div className="med-col-medicine med-medicine-cell">
+											<img src={row.thumb} alt={row.medicineName} className="med-thumb"
+												onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = FALLBACK_IMAGE; }} />
+											<div className="med-medicine-info">
+												<span className="med-name">{row.medicineName}</span>
+												{row.price != null && <span className="med-price">₹{row.price}</span>}
+											</div>
+										</div>
+
+										<div className="med-col-dosage">
+											<label className="med-mobile-label">Dosage</label>
+											<textarea
+												className="med-input"
+												rows={2}
+												placeholder="e.g., Start tomorrow · one tablet · twice daily for 20 days"
+												value={row.dosage}
+												onChange={(e) => updateRowLocal(row._id, 'dosage', e.target.value)}
+												onBlur={() => saveRow(row)}
+											/>
+										</div>
+
+										<div className="med-col-instructions">
+											<label className="med-mobile-label">Instructions</label>
+											<textarea
+												className="med-input"
+												rows={2}
+												placeholder="e.g., Take after meals with warm water"
+												value={row.instructions}
+												onChange={(e) => updateRowLocal(row._id, 'instructions', e.target.value)}
+												onBlur={() => saveRow(row)}
+											/>
+										</div>
+
+										<div className="med-col-action">
+											<button className="med-delete" onClick={() => deleteRow(row._id)} title="Remove medicine">
+												<Trash2 size={18} />
+											</button>
+										</div>
+									</div>
+								))}
 							</div>
 						)}
 
-						{/* --- Start Date --- */}
-						<div className="form-group">
-							<label className="form-label" htmlFor="startDate">Start Date *</label>
-							<input
-								id="startDate"
-								name="startDate"
-								type="date"
-								className="form-input"
-								value={formData.startDate}
-								onChange={handleChange}
-								required
-							/>
-						</div>
-
-						{/* --- End Date --- */}
-						<div className="form-group">
-							<label className="form-label" htmlFor="endDate">End Date *</label>
-							<input
-								id="endDate"
-								name="endDate"
-								type="date"
-								className="form-input"
-								value={formData.endDate}
-								onChange={handleChange}
-								min={formData.startDate}
-								required
-							/>
-						</div>
-
-						{/* --- Dosage --- */}
-						<div className="form-group">
-							<label className="form-label" htmlFor="dosage">Dosage *</label>
-							<input
-								id="dosage"
-								name="dosage"
-								type="text"
-								className="form-input"
-								placeholder="e.g., 500mg, twice daily"
-								value={formData.dosage}
-								onChange={handleChange}
-								required
-							/>
-						</div>
-
-						{/* --- Reason --- */}
-						<div className="form-group">
-							<label className="form-label" htmlFor="reason">Diesease Diagnosed *</label>
-							<input
-								id="reason"
-								name="reason"
-								type="text"
-								className="form-input"
-								placeholder="e.g., Bacterial infection"
-								value={formData.reason}
-								onChange={handleChange}
-								required
-							/>
-						</div>
-					</div>
-
-					{/* --- Instructions --- */}
-					<div className="form-group full-width">
-						<label className="form-label" htmlFor="instructions">Instructions</label>
-						<textarea
-							id="instructions"
-							name="instructions"
-							className="form-textarea"
-							placeholder="e.g., Take with food. Complete the full course."
-							value={formData.instructions}
-							onChange={handleChange}
-							rows="3"
-						></textarea>
-					</div>
-
-					{/* Error Message Display */}
-					{error && <div style={{ color: 'red', marginTop: '10px' }}>Error: {error}</div>}
-
-					{/* 7. Updated Button with Loader */}
-					<button type="submit" className="submit-button" disabled={loading}>
-						{loading ? (
-							<>
-								<Loader2 className="animate-spin" size={18} style={{ marginRight: '8px' }} />
-								Adding...
-							</>
-						) : (
-							<>
-								<PlusCircle size={18} style={{ marginRight: '8px' }} />
-								Add Prescription
-							</>
-						)}
-					</button>
-				</form>
+						<button className="med-add-btn" onClick={() => setPickerOpen(true)} disabled={adding}>
+							{adding ? <Loader2 className="med-spin" size={18} /> : <Plus size={18} />}
+							Add Medicine
+						</button>
+					</>
+				)}
 			</div>
+
+			{pickerOpen && (
+				<MedicinePickerModal
+					onSelect={handleSelectMedicine}
+					onClose={() => setPickerOpen(false)}
+				/>
+			)}
 		</div>
 	);
 }

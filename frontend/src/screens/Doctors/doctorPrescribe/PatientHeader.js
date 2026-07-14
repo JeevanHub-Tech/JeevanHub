@@ -1,6 +1,19 @@
-import React from 'react';
-import { Mail, Phone, User, MapPin, Calendar, Heart } from 'lucide-react';
+import React, { useState } from 'react';
+import { Leaf, Mail, Phone, X } from 'lucide-react';
 import './PatientHeader.css';
+
+const DOSHA_LABELS = {
+	VATA: "Vata",
+	PITTA: "Pitta",
+	KAPHA: "Kapha",
+	"VATA-PITTA": "Vata-Pitta",
+	"PITTA-VATA": "Pitta-Vata",
+	"VATA-KAPHA": "Vata-Kapha",
+	"KAPHA-VATA": "Kapha-Vata",
+	"PITTA-KAPHA": "Pitta-Kapha",
+	"KAPHA-PITTA": "Kapha-Pitta",
+	"TRIDOSHIC (VATA-PITTA-KAPHA)": "Tridoshic"
+};
 
 // Helper function to calculate initials for the avatar fallback
 const getInitials = (name) => {
@@ -12,113 +25,98 @@ const getInitials = (name) => {
 		.toUpperCase();
 };
 
-// Helper function to calculate age from date of birth
-const calculateAge = (dob) => {
-	const today = new Date();
-	const birthDate = new Date(dob);
-	let age = today.getFullYear() - birthDate.getFullYear();
-	const monthDiff = today.getMonth() - birthDate.getMonth();
+export function PatientHeader({ patient, prakritiDosha }) {
+	const [showPhoto, setShowPhoto] = useState(false);
 
-	if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-		age--;
-	}
+	if (!patient) return null;
 
-	return age;
-};
-
-export function PatientHeader({ patient }) {
-	const patientDetails = [
-		{ icon: Mail, label: patient.email },
-		{ icon: Phone, label: patient.phone },
-		{ icon: User, label: patient.gender },
-		{ icon: MapPin, label: patient.zipCode },
-		{ icon: Calendar, label: `${patient.age} years old` },
-		patient.bloodGroup ? { icon: Heart, label: `Blood: ${patient.bloodGroup}` } : null,
+	// A single compact meta line instead of a grid of padded boxes — small,
+	// de-emphasized details shouldn't each claim their own card real estate.
+	// Each part carries a title so hovering it reveals what the detail actually is.
+	const metaParts = [
+		patient.gender && patient.age
+			? { text: `${patient.gender}, ${patient.age} yrs`, title: 'Gender and age' }
+			: (patient.gender ? { text: patient.gender, title: 'Gender' } : (patient.age ? { text: `${patient.age} yrs`, title: 'Age' } : null)),
+		(patient.address || patient.zipCode) ? { text: patient.address || patient.zipCode, title: 'Address' } : null
 	].filter(Boolean);
 
 	return (
-		// Card container
+		<>
 		<div className="patient-header-cards">
 			<div className="patient-header-contents">
 
-				{/* Avatar Section */}
-				<div className="patient-avatar-sections">
-					<div className="patient-avatars">
-						{patient.avatar ? (
-							<img src={patient.avatar} alt={patient.firstName} className="patient-avatar-image" />
+				{/* Avatar — clickable to view full-size when the patient has a real photo */}
+				{patient.profileImage ? (
+					<button
+						type="button"
+						className="patient-avatars patient-avatars-clickable"
+						title="Patient's profile picture — click to enlarge"
+						onClick={() => setShowPhoto(true)}
+					>
+						<img src={patient.profileImage} alt={patient.firstName} className="patient-avatar-image" />
+					</button>
+				) : (
+					<div className="patient-avatars" title="Patient's profile picture (not uploaded yet)">
+						<div className="patient-avatar-fallback">
+							{getInitials(patient.firstName)}
+						</div>
+					</div>
+				)}
+
+				{/* Info */}
+				<div className="patient-info-containers">
+					<div className="patient-name-id-section">
+						<h1 className="patient-name">{patient.firstName + " " + patient.lastName}</h1>
+						{prakritiDosha ? (
+							<span
+								className="patient-dosha-tag"
+								title={`Prakriti (body constitution): ${DOSHA_LABELS[prakritiDosha] || prakritiDosha} — the patient's dominant dosha from their Prakriti assessment`}
+							>
+								<Leaf size={13} /> {DOSHA_LABELS[prakritiDosha] || prakritiDosha}
+							</span>
 						) : (
-							<div className="patient-avatar-fallback">
-								{getInitials(patient.firstName)}
-							</div>
+							<span className="patient-dosha-tag muted" title="Prakriti (body constitution): the patient hasn't completed a Prakriti assessment yet">
+								<Leaf size={13} /> Not yet assessed
+							</span>
+						)}
+					</div>
+
+					{/* Compact single-line meta strip */}
+					<div className="patient-meta-line">
+						{metaParts.map((part, i) => (
+							<React.Fragment key={i}>
+								{i > 0 && <span className="patient-meta-dot">·</span>}
+								<span title={part.title}>{part.text}</span>
+							</React.Fragment>
+						))}
+						{patient.email && (
+							<>
+								<span className="patient-meta-dot">·</span>
+								<span className="patient-meta-contact" title="Email address"><Mail size={12} />{patient.email}</span>
+							</>
+						)}
+						{patient.phone && (
+							<>
+								<span className="patient-meta-dot">·</span>
+								<span className="patient-meta-contact" title="Phone number"><Phone size={12} />{patient.phone}</span>
+							</>
 						)}
 					</div>
 				</div>
+			</div>
+		</div>
 
-				{/* Info Section */}
-				<div className="patient-info-containers">
-
-					{/* Name and ID Section */}
-					<div className="patient-name-id-section">
-						<h1 className="patient-name">{patient.firstName + " " + patient.lastName}</h1>
-						<span className="patient-id-tag">
-							ID: {patient._id}
-						</span>
-					</div>
-
-					{/* Details Grid */}
-					<div className="patient-details-grids">
-						{patientDetails.map((item, index) => {
-							const Icon = item.icon; // Component from lucide-react
-							return (
-								<div key={index} className="detail-item">
-									{/* Lucide Icon with blue color */}
-									<Icon className="detail-icon" />
-									{/* Detail text */}
-									<span className="detail-text" title={item.label}>
-										{item.label}
-									</span>
-								</div>
-							);
-						})}
-					</div>
+		{showPhoto && patient.profileImage && (
+			<div className="patient-photo-overlay" onClick={() => setShowPhoto(false)}>
+				<div className="patient-photo-modal" onClick={(e) => e.stopPropagation()}>
+					<button type="button" className="patient-photo-close" onClick={() => setShowPhoto(false)} aria-label="Close">
+						<X size={20} />
+					</button>
+					<img src={patient.profileImage} alt={patient.firstName} className="patient-photo-full" />
+					<p className="patient-photo-caption">{patient.firstName} {patient.lastName}</p>
 				</div>
 			</div>
-		</div>
-	);
-}
-
-// Main App component to demonstrate the PatientHeader
-export default function App() {
-	// Mock data based on the image
-	const mockPatientData = {
-		name: "Sarah Johnson",
-		id: "PT-2024-001",
-		email: "sarah.johnson@email.com",
-		phone: "+1-555-0123",
-		gender: "Female",
-		location: "New York, NY",
-		dateOfBirth: "1985-06-15",
-		bloodGroup: "A+",
-		avatar: null, // Uses initials fallback
-	};
-
-	// Structure simulating the surrounding platform environment
-	return (
-		<div className="platform-container">
-			{/* Mock Platform Header to match the image context */}
-			<header className="platform-header">
-				<h1 className="platform-title">Ayurvedic Platform</h1>
-				<p className="platform-subtitle">Doctor-Patient Consultation System</p>
-				<div className="header-divider"></div>
-			</header>
-
-			{/* The main Patient Header component */}
-			<PatientHeader patient={mockPatientData} />
-
-			{/* Placeholder for content below the header */}
-			<div className="content-placeholder">
-				<p className="placeholder-text">Patient records and consultation notes will appear here...</p>
-			</div>
-		</div>
+		)}
+		</>
 	);
 }

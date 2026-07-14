@@ -13,17 +13,17 @@ const tabs = [
 	{ id: 'history', label: 'Medical History', Icon: FileText },
 ];
 
-export function PrescriptionTabs({ bookingId, patientId, doctorId }) {
+export function PrescriptionTabs({ bookingId, patientId, doctorId, onPrescribed }) {
 	const [activeTab, setActiveTab] = useState('medicine');
 
 	const renderForm = () => {
 		switch (activeTab) {
 			case 'medicine':
-				return <MedicineForm bookingId={bookingId} patientId={patientId} doctorId={doctorId} />;
+				return <MedicineForm bookingId={bookingId} patientId={patientId} doctorId={doctorId} onPrescribed={onPrescribed} />;
 			case 'diet':
-				return <DietPlanForm bookingId={bookingId} patientId={patientId} doctorId={doctorId}/>;
+				return <DietPlanForm bookingId={bookingId} patientId={patientId} doctorId={doctorId} onPrescribed={onPrescribed} />;
 			case 'yoga':
-				return <YogaPlanForm bookingId={bookingId} patientId={patientId} doctorId={doctorId}/>;
+				return <YogaPlanForm bookingId={bookingId} patientId={patientId} doctorId={doctorId} onPrescribed={onPrescribed} />;
 			case 'history':
 				return <MedicalHistoryViewer patientId={patientId} />;
 			default:

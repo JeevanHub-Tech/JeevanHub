@@ -1,19 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { HeartPulse, Sun, Moon, Plus, X, ListTodo, Send, ExternalLink, Loader2 } from 'lucide-react';
 import './YogaPlanForm.css';
 import { authFetch } from '../../../utils/authFetch';
 
-// const COMMON_ASANAS = [
-// 	"Surya Namaskara (Sun Salutation)", "Vrikshasana (Tree Pose)",
-// 	"Trikonasana (Triangle Pose)", "Bhujangasana (Cobra Pose)",
-// 	"Adho Mukha Svanasana (Downward Dog)", "Balasana (Child's Pose)",
-// 	"Shavasana (Corpse Pose)", "Pranayama (Breathing Exercise)",
-// 	"Paschimottanasana (Seated Forward Bend)", "Ustrasana (Camel Pose)"
-// ];
+const COMMON_ASANAS = [
+	"Surya Namaskara (Sun Salutation)", "Vrikshasana (Tree Pose)",
+	"Trikonasana (Triangle Pose)", "Bhujangasana (Cobra Pose)",
+	"Adho Mukha Svanasana (Downward Dog)", "Balasana (Child's Pose)",
+	"Shavasana (Corpse Pose)", "Pranayama (Breathing Exercise)",
+	"Paschimottanasana (Seated Forward Bend)", "Ustrasana (Camel Pose)"
+];
 
 const AsanaPlanCard = ({ title, Icon, planType, planData, addAsana, removeAsana }) => {
 	const [input, setInput] = useState("");
 	const [youtubeUrl, setYoutubeUrl] = useState("");
+	const datalistId = `asana-options-${planType}`;
 
 	const isYouTubeUrl = (url) => {
 		if (!url) return true; // optional
@@ -59,11 +60,17 @@ const AsanaPlanCard = ({ title, Icon, planType, planData, addAsana, removeAsana 
 					<input
 						type="text"
 						className="asana-input"
+						list={datalistId}
 						value={input}
 						onChange={(e) => setInput(e.target.value)}
-						placeholder="Enter asana name..."
+						placeholder="Type or choose an asana..."
 						onKeyPress={handleKeyPress}
 					/>
+					<datalist id={datalistId}>
+						{COMMON_ASANAS.map((asana) => (
+							<option key={asana} value={asana} />
+						))}
+					</datalist>
 					<input
 						type="url"
 						className="asana-input asana-link-input"
@@ -118,16 +125,48 @@ const AsanaPlanCard = ({ title, Icon, planType, planData, addAsana, removeAsana 
 };
 
 // 1. Receive IDs from props
-export function YogaPlanForm({ bookingId, patientId, doctorId }) {
+export function YogaPlanForm({ bookingId, patientId, doctorId, onPrescribed }) {
 	const [yogaPlan, setYogaPlan] = useState({
 		morning: [],
 		evening: []
 	});
 
-	// 2. Setup Token, Loading, and Error states
-	const token = localStorage.getItem('token');
+	// 2. Setup Loading and Error states
 	const [loading, setLoading] = useState(false);
+	const [loadingExisting, setLoadingExisting] = useState(true);
 	const [error, setError] = useState(null);
+
+	// Pre-fill from an existing plan for this booking, if one has already been prescribed.
+	useEffect(() => {
+		const fetchExisting = async () => {
+			if (!bookingId) {
+				setLoadingExisting(false);
+				return;
+			}
+			try {
+				const response = await authFetch(
+					`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/diet-yoga/booking/${bookingId}`
+				);
+				if (response.ok) {
+					const data = await response.json();
+					const existingYoga = data?.dietYoga?.yoga;
+					if (existingYoga) {
+						setYogaPlan({
+							morning: existingYoga.morning || [],
+							evening: existingYoga.evening || []
+						});
+					}
+				}
+				// A 404 here just means no plan exists yet — start blank, which is already the default state.
+			} catch (err) {
+				console.error("Error fetching existing yoga plan:", err);
+			} finally {
+				setLoadingExisting(false);
+			}
+		};
+
+		fetchExisting();
+	}, [bookingId]);
 
 	const addAsana = (planType, asana) => {
 		const item = typeof asana === 'string'
@@ -173,14 +212,13 @@ export function YogaPlanForm({ bookingId, patientId, doctorId }) {
 				{
 					method: 'POST',
 					headers: {
-						'Content-Type': 'application/json',
-						'Authorization': `Bearer ${token}`
+						'Content-Type': 'application/json'
 					},
 					body: JSON.stringify({
 						bookingId: bookingId,
 						patientId: patientId,
 						doctorId: doctorId,
-						yogaPlan: yogaPlan 
+						yogaPlan: yogaPlan
 					})
 				}
 			);
@@ -190,9 +228,9 @@ export function YogaPlanForm({ bookingId, patientId, doctorId }) {
 				throw new Error(errData.message || "Failed to submit yoga plan");
 			}
 
-			const data = await response.json();
-			console.log("Yoga Plan Submitted Successfully:", data);
+			await response.json();
 			alert("The yoga plan has been successfully prescribed.");
+			onPrescribed?.();
 
 		} catch (err) {
 			console.error("Submission Error:", err);
@@ -207,6 +245,22 @@ export function YogaPlanForm({ bookingId, patientId, doctorId }) {
 		{ id: 'morning', title: 'Morning Plan', Icon: Sun },
 		{ id: 'evening', title: 'Evening Plan', Icon: Moon }
 	];
+
+	if (loadingExisting) {
+		return (
+			<div className="form-card">
+				<div className="form-header">
+					<h3 className="form-title">
+						<HeartPulse className="form-icon" size={24} />
+						Prescribe Yoga & Wellness Plan
+					</h3>
+				</div>
+				<div className="form-content">
+					<p className="yoga-loading">Checking for an existing plan...</p>
+				</div>
+			</div>
+		);
+	}
 
 	return (
 		<div className="form-card">

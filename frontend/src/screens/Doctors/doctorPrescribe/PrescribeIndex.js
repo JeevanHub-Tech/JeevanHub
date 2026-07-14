@@ -1,154 +1,200 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useParams } from 'react-router-dom';
+import { Stethoscope, Send, Loader2, Activity } from 'lucide-react';
 import { PatientHeader } from './PatientHeader';
 import { PrescriptionHistory } from './PrescriptionHistory';
 import { PrescriptionTabs } from './PrescriptionTabs';
-import { useLocation } from 'react-router-dom';
 import './PrescribeIndex.css';
 import { authFetch } from '../../../utils/authFetch';
 
-const samplePatient = {
-	id: "PT-2024-001",
-	name: "Sarah Johnson",
-	email: "sarah.johnson@email.com",
-	phone: "+1-555-0123",
-	gender: "Female",
-	location: "New York, NY",
-	dateOfBirth: "1985-03-15",
-	bloodGroup: "A+",
-	avatar: "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face"
-};
-
-const samplePrescriptions = [
-	{
-		id: "RX-001",
-		medicineName: "Ibuprofen 400mg",
-		startDate: "2024-01-15",
-		endDate: "2024-01-25",
-		dosage: "1 tablet twice daily",
-		instructions: "Take with food to avoid stomach upset",
-		reason: "Back pain and inflammation",
-		isActive: true,
-		prescribedBy: "Dr. Michael Chen",
-		prescribedDate: "2024-01-15"
-	},
-	{
-		id: "RX-002",
-		medicineName: "Omeprazole 20mg",
-		startDate: "2024-01-10",
-		endDate: "2024-02-10",
-		dosage: "1 capsule daily",
-		instructions: "Take 30 minutes before breakfast",
-		reason: "Acid reflux",
-		isActive: true,
-		prescribedBy: "Dr. Emily Rodriguez",
-		prescribedDate: "2024-01-10"
-	},
-	{
-		id: "RX-003",
-		medicineName: "Amoxicillin 500mg",
-		startDate: "2023-12-01",
-		endDate: "2023-12-08",
-		dosage: "1 capsule three times daily",
-		instructions: "Complete the full course even if feeling better",
-		reason: "Throat infection",
-		isActive: false,
-		prescribedBy: "Dr. Sarah Williams",
-		prescribedDate: "2023-12-01"
-	},
-	{
-		id: "RX-004",
-		medicineName: "Metformin 500mg",
-		startDate: "2023-11-01",
-		endDate: "2024-11-01",
-		dosage: "1 tablet twice daily",
-		instructions: "Take with meals",
-		reason: "Type 2 Diabetes management",
-		isActive: false,
-		prescribedBy: "Dr. James Thompson",
-		prescribedDate: "2023-11-01"
-	}
-];
+const BACKEND = process.env.REACT_APP_AYURVEDA_BACKEND_URL || 'http://localhost:8080';
 
 const PrescribeIndex = () => {
-	const location = useLocation();
-	const { patientId, doctorId, bookingId } = location.state || {};
-	const [patientData, setPatientData] = useState(samplePatient);
+	const { bookingId } = useParams();
+
+	const [booking, setBooking] = useState(null);
 	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState(null);
 
-	const [prescriptions, setPrescriptions] = useState(samplePrescriptions);
-	const [loadingPrescriptions, setLoadingPrescriptions] = useState(true);
+	const [prakritiDosha, setPrakritiDosha] = useState(null);
+	const [history, setHistory] = useState([]);
+	const [loadingHistory, setLoadingHistory] = useState(true);
 
+	const [diagnosis, setDiagnosis] = useState('');
+	const [submitting, setSubmitting] = useState(false);
+
+	const patientId = booking?.patientId?._id;
+
+	// 1. The booking is the single source of truth for patient / doctor / illness.
 	useEffect(() => {
-		const fetchPatientDetails = async () => {
-			if (!patientId) {
+		const fetchBooking = async () => {
+			if (!bookingId) {
 				setLoading(false);
-				console.error("Patient ID is missing from navigation state.");
+				setError('No appointment was selected.');
 				return;
 			}
-
 			setLoading(true);
+			setError(null);
 			try {
-				const response = await authFetch(
-					`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/patients/getPatient/${patientId}`,
-					{ headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
-				);
-
+				const response = await authFetch(`${BACKEND}/api/bookings/${bookingId}`);
 				if (!response.ok) {
-					throw new Error("Failed to fetch patient details.");
+					const errData = await response.json().catch(() => ({}));
+					throw new Error(errData.error || 'Failed to load this appointment.');
 				}
-
 				const data = await response.json();
-				setPatientData(data);
-			} catch (error) {
-				console.error("Error fetching patient data:", error);
+				setBooking(data.booking);
+				setDiagnosis(data.booking.diagnosis || '');
+			} catch (err) {
+				console.error('Error fetching booking:', err);
+				setError(err.message);
 			} finally {
 				setLoading(false);
 			}
 		};
+		fetchBooking();
+	}, [bookingId]);
 
-		fetchPatientDetails();
+	// 2. This doctor's own prescription history with this patient (re-fetchable).
+	const refetchHistory = useCallback(async () => {
+		if (!patientId) return;
+		setLoadingHistory(true);
+		try {
+			const response = await authFetch(`${BACKEND}/api/bookings/history/patient/${patientId}`);
+			if (response.ok) {
+				const data = await response.json();
+				setHistory(data.bookings || []);
+			}
+		} catch (err) {
+			console.error('Error fetching prescription history:', err);
+		} finally {
+			setLoadingHistory(false);
+		}
 	}, [patientId]);
 
+	useEffect(() => { refetchHistory(); }, [refetchHistory]);
+
+	// 3. Patient's Prakriti (dosha), if assessed.
 	useEffect(() => {
-		const fetchPrescriptions = async () => {
-			if (!patientId) {
-				setLoadingPrescriptions(false);
-				console.error("Patient ID is missing from navigation state.");
-				return;
-			}
-
-			setLoadingPrescriptions(true);
+		const fetchPrakriti = async () => {
+			if (!patientId) return;
 			try {
-				const response = await authFetch(
-					`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/bookings/patient/${patientId}`,
-					{ headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
-				);
-
-				if (!response.ok) {
-					throw new Error("Failed to fetch prescriptions.");
+				const response = await authFetch(`${BACKEND}/api/prakriti/assessment/patient/${patientId}`);
+				if (response.ok) {
+					const data = await response.json();
+					setPrakritiDosha(data?.dominantDosha || null);
 				}
-
-				const data = await response.json();
-				setPrescriptions(data.bookings);
-			}
-			catch (error) {
-				console.error("Error fetching prescriptions:", error);
-			} finally {
-				setLoadingPrescriptions(false);
+			} catch (err) {
+				console.error('Error fetching Prakriti assessment:', err);
 			}
 		};
+		fetchPrakriti();
+	}, [patientId]);
 
-		fetchPrescriptions();
-	}, [bookingId, patientId]);
+	const saveDiagnosis = async () => {
+		try {
+			await authFetch(`${BACKEND}/api/bookings/${bookingId}/diagnosis`, {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ diagnosis })
+			});
+		} catch (err) {
+			console.error('Failed to save diagnosis:', err);
+		}
+	};
+
+	// Everything (medicine rows, diet, yoga, diagnosis) already saves in realtime as the
+	// doctor works. "Submit" is the deliberate, one-time signal to the patient that the
+	// full prescription/treatment plan for this visit is ready to review.
+	const submitPrescription = async () => {
+		setSubmitting(true);
+		try {
+			const response = await authFetch(`${BACKEND}/api/bookings/${bookingId}/notify-prescription`, {
+				method: 'POST'
+			});
+			if (!response.ok) throw new Error('Failed to submit');
+			alert('The prescription has been submitted — the patient has been notified.');
+		} catch (err) {
+			alert('Could not submit the prescription. Please try again.');
+		} finally {
+			setSubmitting(false);
+		}
+	};
+
+	if (loading) {
+		return (
+			<div className="pi-container">
+				<main className="pi-main-status"><p className="pi-loading-overlay">Loading patient details...</p></main>
+			</div>
+		);
+	}
+
+	if (error || !booking) {
+		return (
+			<div className="pi-container">
+				<main className="pi-main-status">
+					<div className="pi-error-state">
+						<p>{error || 'This appointment could not be found.'}</p>
+						<p className="pi-error-hint">Please go back to your appointment list and try again.</p>
+					</div>
+				</main>
+			</div>
+		);
+	}
 
 	return (
 		<div className="pi-container">
 			<main className="pi-main">
-				<PatientHeader patient={patientData} loading={loading} />
-				<PrescriptionHistory prescriptions={prescriptions} loading={loadingPrescriptions} />
-				<PrescriptionTabs bookingId={bookingId} patientId={patientId} doctorId={doctorId}/>
-				{/* Two Column Layout */}
-				<div className="grid-container">
+				<div className="pi-row-full">
+					<PatientHeader patient={booking.patientId} prakritiDosha={prakritiDosha} />
+				</div>
+
+				{/* Consultation bar: complaint · diagnosis */}
+				<div className="pi-row-full">
+					<div className="pi-consult-bar">
+						<div className="pi-consult-complaint">
+							<span className="pi-consult-label"><Activity size={14} /> Patient's complaint</span>
+							<p className="pi-consult-illness">{booking.patientIllness || 'Not specified'}</p>
+						</div>
+						<div className="pi-consult-diagnosis">
+							<label className="pi-consult-label" htmlFor="pi-diagnosis"><Stethoscope size={14} /> Diagnosis for this visit</label>
+							<input
+								id="pi-diagnosis"
+								className="pi-diagnosis-input"
+								placeholder="e.g., Amavata (rheumatoid-type joint inflammation)"
+								value={diagnosis}
+								onChange={(e) => setDiagnosis(e.target.value)}
+								onBlur={saveDiagnosis}
+							/>
+						</div>
+					</div>
+				</div>
+
+				{/* Previous prescriptions — narrower left column */}
+				<div className="pi-col-history">
+					<PrescriptionHistory
+						prescriptions={history}
+						loading={loadingHistory}
+						sharedRecords={booking.patientSharedRecords || []}
+						currentBookingId={booking._id}
+					/>
+				</div>
+
+				{/* Medicine / Diet / Yoga / History tabs + Submit — wider right column */}
+				<div className="pi-col-main">
+					<PrescriptionTabs
+						bookingId={booking._id}
+						patientId={patientId}
+						doctorId={booking.doctorId}
+						onPrescribed={refetchHistory}
+					/>
+
+					<div className="pi-submit-bar">
+						<p className="pi-submit-hint">Medicines, diet, and yoga plans save automatically as you go. Submit once everything for this visit is ready.</p>
+						<button className="pi-submit-btn" onClick={submitPrescription} disabled={submitting}>
+							{submitting ? <Loader2 className="pi-spin" size={18} /> : <Send size={18} />}
+							Submit Prescription
+						</button>
+					</div>
 				</div>
 			</main>
 		</div>

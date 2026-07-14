@@ -59,6 +59,7 @@
 .doc-viewer-close:hover {
     background: rgba(15, 23, 42, 0.12);
 }
+.doc-viewer-close svg { flex-shrink: 0; width: 18px; height: 18px; }
 
 .doc-viewer-body {
     flex: 1;

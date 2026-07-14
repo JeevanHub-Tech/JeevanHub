@@ -161,6 +161,20 @@ function AppointedDoctor() {
 		loadData();
 	}, [email]);
 
+	// The illness/reason-for-visit is only editable on upcoming appointments,
+	// so this only ever needs to patch that one array.
+	const handleIllnessUpdated = (appointmentId, newIllness) => {
+		setUpcomingAppointments((prev) =>
+			prev.map((a) => (a._id === appointmentId ? { ...a, patientIllness: newIllness } : a))
+		);
+	};
+
+	// A cancelled pending request is deleted outright on the backend — drop it
+	// from local state so it disappears without waiting for a refetch.
+	const handleRequestCancelled = (appointmentId) => {
+		setPendingDoctors((prev) => prev.filter((a) => a._id !== appointmentId));
+	};
+
 	const fetchSupplementsForAppointment = async (appointmentId) => {
 		const supplementsData = await fetchSupplements(appointmentId);
 		setSupplements((prev) => ({
@@ -216,25 +230,25 @@ function AppointedDoctor() {
 						onClick={() => setActiveTab("Upcoming")}
 						className={`tab ${activeTab === "Upcoming" ? "active" : ""}`}
 					>
-						Upcoming Appointments
+						Upcoming <span className="tab-count">{upcomingAppointments.length}</span>
 					</button>
 					<button
 						onClick={() => setActiveTab("Pending")}
 						className={`tab ${activeTab === "Pending" ? "active" : ""}`}
 					>
-						Pending Requests
+						Pending <span className="tab-count">{pendingDoctors.length}</span>
 					</button>
 					<button
 						onClick={() => setActiveTab("Denied")}
 						className={`tab ${activeTab === "Denied" ? "active" : ""}`}
 					>
-						Denied Requests
+						Denied <span className="tab-count">{deniedDoctors.length}</span>
 					</button>
 					<button
 						onClick={() => setActiveTab("Previous")}
 						className={`tab ${activeTab === "Previous" ? "active" : ""}`}
 					>
-						Previous Appointments
+						Previous <span className="tab-count">{previousAppointments.length}</span>
 					</button>
 				</div>
 
@@ -250,6 +264,8 @@ function AppointedDoctor() {
 						setCurrentAppointmentId(appointmentId);
 						setIsModalOpen(true);
 					}}
+					onIllnessUpdated={handleIllnessUpdated}
+					onRequestCancelled={handleRequestCancelled}
 				/>
 
 				{/* Rating Modal */}

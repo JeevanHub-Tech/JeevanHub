@@ -265,7 +265,12 @@ function CurrentRequests() {
 
 								{acceptingRequest === request._id && (
 									<div className="req-action-form">
-										<p className="req-tip">💡 Optional custom link (Zoom/Meet).<br/>Blank = Auto Jitsi.</p>
+										<p className="req-tip">
+											{request.amountPaid > 0
+												? "💡 Accepting confirms the payment proof above is valid."
+												: "💡 Optional custom link (Zoom/Meet)."}
+											<br/>Blank = Auto Jitsi.
+										</p>
 										<input
 											type="text"
 											value={meetLink}

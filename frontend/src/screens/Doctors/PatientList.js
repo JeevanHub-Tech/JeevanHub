@@ -6,21 +6,46 @@ import { authFetch } from "../../utils/authFetch";
 
 // Assuming parseAppointmentDateTime is available somewhere, or we define a simple version:
 const parseAppointmentDateTime = (dateString, timeSlot) => {
-	// This function must be accessible if the component expects it, 
-	// so let's put a robust definition here if it's missing from the global scope.
 	const appointmentDate = new Date(dateString);
+	// Guard: a booking whose slot no longer resolves has no timeSlot — fall back to
+	// the date itself rather than crashing the whole screen.
+	if (!timeSlot || typeof timeSlot !== "string") return appointmentDate;
 	const startTimePart = timeSlot.split(" - ")[0].trim();
 	let [hours, minutes] = startTimePart.split(/[:\s]/).map(Number); // Simple split
 	const period = startTimePart.includes('PM') ? 'PM' : 'AM';
 
 	if (period === "PM" && hours !== 12) {
-		hours += 1; // Simplistic conversion for AM/PM if format is simple
+		hours += 12;
 	} else if (period === "AM" && hours === 12) {
 		hours = 0;
 	}
 
-	appointmentDate.setHours(hours, minutes || 0, 0, 0);
+	appointmentDate.setHours(hours || 0, minutes || 0, 0, 0);
 	return appointmentDate;
+};
+
+// Matches the helpers used in CurrentRequests.js / AppointmentSlots.js for a uniform look
+const format12HourTime = (timeStr) => {
+	if (!timeStr) return '';
+	if (timeStr.toLowerCase().includes('am') || timeStr.toLowerCase().includes('pm')) return timeStr;
+	let [hours, minutes] = timeStr.split(':');
+	hours = parseInt(hours, 10);
+	const ampm = hours >= 12 ? 'PM' : 'AM';
+	hours = hours % 12;
+	hours = hours ? hours : 12;
+	hours = hours < 10 ? '0' + hours : hours;
+	return `${hours}:${minutes} ${ampm}`;
+};
+
+const timeElapsed = (dateStr) => {
+	if (!dateStr) return 'Recently';
+	const diff = Date.now() - new Date(dateStr).getTime();
+	const minutes = Math.floor(diff / 60000);
+	if (minutes < 60) return `${minutes}m ago`;
+	const hours = Math.floor(minutes / 60);
+	if (hours < 24) return `${hours}h ago`;
+	const days = Math.floor(hours / 24);
+	return `${days}d ago`;
 };
 
 
@@ -33,45 +58,13 @@ function PatientList() {
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
 
-	// New state variables for supplements modal
-	const [showSupplementsModal, setShowSupplementsModal] = useState(false);
-	const [currentAppointment, setCurrentAppointment] = useState(null);
-	const [supplements, setSupplements] = useState([]);
-	const [newMedicineName, setNewMedicineName] = useState("");
-	const [newIllness, setNewIllness] = useState("");
+	// Payment proof gallery/lightbox + illness modal state (matches CurrentRequests.js / AppointmentSlots.js)
+	const [galleryImages, setGalleryImages] = useState([]);
+	const [currentImageIndex, setCurrentImageIndex] = useState(0);
+	const [selectedIllness, setSelectedIllness] = useState(null);
 
 	const { auth } = useContext(AuthContext);
 	const doctorId = auth.user?.id;
-
-	// New state variables for diet and yoga modal
-	const [showDietYogaModal, setShowDietYogaModal] = useState(false);
-
-	const [diet, setDiet] = useState({
-		daily: {
-			breakfast: "",
-			lunch: "",
-			dinner: "",
-			juices: ""
-		},
-		weekly: {
-			monday: { breakfast: "", lunch: "", dinner: "", juices: "" },
-			tuesday: { breakfast: "", lunch: "", dinner: "", juices: "" },
-			wednesday: { breakfast: "", lunch: "", dinner: "", juices: "" },
-			thursday: { breakfast: "", lunch: "", dinner: "", juices: "" },
-			friday: { breakfast: "", lunch: "", dinner: "", juices: "" },
-			saturday: { breakfast: "", lunch: "", dinner: "", juices: "" },
-			sunday: { breakfast: "", lunch: "", dinner: "", juices: "" }
-		},
-		herbs: []
-	});
-
-	const [yoga, setYoga] = useState({
-		morningPlan: "",
-		eveningPlan: ""
-	});
-
-	const email = localStorage.getItem("email"); // Assuming the doctor's email is stored in localStorage
-
 
 	useEffect(() => {
 		const fetchAppointments = async () => {
@@ -82,15 +75,9 @@ function PatientList() {
 					return;
 				}
 
-				const token = localStorage.getItem("token"); // Assuming token is stored in localStorage
 				const response = await authFetch(
 					// Fetch ALL bookings for the doctor ID
-					`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/bookings/doctor/${doctorId}`,
-					{
-						headers: {
-							Authorization: `Bearer ${token}`
-						}
-					}
+					`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/bookings/doctor/${doctorId}`
 				);
 
 				if (!response.ok) {
@@ -158,237 +145,6 @@ function PatientList() {
 		fetchAppointments();
 	}, [doctorId]); // Removed redundant 'email', using doctorId only
 
-	// New function to open supplements modal
-	const handleSuggestSupplements = async (appointmentId) => {
-		try {
-			// Find the current appointment from the combined state arrays
-			const appointment = [...previousAppointments].find(
-				(app) => app._id === appointmentId
-			);
-			setCurrentAppointment(appointment);
-
-			// This endpoint should fetch supplements attached to the specific booking
-			const response = await authFetch(
-				`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/bookings/supplements/${appointmentId}`,
-				{
-					headers: {
-						Authorization: `Bearer ${localStorage.getItem("token")}`
-					}
-				}
-			);
-
-			if (response.ok) {
-				const data = await response.json();
-				// Assuming supplements are returned directly
-				setSupplements(data.recommendedSupplements || []);
-			} else {
-				// If no supplements exist yet, start with empty array
-				setSupplements([]);
-			}
-
-			setShowSupplementsModal(true);
-		} catch (error) {
-			console.error("Error fetching supplements:", error);
-			// If error, still open modal but with empty supplements array
-			setSupplements([]);
-			setShowSupplementsModal(true);
-		}
-	};
-
-	// Function to add a new supplement to the list
-	const handleAddSupplement = () => {
-		if (!newMedicineName.trim() || !newIllness.trim()) {
-			alert("Please enter both medicine name and illness");
-			return;
-		}
-
-		const newSupplement = {
-			medicineName: newMedicineName,
-			forIllness: newIllness,
-			// These fields are required by the schema and need default values
-			dosage: "",
-			instructions: "",
-			duration: "",
-			startDate: new Date(),
-			endDate: new Date(),
-		};
-
-		setSupplements([...supplements, newSupplement]);
-		setNewMedicineName("");
-		setNewIllness("");
-	};
-
-	// Function to remove a supplement from the list
-	const handleRemoveSupplement = (index) => {
-		const updatedSupplements = [...supplements];
-		updatedSupplements.splice(index, 1);
-		setSupplements(updatedSupplements);
-	};
-
-	// Function to save supplements to the backend
-	const handleSaveSupplements = async () => {
-		if (!currentAppointment) return;
-
-		// Ensure all required fields have non-empty/default values before saving
-		const supplementsToSend = supplements.map(s => ({
-			...s,
-			dosage: s.dosage || "N/A",
-			instructions: s.instructions || "N/A",
-			duration: s.duration || "N/A",
-			startDate: s.startDate || new Date().toISOString(),
-			endDate: s.endDate || new Date().toISOString(),
-		}));
-
-
-		try {
-			const response = await fetch(
-				`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/bookings/supplements/${currentAppointment._id}`,
-				{
-					method: "PUT",
-					headers: {
-						"Content-Type": "application/json",
-					},
-					body: JSON.stringify({ recommendedSupplements: supplementsToSend }), // Send supplements as recommendedSupplements
-				}
-			);
-
-			if (response.ok) {
-				alert("Supplements updated successfully!");
-				setShowSupplementsModal(false);
-			} else {
-				const data = await response.json();
-				alert(`Error: ${data.error}`);
-			}
-		} catch (error) {
-			console.error("Error saving supplements:", error);
-			alert("Failed to save supplements. Please try again.");
-		}
-	};
-
-	const handleVerifyPayment = async (bookingId) => {
-		try {
-			const token = localStorage.getItem("token");
-			const response = await authFetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/bookings/${bookingId}/verify-payment`, {
-				method: "PUT",
-				headers: {
-					Authorization: `Bearer ${token}`,
-				},
-			});
-
-			const data = await response.json();
-			if (response.ok) {
-				alert("Payment verified successfully!");
-				// Update local state to reflect change
-				const updatedAppointments = previousAppointments.map(app => 
-					app._id === bookingId ? { ...app, paymentStatus: "Completed" } : app
-				);
-				setPreviousAppointments(updatedAppointments);
-			} else {
-				alert(`Error verifying payment: ${data.error}`);
-			}
-		} catch (error) {
-			console.error("Error:", error);
-			alert("Failed to verify payment.");
-		}
-	};
-
-	// Function to fetch and set current appointments details
-	const handleSuggestDietYoga = async (appointmentId) => {
-		// Find the current appointment (only previousAppointments are relevant for suggesting plans)
-		const appointment = previousAppointments.find(app => app._id === appointmentId);
-		setCurrentAppointment(appointment);
-
-		try {
-			const response = await authFetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/diet-yoga/booking/${appointmentId}`, {
-				headers: {
-					Authorization: `Bearer ${localStorage.getItem("token")}`
-				}
-			});
-			if (response.ok) {
-				const data = await response.json();
-				// Use the retrieved data or fallback to defaults
-				setDiet(data.diet || {
-					daily: { breakfast: "", lunch: "", dinner: "", juices: "" },
-					weekly: {
-						monday: { breakfast: "", lunch: "", dinner: "", juices: "" },
-						tuesday: { breakfast: "", lunch: "", dinner: "", juices: "" },
-						wednesday: { breakfast: "", lunch: "", dinner: "", juices: "" },
-						thursday: { breakfast: "", lunch: "", dinner: "", juices: "" },
-						friday: { breakfast: "", lunch: "", dinner: "", juices: "" },
-						saturday: { breakfast: "", lunch: "", dinner: "", juices: "" },
-						sunday: { breakfast: "", lunch: "", dinner: "", juices: "" }
-					},
-					herbs: []
-				});
-				setYoga(data.yoga || { morningPlan: "", eveningPlan: "" });
-			} else {
-				// Initialize with defaults if fetch fails
-				setDiet({
-					daily: { breakfast: "", lunch: "", dinner: "", juices: "" },
-					weekly: {
-						monday: { breakfast: "", lunch: "", dinner: "", juices: "" },
-						tuesday: { breakfast: "", lunch: "", dinner: "", juices: "" },
-						wednesday: { breakfast: "", lunch: "", dinner: "", juices: "" },
-						thursday: { breakfast: "", lunch: "", dinner: "", juices: "" },
-						friday: { breakfast: "", lunch: "", dinner: "", juices: "" },
-						saturday: { breakfast: "", lunch: "", dinner: "", juices: "" },
-						sunday: { breakfast: "", lunch: "", dinner: "", juices: "" }
-					},
-					herbs: []
-				});
-				setYoga({ morningPlan: "", eveningPlan: "" });
-			}
-		} catch (error) {
-			console.error("Error fetching diet and yoga plan:", error);
-		}
-
-		setShowDietYogaModal(true);
-	};
-
-	const handleSaveDietYoga = async () => {
-		if (!currentAppointment) return;
-
-		try {
-			// Get the token from localStorage (assuming it's stored there after login)
-			const token = localStorage.getItem("token");
-
-			if (!token) {
-				alert("You are not authenticated. Please log in again.");
-				return;
-			}
-
-			const response = await authFetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/diet-yoga`, {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-					Authorization: `Bearer ${token}`, // Include the token in the headers
-				},
-				body: JSON.stringify({
-					bookingId: currentAppointment._id,
-					patientEmail: currentAppointment.patientEmail,
-					patientName: currentAppointment.patientName,
-					doctorEmail: currentAppointment.doctorEmail,
-					doctorName: currentAppointment.doctorName,
-					diet,
-					yoga,
-				}),
-			});
-
-			const data = await response.json(); // Parse the response JSON
-
-			if (response.ok) {
-				alert("Diet and yoga plan saved successfully!");
-				setShowDietYogaModal(false);
-			} else {
-				// If the response is not OK, show the error message from the backend
-				alert(`Error: ${data.message || "Failed to save diet and yoga plan."}`);
-			}
-		} catch (error) {
-			console.error("Error saving diet and yoga plan:", error);
-			alert("Failed to save diet and yoga plan. Please check the console for details.");
-		}
-	};
-
 	if (loading) {
 		return <p style={{ marginTop: "150px", padding: "15px", background: "white", width: "max-content", borderRadius: "15px", marginLeft: "50px" }}>Loading...</p>;
 	}
@@ -421,84 +177,123 @@ function PatientList() {
 			{activeTab === "Previous" && (
 				<div className="appointment-list">
 					{previousAppointments.length === 0 ? (
-						<p>No previous appointments found.</p>
+						<p className="noRequest">No previous appointments found.</p>
 					) : (
-						previousAppointments.map((appointment) => (
-							<div
-								key={appointment._id}
-								className="appointment-card-patient-list"
-							>
-								<h3>{appointment.patientName}</h3>
-								<p>
-									<strong>Date:</strong>{" "}
-									{new Date(appointment.dateOfAppointment).toLocaleDateString()}
-								</p>
-								<p>
-									<strong>Time Slot:</strong> {appointment.timeSlot}
-								</p>
-								<p>
-									<strong>Gender:</strong> {appointment.patientGender}
-								</p>
-								<p>
-									<strong>Age:</strong> {appointment.patientAge}
-								</p>
-								<p>
-									<strong>Illness described:</strong>{" "}
-									{appointment.patientIllness}
-								</p>
-								{/* <button
-									className="action-button suggest-button"
-									onClick={() => handleSuggestSupplements(appointment._id)}
-								>
-									Suggest Supplements
-								</button>
-								<button
-									className="action-button suggest-button"
-									onClick={() => handleSuggestDietYoga(appointment._id)}
-								>
-									Suggest Diet and Yoga Plan
-								</button> */}
-								<button
-										className="prescribe-button"
-										onClick={() => {
-											navigate("/doctorsprescribe", {
-												state: {
-													bookingId: appointment._id,
-													patientId: appointment.patientId,
-													doctorId: appointment.doctorId
-												}
-											});
-										}}
-									>
-										Prescribe Medicine & Diet - Yoga Plan
-								</button>
-								{appointment.paymentScreenshots && appointment.paymentScreenshots.length > 0 && appointment.paymentStatus === "Pending" && (
-									<div style={{ marginTop: '10px' }}>
-										<p><strong>Payment Proofs:</strong></p>
-										<div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '10px' }}>
-											{appointment.paymentScreenshots.map((proof, index) => (
-												<img 
-													key={index}
-													src={`${process.env.REACT_APP_AYURVEDA_BACKEND_URL || 'http://localhost:8080'}/${proof}`} 
-													alt={`Payment Proof ${index + 1}`} 
-													style={{ maxWidth: '200px', height: 'auto', borderRadius: '5px' }} 
-												/>
-											))}
+						previousAppointments.map((appointment) => {
+							const hasScreenshots = appointment.paymentScreenshots && appointment.paymentScreenshots.length > 0;
+							const isPendingPayment = appointment.amountPaid > 0 && appointment.paymentStatus === "Pending";
+							const supplementCount = appointment.recommendedSupplements?.length || 0;
+
+							return (
+								<div key={appointment._id} className="req-card">
+									<div className="req-card-grid">
+										{/* Left Column: Patient Profile */}
+										<div className="req-col req-patient">
+											<div className="req-patient-header">
+												<h3 title="Patient Name">{appointment.patientName}</h3>
+												{appointment.isReturningPatient ? (
+													<span className="req-badge returning" title="Has previously booked appointments with you">Returning</span>
+												) : (
+													<span className="req-badge new" title="First-time booking with you">New</span>
+												)}
+											</div>
+											<p className="req-subtext" title={`Age: ${appointment.patientAge} yrs | Gender: ${appointment.patientGender} | Email: ${appointment.patientEmail}`}>
+												{appointment.patientAge || 'N/A'} yrs • {appointment.patientGender || 'N/A'} • {appointment.patientEmail || 'N/A'}
+											</p>
+											<div className="req-illness">
+												<strong>Illness:</strong>{" "}
+												{appointment.patientIllness && appointment.patientIllness.length > 80 ? (
+													<>
+														{appointment.patientIllness.substring(0, 80)}...
+														<button className="req-btn-link" onClick={() => setSelectedIllness(appointment.patientIllness)}>More</button>
+													</>
+												) : (
+													appointment.patientIllness || "No illness information"
+												)}
+											</div>
+											{appointment.rating ? (
+												<div className="req-time" title="Patient's feedback for this consultation">
+													⭐ {appointment.rating}/5{appointment.review ? ` — "${appointment.review}"` : ''}
+												</div>
+											) : (
+												<div className="req-time">No review submitted yet</div>
+											)}
 										</div>
-										<button 
-											className="action-button suggest-button" 
-											onClick={() => handleVerifyPayment(appointment._id)}
-											style={{ backgroundColor: '#28a745' }}
-										>
-											Verify Payment
-										</button>
+
+										{/* Middle Column: Appointment & Payment */}
+										<div className="req-col req-appointment">
+											<div className="req-schedule">
+												<div className="req-date-time-col">
+													<div className="req-date" title="Date of Appointment">
+														📅 {new Date(appointment.dateOfAppointment).toLocaleDateString("en-GB", { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
+													</div>
+													<div className="req-time-slot" title="Time of Appointment">
+														⏰ {format12HourTime(appointment.timeSlot)}
+													</div>
+												</div>
+												<div className="req-price-wrapper">
+													<div className="req-price-badge" title="Consultation Fee">
+														{appointment.amountPaid === 0 ? (
+															<span className="req-badge free">Free</span>
+														) : (
+															<span className="req-badge paid">₹{appointment.amountPaid}</span>
+														)}
+													</div>
+												</div>
+											</div>
+
+											{appointment.paymentStatus === "Completed" && (
+												<p style={{ marginTop: '12px', color: '#15803d', fontWeight: '700', fontSize: '14px' }}>✅ Payment Verified</p>
+											)}
+
+											{hasScreenshots && (
+												<div className="req-gallery">
+													<p className="req-gallery-title">Payment Proofs ({appointment.paymentScreenshots.length}):</p>
+													<div className="req-gallery-grid">
+														{appointment.paymentScreenshots.map((proof, index) => {
+															const imgUrl = proof.startsWith("http") ? proof : `${process.env.REACT_APP_AYURVEDA_BACKEND_URL || 'http://localhost:8080'}/${proof}`;
+															return (
+																<img
+																	key={index}
+																	src={imgUrl}
+																	alt={`Payment Proof ${index + 1}`}
+																	className="req-thumb"
+																	onClick={() => {
+																		setGalleryImages(appointment.paymentScreenshots);
+																		setCurrentImageIndex(index);
+																	}}
+																/>
+															);
+														})}
+													</div>
+												</div>
+											)}
+
+											{isPendingPayment && !hasScreenshots && (
+												<p style={{ marginTop: '12px', color: '#94a3b8', fontSize: '13px', fontWeight: '600' }}>⏳ Awaiting payment proof</p>
+											)}
+
+											{supplementCount > 0 && (
+												<p className="req-gallery-title" style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px dashed #cbd5e1' }}>
+													💊 {supplementCount} medicine{supplementCount > 1 ? 's' : ''} prescribed
+												</p>
+											)}
+										</div>
+
+										{/* Right Column: Actions */}
+										<div className="req-col req-actions">
+											<button
+												className="req-btn"
+												style={{ background: '#3b82f6', color: 'white' }}
+												onClick={() => navigate(`/doctorsprescribe/${appointment._id}`)}
+											>
+												Prescribe Medicine & Diet - Yoga Plan
+											</button>
+										</div>
 									</div>
-								)}
-								{appointment.paymentStatus === "Completed" && (
-									<p style={{ marginTop: '10px', color: 'green', fontWeight: 'bold' }}>✅ Payment Verified</p>
-								)}
-							</div>
-						))
+								</div>
+							);
+						})
 					)}
 				</div>
 			)}
@@ -507,289 +302,126 @@ function PatientList() {
 			{activeTab === "Denied" && (
 				<div className="appointment-list">
 					{deniedAppointments.length === 0 ? (
-						<p>No denied requests found.</p>
+						<p className="noRequest">No denied requests found.</p>
 					) : (
 						deniedAppointments.map((appointment) => (
-							<div key={appointment._id} className="appointment-card-patient-list">
-								<h3>{appointment.patientName}</h3>
-								<p><strong>Date:</strong> {new Date(appointment.dateOfAppointment).toLocaleDateString()}</p>
-								<p><strong>Time Slot:</strong> {appointment.timeSlot}</p>
-								<p><strong>Gender:</strong> {appointment.patientGender}</p>
-								<p><strong>Age:</strong> {appointment.patientAge}</p>
-								<p><strong>Illness described:</strong> {appointment.patientIllness}</p>
-								<p><strong>Message:</strong> {appointment.doctorsMessage || "No message provided"}</p>
+							<div key={appointment._id} className="req-card denied">
+								<div className="req-card-grid two-col">
+									{/* Left Column: Patient Profile */}
+									<div className="req-col req-patient">
+										<div className="req-patient-header">
+											<h3 title="Patient Name">{appointment.patientName}</h3>
+											<span className="req-badge denied-badge" title="This request was denied">Denied</span>
+											{appointment.isReturningPatient ? (
+												<span className="req-badge returning" title="Has previously booked appointments with you">Returning</span>
+											) : (
+												<span className="req-badge new" title="First-time booking with you">New</span>
+											)}
+										</div>
+										<p className="req-subtext" title={`Age: ${appointment.patientAge} yrs | Gender: ${appointment.patientGender} | Email: ${appointment.patientEmail}`}>
+											{appointment.patientAge || 'N/A'} yrs • {appointment.patientGender || 'N/A'} • {appointment.patientEmail || 'N/A'}
+										</p>
+										<div className="req-illness">
+											<strong>Illness:</strong>{" "}
+											{appointment.patientIllness && appointment.patientIllness.length > 80 ? (
+												<>
+													{appointment.patientIllness.substring(0, 80)}...
+													<button className="req-btn-link" onClick={() => setSelectedIllness(appointment.patientIllness)}>More</button>
+												</>
+											) : (
+												appointment.patientIllness || "No illness information"
+											)}
+										</div>
+										<div className="req-time" title="Time since the appointment was requested">
+											⏱ Requested {timeElapsed(appointment.createdAt)}
+										</div>
+									</div>
+
+									{/* Right Column: Requested Appointment & Denial Reason */}
+									<div className="req-col req-appointment">
+										<div className="req-schedule">
+											<div className="req-date-time-col">
+												<div className="req-date" title="Requested Date">
+													📅 {new Date(appointment.dateOfAppointment).toLocaleDateString("en-GB", { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
+												</div>
+												<div className="req-time-slot" title="Requested Time">
+													⏰ {format12HourTime(appointment.timeSlot)}
+												</div>
+											</div>
+											<div className="req-price-wrapper">
+												<div className="req-price-badge" title="Consultation Fee">
+													{appointment.amountPaid === 0 ? (
+														<span className="req-badge free">Free</span>
+													) : (
+														<span className="req-badge paid">₹{appointment.amountPaid}</span>
+													)}
+												</div>
+											</div>
+										</div>
+										<div className="req-denial">
+											<strong>Reason for Denial</strong>
+											{appointment.doctorsMessage || "No reason was provided."}
+										</div>
+									</div>
+								</div>
 							</div>
 						))
 					)}
 				</div>
 			)}
 
-			{/* Supplements Modal */}
-			{showSupplementsModal && currentAppointment && (
-				<div className="modal-overlay">
-					<div className="supplements-modal">
-						<h2>Recommend Supplements for {currentAppointment.patientName}</h2>
-						<p>Patient Illness: {currentAppointment.patientIllness}</p>
+			{/* Payment Proof Image Gallery Modal */}
+			{galleryImages.length > 0 && (
+				<div className="gallery-overlay" onClick={() => setGalleryImages([])}>
+					<div className="gallery-modal" onClick={e => e.stopPropagation()}>
+						<button className="gallery-close" onClick={() => setGalleryImages([])}>×</button>
 
-						<div className="supplements-list">
-							<h3>Current Recommendations</h3>
-							{supplements.length === 0 ? (
-								<p>No supplements recommended yet.</p>
-							) : (
-								<ul>
-									{supplements.map((supplement, index) => (
-										<li key={index} className="supplement-item">
-											<div>
-												<strong>{supplement.medicineName}</strong> - For:{" "}
-												{supplement.forIllness}
-											</div>
-											{/* Input fields for required schema data (dosage, duration, etc.) */}
-											<div className="form-group-patient-list supplement-details">
-												<label>Dosage:</label>
-												<input
-													type="text"
-													value={supplement.dosage || ""}
-													onChange={(e) => setSupplements(prev => prev.map((s, i) => i === index ? { ...s, dosage: e.target.value } : s))}
-													placeholder="E.g., 1 capsule"
-												/>
-												<label>Duration:</label>
-												<input
-													type="text"
-													value={supplement.duration || ""}
-													onChange={(e) => setSupplements(prev => prev.map((s, i) => i === index ? { ...s, duration: e.target.value } : s))}
-													placeholder="E.g., 30 days"
-												/>
-												<label>Start Date:</label>
-												<input
-													type="date"
-													value={supplement.startDate ? new Date(supplement.startDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]}
-													onChange={(e) => setSupplements(prev => prev.map((s, i) => i === index ? { ...s, startDate: e.target.value } : s))}
-												/>
-												<label>End Date:</label>
-												<input
-													type="date"
-													value={supplement.endDate ? new Date(supplement.endDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]}
-													onChange={(e) => setSupplements(prev => prev.map((s, i) => i === index ? { ...s, endDate: e.target.value } : s))}
-												/>
-												<label>Instructions:</label>
-												<textarea
-													value={supplement.instructions || ""}
-													onChange={(e) => setSupplements(prev => prev.map((s, i) => i === index ? { ...s, instructions: e.target.value } : s))}
-													placeholder="E.g., Take with morning meal."
-												/>
-											</div>
-
-											<button
-												className="remove-button"
-												onClick={() => handleRemoveSupplement(index)}
-											>
-												✕
-											</button>
-										</li>
-									))}
-								</ul>
-							)}
-						</div>
-
-						<div className="add-supplement-form">
-							<h3>Add New Supplement</h3>
-							<div className="form-group-patient-list">
-								<label>Medicine Name:</label>
-								<input
-									type="text"
-									value={newMedicineName}
-									onChange={(e) => setNewMedicineName(e.target.value)}
-									placeholder="Enter medicine name"
-								/>
-							</div>
-							<div className="form-group-patient-list">
-								<label>For Illness:</label>
-								<input
-									type="text"
-									value={newIllness}
-									onChange={(e) => setNewIllness(e.target.value)}
-									placeholder="Enter illness it treats"
-								/>
-							</div>
-							<button className="add-button" onClick={handleAddSupplement}>
-								Add Supplement
-							</button>
-						</div>
-
-						<div className="modal-buttons">
-							<button className="save-button" onClick={handleSaveSupplements}>
-								Save Recommendations
-							</button>
+						{galleryImages.length > 1 && (
 							<button
-								className="cancel-button"
-								onClick={() => setShowSupplementsModal(false)}
+								className="gallery-nav prev"
+								onClick={() => setCurrentImageIndex((prev) => (prev === 0 ? galleryImages.length - 1 : prev - 1))}
 							>
-								Cancel
+								&#10094;
 							</button>
-						</div>
+						)}
+
+						<img
+							src={galleryImages[currentImageIndex]?.startsWith("http") ? galleryImages[currentImageIndex] : `${process.env.REACT_APP_AYURVEDA_BACKEND_URL || 'http://localhost:8080'}/${galleryImages[currentImageIndex]}`}
+							alt="Enlarged Proof"
+							className="gallery-image-large"
+						/>
+
+						{galleryImages.length > 1 && (
+							<button
+								className="gallery-nav next"
+								onClick={() => setCurrentImageIndex((prev) => (prev === galleryImages.length - 1 ? 0 : prev + 1))}
+							>
+								&#10095;
+							</button>
+						)}
+
+						{galleryImages.length > 1 && (
+							<div className="gallery-dots">
+								{galleryImages.map((_, idx) => (
+									<span
+										key={idx}
+										className={`gallery-dot ${idx === currentImageIndex ? 'active' : ''}`}
+										onClick={() => setCurrentImageIndex(idx)}
+									></span>
+								))}
+							</div>
+						)}
 					</div>
 				</div>
 			)}
 
-			{/* Diet and Yoga Modal (omitted for brevity, assume correct) */}
-			{showDietYogaModal && currentAppointment && (
-				<div className="modal-overlay">
-					<div className="supplements-modal">
-						<h2>Diet and Yoga Plan for {currentAppointment.patientName}</h2>
-						<p>Patient Illness: {currentAppointment.patientIllness}</p>
-
-						<div className="diet-yoga-form">
-							<h3>Daily Diet Plan</h3>
-							<div className="form-group-patient-list">
-								<label>Breakfast:</label>
-								<input
-									type="text"
-									value={diet.daily.breakfast}
-									onChange={(e) => setDiet({ ...diet, daily: { ...diet.daily, breakfast: e.target.value } })}
-									placeholder="Enter breakfast plan"
-								/>
-							</div>
-							<div className="form-group-patient-list">
-								<label>Lunch:</label>
-								<input
-									type="text"
-									value={diet.daily.lunch}
-									onChange={(e) => setDiet({ ...diet, daily: { ...diet.daily, lunch: e.target.value } })}
-									placeholder="Enter lunch plan"
-								/>
-							</div>
-							<div className="form-group-patient-list">
-								<label>Dinner:</label>
-								<input
-									type="text"
-									value={diet.daily.dinner}
-									onChange={(e) => setDiet({ ...diet, daily: { ...diet.daily, dinner: e.target.value } })}
-									placeholder="Enter dinner plan"
-								/>
-							</div>
-							<div className="form-group-patient-list">
-								<label>Juices:</label>
-								<input
-									type="text"
-									value={diet.daily.juices}
-									onChange={(e) => setDiet({ ...diet, daily: { ...diet.daily, juices: e.target.value } })}
-									placeholder="Enter juice recommendations"
-								/>
-							</div>
-
-							<h3>Weekly Diet Plan</h3>
-							{Object.entries(diet.weekly).map(([day, plan]) => (
-								<div key={day} className="weekly-plan">
-									<h4>{day.charAt(0).toUpperCase() + day.slice(1)}</h4>
-									<div className="form-group-patient-list">
-										<label>Breakfast:</label>
-										<input
-											type="text"
-											value={plan.breakfast}
-											onChange={(e) => setDiet({
-												...diet,
-												weekly: {
-													...diet.weekly,
-													[day]: { ...plan, breakfast: e.target.value }
-												}
-											})}
-											placeholder="Enter breakfast plan"
-										/>
-									</div>
-									<div className="form-group-patient-list">
-										<label>Lunch:</label>
-										<input
-											type="text"
-											value={plan.lunch}
-											onChange={(e) => setDiet({
-												...diet,
-												weekly: {
-													...diet.weekly,
-													[day]: { ...plan, lunch: e.target.value }
-												}
-											})}
-											placeholder="Enter lunch plan"
-										/>
-									</div>
-									<div className="form-group-patient-list">
-										<label>Dinner:</label>
-										<input
-											type="text"
-											value={plan.dinner}
-											onChange={(e) => setDiet({
-												...diet,
-												weekly: {
-													...diet.weekly,
-													[day]: { ...plan, dinner: e.target.value }
-												}
-											})}
-											placeholder="Enter dinner plan"
-										/>
-									</div>
-									<div className="form-group-patient-list">
-										<label>Juices:</label>
-										<input
-											type="text"
-											value={plan.juices}
-											onChange={(e) => setDiet({
-												...diet,
-												weekly: {
-													...diet.weekly,
-													[day]: { ...plan, juices: e.target.value }
-												}
-											})}
-											placeholder="Enter juice recommendations"
-										/>
-									</div>
-								</div>
-							))}
-
-							<h3>Herbs</h3>
-							<div className="form-group-patient-list">
-								<label>Herbs (comma-separated):</label>
-								<input
-									type="text"
-									value={diet.herbs.join(", ")}
-									onChange={(e) => setDiet({ ...diet, herbs: e.target.value.split(", ") })}
-									placeholder="Enter herbs"
-								/>
-							</div>
-
-							<h3>Yoga Plan</h3>
-							<div className="form-group-patient-list">
-								<label>Morning Plan:</label>
-								<input
-									type="text"
-									value={yoga.morningPlan}
-									onChange={(e) => setYoga({ ...yoga, morningPlan: e.target.value })}
-									placeholder="Enter morning yoga plan"
-								/>
-							</div>
-							<div className="form-group-patient-list">
-								<label>Evening Plan:</label>
-								<input
-									type="text"
-									value={yoga.eveningPlan}
-									onChange={(e) => setYoga({ ...yoga, eveningPlan: e.target.value })}
-									placeholder="Enter evening yoga plan"
-								/>
-							</div>
-						</div>
-
-						<div className="modal-buttons">
-							<button
-								className="save-button"
-								onClick={handleSaveDietYoga}
-							>
-								Save Plan
-							</button>
-							<button
-								className="cancel-button"
-								onClick={() => setShowDietYogaModal(false)}
-							>
-								Cancel
-							</button>
-						</div>
+			{/* Illness Modal */}
+			{selectedIllness && (
+				<div className="gallery-overlay" onClick={() => setSelectedIllness(null)}>
+					<div className="gallery-modal" style={{ padding: '32px', maxWidth: '600px', backgroundColor: '#fff', borderRadius: '16px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', textAlign: 'left' }} onClick={e => e.stopPropagation()}>
+						<button className="gallery-close" style={{ color: '#1e293b', background: '#f1f5f9' }} onClick={() => setSelectedIllness(null)}>×</button>
+						<h3 style={{ marginTop: 0, fontSize: '20px', fontWeight: '700', color: '#0f172a', marginBottom: '16px' }}>Patient's Illness Details</h3>
+						<p style={{ lineHeight: '1.6', color: '#334155', fontSize: '15px', margin: 0, whiteSpace: 'pre-wrap' }}>{selectedIllness}</p>
 					</div>
 				</div>
 			)}

@@ -50,6 +50,9 @@ function AppointmentSlots() {
 
 	const parseAppointmentDateTime = (dateString, timeSlot) => {
 		const appointmentDate = new Date(dateString);
+		// Guard: a booking whose slot no longer resolves has no timeSlot — fall back to
+		// the date itself rather than crashing the whole screen.
+		if (!timeSlot || typeof timeSlot !== "string") return appointmentDate;
 		const startTimePart = timeSlot.split(" - ")[0].trim();
 		const [time, period] = startTimePart.split(" ");
 		let [hours, minutes] = time.split(":").map(Number);
@@ -57,7 +60,7 @@ function AppointmentSlots() {
 		if (period === "PM" && hours !== 12) hours += 12;
 		else if (period === "AM" && hours === 12) hours = 0;
 
-		appointmentDate.setHours(hours, minutes, 0, 0);
+		appointmentDate.setHours(hours || 0, minutes || 0, 0, 0);
 		return appointmentDate;
 	};
 
@@ -269,15 +272,7 @@ function AppointmentSlots() {
 									<button 
 										className="req-btn" 
 										style={{ background: '#3b82f6', color: 'white', border: 'none' }} 
-										onClick={() => {
-											navigate("/doctorsprescribe", {
-												state: {
-													bookingId: request._id,
-													patientId: request.patientId,
-													doctorId: request.doctorId
-												}
-											});
-										}}
+										onClick={() => navigate(`/doctorsprescribe/${request._id}`)}
 									>
 										Prescribe Medicine & Diet - Yoga Plan
 									</button>

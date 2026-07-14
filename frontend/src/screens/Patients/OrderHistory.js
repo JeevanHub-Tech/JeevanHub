@@ -20,16 +20,19 @@ const OrderHistory = () => {
 		const fetchOrders = async () => {
 			try {
 				setLoading(true);
-				const response = await axios.get(`${API_BASE_URL}/api/orders`, {
-					params: { userId },
+				const response = await axios.get(`${API_BASE_URL}/api/orders/getOrdersByBuyerId/${userId}`, {
 					headers: { Authorization: `Bearer ${auth.token}` }
 				});
-				setOrders(response.data);
-				console.log(response.data);
+				setOrders(response.data.orders || []);
 				setLoading(false);
 			} catch (error) {
-				console.error('Error fetching orders:', error);
-				setError('Failed to load your orders. Please try again later.');
+				if (error.response?.status === 404) {
+					// No orders yet -- not a failure, just an empty list.
+					setOrders([]);
+				} else {
+					console.error('Error fetching orders:', error);
+					setError('Failed to load your orders. Please try again later.');
+				}
 				setLoading(false);
 			}
 		};
@@ -116,37 +119,42 @@ const OrderHistory = () => {
 
 							<div className="order-items">
 								<h3>Items</h3>
-								<h4>Retailer: {order.retailer.BusinessName}</h4>
-								{order.items.map((item, index) => (
-									<div key={index} className="order-item">
-										<div className="item-image">
-											{item.image ? (
-												<img
-													src={getImageUrl(item.image)}
-													alt={item.name}
-													onError={(e) => {
-														e.target.onerror = null;
-														e.target.src = '/placeholder-image.png';
-													}}
-												/>
-											) : (
-												<img
-													src={img}
-													alt={item.name}
-												/>
-											)}
+								{order.retailers?.length > 0 && (
+									<h4>Retailer: {order.retailers.join(', ')}</h4>
+								)}
+								{order.items.map((item, index) => {
+									const medicineImage = item.medicineId?.images?.[0];
+									return (
+										<div key={index} className="order-item">
+											<div className="item-image">
+												{medicineImage ? (
+													<img
+														src={getImageUrl(medicineImage)}
+														alt={item.medicineId?.name}
+														onError={(e) => {
+															e.target.onerror = null;
+															e.target.src = '/placeholder-image.png';
+														}}
+													/>
+												) : (
+													<img
+														src={img}
+														alt={item.medicineId?.name}
+													/>
+												)}
+											</div>
+											<div className="item-details">
+												<p className="item-name">{item.medicineId?.name}</p>
+												<p className="item-price">
+													₹{(Number(item.medicineId?.price) || 0).toFixed(2)} × {item.quantity}
+												</p>
+												<p className="item-subtotal">
+													Subtotal: ₹{(Number(item.subTotal) || 0).toFixed(2)}
+												</p>
+											</div>
 										</div>
-										<div className="item-details">
-											<p className="item-name">{item.medicineId.name}</p>
-											<p className="item-price">
-												₹{(Number(item.medicineId.price) || 0).toFixed(2)} × {item.quantity}
-											</p>
-											<p className="item-subtotal">
-												Subtotal: ₹{(Number(item.subTotal) || 0).toFixed(2)}
-											</p>
-										</div>
-									</div>
-								))}
+									);
+								})}
 							</div>
 
 							<div className="order-footer" style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
@@ -155,7 +163,7 @@ const OrderHistory = () => {
 									<p><strong>Payment Status:</strong> {order.paymentStatus.charAt(0).toUpperCase() + order.paymentStatus.slice(1)}</p>
 								</div>
 								<div className="order-total">
-									<p><strong>Total Amount:</strong> ${(Number(order.totalPrice) || 0).toFixed(2)}</p>
+									<p><strong>Total Amount:</strong> ₹{(Number(order.totalPrice) || 0).toFixed(2)}</p>
 								</div>
 								{order.orderStatus.toLowerCase() === "delivered" && order.review && (
 									<div

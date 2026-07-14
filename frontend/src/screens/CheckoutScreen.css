@@ -257,6 +257,26 @@
     border-radius: 4px;
   }
   
+  .error-message {
+    margin: 15px 0;
+    padding: 10px 14px;
+    border-radius: 4px;
+    background: #fdecea;
+    color: #b3261e;
+    border: 1px solid #f5c6cb;
+  }
+
+  .item-rx-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: #fff3cd;
+    color: #7a5b00;
+    font-size: 12px;
+    font-weight: bold;
+    margin: 4px 0;
+  }
+
   /* Order Confirmation Styles */
   .order-confirmation {
     text-align: center;

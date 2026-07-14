@@ -43,6 +43,9 @@ const orderSchema = new mongoose.Schema({
     type: String, // Path to the QR code image
     required: false
   },
+  razorpayOrderId: { type: String, required: false },
+  paymentId: { type: String, required: false }, // Razorpay payment id, set once verified
+  prescriptionUrl: { type: String, required: false }, // Uploaded prescription image, required when cart has an Rx item
   review: {
     rating: { type: Number, min: 1, max: 5 },
     comment: { type: String, trim: true },

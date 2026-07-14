@@ -9,6 +9,8 @@ const Patient = require('../models/Patient');
 const Doctor = require('../models/Doctor');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
+const getRazorpay = require('../services/razorpayService');
 const notificationController = require('./notificationController');
 
 
@@ -71,14 +73,50 @@ exports.createOrder = async (req, res) => {
         return res.status(403).json({ message: "Access denied. Only patients can create orders." });
     }
     try {
-        const { items, totalPrice, buyer, shippingAddress, paymentMethod } = req.body;
+        const {
+            items,
+            buyer,
+            shippingAddress,
+            paymentMethod,
+            prescriptionUrl,
+            razorpayOrderId,
+            razorpayPaymentId,
+            razorpaySignature
+        } = req.body;
 
-        // Map frontend items to schema-required fields only
-        const formattedItems = items.map(item => ({
-            medicineId: item.medicineId,   // required
-            quantity: item.quantity,       // required
-            subTotal: item.subTotal || item.subtotal        // required
-        }));
+        if (!Array.isArray(items) || items.length === 0) {
+            return res.status(400).json({ message: "Cart is empty" });
+        }
+        if (!['cashOnDelivery', 'onlinePayment'].includes(paymentMethod)) {
+            return res.status(400).json({ message: "Invalid payment method" });
+        }
+
+        // Price, stock and prescription requirements are derived from the DB record,
+        // never trusted from the client, so a tampered request body can't under-charge
+        // or skip the Rx gate.
+        const medicines = await Medicine.find({
+            _id: { $in: items.map(item => item.medicineId) }
+        });
+        const medicineById = new Map(medicines.map(med => [med._id.toString(), med]));
+
+        const formattedItems = items.map(item => {
+            const medicine = medicineById.get(String(item.medicineId));
+            if (!medicine) {
+                throw Object.assign(new Error(`Medicine ${item.medicineId} not found`), { status: 400 });
+            }
+            return {
+                medicineId: medicine._id,
+                quantity: item.quantity,
+                subTotal: medicine.price * item.quantity
+            };
+        });
+
+        const totalPrice = formattedItems.reduce((sum, item) => sum + item.subTotal, 0);
+
+        const requiresPrescription = medicines.some(med => med.prescription === true);
+        if (requiresPrescription && !prescriptionUrl) {
+            return res.status(400).json({ message: "This order contains a prescription-required medicine. Please upload a valid prescription before checkout." });
+        }
 
         // Map buyer to schema-required fields
         const formattedBuyer = {
@@ -98,9 +136,34 @@ exports.createOrder = async (req, res) => {
             orderStatus: 'pending'
         });
 
-        // Online payment QR code placeholder
+        if (requiresPrescription) {
+            newOrder.prescriptionUrl = prescriptionUrl;
+        }
+
         if (paymentMethod === 'onlinePayment') {
-            newOrder.paymentQR = 'uploads/qr-codes/payment-qr.png';
+            if (!razorpayOrderId || !razorpayPaymentId || !razorpaySignature) {
+                return res.status(400).json({ message: "Missing payment verification details" });
+            }
+            if (!process.env.RAZORPAY_KEY_SECRET) {
+                return res.status(500).json({ message: "Payment gateway not configured" });
+            }
+            const expectedSignature = crypto
+                .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+                .update(razorpayOrderId + "|" + razorpayPaymentId)
+                .digest('hex');
+            if (expectedSignature !== razorpaySignature) {
+                return res.status(400).json({ message: "Payment verification failed" });
+            }
+            // Signature only proves the payment/order pair is genuine, not that the
+            // amount charged matches this cart -- confirm the Razorpay order amount
+            // against the server-computed total before trusting the payment.
+            const razorpayOrder = await getRazorpay().orders.fetch(razorpayOrderId);
+            if (razorpayOrder.amount !== Math.round(totalPrice * 100)) {
+                return res.status(400).json({ message: "Paid amount does not match order total" });
+            }
+            newOrder.razorpayOrderId = razorpayOrderId;
+            newOrder.paymentId = razorpayPaymentId;
+            newOrder.paymentStatus = 'paid';
         }
 
         const session = await mongoose.startSession();
@@ -160,6 +223,17 @@ exports.createOrder = async (req, res) => {
         res.status(201).json(newOrder);
     } catch (error) {
         console.error('Error creating order:', error);
+        res.status(error.status || 500).json({ message: error.message });
+    }
+};
+
+exports.uploadPrescription = async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ message: 'Prescription image is required' });
+        }
+        res.status(200).json({ url: req.file.path });
+    } catch (error) {
         res.status(500).json({ message: error.message });
     }
 };

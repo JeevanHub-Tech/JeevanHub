@@ -1,8 +1,10 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
+import { authFetch } from '../utils/authFetch';
 import './CheckoutScreen.css';
+
+const BACKEND_URL = process.env.REACT_APP_AYURVEDA_BACKEND_URL;
 
 const CheckoutScreen = () => {
 	const navigate = useNavigate();
@@ -11,7 +13,8 @@ const CheckoutScreen = () => {
 
 	// State variables
 	const [cartItems, setCartItems] = useState([]);
-	const [currentStep, setCurrentStep] = useState(1);
+	const [cartLoading, setCartLoading] = useState(true);
+	const [currentStepIndex, setCurrentStepIndex] = useState(0);
 	const [address, setAddress] = useState({
 		street: '',
 		city: '',
@@ -20,96 +23,143 @@ const CheckoutScreen = () => {
 		country: 'India'
 	});
 	const [paymentMethod, setPaymentMethod] = useState('cashOnDelivery');
-	const [paymentQR, setPaymentQR] = useState(null);
-	const [paymentProof, setPaymentProof] = useState(null);
+	const [prescriptionFile, setPrescriptionFile] = useState(null);
+	const [prescriptionUrl, setPrescriptionUrl] = useState(null);
+	const [prescriptionUploading, setPrescriptionUploading] = useState(false);
 	const [orderId, setOrderId] = useState(null);
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState('');
 	const [notificationsAvailable, setNotificationsAvailable] = useState(false);
 
-	// Calculate total price
+	// Calculate total price from the real cart data (backend-priced, not client-supplied)
 	const totalPrice = cartItems.reduce(
-		(total, item) => total + item.price * item.quantity,
+		(total, item) => total + (item.medicineId?.price || 0) * item.quantity,
 		0
 	);
 
-	// get saved cart and user profile on mount
+	const prescriptionNeeded = useMemo(
+		() => cartItems.some(item => item.medicineId?.prescription === true),
+		[cartItems]
+	);
+
+	// Ordered list of steps; the prescription step only appears when the cart
+	// actually contains an Rx-flagged medicine.
+	const steps = useMemo(() => {
+		const base = ['summary', 'shipping'];
+		if (prescriptionNeeded) base.push('prescription');
+		base.push('payment', 'confirmation');
+		return base;
+	}, [prescriptionNeeded]);
+
+	const currentStep = steps[currentStepIndex];
+
+	// Fetch the real cart from the backend (localStorage never held cart data)
 	useEffect(() => {
-		// TEMP FIX FOR DEMO
-		const savedCart = localStorage.getItem('cart');
+		const fetchCart = async () => {
+			if (!userId) {
+				setCartLoading(false);
+				return;
+			}
+			try {
+				const response = await authFetch(`${BACKEND_URL}/api/cart/${userId}`, {
+					method: 'GET',
+					headers: { 'Content-Type': 'application/json' }
+				});
+				const data = await response.json();
+				if (!response.ok) {
+					throw new Error(data.message || 'Failed to load cart');
+				}
+				setCartItems(data.cartItems ? data.cartItems.items : []);
+			} catch (err) {
+				console.error('Error fetching cart:', err);
+				setError('Could not load your cart. Please go back and try again.');
+			} finally {
+				setCartLoading(false);
+			}
+		};
 
-		if (savedCart) {
-			setCartItems(JSON.parse(savedCart));
-		} else {
-			console.log("No local cart, but allowing checkout for demo");
-		}
+		fetchCart();
 
-		// Instead of fetching user profile, check if address is in localStorage
 		const savedAddress = localStorage.getItem('userAddress');
 		if (savedAddress) {
 			setAddress(JSON.parse(savedAddress));
-		} else {
-			// Set default country only
-			setAddress(prev => ({ ...prev, country: 'India' }));
 		}
 
-		// Check if notifications API is available
 		checkNotificationsAPI();
-	}, [navigate]);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [userId]);
 
-	// Add this effect to save address when it changes
+	// Save address when it changes
 	useEffect(() => {
 		if (address.street || address.city || address.state || address.postalCode) {
 			localStorage.setItem('userAddress', JSON.stringify(address));
 		}
 	}, [address]);
 
-	// Check if notifications API is available
 	const checkNotificationsAPI = async () => {
 		try {
-			// A simple HEAD request to check if endpoint exists
-			await axios.head(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/notifications`, {
-				headers: { Authorization: `Bearer ${auth.token}` }
-			});
+			await authFetch(`${BACKEND_URL}/api/notifications`, { method: 'HEAD' });
 			setNotificationsAvailable(true);
 		} catch (err) {
-			console.log('Notifications API not available:', err.message);
 			setNotificationsAvailable(false);
 		}
 	};
 
-	// Handle address form input changes
 	const handleAddressChange = (e) => {
 		const { name, value } = e.target;
 		setAddress(prev => ({ ...prev, [name]: value }));
 	};
 
-	// Handle payment method selection
 	const handlePaymentMethodChange = (e) => {
 		setPaymentMethod(e.target.value);
 	};
 
-	// Handle payment proof file selection
-	const handlePaymentProofChange = (e) => {
-		setPaymentProof(e.target.files[0]);
+	const handlePrescriptionFileChange = (e) => {
+		setPrescriptionFile(e.target.files[0]);
+		setPrescriptionUrl(null);
 	};
 
-	// Move to next step in checkout process
-	const nextStep = () => {
-		setCurrentStep(prevStep => prevStep + 1);
+	const uploadPrescription = async () => {
+		if (!prescriptionFile) {
+			setError('Please select a prescription image to upload');
+			return;
+		}
+		try {
+			setPrescriptionUploading(true);
+			setError('');
+			const formData = new FormData();
+			formData.append('prescription', prescriptionFile);
+
+			const response = await authFetch(`${BACKEND_URL}/api/orders/upload-prescription`, {
+				method: 'POST',
+				body: formData
+			});
+			const data = await response.json();
+			if (!response.ok) {
+				throw new Error(data.message || 'Failed to upload prescription');
+			}
+			setPrescriptionUrl(data.url);
+		} catch (err) {
+			console.error('Error uploading prescription:', err);
+			setError(err.message || 'Failed to upload prescription. Please try again.');
+		} finally {
+			setPrescriptionUploading(false);
+		}
 	};
 
-	// Move to previous step in checkout process
-	const prevStep = () => {
-		setCurrentStep(prevStep => prevStep - 1);
-	};
+	const nextStep = () => setCurrentStepIndex(prev => Math.min(prev + 1, steps.length - 1));
+	const prevStep = () => setCurrentStepIndex(prev => Math.max(prev - 1, 0));
 
-	// Validate current step before proceeding
 	const validateStep = () => {
-		if (currentStep === 2) {
-			// Validate address
+		if (currentStep === 'shipping') {
 			if (!address.street || !address.city || !address.state || !address.postalCode) {
 				setError('Please fill in all address fields');
+				return false;
+			}
+		}
+		if (currentStep === 'prescription') {
+			if (!prescriptionUrl) {
+				setError('Please upload your prescription to continue');
 				return false;
 			}
 		}
@@ -117,237 +167,145 @@ const CheckoutScreen = () => {
 		return true;
 	};
 
-	// Handle advancing to next step with validation
 	const handleNext = () => {
 		if (validateStep()) {
 			nextStep();
 		}
 	};
 
-	// Create notification function - only if API is available
-	const createNotification = async (orderId, message) => {
-		if (!notificationsAvailable) {
-			console.log('Skipping notification - API not available');
-			return;
-		}
+	const buildOrderPayload = (extra = {}) => ({
+		items: cartItems.map(item => ({
+			medicineId: item.medicineId._id,
+			quantity: item.quantity
+		})),
+		buyer: {
+			firstName: auth.user.firstName,
+			lastName: auth.user.lastName,
+			type: auth.user.role
+		},
+		shippingAddress: address,
+		paymentMethod,
+		...(prescriptionNeeded ? { prescriptionUrl } : {}),
+		...extra
+	});
 
-		try {
-			await axios.post(
-				`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/notifications`,
-				{
-					userId,
-					orderId,
-					type: 'order',
-					message,
-					isRead: false
-				},
-				{
-					headers: { Authorization: `Bearer ${auth.token}` }
-				}
-			);
-			console.log('Notification created successfully');
-		} catch (err) {
-			console.error('Error creating notification:', err);
-			// Don't stop the order process if notification fails
+	const submitOrder = async (payload) => {
+		const response = await authFetch(`${BACKEND_URL}/api/orders`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(payload)
+		});
+		const data = await response.json();
+		if (!response.ok) {
+			throw new Error(data.message || 'Failed to place order');
 		}
+		return data;
 	};
 
-	const handleOnlinePayment = async (orderDataFromBackend) => {
+	const handleOnlinePayment = async () => {
 		try {
-			// 1. Create Razorpay order from backend
-			// Using at least 1 for demo payment if totalPrice is 0
-			const paymentAmount = totalPrice > 0 ? totalPrice : 1;
-			const res = await axios.post(
-				`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/payment/create-order`,
-				{ amount: paymentAmount }
-			);
+			const res = await authFetch(`${BACKEND_URL}/api/payment/create-order`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ amount: totalPrice })
+			});
+			const razorpayOrder = await res.json();
+			if (!res.ok) {
+				throw new Error(razorpayOrder.error || 'Could not start payment');
+			}
 
-			const order = res.data;
-
-			// 2. Open Razorpay
 			const options = {
-				key: process.env.REACT_APP_RAZORPAY_KEY_ID, // Using key from frontend .env
-				amount: order.amount,
-				currency: "INR",
-				name: "Ayurveda Platform",
-				description: "Test Payment",
-				order_id: order.id,
+				key: process.env.REACT_APP_RAZORPAY_KEY_ID,
+				amount: razorpayOrder.amount,
+				currency: razorpayOrder.currency,
+				name: 'JeevanHub',
+				description: 'Medicine order payment',
+				order_id: razorpayOrder.id,
 
 				handler: async function (response) {
-					console.log("Payment success:", response);
+					try {
+						const order = await submitOrder(buildOrderPayload({
+							razorpayOrderId: response.razorpay_order_id,
+							razorpayPaymentId: response.razorpay_payment_id,
+							razorpaySignature: response.razorpay_signature
+						}));
+						setOrderId(order._id);
+						setCurrentStepIndex(steps.length - 1);
+					} catch (err) {
+						console.error('Error finalizing paid order:', err);
+						setError(`Payment was received but we could not finalize your order: ${err.message}. Please contact support with payment id ${response.razorpay_payment_id}.`);
+					} finally {
+						setLoading(false);
+					}
+				},
 
-					// simulate success flow
-					localStorage.removeItem('cart');
-					setCurrentStep(5);
+				modal: {
+					ondismiss: () => setLoading(false)
 				},
 
 				prefill: {
 					name: `${auth.user.firstName} ${auth.user.lastName}`,
-					email: "test@test.com",
-					contact: "9999999999",
 				},
 
 				theme: {
-					color: "#3399cc",
+					color: '#556b2f',
 				},
 			};
 
 			const rzp = new window.Razorpay(options);
+			rzp.on('payment.failed', () => {
+				setError('Payment failed. Please try again.');
+				setLoading(false);
+			});
 			rzp.open();
-
 		} catch (err) {
-			console.error("Payment error:", err);
-			setError("Payment failed");
-		}
-	};
-
-	// Submit order to backend
-	const placeOrder = async () => {
-		try {
-			setLoading(true);
-
-			// Prepare order data
-			const orderData = {
-				items: cartItems.map(item => ({
-					name: item.name,
-					medicineId: item._id,
-					price: item.price,
-					image: item.image,
-					retailerId: item.retailerId,
-					quantity: item.quantity,
-					subtotal: item.price * item.quantity
-				})),
-				totalPrice,
-				buyer: {
-					userId,
-					firstName: auth.user.firstName,
-					lastName: auth.user.lastName,
-					type: auth.user.role,
-				},
-				shippingAddress: address,
-				paymentMethod
-			};
-
-			console.log('Placing order with data:', orderData);
-
-			let responseData = null;
-			let currentOrderId = null;
-
-			try {
-				// Try to create order in backend
-				const response = await axios.post(
-					`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/orders`,
-					orderData,
-					{
-						headers: { Authorization: `Bearer ${auth.token}` }
-					}
-				);
-
-				responseData = response.data;
-				currentOrderId = response.data._id;
-
-				// Save order ID for reference
-				setOrderId(currentOrderId);
-
-				// Notifications are now generated securely on the backend
-
-				// If online payment, get QR code from response
-				if (paymentMethod === 'onlinePayment') {
-					setPaymentQR(response.data.paymentQR || '/placeholder-qr.png');
-				}
-			} catch (err) {
-				console.error('Error with API, using mock data instead:', err);
-				// In case of API error, generate a mock order ID for testing
-				const mockOrderId = 'mock-order-' + Date.now();
-				currentOrderId = mockOrderId;
-				setOrderId(mockOrderId);
-
-				// Create a mock notification if API is available
-				if (notificationsAvailable) {
-					const mockNotificationMessage = `Your order #${mockOrderId} has been placed successfully (mock).`;
-					await createNotification(mockOrderId, mockNotificationMessage);
-				}
-
-				if (paymentMethod === 'onlinePayment') {
-					// Use a placeholder QR code
-					setPaymentQR('/placeholder-qr.png');
-				}
-			}
-
-			// Store order ID in local storage for reference
-			localStorage.setItem('lastOrderId', currentOrderId);
-
-			// Clear cart if order placed successfully and payment method is COD
-			if (paymentMethod === 'cashOnDelivery') {
-				localStorage.removeItem('cart');
-				// Skip to confirmation page directly
-				setCurrentStep(5);
-			} else if (paymentMethod === 'onlinePayment') {
-				await handleOnlinePayment(responseData);
-			}
-
-		} catch (err) {
-			setError('Failed to place order. Please try again.');
-			console.error('Error placing order:', err);
-		} finally {
+			console.error('Payment error:', err);
+			setError(err.message || 'Payment failed');
 			setLoading(false);
 		}
 	};
 
-	// Upload payment proof for online payments
-	const uploadPaymentProof = async () => {
-		if (!paymentProof) {
-			setError('Please upload payment screenshot');
+	const placeOrder = async () => {
+		setError('');
+		setLoading(true);
+
+		if (paymentMethod === 'onlinePayment') {
+			// loading stays true until the Razorpay handler/dismiss resolves it
+			await handleOnlinePayment();
 			return;
 		}
 
 		try {
-			setLoading(true);
-
-			// For now, let's skip the actual file upload since it's causing issues
-			// We'll simulate a successful payment instead
-
-			// Create payment confirmation notification if API is available
-			if (notificationsAvailable) {
-				const paymentConfirmationMsg = `Payment received for order #${orderId}. Your order is being processed.`;
-				await createNotification(orderId, paymentConfirmationMsg);
-			}
-
-			// Clear cart after payment proof uploaded
-			localStorage.removeItem('cart');
-
-			// Move to order confirmation
-			nextStep();
-
-			// In a production environment, you would do:
-			/*
-			const formData = new FormData();
-			formData.append('paymentProof', paymentProof);
-		    
-			await axios.post(
-			  `${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/orders/${orderId}/payment-proof`,
-			  formData,
-			  {
-				headers: { 
-				  'Content-Type': 'multipart/form-data',
-				  Authorization: `Bearer ${auth.token}` 
-				}
-			  }
-			);
-			*/
-
+			const order = await submitOrder(buildOrderPayload());
+			setOrderId(order._id);
+			setCurrentStepIndex(steps.length - 1);
 		} catch (err) {
-			setError('Failed to upload payment proof. Please try again.');
-			console.error('Error uploading payment proof:', err);
+			console.error('Error placing order:', err);
+			setError(err.message || 'Failed to place order. Please try again.');
 		} finally {
 			setLoading(false);
 		}
 	};
 
-	// Render different step content based on currentStep
+	if (cartLoading) {
+		return <div className="checkout-container"><p>Loading your cart&hellip;</p></div>;
+	}
+
+	if (cartItems.length === 0 && currentStep !== 'confirmation') {
+		return (
+			<div className="checkout-container">
+				<div className="checkout-step">
+					<h2>Your cart is empty</h2>
+					<p>Add some medicines to your cart before checking out.</p>
+					<button onClick={() => navigate('/medicines')} className="next-btn">Browse Medicines</button>
+				</div>
+			</div>
+		);
+	}
+
 	const renderStepContent = () => {
 		switch (currentStep) {
-			case 1: // Order Summary
+			case 'summary':
 				return (
 					<div className="checkout-step">
 						<h2>Order Summary</h2>
@@ -355,22 +313,24 @@ const CheckoutScreen = () => {
 							{cartItems.map((item) => (
 								<div key={item._id} className="order-item">
 									<img
-										src={item.image ? `${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/${item.image}` : 'https://via.placeholder.com/80'}
-										alt={item.name}
+										src={item.medicineId?.image ? `${BACKEND_URL}/${item.medicineId.image}` : 'https://via.placeholder.com/80'}
+										alt={item.medicineId?.name}
 									/>
 									<div className="item-details">
-										<h3>{item.name}</h3>
-										<p>Price: ₹{item.price.toFixed(2)} × {item.quantity}</p>
+										<h3>{item.medicineId?.name}</h3>
+										{item.medicineId?.prescription && (
+											<p className="item-rx-badge">Prescription required</p>
+										)}
+										<p>Price: ₹{(item.medicineId?.price || 0).toFixed(2)} × {item.quantity}</p>
 										<p className="item-subtotal">
-											Subtotal: ₹{(item.price * item.quantity).toFixed(2)}
+											Subtotal: ₹{((item.medicineId?.price || 0) * item.quantity).toFixed(2)}
 										</p>
 									</div>
 								</div>
 							))}
 						</div>
 						<div className="order-summary-total">
-							{/* <h3>Total: ₹{totalPrice.toFixed(2)}</h3> */}
-							<h3>Total: ₹1.00 (Demo Payment)</h3>
+							<h3>Total: ₹{totalPrice.toFixed(2)}</h3>
 						</div>
 						<div className="navigation-buttons">
 							<button onClick={() => navigate('/cart')} className="back-btn">
@@ -383,7 +343,7 @@ const CheckoutScreen = () => {
 					</div>
 				);
 
-			case 2: // Shipping Address
+			case 'shipping':
 				return (
 					<div className="checkout-step">
 						<h2>Shipping Address</h2>
@@ -462,13 +422,59 @@ const CheckoutScreen = () => {
 								Back to Order Summary
 							</button>
 							<button onClick={handleNext} className="next-btn">
-								Next: Payment Method
+								{prescriptionNeeded ? 'Next: Upload Prescription' : 'Next: Payment Method'}
 							</button>
 						</div>
 					</div>
 				);
 
-			case 3: // Payment Method
+			case 'prescription':
+				return (
+					<div className="checkout-step">
+						<h2>Upload Prescription</h2>
+						<p>
+							Your cart contains one or more prescription-required medicines.
+							Please upload a clear photo or scan of a valid prescription before continuing.
+						</p>
+
+						<div className="payment-proof-upload">
+							<label htmlFor="prescriptionFile">Prescription Image</label>
+							<input
+								type="file"
+								id="prescriptionFile"
+								accept="image/*,application/pdf"
+								onChange={handlePrescriptionFileChange}
+							/>
+						</div>
+
+						{prescriptionUrl && (
+							<p className="item-rx-badge">Prescription uploaded successfully.</p>
+						)}
+
+						{error && <div className="error-message">{error}</div>}
+
+						<div className="navigation-buttons">
+							<button onClick={prevStep} className="back-btn">
+								Back to Shipping
+							</button>
+							{!prescriptionUrl ? (
+								<button
+									onClick={uploadPrescription}
+									className="next-btn"
+									disabled={prescriptionUploading || !prescriptionFile}
+								>
+									{prescriptionUploading ? 'Uploading...' : 'Upload Prescription'}
+								</button>
+							) : (
+								<button onClick={handleNext} className="next-btn">
+									Next: Payment Method
+								</button>
+							)}
+						</div>
+					</div>
+				);
+
+			case 'payment':
 				return (
 					<div className="checkout-step">
 						<h2>Payment Method</h2>
@@ -499,90 +505,33 @@ const CheckoutScreen = () => {
 								/>
 								<label htmlFor="onlinePayment">Online Payment</label>
 								<p className="payment-description">
-									Pay now using UPI, Net Banking, or other online methods.
+									Pay now using UPI, Net Banking, or other online methods (Razorpay).
 								</p>
 							</div>
 						</div>
 
 						<div className="order-final-summary">
-							{/* <h3>Order Total: ₹{totalPrice.toFixed(2)}</h3> */}
-							<h3>Order Total: ₹1.00 (Demo Payment)</h3>
-
+							<h3>Order Total: ₹{totalPrice.toFixed(2)}</h3>
 						</div>
 
 						{error && <div className="error-message">{error}</div>}
 
 						<div className="navigation-buttons">
 							<button onClick={prevStep} className="back-btn">
-								Back to Shipping
+								Back
 							</button>
 							<button
 								onClick={placeOrder}
 								className="place-order-btn"
 								disabled={loading}
 							>
-								{loading ? 'Processing...' : 'Place Order'}
+								{loading ? 'Processing...' : paymentMethod === 'onlinePayment' ? 'Pay Now' : 'Place Order'}
 							</button>
 						</div>
 					</div>
 				);
 
-			case 4: // Online Payment (if selected)
-				if (paymentMethod === 'onlinePayment') {
-					return (
-						<div className="checkout-step">
-							<h2>Complete Your Payment</h2>
-							<div className="payment-qr-section">
-								<p>Scan the QR code below to make payment of ₹{totalPrice.toFixed(2)}</p>
-
-								<div className="qr-code-container">
-									<img
-										src={paymentQR ? `${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/${paymentQR}` : `${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/uploads/qr-codes/payment-qr.png`}
-										alt="Payment QR Code"
-									/>
-								</div>
-
-								<div className="payment-instructions">
-									<h3>Steps to complete payment:</h3>
-									<ol>
-										<li>Open your UPI app (Google Pay, PhonePe, Paytm, etc.)</li>
-										<li>Scan the QR code above</li>
-										<li>Complete the payment of ₹{totalPrice.toFixed(2)}</li>
-										<li>Take a screenshot of the payment confirmation</li>
-										<li>Upload the screenshot below to complete your order</li>
-									</ol>
-								</div>
-
-								<div className="payment-proof-upload">
-									<label htmlFor="paymentProof">Upload Payment Screenshot</label>
-									<input
-										type="file"
-										id="paymentProof"
-										accept="image/*"
-										onChange={handlePaymentProofChange}
-									/>
-								</div>
-							</div>
-
-							{error && <div className="error-message">{error}</div>}
-
-							<div className="navigation-buttons">
-								<button
-									onClick={uploadPaymentProof}
-									className="confirm-payment-btn"
-									disabled={loading || !paymentProof}
-								>
-									{loading ? 'Processing...' : 'Confirm Payment'}
-								</button>
-							</div>
-						</div>
-					);
-				} else {
-					// For Cash on Delivery, skip to Order Confirmation
-					return renderStepContent(5);
-				}
-
-			case 5: // Order Confirmation
+			case 'confirmation':
 				return (
 					<div className="checkout-step order-confirmation">
 						<div className="success-icon">✓</div>
@@ -620,22 +569,20 @@ const CheckoutScreen = () => {
 	return (
 		<div className="checkout-container">
 			<div className="checkout-progress">
-				<div className={`progress-step ${currentStep >= 1 ? 'active' : ''}`}>
-					<span className="step-number">1</span>
-					<span className="step-name">Order Summary</span>
-				</div>
-				<div className={`progress-step ${currentStep >= 2 ? 'active' : ''}`}>
-					<span className="step-number">2</span>
-					<span className="step-name">Shipping</span>
-				</div>
-				<div className={`progress-step ${currentStep >= 3 ? 'active' : ''}`}>
-					<span className="step-number">3</span>
-					<span className="step-name">Payment</span>
-				</div>
-				<div className={`progress-step ${currentStep >= 5 ? 'active' : ''}`}>
-					<span className="step-number">4</span>
-					<span className="step-name">Confirmation</span>
-				</div>
+				{steps.map((step, index) => (
+					<div key={step} className={`progress-step ${currentStepIndex >= index ? 'active' : ''}`}>
+						<span className="step-number">{index + 1}</span>
+						<span className="step-name">
+							{{
+								summary: 'Order Summary',
+								shipping: 'Shipping',
+								prescription: 'Prescription',
+								payment: 'Payment',
+								confirmation: 'Confirmation'
+							}[step]}
+						</span>
+					</div>
+				))}
 			</div>
 
 			<div className="checkout-content">

@@ -14,7 +14,7 @@ exports.getCartByPatientID = async (req, res) => {
 
         const cartItems = await Cart.findOne({ patientId: patientId }).populate({
             path: 'items.medicineId',
-            select: 'name price image retailerId',
+            select: 'name price image retailerId prescription',
             populate: {
                 path: 'retailerId',
                 select: 'BusinessName firstName lastName'
@@ -102,7 +102,7 @@ exports.updateCartItemQuantity = async (req, res) => {
 
         const populatedCart = await Cart.findById(cart._id).populate({
             path: 'items.medicineId',
-            select: 'name price image retailerId',
+            select: 'name price image retailerId prescription',
             populate: {
                 path: 'retailerId',
                 select: 'BusinessName firstName lastName'
@@ -162,7 +162,7 @@ exports.removeFromCart = async (req, res) => {
         // We populate so the frontend receives the full object structure immediately
         const populatedCart = await Cart.findById(cart._id).populate({
             path: 'items.medicineId',
-            select: 'name price image retailerId',
+            select: 'name price image retailerId prescription',
             populate: {
                 path: 'retailerId',
                 select: 'BusinessName firstName lastName'
@@ -238,7 +238,7 @@ exports.addToCart = async (req, res) => {
         // 4. Return populated cart
         const populatedCart = await Cart.findById(cart._id).populate({
             path: 'items.medicineId',
-            select: 'name price image retailerId',
+            select: 'name price image retailerId prescription',
             populate: {
                 path: 'retailerId',
                 select: 'BusinessName firstName lastName'

@@ -31,6 +31,8 @@ exports.prescribeDiet = async (req, res) => {
 		// 2. Check if diet yoga recommendation already exists for this booking
 		let dietYoga = await DietYoga.findOne({ bookingId: bookingId });
 
+		const isUpdate = !!dietYoga;
+
 		if (dietYoga) {
 			dietYoga.diet = dietPlan;
 			// C5-6: Derive IDs securely
@@ -39,11 +41,6 @@ exports.prescribeDiet = async (req, res) => {
 			dietYoga.updatedAt = Date.now();
 
 			await dietYoga.save();
-			return res.status(200).json({
-				message: "Diet recommendations updated successfully",
-				dietYoga
-			});
-
 		} else {
 			// --- CREATE NEW RECORD ---
 
@@ -56,11 +53,14 @@ exports.prescribeDiet = async (req, res) => {
 			});
 
 			await dietYoga.save();
-			return res.status(201).json({
-				message: "Diet recommendations created successfully",
-				dietYoga
-			});
 		}
+
+		// Silent save — the patient is notified only when the doctor presses
+		// "Notify patient" on the prescribe page (POST /bookings/:id/notify-prescription).
+		return res.status(isUpdate ? 200 : 201).json({
+			message: `Diet recommendations ${isUpdate ? 'updated' : 'created'} successfully`,
+			dietYoga
+		});
 
 	} catch (error) {
 		console.error("Error creating/updating diet:", error);
@@ -109,6 +109,7 @@ exports.prescribeYoga = async (req, res) => {
 			}
 		);
 
+		// Silent save — patient is notified only via the explicit "Notify patient" button.
 		return res.status(200).json({
 			message: "Yoga recommendations saved successfully",
 			dietYoga

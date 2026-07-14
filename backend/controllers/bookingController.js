@@ -7,6 +7,20 @@ const fs = require("fs");
 const multer = require("multer");
 const path = require("path");
 
+// A pending request "expires" once its slot's start time has passed without the
+// doctor acting on it — from that point on it's treated the same as an explicit
+// denial. timeSlot here is always the doctor's 24h "HH:MM" startTime string,
+// resolved live from Doctor.availableSlots (never persisted on the Booking itself).
+const AUTO_DENY_MESSAGE = "Automatically denied — the requested slot passed without a response.";
+const hasSlotTimePassed = (dateOfAppointment, timeSlot) => {
+	if (!timeSlot || typeof timeSlot !== 'string' || !timeSlot.includes(':')) return false;
+	const [hours, minutes] = timeSlot.split(':').map(Number);
+	if (Number.isNaN(hours)) return false;
+	const slotDateTime = new Date(dateOfAppointment);
+	slotDateTime.setHours(hours, minutes || 0, 0, 0);
+	return new Date() > slotDateTime;
+};
+
 // Global registry for SSE doctor connections
 const doctorConnections = new Map();
 
@@ -312,32 +326,125 @@ exports.uploadPaymentScreenshot = (req, res) => {
 	});
 };
 
-// Verify Payment Proof (Doctor)
-exports.verifyPaymentProof = async (req, res) => {
-	const { id } = req.params;
+const sharedRecordStorage = new CloudinaryStorage({
+	cloudinary: cloudinary,
+	params: async (req, file) => {
+		return {
+			folder: "jeevanhub/shared-records",
+			resource_type: "auto",
+			public_id: Date.now() + "-" + file.originalname.split('.')[0]
+		};
+	},
+});
+
+const uploadSharedRecord = multer({
+	storage: sharedRecordStorage,
+	fileFilter: fileFilter,
+}).single("file");
+
+// Helper: is this booking still within the window where a patient may share records
+// for it — any time up to the appointment, or within 24h after it.
+const isWithinSharingWindow = (dateOfAppointment) => {
+	const now = new Date();
+	const appointmentTime = new Date(dateOfAppointment);
+	if (appointmentTime >= now) return true;
+	const hoursSinceAppointment = (now - appointmentTime) / (1000 * 60 * 60);
+	return hoursSinceAppointment <= 24;
+};
+
+// ✅ Patient shares a record (external file upload OR a reference to one of their own
+// past bookings on this platform) onto a specific upcoming/recent booking.
+exports.addSharedRecord = (req, res) => {
+	uploadSharedRecord(req, res, async function (err) {
+		if (err) {
+			return res.status(400).json({ error: err.message });
+		}
+
+		const { id } = req.params;
+		const { referencedBookingId, note } = req.body;
+
+		try {
+			if (req.user.role !== 'patient') {
+				return res.status(403).json({ error: "Only patients can share records." });
+			}
+
+			const booking = await Booking.findById(id);
+			if (!booking) {
+				return res.status(404).json({ error: "Booking not found" });
+			}
+			if (booking.patientId.toString() !== req.user._id.toString()) {
+				return res.status(403).json({ error: "Not authorized to share records on this booking" });
+			}
+
+			if (!isWithinSharingWindow(booking.dateOfAppointment)) {
+				return res.status(400).json({ error: "This booking is outside the window for sharing records (up to 24 hours after the appointment)." });
+			}
+
+			let newRecord;
+			if (req.file) {
+				newRecord = {
+					type: "external_file",
+					fileUrl: req.file.path,
+					note: note || ""
+				};
+			} else if (referencedBookingId) {
+				const refBooking = await Booking.findById(referencedBookingId);
+				if (!refBooking) {
+					return res.status(404).json({ error: "Referenced booking not found" });
+				}
+				if (refBooking.patientId.toString() !== req.user._id.toString()) {
+					return res.status(403).json({ error: "You can only reference your own bookings" });
+				}
+				newRecord = {
+					type: "platform_reference",
+					referencedBookingId,
+					note: note || ""
+				};
+			} else {
+				return res.status(400).json({ error: "Either a file or a referencedBookingId is required" });
+			}
+
+			booking.patientSharedRecords.push(newRecord);
+			await booking.save();
+
+			notifyDoctor(booking.doctorId);
+
+			return res.status(201).json({
+				message: "Record shared successfully",
+				booking
+			});
+		} catch (error) {
+			console.error("Error adding shared record:", error);
+			return res.status(500).json({ error: "Server error" });
+		}
+	});
+};
+
+// ✅ List the patient's own past accepted bookings that actually have a prescription,
+// so they can pick one to reference (platform_reference) into the current booking.
+exports.getOwnBookingsForSharing = async (req, res) => {
 	try {
-		if (req.user.role !== 'doctor') {
-			return res.status(403).json({ error: "Access denied. Only doctors can verify payments." });
-		}
-		const booking = await Booking.findById(id);
-		if (!booking) {
-			return res.status(404).json({ error: "Booking not found" });
-		}
-		if (booking.doctorId.toString() !== req.user._id.toString()) {
-			return res.status(403).json({ error: "Not authorized to verify payment for this booking" });
-		}
-		if (!booking.paymentScreenshots || booking.paymentScreenshots.length === 0) {
-			return res.status(400).json({ error: "No payment screenshots have been uploaded" });
+		if (req.user.role !== 'patient') {
+			return res.status(403).json({ error: "Access denied" });
 		}
 
-		booking.paymentStatus = "Completed";
-		await booking.save();
-		
-		notifyDoctor(booking.doctorId);
+		const { excludeBookingId } = req.query;
+		const filter = {
+			patientId: req.user._id,
+			requestAccept: 'accepted',
+			'recommendedSupplements.0': { $exists: true }
+		};
+		if (excludeBookingId) {
+			filter._id = { $ne: excludeBookingId };
+		}
 
-		res.status(200).json({ message: "Booking status updated successfully", booking });
+		const bookings = await Booking.find(filter)
+			.select('doctorName dateOfAppointment recommendedSupplements')
+			.sort({ dateOfAppointment: -1 });
+
+		return res.status(200).json({ bookings });
 	} catch (error) {
-		console.error("Error verifying payment:", error);
+		console.error("Error fetching patient's own bookings for sharing:", error);
 		return res.status(500).json({ error: "Server error" });
 	}
 };
@@ -386,8 +493,12 @@ exports.updateBookingStatus = async (req, res) => {
             doctorsMessage 
         };
 
-        // Logic to generate Jitsi link if the request is accepted
+        // Accepting a request is the doctor's verification of the payment proof shown
+        // alongside it in Current Requests — there is no separate verification step.
         if (requestAccept === "accepted") {
+            updateData.paymentStatus = "Completed";
+
+            // Logic to generate Jitsi link if the request is accepted
             if (req.body.meetLink && req.body.meetLink.trim() !== "") {
                 updateData.meetLink = req.body.meetLink.trim();
             } else {
@@ -473,129 +584,227 @@ exports.deleteBooking = async (req, res) => {
 	}
 };
 
-exports.prescribeMedicine = async (req, res) => {
-	const {
-		bookingId,
-		medicineData
-	} = req.body;
+// Helper: add one unit of a medicine to the patient's cart FOR THIS DOCTOR
+// (find-or-create) — never touches the patient's own default cart or another
+// doctor's cart.
+const addMedicineToCart = async (patientId, doctorId, medicine) => {
+	let cart = await Cart.findOne({ patientId, doctorId });
+	if (!cart) {
+		cart = new Cart({
+			patientId,
+			doctorId,
+			items: [{ medicineId: medicine._id, quantity: 1, price: medicine.price }],
+			totalPrice: medicine.price
+		});
+	} else {
+		const idx = cart.items.findIndex(i => i.medicineId.toString() === medicine._id.toString());
+		if (idx > -1) {
+			cart.items[idx].quantity += 1;
+		} else {
+			cart.items.push({ medicineId: medicine._id, quantity: 1, price: medicine.price });
+		}
+		cart.totalPrice += medicine.price;
+		cart.updatedAt = Date.now();
+	}
+	await cart.save();
+};
+
+// Helper: remove a medicine entirely from this doctor's cart for this patient
+// (used when a prescribed medicine is deleted). No-op if the cart or item is
+// gone (e.g. already purchased). Deletes the cart doc if it ends up empty.
+const removeMedicineFromCart = async (patientId, doctorId, medicineId) => {
+	if (!medicineId) return;
+	const cart = await Cart.findOne({ patientId, doctorId });
+	if (!cart) return;
+	const item = cart.items.find(i => i.medicineId.toString() === medicineId.toString());
+	if (!item) return;
+	cart.items = cart.items.filter(i => i.medicineId.toString() !== medicineId.toString());
+
+	if (cart.items.length === 0) {
+		await Cart.deleteOne({ _id: cart._id });
+		return;
+	}
+
+	cart.totalPrice = Math.max(0, cart.totalPrice - (item.price * item.quantity));
+	cart.updatedAt = Date.now();
+	await cart.save();
+};
+
+// Helper: load a booking and confirm the requesting doctor owns it.
+const loadOwnedBooking = async (bookingId, req, res) => {
+	const booking = await Booking.findById(bookingId);
+	if (!booking) {
+		res.status(404).json({ error: "Booking not found." });
+		return null;
+	}
+	if (req.user.role !== 'doctor' || booking.doctorId.toString() !== req.user._id.toString()) {
+		res.status(403).json({ error: "Not authorized to modify this prescription." });
+		return null;
+	}
+	return booking;
+};
+
+// ✅ Add one prescribed medicine (picked from inventory) to a booking. Silent — the
+// patient is notified only when the doctor presses "Notify patient". Also adds the
+// medicine to the patient's cart. Returns the created row (with its _id).
+exports.addSupplement = async (req, res) => {
+	const { id } = req.params;
+	const { medicineId, dosage, instructions } = req.body;
 
 	try {
-		// 1. Validate Input
-		if (!bookingId || !medicineData) {
-			return res.status(400).json({ error: "Booking ID and Medicine Data are required." });
+		if (!medicineId) {
+			return res.status(400).json({ error: "A medicine must be selected." });
 		}
 
-		// 2. Fetch the Booking first (We need patientId & doctorId for Cart/Notifs)
-		const booking = await Booking.findById(bookingId);
-		if (!booking) {
-			return res.status(404).json({ error: "Booking not found." });
-		}
-		
-		if (booking.doctorId.toString() !== req.user._id.toString()) {
-		    return res.status(403).json({ error: "Not authorized to prescribe medicine for this booking" });
+		const booking = await loadOwnedBooking(id, req, res);
+		if (!booking) return;
+
+		const medicine = await Medicine.findById(medicineId);
+		if (!medicine) {
+			return res.status(404).json({ error: "Selected medicine not found in inventory." });
 		}
 
-		if (!medicineData.startDate || !medicineData.endDate) {
-		    return res.status(400).json({ error: "Start date and End date are required." });
-		}
-
-		// --- STEP A: Update Booking (Prescription Logic) ---
-		const newSupplement = {
-			medicineName: medicineData.medicineName,
-			reason: medicineData.reason,
-			dosage: medicineData.dosage,
-			instructions: medicineData.instructions,
-			duration: `${medicineData.startDate} to ${medicineData.endDate}`,
-			startDate: new Date(medicineData.startDate),
-			endDate: new Date(medicineData.endDate),
-			externalLink: medicineData.externalLink || ""
-		};
-
-		booking.recommendedSupplements.push(newSupplement);
+		booking.recommendedSupplements.push({
+			medicineId: medicine._id,
+			medicineName: medicine.name,
+			dosage: dosage || "",
+			instructions: instructions || ""
+		});
 		await booking.save();
 
-		// --- STEP B: Check Inventory & Update Cart ---
-		// 1. Search for the medicine in your DB (Case insensitive search, escaping regex)
-		const escapedName = medicineData.medicineName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-		const medicineInStock = await Medicine.findOne({
-			name: { $regex: new RegExp(`^${escapedName}$`, "i") }
-		});
+		await addMedicineToCart(booking.patientId, booking.doctorId, medicine);
 
-		let cartMessage = "";
+		const created = booking.recommendedSupplements[booking.recommendedSupplements.length - 1];
+		return res.status(201).json({ message: "Medicine added to prescription.", supplement: created });
+	} catch (error) {
+		console.error("Error adding supplement:", error);
+		return res.status(500).json({ error: "Server error", details: error.message });
+	}
+};
 
-		if (medicineInStock) {
-			let cart = await Cart.findOne({ patientId: booking.patientId });
+// ✅ Edit an existing prescribed medicine's dosage / instructions (realtime, silent).
+exports.updateSupplement = async (req, res) => {
+	const { id, supplementId } = req.params;
+	const { dosage, instructions } = req.body;
 
-			// Calculate item details
-			const itemToAdd = {
-				medicineId: medicineInStock._id,
-				quantity: 1, // Default to 1, or parse from dosage if you have logic for that
-				price: medicineInStock.price
-			};
+	try {
+		const booking = await loadOwnedBooking(id, req, res);
+		if (!booking) return;
 
-			if (!cart) {
-				// Create new cart if none exists
-				cart = new Cart({
-					patientId: booking.patientId,
-					doctorId: booking.doctorId, // Linking to this specific doctor
-					items: [itemToAdd],
-					totalPrice: medicineInStock.price
-				});
-			} else {
-				// Append to existing cart
-
-				// Check if item already exists to avoid duplicates (Optional, but good UX)
-				const existingItemIndex = cart.items.findIndex(
-					item => item.medicineId.toString() === medicineInStock._id.toString()
-				);
-
-				if (existingItemIndex > -1) {
-					// Item exists, just increase quantity
-					cart.items[existingItemIndex].quantity += 1;
-				} else {
-					// Item does not exist, push new
-					cart.items.push(itemToAdd);
-				}
-
-				// Recalculate Total Price
-				cart.totalPrice += medicineInStock.price;
-				cart.updatedAt = Date.now();
-			}
-
-			await cart.save();
-			cartMessage = `and has been automatically added to your cart.`;
-		} else {
-			cartMessage = `but is currently unavailable in our store. Please purchase it externally.`;
+		const supplement = booking.recommendedSupplements.id(supplementId);
+		if (!supplement) {
+			return res.status(404).json({ error: "Prescribed medicine not found." });
 		}
 
-		// --- STEP C: Create Notification ---
+		if (dosage !== undefined) supplement.dosage = dosage;
+		if (instructions !== undefined) supplement.instructions = instructions;
+		await booking.save();
 
-		// Use doctorName from booking schema if available, otherwise "Your Doctor"
-		const doctorName = booking.doctorName || "Your Doctor";
+		return res.status(200).json({ message: "Prescription updated.", supplement });
+	} catch (error) {
+		console.error("Error updating supplement:", error);
+		return res.status(500).json({ error: "Server error", details: error.message });
+	}
+};
 
-		const notificationMessage = `Dr. ${doctorName} prescribed ${medicineData.medicineName}. It has been added to your prescription list ${cartMessage}`;
+// ✅ Remove a prescribed medicine (realtime). Also removes it from the patient's cart.
+exports.deleteSupplement = async (req, res) => {
+	const { id, supplementId } = req.params;
 
-		const newNotification = new Notification({
+	try {
+		const booking = await loadOwnedBooking(id, req, res);
+		if (!booking) return;
+
+		const supplement = booking.recommendedSupplements.id(supplementId);
+		if (!supplement) {
+			return res.status(404).json({ error: "Prescribed medicine not found." });
+		}
+
+		const medicineId = supplement.medicineId;
+		supplement.deleteOne();
+		await booking.save();
+
+		await removeMedicineFromCart(booking.patientId, booking.doctorId, medicineId);
+
+		return res.status(200).json({ message: "Medicine removed from prescription." });
+	} catch (error) {
+		console.error("Error deleting supplement:", error);
+		return res.status(500).json({ error: "Server error", details: error.message });
+	}
+};
+
+// ✅ Set the doctor's diagnosis for this consultation (realtime, silent).
+exports.updateDiagnosis = async (req, res) => {
+	const { id } = req.params;
+	const { diagnosis } = req.body;
+
+	try {
+		const booking = await loadOwnedBooking(id, req, res);
+		if (!booking) return;
+
+		booking.diagnosis = diagnosis || "";
+		await booking.save();
+
+		return res.status(200).json({ message: "Diagnosis saved.", diagnosis: booking.diagnosis });
+	} catch (error) {
+		console.error("Error updating diagnosis:", error);
+		return res.status(500).json({ error: "Server error", details: error.message });
+	}
+};
+
+// ✅ Patient edits their own reason-for-visit on an upcoming (accepted, not yet
+// denied) booking — e.g. to add detail they forgot at booking time.
+exports.updatePatientIllness = async (req, res) => {
+	const { id } = req.params;
+	const { patientIllness } = req.body;
+
+	try {
+		if (!patientIllness || !patientIllness.trim()) {
+			return res.status(400).json({ error: "Description cannot be empty." });
+		}
+
+		const booking = await Booking.findById(id);
+		if (!booking) {
+			return res.status(404).json({ error: "Booking not found" });
+		}
+		if (booking.patientId.toString() !== req.user._id.toString()) {
+			return res.status(403).json({ error: "Not authorized" });
+		}
+		if (booking.requestAccept !== "accepted") {
+			return res.status(400).json({ error: "Only upcoming (accepted) appointments can be edited." });
+		}
+
+		booking.patientIllness = patientIllness.trim();
+		await booking.save();
+
+		return res.status(200).json({ message: "Description updated.", patientIllness: booking.patientIllness });
+	} catch (error) {
+		console.error("Error updating patient illness:", error);
+		return res.status(500).json({ error: "Server error", details: error.message });
+	}
+};
+
+// ✅ Send the patient one notification that their prescription / treatment plan is ready.
+// Called explicitly by the doctor when they're done (realtime edits stay silent).
+exports.notifyPrescription = async (req, res) => {
+	const { id } = req.params;
+
+	try {
+		const booking = await loadOwnedBooking(id, req, res);
+		if (!booking) return;
+
+		await new Notification({
 			userId: booking.patientId,
 			role: 'patient',
-			orderId: bookingId, // Linking to booking ID as reference
+			orderId: id,
 			type: 'system',
-			message: notificationMessage,
+			message: `Dr. ${booking.doctorName || "Your Doctor"} has updated your prescription and treatment plan. Tap to view.`,
 			isRead: false
-		});
+		}).save();
 
-		await newNotification.save();
-
-		// --- Final Response ---
-
-		return res.status(200).json({
-			message: "Prescription added and cart processed successfully",
-			currentPrescriptions: booking.recommendedSupplements,
-			cartUpdated: !!medicineInStock
-		});
-
+		return res.status(200).json({ message: "Patient notified successfully." });
 	} catch (error) {
-		console.error("Error prescribing medicine:", error);
+		console.error("Error notifying patient:", error);
 		return res.status(500).json({ error: "Server error", details: error.message });
 	}
 };
@@ -645,10 +854,11 @@ exports.getBookingsByPatientId = async (req, res) => {
 		}
 
 		// Process bookings with doctor schedule overrides (cancellations and reschedules)
+		const expiredIds = [];
 		const processedBookings = bookings.map(booking => {
 			const bookingObj = booking.toObject ? booking.toObject() : booking;
 			const doctor = booking.doctorId;
-			
+
 			// Resolve the current startTime for the booking based on base template
 			if (doctor && doctor.availableSlots) {
 				const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][new Date(booking.dateOfAppointment).getDay()];
@@ -662,7 +872,7 @@ exports.getBookingsByPatientId = async (req, res) => {
 			if (doctor && Array.isArray(doctor.scheduleOverrides)) {
 				const bookingDateStr = new Date(booking.dateOfAppointment).toDateString();
 				const override = doctor.scheduleOverrides.find(o => {
-					return new Date(o.date).toDateString() === bookingDateStr && 
+					return new Date(o.date).toDateString() === bookingDateStr &&
 						   o.targetSlotId && o.targetSlotId.toString() === booking.slotId.toString();
 				});
 
@@ -679,8 +889,24 @@ exports.getBookingsByPatientId = async (req, res) => {
 					}
 				}
 			}
+
+			// A still-pending request whose slot time has already passed is
+			// auto-denied — mirrors the same check on the doctor's side.
+			if (bookingObj.requestAccept === 'pending' && hasSlotTimePassed(bookingObj.dateOfAppointment, bookingObj.timeSlot)) {
+				bookingObj.requestAccept = 'denied';
+				bookingObj.doctorsMessage = bookingObj.doctorsMessage || AUTO_DENY_MESSAGE;
+				expiredIds.push(booking._id);
+			}
+
 			return bookingObj;
 		});
+
+		if (expiredIds.length > 0) {
+			await Booking.updateMany(
+				{ _id: { $in: expiredIds } },
+				{ requestAccept: 'denied', doctorsMessage: AUTO_DENY_MESSAGE }
+			);
+		}
 
 		return res.status(200).json({
 			message: "Bookings retrieved successfully for patient",
@@ -716,10 +942,11 @@ exports.getBookingsByDoctorId = async (req, res) => {
 
 		const doctor = await Doctor.findById(doctorId);
 		let processedBookings = bookings;
+		const expiredIds = [];
 		if (doctor) {
 			processedBookings = bookings.map(booking => {
 				const bookingObj = booking.toObject ? booking.toObject() : booking;
-				
+
 				if (doctor.availableSlots) {
 					const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][new Date(booking.dateOfAppointment).getDay()];
 					const baseSlots = doctor.availableSlots[dayName] || [];
@@ -733,7 +960,7 @@ exports.getBookingsByDoctorId = async (req, res) => {
 				if (Array.isArray(doctor.scheduleOverrides)) {
 					const bookingDateStr = new Date(booking.dateOfAppointment).toDateString();
 					const override = doctor.scheduleOverrides.find(o => {
-						return new Date(o.date).toDateString() === bookingDateStr && 
+						return new Date(o.date).toDateString() === bookingDateStr &&
 							   o.targetSlotId && o.targetSlotId.toString() === booking.slotId.toString();
 					});
 
@@ -751,6 +978,14 @@ exports.getBookingsByDoctorId = async (req, res) => {
 					}
 				}
 
+				// A still-pending request whose slot time has already passed is
+				// auto-denied — the doctor never gets to act on a stale request.
+				if (bookingObj.requestAccept === 'pending' && hasSlotTimePassed(bookingObj.dateOfAppointment, bookingObj.timeSlot)) {
+					bookingObj.requestAccept = 'denied';
+					bookingObj.doctorsMessage = bookingObj.doctorsMessage || AUTO_DENY_MESSAGE;
+					expiredIds.push(booking._id);
+				}
+
 				// Tag returning patient status
 				if (booking.patientEmail && returningEmails.has(booking.patientEmail)) {
 					bookingObj.isReturningPatient = true;
@@ -760,6 +995,13 @@ exports.getBookingsByDoctorId = async (req, res) => {
 
 				return bookingObj;
 			});
+		}
+
+		if (expiredIds.length > 0) {
+			await Booking.updateMany(
+				{ _id: { $in: expiredIds } },
+				{ requestAccept: 'denied', doctorsMessage: AUTO_DENY_MESSAGE }
+			);
 		}
 
 		return res.status(200).json({
@@ -846,6 +1088,65 @@ const notifyDoctor = (doctorId) => {
 		doctorConns.forEach((res) => {
 			res.write(`data: {"type": "booking_update"}\n\n`);
 		});
+	}
+};
+
+// ✅ Get a single booking by ID — single source of truth for the Prescribe page.
+// Scoped to the assigned doctor, the patient themselves, or an admin.
+exports.getBookingById = async (req, res) => {
+	const { id } = req.params;
+
+	try {
+		const booking = await Booking.findById(id)
+			.populate('patientId', 'firstName lastName email phone gender age zipCode address profileImage')
+			.populate('patientSharedRecords.referencedBookingId', 'doctorName dateOfAppointment recommendedSupplements');
+
+		if (!booking) {
+			return res.status(404).json({ error: "Booking not found" });
+		}
+
+		const isOwnerDoctor = req.user.role === 'doctor' && booking.doctorId.toString() === req.user._id.toString();
+		const isOwnerPatient = req.user.role === 'patient' && booking.patientId._id.toString() === req.user._id.toString();
+
+		if (req.user.role !== 'admin' && !isOwnerDoctor && !isOwnerPatient) {
+			return res.status(403).json({ error: "Not authorized to view this booking" });
+		}
+
+		return res.status(200).json({ booking });
+	} catch (error) {
+		console.error("Error fetching booking by ID:", error);
+		return res.status(500).json({ error: "Server error" });
+	}
+};
+
+// ✅ Get this doctor's own past accepted bookings with a specific patient
+// (used for the Prescription History section — deliberately NOT other doctors' bookings).
+exports.getDoctorPatientHistory = async (req, res) => {
+	const { patientId } = req.params;
+
+	if (!patientId) {
+		return res.status(400).json({ error: "Patient ID is required" });
+	}
+
+	try {
+		if (req.user.role !== 'admin' && req.user.role !== 'doctor') {
+			return res.status(403).json({ error: "Access denied" });
+		}
+		const doctorId = req.user.role === 'admin' ? req.query.doctorId : req.user._id;
+		if (!doctorId) {
+			return res.status(400).json({ error: "Doctor ID is required" });
+		}
+
+		const bookings = await Booking.find({
+			doctorId,
+			patientId,
+			requestAccept: 'accepted'
+		}).sort({ dateOfAppointment: -1 });
+
+		return res.status(200).json({ bookings });
+	} catch (error) {
+		console.error("Error fetching doctor-patient history:", error);
+		return res.status(500).json({ error: "Server error" });
 	}
 };
 

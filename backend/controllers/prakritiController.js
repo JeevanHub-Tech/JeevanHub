@@ -1,5 +1,6 @@
 const PrakritiAssessment = require("../models/PrakritiAssessment");
 const Patient = require("../models/Patient");
+const Booking = require("../models/Booking");
 
 // 1. Submit or Update an Assessment
 exports.submitAssessment = async (req, res) => {
@@ -70,6 +71,38 @@ exports.getPrakritiAssessment = async (req, res) => {
         return res.status(200).json(assessment);
     } catch (error) {
         console.error("Error fetching assessment:", error);
+        return res.status(500).json({ error: "Server error" });
+    }
+};
+
+// 2b. Fetch a specific patient's Assessment — for a treating doctor (or admin) only.
+exports.getPrakritiAssessmentForPatient = async (req, res) => {
+    const { patientId } = req.params;
+
+    try {
+        if (req.user.role !== 'admin' && req.user.role !== 'doctor') {
+            return res.status(403).json({ error: "Access denied" });
+        }
+
+        if (req.user.role === 'doctor') {
+            const hasBookingRelationship = await Booking.exists({
+                doctorId: req.user._id,
+                patientId
+            });
+            if (!hasBookingRelationship) {
+                return res.status(403).json({ error: "You do not have a booking relationship with this patient" });
+            }
+        }
+
+        const assessment = await PrakritiAssessment.findOne({ patientId }).sort({ createdAt: -1 });
+
+        if (!assessment) {
+            return res.status(200).json(null);
+        }
+
+        return res.status(200).json(assessment);
+    } catch (error) {
+        console.error("Error fetching patient's assessment:", error);
         return res.status(500).json({ error: "Server error" });
     }
 };

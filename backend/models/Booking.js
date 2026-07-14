@@ -68,22 +68,22 @@ const bookingSchema = new mongoose.Schema({
 		required: true,
 		default: "no",
 	},
+	// The doctor's diagnosis for THIS consultation (one per visit). Shown as
+	// "disease diagnosed" on the previous-prescription reference cards.
+	diagnosis: {
+		type: String,
+		default: ""
+	},
+	// Medicines the doctor prescribes this visit. Each is picked from the store
+	// inventory (medicineId), so we can show its image/price and add it to the
+	// patient's cart. Only medicine + dosage + instructions are captured per row.
 	recommendedSupplements: [
 		{
-			medicineName: {
-				type: String,
-				required: true
-			},
-			reason: {
-				type: String,
-				required: true
-			},
-			dosage: { type: String, required: true },
-			instructions: { type: String, required: true },
-			duration: { type: String, required: true },
-			startDate: { type: Date, required: true },
-			endDate: { type: Date, required: true },
-			externalLink: { type: String, default: "" }
+			medicineId: { type: mongoose.Schema.Types.ObjectId, ref: "Medicine" },
+			medicineName: { type: String, required: true }, // denormalized for display
+			dosage: { type: String, default: "" },
+			instructions: { type: String, default: "" },
+			addedAt: { type: Date, default: Date.now }
 		}
 	],
 	rating: {
@@ -116,9 +116,25 @@ const bookingSchema = new mongoose.Schema({
 		amount: { type: Number },
 		currency: { type: String, default: "INR" },
 		status: { type: String, enum: ["created", "paid", "failed"], default: "created" },
-		transferId: { type: String } 
-	}
-});
+		transferId: { type: String }
+		},
+		// Records the patient shares with the doctor ahead of / shortly after this specific
+		// consultation (e.g. an external prescription photo, or a link to a prior bookings
+		// prescription on this platform) so the doctor has context before prescribing here.
+		patientSharedRecords: [
+			{
+				type: {
+					type: String,
+					enum: ["external_file", "platform_reference"],
+					required: true
+				},
+				fileUrl: { type: String },
+				referencedBookingId: { type: mongoose.Schema.Types.ObjectId, ref: "Booking" },
+				note: { type: String, default: "" },
+				uploadedAt: { type: Date, default: Date.now }
+			}
+		]
+	});
 
 const Booking = mongoose.model("Booking", bookingSchema);
 

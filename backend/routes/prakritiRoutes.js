@@ -8,6 +8,7 @@ const {
     // deletePrakritiDetermination,
     submitAssessment,
     getPrakritiAssessment,
+    getPrakritiAssessmentForPatient,
     deleteAssessment
 } = require("../controllers/prakritiController");
 
@@ -28,6 +29,9 @@ router.post("/assessment", verifyToken, submitAssessment);
 
 // GET route to fetch Prakriti Assessment for a specific patient
 router.get("/assessment/getall", verifyToken, getPrakritiAssessment);
+
+// GET route for a treating doctor (or admin) to fetch a specific patient's Assessment
+router.get("/assessment/patient/:patientId", verifyToken, getPrakritiAssessmentForPatient);
 
 // DELETE route to delete Prakriti Assessment
 router.delete("/assessment/:id", verifyToken, deleteAssessment);

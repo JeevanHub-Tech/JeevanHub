@@ -11,7 +11,6 @@ const {
   updateBookingStatus,
   updateMeetLink,
   deleteBooking,
-  prescribeMedicine,
   getRecommendedSupplements,
   updateRatingAndReview,
   getRatingAndReview,
@@ -19,7 +18,17 @@ const {
   getBookingsByPatientId,
   getBookingsByDoctorId,
   getReviewedBookingsByPatientId,
-  getReviewedBookingsForDoctorId
+  getReviewedBookingsForDoctorId,
+  getBookingById,
+  getDoctorPatientHistory,
+  addSharedRecord,
+  getOwnBookingsForSharing,
+  addSupplement,
+  updateSupplement,
+  deleteSupplement,
+  updateDiagnosis,
+  notifyPrescription,
+  updatePatientIllness
 } = require("../controllers/bookingController");
 
 // POST route to book an appointment
@@ -39,11 +48,19 @@ router.put("/update/meet-link/:id", auth, updateMeetLink);
 // DELETE route to delete a booking by ID
 router.delete("/delete/:id", auth, deleteBooking);
 
-// Route to update recommended supplements
-router.put("/supplements", auth, prescribeMedicine);
-
 // Route to get recommended supplements
 router.get("/supplements/:id", auth, getRecommendedSupplements);
+
+// Realtime prescription editing (doctor): add / edit / delete a medicine row,
+// set the visit diagnosis, and explicitly notify the patient when finished.
+router.post("/:id/supplements", auth, addSupplement);
+router.put("/:id/supplements/:supplementId", auth, updateSupplement);
+router.delete("/:id/supplements/:supplementId", auth, deleteSupplement);
+router.put("/:id/diagnosis", auth, updateDiagnosis);
+router.post("/:id/notify-prescription", auth, notifyPrescription);
+
+// Patient edits their own reason-for-visit on an upcoming (accepted) booking
+router.put("/:id/illness", auth, updatePatientIllness);
 
 // Route to update rating and review
 router.put("/rating-review/:id", auth, updateRatingAndReview);
@@ -67,7 +84,6 @@ router.get("/reviews/:doctorEmail", async (req, res) => {
 });
 
 router.post("/:id/payment", auth, bookingController.uploadPaymentScreenshot);
-router.put("/:id/verify-payment", auth, bookingController.verifyPaymentProof);
 
 // Stream notifications for doctor dashboard (SSE)
 router.get("/stream-notifications/:doctorId", auth, bookingController.streamNotifications);
@@ -83,5 +99,17 @@ router.get("/patient/reviews/:patientId", auth, getReviewedBookingsByPatientId);
 
 // Get reviewed bookings by doctor ID
 router.get("/doctor/reviews/:doctorId", auth, getReviewedBookingsForDoctorId);
+
+// Doctor's own prescription history with a specific patient (not other doctors' bookings)
+router.get("/history/patient/:patientId", auth, getDoctorPatientHistory);
+
+// Patient shares a record (external file or a reference to their own past booking) onto a booking
+router.post("/:id/shared-records", auth, addSharedRecord);
+
+// Patient's own past bookings that have a prescription, to pick from when sharing
+router.get("/sharing/own-bookings", auth, getOwnBookingsForSharing);
+
+// Get a single booking by ID — kept LAST so it doesn't shadow the more specific routes above
+router.get("/:id", auth, getBookingById);
 
 module.exports = router;

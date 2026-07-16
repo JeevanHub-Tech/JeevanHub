@@ -1,448 +1,197 @@
-import React, { useState, useContext } from "react";
-import { useNavigate } from "react-router-dom";
-import "../Patients/SignUpPatientScreen.css";
-import "../SignUpScreen.css";
-import "./SignUpDoctorScreen.css";
-import { AuthContext } from "../../context/AuthContext";
+import React, { useContext, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { AuthContext } from '../../context/AuthContext';
+import { TextField, SelectField, PasswordPairField, PhoneField, FileField } from '../../components/registration/FormFields';
+import { DEFAULT_COUNTRY_DIAL } from '../../components/registration/countryCodes';
+import {
+  required,
+  validateEmail,
+  validatePhone,
+  validateZipCode,
+  validateDob,
+  validatePassword,
+  validateConfirmPassword,
+  validateUpiId,
+  validateFile,
+  ACCEPTED_DOCUMENT_TYPES,
+} from '../../components/registration/validation';
+import '../../components/registration/RegistrationForm.css';
 
-const PasswordInput = ({ value, onChange, placeholder, name }) => {
-	const [show, setShow] = useState(false);
-	return (
-		<div style={{ position: 'relative', width: '100%', marginBottom: '15px' }}>
-			<input 
-				type={show ? "text" : "password"} 
-				name={name}
-				value={value} 
-				onChange={onChange} 
-				placeholder={placeholder} 
-				required 
-				style={{ 
-					width: '100%', 
-					padding: '10px', 
-					paddingRight: '40px', 
-					borderRadius: '5px', 
-					border: '1px solid #ccc', 
-					fontSize: '14px',
-					color: '#333',
-					backgroundColor: '#D9D9D9',
-					boxSizing: 'border-box',
-					margin: 0,
-					fontFamily: 'inherit',
-					outline: 'none'
-				}} 
-			/>
-			<button 
-				type="button" 
-				tabIndex="-1" 
-				onClick={() => setShow(!show)} 
-				style={{ 
-					position: 'absolute', 
-					right: '10px', 
-					top: '50%', 
-					transform: 'translateY(-50%)', 
-					background: 'transparent', 
-					border: 'none', 
-					cursor: 'pointer', 
-					color: '#666', 
-					padding: 0, 
-					display: 'flex', 
-					alignItems: 'center',
-					justifyContent: 'center',
-					height: '100%'
-				}}
-			>
-				{show ? (
-					<svg width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
-						<path d="M13.359 11.238C15.06 9.72 16 8 16 8s-3-5.5-8-5.5a7.028 7.028 0 0 0-2.79.588l.77.771A5.944 5.944 0 0 1 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.134 13.134 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755l.192.195z"/>
-						<path d="M11.297 9.176a3.5 3.5 0 0 0-4.474-4.474l.823.823a2.5 2.5 0 0 1 2.829 2.829l.822.822zm-2.943 1.299.822.822a3.5 3.5 0 0 1-4.474-4.474l.823.823a2.5 2.5 0 0 0 2.829 2.829z"/>
-						<path d="M3.35 5.47c-.18.16-.353.322-.518.487A13.134 13.134 0 0 0 1.172 8l.195.288c.335.48.83 1.12 1.465 1.755C4.121 11.332 5.881 12.5 8 12.5c.716 0 1.39-.133 2.02-.36l.77.772A7.029 7.029 0 0 1 8 13.5C3 13.5 0 8 0 8s.939-1.721 2.641-3.238l.708.709zm10.296 8.884-12-12 .708-.708 12 12-.708.708z"/>
-					</svg>
-				) : (
-					<svg width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
-						<path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"/>
-						<path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z"/>
-					</svg>
-				)}
-			</button>
-		</div>
-	);
+const GENDER_OPTIONS = ['Male', 'Female', 'Others'];
+
+const INITIAL_STATE = {
+  firstName: '',
+  lastName: '',
+  registrationNumber: '',
+  email: '',
+  countryCode: DEFAULT_COUNTRY_DIAL,
+  phone: '',
+  dob: '',
+  gender: '',
+  zipCode: '',
+  education: '',
+  designation: '',
+  specialization: '',
+  experience: '',
+  price: '',
+  upiId: '',
+  password: '',
+  confirmPassword: '',
 };
 
+function getErrors(form, certificate) {
+  return {
+    firstName: required(form.firstName, 'First name is required'),
+    lastName: required(form.lastName, 'Last name is required'),
+    registrationNumber: required(form.registrationNumber, 'Registration number is required'),
+    email: validateEmail(form.email),
+    phone: validatePhone(form.phone, form.countryCode),
+    dob: validateDob(form.dob),
+    gender: required(form.gender, 'Please select a gender'),
+    zipCode: validateZipCode(form.zipCode, form.countryCode),
+    education: required(form.education, 'Education is required'),
+    designation: required(form.designation, 'Designation is required'),
+    specialization: required(form.specialization, 'Specialization is required'),
+    experience: required(form.experience, 'Experience is required'),
+    price: required(form.price, 'Appointment fee is required'),
+    upiId: validateUpiId(form.upiId),
+    certificate: validateFile(certificate, { required: true, allowedTypes: ACCEPTED_DOCUMENT_TYPES, label: 'Certificate' }),
+    password: validatePassword(form.password),
+    confirmPassword: validateConfirmPassword(form.confirmPassword, form.password),
+  };
+}
+
 function SignUpDoctorScreen() {
-	const { setAuth } = useContext(AuthContext);
-	const [qrCode, setQrCode] = useState(null);
-	const [formData, setFormData] = useState({
-		firstName: "",
-		lastName: "",
-		registrationNumber: "",
-		email: "",
-		phone: "",
-		dob: "",
-		age: "",
-		experience: "",
-		specialization: "",
-		gender: "",
-		zipCode: "",
-		education: "",
-		designation: "",
-		price: "",
-		password: "",
-		confirmPassword: "",
-	});
+  const navigate = useNavigate();
+  const { setAuth } = useContext(AuthContext);
+  const [formData, setFormData] = useState(INITIAL_STATE);
+  const [certificate, setCertificate] = useState(null);
+  const [touched, setTouched] = useState({});
+  const [submitted, setSubmitted] = useState(false);
+  const [serverError, setServerError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-	const handleQrCodeChange = (e) => {
-		setQrCode(e.target.files[0]);
-	};
+  const errors = getErrors(formData, certificate);
+  const showError = (field) => (touched[field] || submitted) ? errors[field] : null;
 
+  const handleChange = (e) => {
+    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  };
 
-	// const isFormValid = () => {
-	// 	return (
-	// 		formData.firstName !== "" &&
-	// 		formData.lastName !== "" &&
-	// 		formData.registrationNumber !== "" &&
-	// 		formData.email !== "" &&
-	// 		formData.phone !== "" &&
-	// 		formData.dob !== "" &&
-	// 		formData.age !== "" &&
-	// 		formData.gender !== "" &&
-	// 		formData.specialization !== "" &&
-	// 		formData.zipCode !== "" &&
-	// 		formData.password !== "" &&
-	// 		formData.confirmPassword !== "" &&
-	// 		formData.password === formData.confirmPassword
-	// 	);
-	// };
+  const handleBlur = (e) => {
+    setTouched((prev) => ({ ...prev, [e.target.name]: true }));
+  };
 
-	const isFormValid = () => {
-		return (
-			formData.firstName.trim() !== "" &&
-			formData.lastName.trim() !== "" &&
-			formData.registrationNumber.trim() !== "" &&
-			formData.designation.trim() !== "" &&
-			formData.email.trim() !== "" &&
-			formData.price !== "" &&
-			formData.password !== "" &&
-			formData.password === formData.confirmPassword
-		);
-	};
+  const handleCountryChange = (dial) => {
+    setFormData((prev) => ({ ...prev, countryCode: dial }));
+  };
 
-	const [certificate, setCertificate] = useState(null);
-	const navigate = useNavigate();
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSubmitted(true);
+    setServerError('');
 
-	// Handle input change
-	const handleInputChange = (e) => {
-		setFormData({
-			...formData,
-			[e.target.name]: e.target.value,
-		});
-	};
+    const hasErrors = Object.values(errors).some(Boolean);
+    if (hasErrors) return;
 
-	// Handle file input
-	const handleFileChange = (e) => {
-		setCertificate(e.target.files[0]);
-	};
+    setIsSubmitting(true);
+    try {
+      const data = new FormData();
+      Object.entries(formData).forEach(([key, value]) => data.append(key, value));
+      if (certificate) data.append('certificate', certificate);
 
-	// Handle form submission
-	const handleNextClick = async (e) => {
-		e.preventDefault(); // Prevents the form from submitting automatically
+      const response = await fetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/auth/register/doctor`, {
+        method: 'POST',
+        credentials: 'include',
+        body: data,
+      });
 
-		// Check if passwords match
-		if (formData.password !== formData.confirmPassword) {
-			alert("Passwords do not match");
-			return;
-		}
+      const result = await response.json();
+      if (response.ok) {
+        localStorage.setItem('token', result.token);
+        localStorage.setItem('role', result.user.role);
+        setAuth({ token: result.token, user: result.user, role: result.user.role });
+        navigate('/doctor-home');
+      } else {
+        setServerError(result.error || 'Something went wrong. Please try again.');
+      }
+    } catch (error) {
+      setServerError('Could not reach the server. Please check your connection and try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
-		// Validate file upload
-		// if (!certificate) {
-		// 	alert("Please upload your ayurvedic degree certificate.");
-		// 	return;
-		// }
+  return (
+    <div className="rf-page">
+      <div className="rf-card">
+        <h1 className="rf-heading">Sign Up — Doctor</h1>
+        <p className="rf-subheading">Expand your practice. Reach new patients seeking Ayurvedic care.</p>
 
-		// if (certificate.size > 5 * 1024 * 1024) {
-		// 	alert("File size exceeds 5MB limit");
-		// 	return;
-		// }
+        {serverError && <div className="rf-banner rf-banner-error">{serverError}</div>}
 
-		// if (!qrCode) {
-		// 	alert("Please upload your QR code for payments.");
-		// 	return;
-		// }
+        <form className="rf-form" onSubmit={handleSubmit} noValidate autoComplete="off">
+          <TextField label="First Name" name="firstName" value={formData.firstName} onChange={handleChange} onBlur={handleBlur} error={showError('firstName')} placeholder="Ram" />
+          <TextField label="Last Name" name="lastName" value={formData.lastName} onChange={handleChange} onBlur={handleBlur} error={showError('lastName')} placeholder="Singh" />
+          <TextField label="Registration Number" name="registrationNumber" value={formData.registrationNumber} onChange={handleChange} onBlur={handleBlur} error={showError('registrationNumber')} placeholder="AYU123456" />
+          <TextField label="Email ID" name="email" type="email" value={formData.email} onChange={handleChange} onBlur={handleBlur} error={showError('email')} placeholder="abc@gmail.com" />
+          <PhoneField
+            countryCode={formData.countryCode}
+            onCountryChange={handleCountryChange}
+            phone={formData.phone}
+            onPhoneChange={handleChange}
+            onBlur={handleBlur}
+            countryError={null}
+            phoneError={showError('phone')}
+          />
+          <TextField label="Date of Birth" name="dob" type="date" value={formData.dob} onChange={handleChange} onBlur={handleBlur} error={showError('dob')} max={new Date().toISOString().split('T')[0]} />
+          <SelectField label="Gender" name="gender" value={formData.gender} onChange={handleChange} onBlur={handleBlur} error={showError('gender')} options={GENDER_OPTIONS} />
+          <TextField label="PIN / Zip Code" name="zipCode" value={formData.zipCode} onChange={handleChange} onBlur={handleBlur} error={showError('zipCode')} placeholder={formData.countryCode === '+91' ? '560001' : 'Postal code'} />
 
-		// if (qrCode.size > 5 * 1024 * 1024) {
-		// 	alert("QR code file size exceeds 5MB limit");
-		// 	return;
-		// }
+          <div className="rf-section-title">Professional details</div>
+          <TextField label="Education (College)" name="education" value={formData.education} onChange={handleChange} onBlur={handleBlur} error={showError('education')} placeholder="Ayurvedic College" />
+          <TextField label="Designation" name="designation" value={formData.designation} onChange={handleChange} onBlur={handleBlur} error={showError('designation')} placeholder="Vaidya" />
+          <TextField label="Specialization" name="specialization" value={formData.specialization} onChange={handleChange} onBlur={handleBlur} error={showError('specialization')} placeholder="Dermatology, Cardiology" />
+          <TextField label="Experience (years)" name="experience" type="number" min="0" value={formData.experience} onChange={handleChange} onBlur={handleBlur} error={showError('experience')} placeholder="5" />
+          <TextField label="Appointment Fee (₹)" name="price" type="number" min="0" value={formData.price} onChange={handleChange} onBlur={handleBlur} error={showError('price')} placeholder="500" />
+          <TextField label="UPI ID" name="upiId" value={formData.upiId} onChange={handleChange} onBlur={handleBlur} error={showError('upiId')} placeholder="yourname@bank" />
 
+          <PasswordPairField
+            passwordValue={formData.password}
+            onPasswordChange={handleChange}
+            passwordError={showError('password')}
+            confirmValue={formData.confirmPassword}
+            onConfirmChange={handleChange}
+            confirmError={showError('confirmPassword')}
+            onBlur={handleBlur}
+            layout="row"
+          />
 
-		// Create FormData object for file upload
-		const data = new FormData();
-		Object.keys(formData).forEach((key) => {
-			data.append(key, formData[key]);
-		});
-		// data.append("certificate", certificate);
-		// data.append("qrCode", qrCode);
+          <div className="rf-field-full">
+            <FileField
+              label="Ayurvedic Degree Certificate"
+              name="certificate"
+              file={certificate}
+              onChange={(file) => { setCertificate(file); setTouched((prev) => ({ ...prev, certificate: true })); }}
+              error={showError('certificate')}
+              helperText="Required. PNG, JPG or PDF, up to 5MB."
+              required
+              accept=".png,.jpg,.jpeg,.pdf"
+            />
+          </div>
 
-		try {
-			const response = await fetch(
-				`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/auth/register/doctor`,
-				{
-					method: "POST",
-					credentials: "include",
-					body: data,
-				}
-			);
-
-			const result = await response.json();
-			if (response.ok) {
-				localStorage.setItem("token", result.token);
-				setAuth({ token: result.token, user: result.user });
-				alert("Registration successful");
-				navigate("/doctor-home");
-			} else {
-				alert(result.error || "Something went wrong");
-			}
-		} catch (error) {
-			console.error("Error during registration:", error);
-		}
-
-
-	};
-
-	return (
-		<div className="signup-container">
-			<style>{`
-				input[type="password"]::-ms-reveal,
-				input[type="password"]::-ms-clear {
-					display: none;
-				}
-			`}</style>
-			<h1>Sign Up - Doctor</h1>
-			<p>Expand your practice. Reach new patients seeking ayurvedic care.</p>
-
-			<form className="signup-form" onSubmit={handleNextClick}>
-				<div className="form-column">
-					<div className="form-group">
-						<label>First Name</label>
-						<input
-							type="text"
-							name="firstName"
-							value={formData.firstName}
-							onChange={handleInputChange}
-							placeholder="Ram"
-							required
-						/>
-					</div>
-					<div className="form-group">
-						<label>Last Name</label>
-						<input
-							type="text"
-							name="lastName"
-							value={formData.lastName}
-							onChange={handleInputChange}
-							placeholder="Singh"
-							required
-						/>
-					</div>
-					<div className="form-group">
-						<label>Registration Number</label>
-						<input
-							type="text"
-							name="registrationNumber"
-							value={formData.registrationNumber}
-							onChange={handleInputChange}
-							placeholder="AYU123456"
-							required
-						/>
-					</div>
-					<div className="form-group">
-						<label>Email ID</label>
-						<input
-							type="email"
-							name="email"
-							value={formData.email}
-							onChange={handleInputChange}
-							placeholder="abc@gmail.com"
-							required
-						/>
-					</div>
-					<div className="form-group">
-						<label>Phone Number</label>
-						<input
-							type="tel"
-							name="phone"
-							value={formData.phone}
-							onChange={handleInputChange}
-							placeholder="0123456789"
-						// required
-						/>
-					</div>
-					<div className="form-group">
-						<label>Date of Birth (DD/MM/YYYY)</label>
-						<input
-							type="date"
-							name="dob"
-							value={formData.dob}
-							onChange={handleInputChange}
-						// required
-						/>
-					</div>
-					<div className="form-group">
-						<label>Age</label>
-						<input
-							type="number"
-							name="age"
-							value={formData.age}
-							onChange={handleInputChange}
-							placeholder="24"
-						// required
-						/>
-					</div>
-					<div className="form-group">
-						<label>Experience (in years)</label>
-						<input
-							type="number"
-							name="experience"
-							value={formData.experience}
-							onChange={handleInputChange}
-							placeholder="24"
-						// required
-						/>
-					</div>
-					<div className="form-group">
-						<label>Specialization</label>
-						<input
-							type="text"
-							name="specialization"
-							value={formData.specialization}
-							onChange={handleInputChange}
-							placeholder="Dermatology , Cardiology etc."
-							required
-						/>
-					</div>
-				</div>
-
-				<div className="form-column">
-					<div className="form-group">
-						<label>Gender</label>
-						<select
-							name="gender"
-							value={formData.gender}
-							onChange={handleInputChange}
-							required
-						>
-							<option value="">Select Gender</option>
-							<option value="Male">Male</option>
-							<option value="Female">Female</option>
-							<option value="Others">Others</option>
-						</select>
-					</div>
-					<div className="form-group">
-						<label>Zip Code (Location)</label>
-						<input
-							type="text"
-							name="zipCode"
-							value={formData.zipCode}
-							onChange={handleInputChange}
-							placeholder="000001"
-						// required
-						/>
-					</div>
-					{/* <div className="form-group">
-						<label>Address</label>
-						<input
-							type="text"
-							name="address"
-							value={formData.address}
-							onChange={handleInputChange}
-							placeholder="123 Main St, City, State"
-						// required
-						/>
-					</div> */}
-					<div className="form-group">
-						<label>Education (College)</label>
-						<input
-							type="text"
-							name="education"
-							value={formData.education}
-							onChange={handleInputChange}
-							placeholder="Ayurvedic College"
-						// required
-						/>
-					</div>
-					<div className="form-group">
-						<label>Designation</label>
-						<input
-							type="text"
-							name="designation"
-							value={formData.designation}
-							onChange={handleInputChange}
-							placeholder="Vaidya"
-							required
-						/>
-					</div>
-					<div className="form-group">
-						<label>Appointment Fee</label>
-						<input
-							type="number"
-							name="price"
-							value={formData.price}
-							onChange={handleInputChange}
-							placeholder="250"
-							required
-						/>
-					</div>
-					<div style={{ display: 'flex', flexDirection: 'column' }}>
-						<label style={{ fontSize: '14px', color: '#333', marginBottom: '5px' }}>Password</label>
-						<PasswordInput
-							name="password"
-							value={formData.password}
-							onChange={handleInputChange}
-							placeholder="Password"
-						/>
-					</div>
-					<div style={{ display: 'flex', flexDirection: 'column' }}>
-						<label style={{ fontSize: '14px', color: '#333', marginBottom: '5px' }}>Confirm Password</label>
-						<PasswordInput
-							name="confirmPassword"
-							value={formData.confirmPassword}
-							onChange={handleInputChange}
-							placeholder="Confirm Password"
-						/>
-					</div>
-				</div>
-
-				<div className="form-group fileupload">
-					<label>Upload Ayurvedic Degree Certificate</label>
-					<input
-						type="file"
-						accept=".png, .jpg, .jpeg"
-						onChange={handleFileChange}
-					// required
-					/>
-					<p className="file-info">
-						Supported file formats: png, jpg. File size limit: 5MB
-					</p>
-				</div>
-				<div className="form-group fileupload">
-					<label>Upload QR Code for Payments</label>
-					<input
-						type="file"
-						accept=".png, .jpg, .jpeg"
-						onChange={handleQrCodeChange}
-					// required
-					/>
-					<p className="file-info">Supported formats: png, jpg. File size limit: 5MB</p>
-				</div>
-
-
-				<div className="form-button">
-					<button type="submit" className="next-btn" disabled={!isFormValid()}>
-						Next →
-					</button>
-				</div>
-			</form>
-		</div>
-	);
+          <div className="rf-submit-row">
+            <button type="submit" className="rf-submit-btn" disabled={isSubmitting}>
+              {isSubmitting ? 'Registering...' : 'Sign Up →'}
+            </button>
+          </div>
+          <p className="rf-footer-note">
+            Already have an account? <a href="/signin">Log in</a>
+          </p>
+        </form>
+      </div>
+    </div>
+  );
 }
 
 export default SignUpDoctorScreen;

@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { parseDob, indianPhoneValidator, indianZipCodeValidator, attachAgeVirtual } = require('./registrationSchemaHelpers');
 
 const SlotTemplateSchema = new mongoose.Schema({
     startTime: { type: String, required: true }, // e.g. "09:00"
@@ -30,10 +31,18 @@ const doctorSchema = new mongoose.Schema({
     lastName: { type: String, required: true },
     registrationNumber: { type: String, required: false, unique: true, sparse: true }, // allow nulls if coming from excel
     email: { type: String, required: true, unique: true },
-    phone: { type: String, required: false }, // String for formatted numbers
-    age: { type: Number, required: false },
-    gender: { type: String, required: false },
-    zipCode: { type: String, required: false }, // String to support formats
+    countryCode: { type: String, required: false }, // e.g. "+91" - required:false at schema level to stay compatible with admin bulk-import (Phase 3 enforces required-ness for self-registration)
+    phone: {
+        type: String,
+        required: false,
+        validate: { validator: indianPhoneValidator, message: 'Phone number must be exactly 10 digits for India (+91)' }
+    }, // String for formatted numbers
+    gender: { type: String, required: false, enum: ['Male', 'Female', 'Others'] },
+    zipCode: {
+        type: String,
+        required: false,
+        validate: { validator: indianZipCodeValidator, message: 'PIN code must be exactly 6 digits for India (+91)' }
+    }, // String to support formats
     address: { type: String, required: false },
     designation: { type: String, required: false },
     specialization: { type: [String], required: true },
@@ -43,7 +52,7 @@ const doctorSchema = new mongoose.Schema({
     price: { type: Number, required: false }, // formerly fee
     education: { type: String, required: false }, // degree
     college: { type: String, required: false }, // from DoctorData
-    dob: { type: String, required: false }, // Date as string or Date format
+    dob: { type: Date, required: false, set: parseDob }, // was stored as a raw string; now normalized to a real Date (parseDob also handles the "DD/MM/YYYY" strings produced by the Excel bulk-import path)
     profileImage: { type: String, required: false }, // from DoctorData imageLink
     qrCode: { type: String }, // payment qr
     upiId: {
@@ -110,5 +119,7 @@ const doctorSchema = new mongoose.Schema({
     },
     passwordChangedAt: Date
 }, { timestamps: true });
+
+attachAgeVirtual(doctorSchema);
 
 module.exports = mongoose.model("Doctor", doctorSchema);

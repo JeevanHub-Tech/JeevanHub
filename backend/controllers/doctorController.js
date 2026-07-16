@@ -291,7 +291,6 @@ exports.updateDoctor = async (req, res) => {
             if (updates.zipCode !== undefined) doctor.zipCode = updates.zipCode; 
             if (updates.address !== undefined) doctor.address = updates.address;
             if (updates.price !== undefined) doctor.price = updates.price;
-            if (updates.age !== undefined) doctor.age = updates.age;
             if (updates.education !== undefined) doctor.education = updates.education;
             if (updates.designation !== undefined) doctor.designation = updates.designation;
             if (updates.profileImage !== undefined) doctor.profileImage = updates.profileImage;

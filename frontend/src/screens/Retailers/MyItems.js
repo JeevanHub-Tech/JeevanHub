@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { authFetch } from '../../utils/authFetch';
-import { Search, Plus, Edit2, Trash2, X, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Download } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, X, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Download, ChevronsUpDown } from 'lucide-react';
 import './MyItems.css';
 
 function MyItems() {
@@ -28,10 +28,16 @@ function MyItems() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [editForm, setEditForm] = useState({
-    name: '', price: '', quantity: '', category: '', prescription: false, isActive: true
+    name: '', price: '', quantity: '', category: '', description: '', prescription: false, isActive: true
   });
   
   const [inlineEditField, setInlineEditField] = useState({ id: null, field: null, value: '' });
+
+  // Gallery States
+  const [selectedGalleryItem, setSelectedGalleryItem] = useState(null);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [imageToDelete, setImageToDelete] = useState(null); // stores index of image to delete
+  const fileInputRef = useRef(null);
 
   const fetchMyItems = async () => {
     setLoading(true);
@@ -70,6 +76,18 @@ function MyItems() {
     }, 300);
     return () => clearTimeout(delayDebounce);
   }, [page, limit, sortBy, sortOrder, searchQuery, categoryFilter, statusFilter]);
+
+  // Keyboard events for Image Deletion Popup
+  useEffect(() => {
+    if (imageToDelete !== null) {
+      const handleKeyDown = (e) => {
+        if (e.key === 'Enter') confirmRemoveImage();
+        if (e.key === 'Escape') setImageToDelete(null);
+      };
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [imageToDelete, selectedGalleryItem]);
 
   // Actions
   const toggleSelection = (id) => {
@@ -138,7 +156,7 @@ function MyItems() {
     setEditingItem(item);
     setEditForm({
       name: item.name, price: item.price, quantity: item.quantity, 
-      category: item.category, prescription: item.prescription, isActive: item.isActive !== false
+      category: item.category, description: item.description || '', prescription: item.prescription, isActive: item.isActive !== false
     });
     setIsDrawerOpen(true);
   };
@@ -146,17 +164,21 @@ function MyItems() {
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     try {
+      const payload = { ...editForm, quantity: Math.floor(Number(editForm.quantity)) }; // enforce integer
       const response = await authFetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/medicines/${editingItem._id}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(editForm)
+        body: JSON.stringify(payload)
       });
       if (response.ok) {
         setIsDrawerOpen(false);
         fetchMyItems();
+      } else {
+        const errData = await response.json();
+        alert(errData.message || "Failed to update item");
       }
     } catch (error) { console.error(error); }
   };
@@ -166,10 +188,12 @@ function MyItems() {
     
     const { id, field, value } = inlineEditField;
     const item = items.find(i => i._id === id);
-    if (item && item[field] !== Number(value)) {
+    const parsedValue = field === 'quantity' ? Math.floor(Number(value)) : Number(value);
+
+    if (item && item[field] !== parsedValue) {
       try {
         const payload = {};
-        payload[field] = Number(value);
+        payload[field] = parsedValue;
         const response = await authFetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/medicines/${id}`, {
           method: 'PUT',
           headers: {
@@ -178,7 +202,12 @@ function MyItems() {
           },
           body: JSON.stringify(payload)
         });
-        if (response.ok) fetchMyItems(); 
+        if (response.ok) {
+          fetchMyItems(); 
+        } else {
+          const errData = await response.json();
+          alert(errData.message || "Failed to save inline edit");
+        }
       } catch (error) { console.error("Inline edit error", error); }
     }
     setInlineEditField({ id: null, field: null, value: '' });
@@ -203,6 +232,88 @@ function MyItems() {
     } catch (error) {
       console.error(error);
       alert("Failed to export items.");
+    }
+  };
+
+  // Gallery Logic
+  const openGallery = (item) => {
+    setSelectedGalleryItem(item);
+    setCurrentImageIndex(0);
+  };
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+      
+      const uploadRes = await authFetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/medicines/upload-image`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+        body: formData
+      });
+      const uploadData = await uploadRes.json();
+      
+      if (uploadRes.ok) {
+        const newImages = [...(selectedGalleryItem.images || []), uploadData.url];
+        
+        await authFetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/medicines/${selectedGalleryItem._id}`, {
+          method: 'PUT',
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ images: newImages })
+        });
+        
+        setSelectedGalleryItem({...selectedGalleryItem, images: newImages});
+        setItems(items.map(item => item._id === selectedGalleryItem._id ? {...item, images: newImages} : item));
+      }
+    } catch (err) { console.error("Upload error", err); }
+  };
+
+  const confirmRemoveImage = async () => {
+    if (imageToDelete === null || !selectedGalleryItem) return;
+    try {
+      const urlToRemove = selectedGalleryItem.images[imageToDelete];
+      
+      await authFetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/medicines/delete-images`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ urls: [urlToRemove] })
+      });
+      
+      const newImages = selectedGalleryItem.images.filter((_, idx) => idx !== imageToDelete);
+      
+      await authFetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/medicines/${selectedGalleryItem._id}`, {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ images: newImages })
+      });
+      
+      setSelectedGalleryItem({...selectedGalleryItem, images: newImages});
+      setItems(items.map(item => item._id === selectedGalleryItem._id ? {...item, images: newImages} : item));
+      
+      if (currentImageIndex >= newImages.length) {
+        setCurrentImageIndex(Math.max(0, newImages.length - 1));
+      }
+    } catch (err) { console.error("Delete error", err); }
+    setImageToDelete(null);
+  };
+
+  const renderSortIcon = (columnName) => {
+    if (sortBy !== columnName) {
+      return <ChevronsUpDown size={14} color="#94a3b8" style={{display:'inline', verticalAlign:'middle'}}/>;
+    }
+    return sortOrder === 'asc' 
+      ? <ChevronUp size={14} style={{display:'inline', verticalAlign:'middle'}}/> 
+      : <ChevronDown size={14} style={{display:'inline', verticalAlign:'middle'}}/>;
+  };
+
+  const handleSortClick = (columnName) => {
+    if (sortBy === columnName) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(columnName);
+      setSortOrder('desc');
     }
   };
 
@@ -273,17 +384,17 @@ function MyItems() {
                 />
               </th>
               <th className="col-image">Image</th>
-              <th style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => { setSortBy('name'); setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc'); }}>
-                Product Details {sortBy === 'name' && (sortOrder === 'asc' ? <ChevronUp size={14} style={{display:'inline', verticalAlign:'middle'}}/> : <ChevronDown size={14} style={{display:'inline', verticalAlign:'middle'}}/>)}
+              <th style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSortClick('name')}>
+                Product Name {renderSortIcon('name')}
               </th>
-              <th style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => { setSortBy('category'); setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc'); }}>
-                Category {sortBy === 'category' && (sortOrder === 'asc' ? <ChevronUp size={14} style={{display:'inline', verticalAlign:'middle'}}/> : <ChevronDown size={14} style={{display:'inline', verticalAlign:'middle'}}/>)}
+              <th style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSortClick('category')}>
+                Category {renderSortIcon('category')}
               </th>
-              <th style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => { setSortBy('price'); setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc'); }}>
-                Price {sortBy === 'price' && (sortOrder === 'asc' ? <ChevronUp size={14} style={{display:'inline', verticalAlign:'middle'}}/> : <ChevronDown size={14} style={{display:'inline', verticalAlign:'middle'}}/>)}
+              <th style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSortClick('price')}>
+                Price {renderSortIcon('price')}
               </th>
-              <th style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => { setSortBy('quantity'); setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc'); }}>
-                Stock {sortBy === 'quantity' && (sortOrder === 'asc' ? <ChevronUp size={14} style={{display:'inline', verticalAlign:'middle'}}/> : <ChevronDown size={14} style={{display:'inline', verticalAlign:'middle'}}/>)}
+              <th style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSortClick('quantity')}>
+                Stock {renderSortIcon('quantity')}
               </th>
               <th>Status</th>
               <th>Actions</th>
@@ -296,10 +407,7 @@ function MyItems() {
                 <tr key={n}>
                   <td><div className="skeleton" style={{width: '16px', height: '16px', margin: 'auto'}}></div></td>
                   <td><div className="skeleton skeleton-image"></div></td>
-                  <td>
-                    <div className="skeleton skeleton-text medium"></div>
-                    <div className="skeleton skeleton-text short"></div>
-                  </td>
+                  <td><div className="skeleton skeleton-text medium"></div></td>
                   <td><div className="skeleton skeleton-text medium"></div></td>
                   <td><div className="skeleton skeleton-text short"></div></td>
                   <td><div className="skeleton skeleton-badge"></div></td>
@@ -327,7 +435,7 @@ function MyItems() {
                     <td className="col-checkbox">
                       <input type="checkbox" checked={isSelected} onChange={() => toggleSelection(item._id)} />
                     </td>
-                    <td className="col-image">
+                    <td className="col-image" onClick={() => openGallery(item)} style={{ cursor: 'pointer' }} title="View Images">
                       {item.images && item.images.length > 0 ? (
                         <img 
                           src={item.images[0].startsWith('http') ? item.images[0] : `${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/${item.images[0].replace(/\\/g, '/')}`} 
@@ -340,8 +448,8 @@ function MyItems() {
                     </td>
                     <td>
                       <div className="product-info">
-                        <span className="product-name">{item.name}</span>
-                        <span className="product-sku">ID: {item._id.substring(item._id.length - 6)}</span>
+                        <span className="product-name" style={{fontWeight: 600}}>{item.name}</span>
+                        {/* ID removed per user request */}
                       </div>
                     </td>
                     <td>{item.category}</td>
@@ -442,6 +550,7 @@ function MyItems() {
         </div>
       )}
 
+      {/* Edit Drawer */}
       {isDrawerOpen && (
         <div className="drawer-overlay" onClick={() => setIsDrawerOpen(false)}>
           <div className="drawer-content" onClick={e => e.stopPropagation()}>
@@ -466,6 +575,16 @@ function MyItems() {
                 <label>Category</label>
                 <input type="text" required value={editForm.category} onChange={e => setEditForm({...editForm, category: e.target.value})} />
               </div>
+              <div className="form-group">
+                <label>Description</label>
+                <textarea 
+                  required 
+                  rows="3"
+                  value={editForm.description} 
+                  onChange={e => setEditForm({...editForm, description: e.target.value})} 
+                  style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '5px' }}
+                />
+              </div>
               <div className="form-group" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                 <input type="checkbox" style={{width: 'auto'}} checked={editForm.prescription} onChange={e => setEditForm({...editForm, prescription: e.target.checked})} />
                 <label style={{marginBottom: 0}}>Requires Prescription</label>
@@ -482,6 +601,94 @@ function MyItems() {
           </div>
         </div>
       )}
+
+      {/* Image Gallery Modal */}
+      {selectedGalleryItem && (
+        <div className="gallery-modal-overlay" onClick={() => setSelectedGalleryItem(null)}>
+          <div className="gallery-modal-content" onClick={e => e.stopPropagation()}>
+            <button className="gallery-close-btn" onClick={() => setSelectedGalleryItem(null)}>
+              <X size={32} />
+            </button>
+            
+            <div className="gallery-main-view">
+              {selectedGalleryItem.images && selectedGalleryItem.images.length > 0 ? (
+                <>
+                  <img 
+                    src={selectedGalleryItem.images[currentImageIndex].startsWith('http') ? selectedGalleryItem.images[currentImageIndex] : `${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/${selectedGalleryItem.images[currentImageIndex].replace(/\\/g, '/')}`} 
+                    alt="Product"
+                    className="gallery-main-img"
+                  />
+                  {selectedGalleryItem.images.length > 1 && (
+                    <>
+                      <button 
+                        className="gallery-nav-btn left" 
+                        onClick={() => setCurrentImageIndex((prev) => (prev === 0 ? selectedGalleryItem.images.length - 1 : prev - 1))}
+                      >
+                        <ChevronLeft size={24} />
+                      </button>
+                      <button 
+                        className="gallery-nav-btn right" 
+                        onClick={() => setCurrentImageIndex((prev) => (prev === selectedGalleryItem.images.length - 1 ? 0 : prev + 1))}
+                      >
+                        <ChevronRight size={24} />
+                      </button>
+                    </>
+                  )}
+                </>
+              ) : (
+                <div style={{ color: 'white' }}>No images available</div>
+              )}
+            </div>
+            
+            <div className="gallery-thumbnails">
+              {selectedGalleryItem.images && selectedGalleryItem.images.map((imgUrl, idx) => (
+                <div 
+                  key={idx} 
+                  className={`gallery-thumb-container ${currentImageIndex === idx ? 'active' : ''}`}
+                  onClick={() => setCurrentImageIndex(idx)}
+                >
+                  <img 
+                    src={imgUrl.startsWith('http') ? imgUrl : `${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/${imgUrl.replace(/\\/g, '/')}`} 
+                    alt="Thumbnail" 
+                    className="gallery-thumb-img"
+                  />
+                  <button 
+                    className="gallery-thumb-remove" 
+                    onClick={(e) => { e.stopPropagation(); setImageToDelete(idx); }}
+                    title="Remove Image"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ))}
+              
+              <button className="gallery-add-btn" onClick={() => fileInputRef.current?.click()} title="Add Image">
+                <Plus size={24} />
+              </button>
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                style={{ display: 'none' }} 
+                accept="image/*" 
+                onChange={handleImageUpload} 
+              />
+            </div>
+          </div>
+          
+          {/* Delete Confirmation Popup */}
+          {imageToDelete !== null && (
+            <div className="delete-confirm-popup" onClick={e => e.stopPropagation()}>
+              <h3>Remove Image?</h3>
+              <p>Are you sure you want to delete this image?<br/><small>(Press <strong>Enter</strong> to confirm, <strong>Esc</strong> to cancel)</small></p>
+              <div className="delete-confirm-actions">
+                <button className="btn-cancel" onClick={() => setImageToDelete(null)}>Cancel (Esc)</button>
+                <button className="btn-confirm" onClick={confirmRemoveImage}>Delete (Enter)</button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
     </div>
   );
 }

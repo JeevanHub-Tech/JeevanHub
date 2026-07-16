@@ -171,10 +171,80 @@ exports.getMyMedicines = async (req, res) => {
   const retailerId = req.user._id;
 
   try {
-    const medicines = await Medicine.find({ retailerId });
-    res.status(200).json(medicines);
+    const { page = 1, limit = 10, sortBy = 'createdAt', sortOrder = 'desc', search, category, status } = req.query;
+
+    const query = { retailerId };
+
+    if (search) {
+      query.name = { $regex: search, $options: 'i' };
+    }
+    if (category) {
+      query.category = category;
+    }
+    if (status) {
+      if (status === 'active') query.isActive = { $ne: false };
+      if (status === 'inactive') query.isActive = false;
+      if (status === 'in-stock') query.quantity = { $gt: 0 };
+      if (status === 'out-of-stock') query.quantity = 0;
+    }
+
+    const sortConfig = {};
+    sortConfig[sortBy] = sortOrder === 'desc' ? -1 : 1;
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    const totalItems = await Medicine.countDocuments(query);
+    const medicines = await Medicine.find(query)
+      .sort(sortConfig)
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    res.status(200).json({
+      medicines,
+      currentPage: parseInt(page),
+      totalPages: Math.ceil(totalItems / parseInt(limit)),
+      totalItems,
+    });
   } catch (error) {
     res.status(500).json({ message: 'Failed to fetch your medicines', error: error.message });
+  }
+};
+
+// Export Retailer's Medicines (Retailer Only)
+exports.exportMyMedicines = async (req, res) => {
+  if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
+  if (req.user.role !== 'retailer') {
+    return res.status(403).json({ message: 'Access denied. Only retailers can access their medicine catalog.' });
+  }
+  const retailerId = req.user._id;
+
+  try {
+    const medicines = await Medicine.find({ retailerId }).lean();
+    
+    // Prepare data for export
+    const exportData = medicines.map(med => ({
+      ID: med._id.toString(),
+      Name: med.name,
+      Category: med.category,
+      Price: med.price,
+      Quantity: med.quantity,
+      Prescription: med.prescription ? 'Yes' : 'No',
+      Status: med.isActive !== false ? 'Active' : 'Inactive',
+      CreatedAt: med.createdAt ? new Date(med.createdAt).toLocaleString() : ''
+    }));
+
+    const ws = xlsx.utils.json_to_sheet(exportData);
+    const wb = xlsx.utils.book_new();
+    xlsx.utils.book_append_sheet(wb, ws, "MyItems");
+    
+    // Generate buffer for CSV
+    const csvBuffer = xlsx.write(wb, { bookType: 'csv', type: 'buffer' });
+    
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename="my_items_export.csv"');
+    res.status(200).send(csvBuffer);
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to export medicines', error: error.message });
   }
 };
 

@@ -1,56 +1,75 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { authFetch } from '../../utils/authFetch';
-import { Search, Plus, Edit2, Trash2, X } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, X, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Download } from 'lucide-react';
 import './MyItems.css';
 
 function MyItems() {
   const [items, setItems] = useState([]);
   const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(true);
+  
+  // Filters & Search
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   
+  // Pagination & Sorting States
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [sortBy, setSortBy] = useState('createdAt');
+  const [sortOrder, setSortOrder] = useState('desc');
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  
   // Bulk Actions
   const [selectedIds, setSelectedIds] = useState(new Set());
   
-  // Edit Drawer
+  // Edit Drawer & Inline Edit
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [editForm, setEditForm] = useState({
     name: '', price: '', quantity: '', category: '', prescription: false, isActive: true
   });
+  
+  const [inlineEditField, setInlineEditField] = useState({ id: null, field: null, value: '' });
 
   const fetchMyItems = async () => {
+    setLoading(true);
     try {
-      const response = await authFetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/medicines/my`, {
+      const params = new URLSearchParams({
+        page,
+        limit,
+        sortBy,
+        sortOrder,
+        ...(searchQuery && { search: searchQuery }),
+        ...(categoryFilter && { category: categoryFilter }),
+        ...(statusFilter && { status: statusFilter })
+      });
+
+      const response = await authFetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/medicines/my?${params.toString()}`, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
       });
       const data = await response.json();
-      if (response.ok) setItems(data);
-      else setError(data.message || 'Failed to fetch items');
+      if (response.ok) {
+        setItems(data.medicines || []);
+        setTotalPages(data.totalPages || 1);
+        setTotalItems(data.totalItems || 0);
+      } else {
+        setError(data.message || 'Failed to fetch items');
+      }
     } catch (error) {
       setError('An error occurred while fetching items');
+    } finally {
+      setLoading(false);
     }
   };
 
-  useEffect(() => { fetchMyItems(); }, []);
-
-  // Derived State
-  const filteredItems = useMemo(() => {
-    return items.filter(item => {
-      const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesCategory = categoryFilter ? item.category === categoryFilter : true;
-      let matchesStatus = true;
-      if (statusFilter === 'active') matchesStatus = item.isActive !== false;
-      if (statusFilter === 'inactive') matchesStatus = item.isActive === false;
-      if (statusFilter === 'in-stock') matchesStatus = item.quantity > 0;
-      if (statusFilter === 'out-of-stock') matchesStatus = item.quantity === 0;
-      
-      return matchesSearch && matchesCategory && matchesStatus;
-    });
-  }, [items, searchQuery, categoryFilter, statusFilter]);
-
-  const categories = [...new Set(items.map(i => i.category))];
+  useEffect(() => { 
+    const delayDebounce = setTimeout(() => {
+      fetchMyItems(); 
+    }, 300);
+    return () => clearTimeout(delayDebounce);
+  }, [page, limit, sortBy, sortOrder, searchQuery, categoryFilter, statusFilter]);
 
   // Actions
   const toggleSelection = (id) => {
@@ -61,8 +80,8 @@ function MyItems() {
   };
 
   const toggleSelectAll = () => {
-    if (selectedIds.size === filteredItems.length) setSelectedIds(new Set());
-    else setSelectedIds(new Set(filteredItems.map(i => i._id)));
+    if (selectedIds.size === items.length && items.length > 0) setSelectedIds(new Set());
+    else setSelectedIds(new Set(items.map(i => i._id)));
   };
 
   const handleStatusToggle = async (id, currentStatus) => {
@@ -141,6 +160,51 @@ function MyItems() {
       }
     } catch (error) { console.error(error); }
   };
+  
+  const handleInlineSave = async () => {
+    if (!inlineEditField.id) return;
+    
+    const { id, field, value } = inlineEditField;
+    const item = items.find(i => i._id === id);
+    if (item && item[field] !== Number(value)) {
+      try {
+        const payload = {};
+        payload[field] = Number(value);
+        const response = await authFetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/medicines/${id}`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+        if (response.ok) fetchMyItems(); 
+      } catch (error) { console.error("Inline edit error", error); }
+    }
+    setInlineEditField({ id: null, field: null, value: '' });
+  };
+  
+  const handleExport = async () => {
+    try {
+      const response = await authFetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/medicines/export`, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+      if (!response.ok) throw new Error('Export failed');
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `my_items_export_${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error(error);
+      alert("Failed to export items.");
+    }
+  };
 
   return (
     <div className="my-items-container">
@@ -160,7 +224,10 @@ function MyItems() {
           
           <select className="filter-select" value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}>
             <option value="">All Categories</option>
-            {categories.map(c => <option key={c} value={c}>{c}</option>)}
+            <option value="Ayurvedic">Ayurvedic</option>
+            <option value="Allopathic">Allopathic</option>
+            <option value="Supplements">Supplements</option>
+            <option value="Personal Care">Personal Care</option>
           </select>
           
           <select className="filter-select" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
@@ -170,6 +237,10 @@ function MyItems() {
             <option value="in-stock">In Stock</option>
             <option value="out-of-stock">Out of Stock</option>
           </select>
+          
+          <button className="btn-secondary" style={{display:'flex', alignItems:'center', gap:'8px'}} onClick={handleExport}>
+            <Download size={18} /> Export CSV
+          </button>
           
           <button className="add-btn" onClick={() => window.location.href='/manage-products/add'}>
             <Plus size={18} /> Add Product
@@ -191,33 +262,62 @@ function MyItems() {
       )}
 
       <div className="table-container">
-        {filteredItems.length === 0 ? (
-          <div className="empty-state">
-            <h3>No products found</h3>
-            <p>Try adjusting your search or filters.</p>
-          </div>
-        ) : (
-          <table className="data-table">
-            <thead>
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th className="col-checkbox">
+                <input 
+                  type="checkbox" 
+                  checked={selectedIds.size === items.length && items.length > 0}
+                  onChange={toggleSelectAll}
+                />
+              </th>
+              <th className="col-image">Image</th>
+              <th style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => { setSortBy('name'); setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc'); }}>
+                Product Details {sortBy === 'name' && (sortOrder === 'asc' ? <ChevronUp size={14} style={{display:'inline', verticalAlign:'middle'}}/> : <ChevronDown size={14} style={{display:'inline', verticalAlign:'middle'}}/>)}
+              </th>
+              <th style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => { setSortBy('category'); setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc'); }}>
+                Category {sortBy === 'category' && (sortOrder === 'asc' ? <ChevronUp size={14} style={{display:'inline', verticalAlign:'middle'}}/> : <ChevronDown size={14} style={{display:'inline', verticalAlign:'middle'}}/>)}
+              </th>
+              <th style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => { setSortBy('price'); setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc'); }}>
+                Price {sortBy === 'price' && (sortOrder === 'asc' ? <ChevronUp size={14} style={{display:'inline', verticalAlign:'middle'}}/> : <ChevronDown size={14} style={{display:'inline', verticalAlign:'middle'}}/>)}
+              </th>
+              <th style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => { setSortBy('quantity'); setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc'); }}>
+                Stock {sortBy === 'quantity' && (sortOrder === 'asc' ? <ChevronUp size={14} style={{display:'inline', verticalAlign:'middle'}}/> : <ChevronDown size={14} style={{display:'inline', verticalAlign:'middle'}}/>)}
+              </th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              /* Skeleton Rows */
+              [1, 2, 3, 4, 5].map(n => (
+                <tr key={n}>
+                  <td><div className="skeleton" style={{width: '16px', height: '16px', margin: 'auto'}}></div></td>
+                  <td><div className="skeleton skeleton-image"></div></td>
+                  <td>
+                    <div className="skeleton skeleton-text medium"></div>
+                    <div className="skeleton skeleton-text short"></div>
+                  </td>
+                  <td><div className="skeleton skeleton-text medium"></div></td>
+                  <td><div className="skeleton skeleton-text short"></div></td>
+                  <td><div className="skeleton skeleton-badge"></div></td>
+                  <td><div className="skeleton skeleton-toggle"></div></td>
+                  <td><div className="skeleton skeleton-text short"></div></td>
+                </tr>
+              ))
+            ) : items.length === 0 ? (
               <tr>
-                <th className="col-checkbox">
-                  <input 
-                    type="checkbox" 
-                    checked={selectedIds.size === filteredItems.length && filteredItems.length > 0}
-                    onChange={toggleSelectAll}
-                  />
-                </th>
-                <th className="col-image">Image</th>
-                <th>Product Details</th>
-                <th>Category</th>
-                <th>Price</th>
-                <th>Stock</th>
-                <th>Status</th>
-                <th>Actions</th>
+                <td colSpan="8">
+                  <div className="empty-state">
+                    <h3>No products found</h3>
+                    <p>Try adjusting your search or filters.</p>
+                  </div>
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {filteredItems.map(item => {
+            ) : (
+              items.map(item => {
                 const isSelected = selectedIds.has(item._id);
                 const isActive = item.isActive !== false;
                 const stockBadgeClass = item.quantity > 10 ? 'badge-stock-healthy' : (item.quantity > 0 ? 'badge-stock-low' : 'badge-stock-out');
@@ -235,7 +335,7 @@ function MyItems() {
                           className="product-thumbnail"
                         />
                       ) : (
-                        <div className="product-thumbnail" style={{backgroundColor: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8'}}>No Img</div>
+                        <div className="product-thumbnail" style={{backgroundColor: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '10px'}}>No Img</div>
                       )}
                     </td>
                     <td>
@@ -245,11 +345,47 @@ function MyItems() {
                       </div>
                     </td>
                     <td>{item.category}</td>
-                    <td>₹{item.price}</td>
-                    <td>
-                      <span className={`badge ${stockBadgeClass}`}>
-                        {item.quantity} in stock
-                      </span>
+                    <td 
+                      onClick={() => setInlineEditField({ id: item._id, field: 'price', value: item.price })}
+                      style={{ cursor: 'pointer' }}
+                      title="Click to edit price"
+                    >
+                      {inlineEditField.id === item._id && inlineEditField.field === 'price' ? (
+                        <input 
+                          type="number" 
+                          autoFocus
+                          className="search-input"
+                          style={{ width: '80px', padding: '4px 8px' }}
+                          value={inlineEditField.value}
+                          onChange={(e) => setInlineEditField({...inlineEditField, value: e.target.value})}
+                          onBlur={handleInlineSave}
+                          onKeyDown={(e) => e.key === 'Enter' && handleInlineSave()}
+                        />
+                      ) : (
+                        `₹${item.price}`
+                      )}
+                    </td>
+                    <td 
+                      onClick={() => setInlineEditField({ id: item._id, field: 'quantity', value: item.quantity })}
+                      style={{ cursor: 'pointer' }}
+                      title="Click to edit stock"
+                    >
+                      {inlineEditField.id === item._id && inlineEditField.field === 'quantity' ? (
+                        <input 
+                          type="number" 
+                          autoFocus
+                          className="search-input"
+                          style={{ width: '60px', padding: '4px 8px' }}
+                          value={inlineEditField.value}
+                          onChange={(e) => setInlineEditField({...inlineEditField, value: e.target.value})}
+                          onBlur={handleInlineSave}
+                          onKeyDown={(e) => e.key === 'Enter' && handleInlineSave()}
+                        />
+                      ) : (
+                        <span className={`badge ${stockBadgeClass}`}>
+                          {item.quantity} in stock
+                        </span>
+                      )}
                     </td>
                     <td>
                       <label className="status-toggle">
@@ -263,11 +399,48 @@ function MyItems() {
                     </td>
                   </tr>
                 )
-              })}
-            </tbody>
-          </table>
-        )}
+              })
+            )}
+          </tbody>
+        </table>
       </div>
+
+      {totalPages > 0 && (
+        <div className="pagination">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span>Rows per page:</span>
+            <select 
+              className="filter-select" 
+              style={{ minWidth: 'auto', padding: '6px 12px' }} 
+              value={limit} 
+              onChange={(e) => { setLimit(Number(e.target.value)); setPage(1); }}
+            >
+              <option value="10">10</option>
+              <option value="20">20</option>
+              <option value="50">50</option>
+            </select>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <span>Page {page} of {totalPages} ({totalItems} items)</span>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button 
+                className="page-btn" 
+                onClick={() => setPage(p => Math.max(1, p - 1))} 
+                disabled={page === 1}
+              >
+                <ChevronLeft size={16} />
+              </button>
+              <button 
+                className="page-btn" 
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))} 
+                disabled={page === totalPages}
+              >
+                <ChevronRight size={16} />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {isDrawerOpen && (
         <div className="drawer-overlay" onClick={() => setIsDrawerOpen(false)}>

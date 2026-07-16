@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { addMedicine, updateMedicine, getAllMedicines, getMyMedicines, deleteMedicine, getMedicineById, bulkUpdateStatus, bulkDeleteMedicines } = require('../controllers/medicineController');
+const { addMedicine, updateMedicine, getAllMedicines, getMyMedicines, deleteMedicine, getMedicineById, bulkUpdateStatus, bulkDeleteMedicines, exportMyMedicines } = require('../controllers/medicineController');
 const auth = require('../middleware/auth');
 const multer = require('multer');
 const { addMedicinesFromZip, addBulkMedicines } = require('../controllers/medicineController');
@@ -82,6 +82,7 @@ router.post('/add-bulk', auth, addBulkMedicines); // Bulk Add medicines from tab
 router.put('/bulk-status', auth, bulkUpdateStatus); // Bulk update status (Active/Inactive)
 router.post('/bulk-delete', auth, bulkDeleteMedicines); // Bulk delete medicines
 router.put('/:id', auth, cloudUpload.single('image'), updateMedicine); // Update medicine (Retailer only)
+router.get('/export', auth, exportMyMedicines); // Export medicines to CSV
 router.get('/my', auth, getMyMedicines); // Get logged-in retailer's medicines
 router.delete('/:id', auth, deleteMedicine); // Delete medicine (Retailer only)
 router.get('/:id', getMedicineById); // Public route to view a single medicine

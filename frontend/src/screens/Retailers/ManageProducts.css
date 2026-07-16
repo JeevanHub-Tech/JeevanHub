@@ -1,12 +1,12 @@
 .manage-products-container {
-	width: 80%;
-	max-width: 900px;
+	width: 95%;
+	max-width: 1600px;
 	margin: 40px auto;
 	text-align: center;
 	font-family: Arial, sans-serif;
 	margin-top: 140px;
 	overflow: hidden;
-	background-color: rgb(255, 243, 222);
+	background-color: transparent;
 	padding: 20px;
 	border-radius: 15px;
 }

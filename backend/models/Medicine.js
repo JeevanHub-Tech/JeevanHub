@@ -11,6 +11,7 @@ const MedicineSchema = new mongoose.Schema({
   numReviews: { type: Number, default: 0 },
   images: [{ type: String }], 
   retailerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Retailer', required: true }, 
+  isActive: { type: Boolean, default: true },
 }, { timestamps: true });
 
 module.exports = mongoose.model('Medicine', MedicineSchema); 

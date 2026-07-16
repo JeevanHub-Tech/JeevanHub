@@ -209,7 +209,7 @@ exports.updateMedicine = async (req, res) => {
     }
 
     // C5-8: Whitelist allowed fields to prevent mass assignment (e.g., hijacking retailerId)
-    const allowedUpdates = ["name", "price", "quantity", "category", "prescription"];
+    const allowedUpdates = ["name", "price", "quantity", "category", "prescription", "description", "isActive"];
     const updates = {};
     for (const key of allowedUpdates) {
       if (req.body[key] !== undefined) {
@@ -228,6 +228,56 @@ exports.updateMedicine = async (req, res) => {
     );
 
     res.status(200).json({ message: 'Medicine updated', medicine: updated });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+// Bulk Update Status (Retailer Only)
+exports.bulkUpdateStatus = async (req, res) => {
+  try {
+    if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
+    if (req.user.role !== 'retailer' && req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied.' });
+    }
+    
+    const { ids, isActive } = req.body;
+    if (!ids || !Array.isArray(ids) || typeof isActive !== 'boolean') {
+      return res.status(400).json({ message: 'Invalid payload' });
+    }
+
+    const query = { _id: { $in: ids } };
+    if (req.user.role !== 'admin') {
+      query.retailerId = req.user._id; // Ensure retailers can only update their own
+    }
+
+    const result = await Medicine.updateMany(query, { $set: { isActive } });
+    res.status(200).json({ message: 'Status updated successfully', modifiedCount: result.modifiedCount });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+// Bulk Delete Medicines (Retailer Only)
+exports.bulkDeleteMedicines = async (req, res) => {
+  try {
+    if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
+    if (req.user.role !== 'retailer' && req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied.' });
+    }
+    
+    const { ids } = req.body;
+    if (!ids || !Array.isArray(ids)) {
+      return res.status(400).json({ message: 'Invalid payload' });
+    }
+
+    const query = { _id: { $in: ids } };
+    if (req.user.role !== 'admin') {
+      query.retailerId = req.user._id; // Ensure retailers can only delete their own
+    }
+
+    const result = await Medicine.deleteMany(query);
+    res.status(200).json({ message: 'Medicines deleted successfully', deletedCount: result.deletedCount });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }

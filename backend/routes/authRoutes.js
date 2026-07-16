@@ -38,6 +38,15 @@ const otpLimiter = rateLimit({
   message: { message: "Too many OTP verification attempts from this IP, please try again after 15 minutes." }
 });
 
+// Registration was previously unlimited. Budget is looser than login's
+// (shared IPs like offices/campuses may have several people signing up),
+// but still bounds automated account-creation abuse.
+const registerLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 15,
+  message: { message: "Too many registration attempts from this IP, please try again later." }
+});
+
 const cloudinary = require("../config/cloudinary");
 const { CloudinaryStorage } = require("multer-storage-cloudinary");
 const localUpload = multer({ storage: multer.memoryStorage() });
@@ -69,16 +78,34 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
-const upload = multer({ storage: storage, fileFilter: fileFilter });
+const REGISTRATION_FILE_LIMITS = { fileSize: 5 * 1024 * 1024 }; // 5MB per file
 
+const upload = multer({ storage: storage, fileFilter: fileFilter, limits: REGISTRATION_FILE_LIMITS });
+
+// Doctor registration collects only the certificate now - payment details are
+// UPI ID (text), matching what the profile page actually uses.
 const cpUpload = upload.fields([
   { name: "certificate", maxCount: 1 },
-  { name: "qrCode", maxCount: 1 },
 ]);
+
+// Cloudinary storage for the retailer's optional license document
+const retailerStorage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: async (req, file) => {
+    return {
+      folder: "jeevanhub/retailers",
+      resource_type: "auto",
+      public_id: Date.now() + "-" + file.originalname.split('.')[0]
+    };
+  },
+});
+
+const retailerUpload = multer({ storage: retailerStorage, fileFilter: fileFilter, limits: REGISTRATION_FILE_LIMITS });
+const licenseDocumentUpload = retailerUpload.single("licenseDocument");
 
 
 // Doctor, Retailer, Patient registration
-router.post("/register/doctor", (req, res, next) => {
+router.post("/register/doctor", registerLimiter, (req, res, next) => {
   cpUpload(req, res, function (err) {
     if (err instanceof multer.MulterError) {
       return res.status(400).json({ error: err.message });
@@ -88,8 +115,17 @@ router.post("/register/doctor", (req, res, next) => {
     next();
   });
 }, registerDoctor);
-router.post("/register/retailer", registerRetailer);
-router.post("/register/patient", registerPatient);
+router.post("/register/retailer", registerLimiter, (req, res, next) => {
+  licenseDocumentUpload(req, res, function (err) {
+    if (err instanceof multer.MulterError) {
+      return res.status(400).json({ error: err.message });
+    } else if (err) {
+      return res.status(400).json({ error: err.message });
+    }
+    next();
+  });
+}, registerRetailer);
+router.post("/register/patient", registerLimiter, registerPatient);
 router.post("/login", loginLimiter, loginUser);
 
 // No `auth` middleware here on purpose: the whole point is to mint a new

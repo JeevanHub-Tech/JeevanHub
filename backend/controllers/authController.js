@@ -6,6 +6,28 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const { sendOTPWhatsApp } = require('../scheduler');
+const {
+	patientRegistrationSchema,
+	doctorRegistrationSchema,
+	retailerRegistrationSchema,
+	validateRegistration,
+} = require('../validation/registrationSchemas');
+
+// Shared by every registration endpoint (Admin/Doctor/Retailer/Patient): a
+// Mongo duplicate-key error or a Mongoose ValidationError both map to a 400
+// with a readable message; anything else is an unexpected 500.
+const handleRegistrationError = (error, res) => {
+	console.error("Registration error:", error);
+	if (error.code === 11000) {
+		const duplicateField = Object.keys(error.keyValue)[0];
+		return res.status(400).json({ error: `${duplicateField} already exists` });
+	}
+	if (error.name === 'ValidationError') {
+		const messages = Object.values(error.errors).map(val => val.message);
+		return res.status(400).json({ error: messages.join(', ') });
+	}
+	return res.status(500).json({ error: 'Registration failed' });
+};
 
 // Helper function to generate a short-lived access token
 const generateToken = (user) => {
@@ -68,15 +90,7 @@ exports.registerAdmin = async (req, res) => {
 			}
 		});
 	} catch (error) {
-		if (error.code === 11000) {
-			const duplicateField = Object.keys(error.keyValue)[0];
-			return res.status(400).json({ error: `${duplicateField} already exists` });
-		}
-		if (error.name === 'ValidationError') {
-			const messages = Object.values(error.errors).map(val => val.message);
-			return res.status(400).json({ error: messages.join(', ') });
-		}
-		res.status(500).json({ error: 'Registration failed' });
+		return handleRegistrationError(error, res);
 	}
 };
 
@@ -151,14 +165,19 @@ exports.loginUser = async (req, res) => {
 
 // Register a new doctor
 exports.registerDoctor = async (req, res) => {
+	const { error, value } = validateRegistration(doctorRegistrationSchema, req.body);
+	if (error) {
+		return res.status(400).json({ error });
+	}
+
 	const {
 		firstName,
 		lastName,
 		registrationNumber,
 		email,
+		countryCode,
 		phone,
 		dob,
-		age,
 		experience,
 		specialization,
 		gender,
@@ -166,35 +185,39 @@ exports.registerDoctor = async (req, res) => {
 		education,
 		designation,
 		price,
-		password
-	} = req.body;
-	const certificate = req.files?.certificate ? req.files.certificate[0].path : null;
-	const qrCode = req.files?.qrCode ? req.files.qrCode[0].path : null;
+		password,
+		upiId,
+	} = value;
 
-	// Check if files are uploaded
-	// if (!certificate || !qrCode) {
-	// 	return res.status(400).json({ error: 'Both certificate and qrCode files are required.' });
-	// }
+	const certificate = req.files?.certificate ? req.files.certificate[0].path : null;
+
+	// Certificate is mandatory for self-registration (bulk-import via Excel is
+	// a separate admin path that doesn't go through this endpoint).
+	if (!certificate) {
+		return res.status(400).json({ error: 'Ayurvedic degree certificate is required' });
+	}
 
 	try {
-		if (!password) return res.status(400).json({ error: 'Password is required' });
-		const hashedPassword = await bcrypt.hash(password, 10);
-		let specializationArray = [];
-		if (specialization) {
-			specializationArray = Array.isArray(specialization)
-				? specialization
-				: specialization.split(",").map(item => item.trim());
-		} else {
-			specializationArray = [];
+		const existingEmail = await Doctor.findOne({ email });
+		if (existingEmail) {
+			return res.status(400).json({ error: 'email already exists' });
 		}
+		const existingRegistrationNumber = await Doctor.findOne({ registrationNumber });
+		if (existingRegistrationNumber) {
+			return res.status(400).json({ error: 'registrationNumber already exists' });
+		}
+
+		const hashedPassword = await bcrypt.hash(password, 10);
+		const specializationArray = specialization.split(',').map(item => item.trim()).filter(Boolean);
+
 		const doctor = new Doctor({
 			firstName,
 			lastName,
 			registrationNumber,
 			email,
+			countryCode,
 			phone,
 			dob,
-			age,
 			experience,
 			gender,
 			specialization: specializationArray,
@@ -204,7 +227,7 @@ exports.registerDoctor = async (req, res) => {
 			price,
 			password: hashedPassword,
 			certificate,
-			qrCode,
+			upiId: upiId || undefined,
 			role: 'doctor'
 		});
 		await doctor.save();
@@ -218,30 +241,59 @@ exports.registerDoctor = async (req, res) => {
 				role: 'doctor',
 			},
 		});
-	} catch (error) {
-		console.error("Doctor registration error:", error);
-		if (error.code === 11000) {
-			const duplicateField = Object.keys(error.keyValue)[0];
-			return res.status(400).json({ error: `${duplicateField} already exists` });
-		}
-		if (error.name === 'ValidationError') {
-			const messages = Object.values(error.errors).map(val => val.message);
-			return res.status(400).json({ error: messages.join(', ') });
-		}
-		res.status(500).json({ error: 'Registration failed' });
+	} catch (err) {
+		return handleRegistrationError(err, res);
 	}
 };
 
 // Register a new retailer
 exports.registerRetailer = async (req, res) => {
-	console.log("Registering retailer with data:", req.body);
-	const { firstName, lastName, BusinessName, email, phone, dob, licenseNumber, age, gender, zipCode, password } = req.body;
+	const { error, value } = validateRegistration(retailerRegistrationSchema, req.body);
+	if (error) {
+		return res.status(400).json({ error });
+	}
+
+	const {
+		firstName,
+		lastName,
+		BusinessName,
+		email,
+		countryCode,
+		phone,
+		dob,
+		licenseNumber,
+		gender,
+		zipCode,
+		password,
+	} = value;
+
+	// Optional license/certificate document - kept optional per product decision,
+	// unlike the doctor's certificate.
+	const licenseDocument = req.file ? req.file.path : null;
 
 	try {
-		console.log("Creating retailer:", firstName, lastName, BusinessName, email);
-		if (!password) return res.status(400).json({ error: 'Password is required' });
+		const existingEmail = await Retailer.findOne({ email });
+		if (existingEmail) {
+			return res.status(400).json({ error: 'email already exists' });
+		}
+
 		const hashedPassword = await bcrypt.hash(password, 10);
-		const retailer = new Retailer({ firstName, lastName, BusinessName, role: 'retailer', email, phone, dob, licenseNumber, age, gender, zipCode, password: hashedPassword, status: "active" });
+		const retailer = new Retailer({
+			firstName,
+			lastName,
+			BusinessName,
+			role: 'retailer',
+			email,
+			countryCode,
+			phone,
+			dob,
+			licenseNumber,
+			licenseDocument,
+			gender,
+			zipCode,
+			password: hashedPassword,
+			status: "active"
+		});
 		await retailer.save();
 		const token = generateToken(retailer);
 		setRefreshCookie(res, generateRefreshToken(retailer));
@@ -253,33 +305,42 @@ exports.registerRetailer = async (req, res) => {
 				role: 'retailer',
 			},
 		});
-	} catch (error) {
-		console.error("Retailer registration error:", error);
-		if (error.code === 11000) {
-			const duplicateField = Object.keys(error.keyValue)[0];
-			return res.status(400).json({ error: `${duplicateField} already exists` });
-		}
-		if (error.name === 'ValidationError') {
-			const messages = Object.values(error.errors).map(val => val.message);
-			return res.status(400).json({ error: messages.join(', ') });
-		}
-		res.status(500).json({ error: 'Registration failed' });
+	} catch (err) {
+		return handleRegistrationError(err, res);
 	}
 };
 
 // Register a new patient
 exports.registerPatient = async (req, res) => {
-	const { firstName, lastName, email, phone, dob, age, gender, zipCode, password } = req.body;
+	const { error, value } = validateRegistration(patientRegistrationSchema, req.body);
+	if (error) {
+		return res.status(400).json({ error });
+	}
+
+	const { firstName, lastName, email, countryCode, phone, dob, gender, zipCode, password } = value;
 
 	try {
-		console.log("Registering patient:", firstName, lastName, email);
-		if (!password) return res.status(400).json({ error: 'Password is required' });
+		const existingEmail = await Patient.findOne({ email });
+		if (existingEmail) {
+			return res.status(400).json({ error: 'email already exists' });
+		}
+
 		const hashedPassword = await bcrypt.hash(password, 10);
-		const patient = new Patient({ firstName, lastName, email, phone, dob, role: 'patient', age, gender, zipCode, password: hashedPassword });
+		const patient = new Patient({
+			firstName,
+			lastName,
+			email,
+			countryCode,
+			phone,
+			dob,
+			role: 'patient',
+			gender,
+			zipCode,
+			password: hashedPassword,
+		});
 		await patient.save();
 		const token = generateToken(patient);
 		setRefreshCookie(res, generateRefreshToken(patient));
-		console.log("Patient registered successfully:", patient);
 		res.status(201).json({
 			message: 'Patient registered successfully', token, user: {
 				id: patient._id,
@@ -288,17 +349,8 @@ exports.registerPatient = async (req, res) => {
 				role: 'patient',
 			},
 		});
-	} catch (error) {
-		console.error("Error registering patient:", error);
-		if (error.code === 11000) {
-			const duplicateField = Object.keys(error.keyValue)[0];
-			return res.status(400).json({ error: `${duplicateField} already exists` });
-		}
-		if (error.name === 'ValidationError') {
-			const messages = Object.values(error.errors).map(val => val.message);
-			return res.status(400).json({ error: messages.join(', ') });
-		}
-		res.status(500).json({ error: 'Registration failed' });
+	} catch (err) {
+		return handleRegistrationError(err, res);
 	}
 };
 

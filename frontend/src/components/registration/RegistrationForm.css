@@ -1,0 +1,422 @@
+/* Shared styling for all three registration screens (Patient/Doctor/Retailer),
+   built on the tokens in src/tokens.css instead of hardcoded hex values. */
+
+.rf-page {
+  /* This page is always the light "Modern Apothecary" theme (see the note at
+     the bottom of this file) - without this, a browser/OS in dark mode still
+     renders native form-control chrome (placeholder text, select popups,
+     date-picker icons, autofill suggestion lists) using dark-mode-assumed
+     colors, which clash badly with our explicitly light backgrounds. */
+  color-scheme: light;
+  min-height: 100vh;
+  padding: 150px 20px 60px;
+  background: linear-gradient(180deg, var(--jh-cream-tint) 0%, var(--jh-cream) 260px);
+  box-sizing: border-box;
+}
+
+.rf-card {
+  width: 100%;
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 44px 48px;
+  background: var(--jh-surface);
+  border-radius: var(--jh-radius-lg);
+  box-shadow: var(--jh-shadow-card);
+  box-sizing: border-box;
+}
+
+.rf-heading {
+  font-family: var(--jh-font-display);
+  color: var(--jh-ink-strong);
+  font-size: 2rem;
+  margin: 0 0 8px;
+}
+
+.rf-subheading {
+  font-family: var(--jh-font-body);
+  color: var(--jh-muted);
+  font-size: 1rem;
+  margin: 0 0 32px;
+}
+
+.rf-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: var(--jh-radius-md);
+  margin-bottom: 24px;
+  font-family: var(--jh-font-body);
+  font-size: 0.92rem;
+  line-height: 1.4;
+}
+
+.rf-banner-error {
+  background: #fbeaea;
+  color: #8a2c2c;
+  border: 1px solid rgba(138, 44, 44, 0.2);
+}
+
+.rf-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 28px;
+}
+
+.rf-section-title {
+  grid-column: 1 / -1;
+  font-family: var(--jh-font-display);
+  color: var(--jh-olive-deep);
+  font-size: 1.05rem;
+  margin: 20px 0 4px;
+  padding-top: 12px;
+  border-top: 1px solid var(--jh-line);
+}
+
+.rf-section-title:first-of-type {
+  margin-top: 4px;
+  padding-top: 0;
+  border-top: none;
+}
+
+.rf-field {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 14px;
+}
+
+.rf-field-full {
+  grid-column: 1 / -1;
+}
+
+/* Password + Confirm Password: stacked on top of each other, anchored to the
+   left column, instead of falling wherever the 2-column auto-flow happens to
+   land them. A nested grid matching the outer column proportions keeps the
+   left column visually aligned with the fields above it. */
+.rf-password-pair {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 28px;
+}
+
+.rf-password-pair-col {
+  grid-column: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.rf-password-pair-right {
+  grid-column: 2;
+}
+
+.rf-field label {
+  font-family: var(--jh-font-body);
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--jh-ink);
+  margin-bottom: 6px;
+}
+
+.rf-optional-tag {
+  font-weight: 400;
+  color: var(--jh-muted);
+}
+
+.rf-input,
+.rf-select {
+  width: 100%;
+  padding: 11px 14px;
+  border-radius: var(--jh-radius-sm);
+  border: 1px solid var(--jh-line-strong);
+  background: var(--jh-cream);
+  color: var(--jh-ink);
+  font-family: var(--jh-font-body);
+  font-size: 0.95rem;
+  box-sizing: border-box;
+  transition: border-color 160ms var(--jh-ease-organic), box-shadow 160ms var(--jh-ease-organic);
+}
+
+.rf-input:focus,
+.rf-select:focus {
+  outline: none;
+  border-color: var(--jh-olive-leaf);
+  box-shadow: 0 0 0 3px rgba(85, 107, 47, 0.14);
+}
+
+.rf-input::placeholder {
+  color: var(--jh-muted);
+  opacity: 1;
+}
+
+.rf-input-error {
+  border-color: #c0392b !important;
+}
+
+.rf-input-error:focus {
+  box-shadow: 0 0 0 3px rgba(192, 57, 43, 0.14) !important;
+}
+
+.rf-error-text {
+  color: #c0392b;
+  font-size: 0.8rem;
+  margin-top: 5px;
+  font-family: var(--jh-font-body);
+}
+
+.rf-select {
+  cursor: pointer;
+}
+
+/* Password field */
+.rf-password-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.rf-password-input {
+  padding-right: 42px;
+}
+
+.rf-password-toggle {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--jh-muted);
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rf-password-toggle:hover {
+  color: var(--jh-olive-leaf);
+}
+
+/* Phone + country code row */
+.rf-phone-row {
+  display: flex;
+  gap: 8px;
+}
+
+.rf-country-select {
+  position: relative;
+  flex: 0 0 190px;
+}
+
+.rf-country-input {
+  cursor: pointer;
+}
+
+.rf-phone-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.rf-country-dropdown {
+  position: absolute;
+  z-index: 1200;
+  top: calc(100% + 4px);
+  left: 0;
+  width: 260px;
+  max-height: 260px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  background: var(--jh-surface);
+  border: 1px solid var(--jh-line-strong);
+  border-radius: var(--jh-radius-md);
+  box-shadow: var(--jh-shadow-hover);
+}
+
+.rf-country-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: var(--jh-radius-sm);
+  cursor: pointer;
+  font-family: var(--jh-font-body);
+  font-size: 0.9rem;
+  color: var(--jh-ink);
+}
+
+.rf-country-option:hover,
+.rf-country-option-active {
+  background: var(--jh-sage-pale);
+}
+
+.rf-country-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rf-country-dial {
+  color: var(--jh-muted);
+  font-size: 0.85rem;
+}
+
+.rf-country-empty {
+  padding: 10px;
+  color: var(--jh-muted);
+  font-size: 0.88rem;
+  text-align: center;
+}
+
+/* File upload */
+.rf-field-file {
+  padding: 14px 16px;
+  background: var(--jh-sage-pale);
+  border-radius: var(--jh-radius-md);
+}
+
+.rf-file-input {
+  font-family: var(--jh-font-body);
+  font-size: 0.88rem;
+  color: var(--jh-ink);
+}
+
+/* Styles the browser's native file-picker control so it reads as a
+   clickable button matching the rest of the form, instead of plain text.
+   Two selectors needed for browser coverage of the file-picker button. */
+.rf-file-input::file-selector-button {
+  padding: 9px 20px;
+  margin-right: 14px;
+  border: none;
+  border-radius: var(--jh-radius-pill);
+  background: var(--jh-olive-action);
+  color: #fff;
+  font-family: var(--jh-font-body);
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background-color 160ms var(--jh-ease-organic);
+}
+
+.rf-file-input::-webkit-file-upload-button {
+  padding: 9px 20px;
+  margin-right: 14px;
+  border: none;
+  border-radius: var(--jh-radius-pill);
+  background: var(--jh-olive-action);
+  color: #fff;
+  font-family: var(--jh-font-body);
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background-color 160ms var(--jh-ease-organic);
+}
+
+.rf-file-input::file-selector-button:hover {
+  background: var(--jh-olive-hover);
+}
+
+.rf-file-input::-webkit-file-upload-button:hover {
+  background: var(--jh-olive-hover);
+}
+
+.rf-file-selected {
+  margin: 8px 0 0;
+  font-size: 0.85rem;
+  color: var(--jh-olive-deep);
+  font-weight: 600;
+}
+
+.rf-file-info {
+  margin: 6px 0 0;
+  font-size: 0.8rem;
+  color: var(--jh-muted);
+}
+
+/* Submit */
+.rf-submit-row {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: center;
+  margin-top: 24px;
+}
+
+.rf-submit-btn {
+  background: var(--jh-olive-action);
+  color: #fff;
+  border: none;
+  border-radius: var(--jh-radius-pill);
+  padding: 14px 48px;
+  font-family: var(--jh-font-body);
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 200ms var(--jh-ease-organic), transform 200ms var(--jh-ease-organic), box-shadow 200ms var(--jh-ease-organic);
+  box-shadow: var(--jh-shadow-rest);
+}
+
+.rf-submit-btn:hover:not(:disabled) {
+  background: var(--jh-olive-hover);
+  box-shadow: var(--jh-shadow-card);
+  transform: translateY(-1px);
+}
+
+.rf-submit-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.rf-footer-note {
+  grid-column: 1 / -1;
+  text-align: center;
+  margin-top: 14px;
+  font-family: var(--jh-font-body);
+  font-size: 0.88rem;
+  color: var(--jh-muted);
+}
+
+.rf-footer-note a {
+  color: var(--jh-olive-leaf);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.rf-footer-note a:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 760px) {
+  .rf-page {
+    padding: 120px 12px 40px;
+  }
+
+  .rf-card {
+    padding: 28px 22px;
+  }
+
+  .rf-form {
+    grid-template-columns: 1fr;
+  }
+
+  .rf-password-pair {
+    grid-template-columns: 1fr;
+  }
+
+  .rf-phone-row {
+    flex-direction: column;
+  }
+
+  .rf-country-select {
+    flex-basis: auto;
+  }
+
+  .rf-country-dropdown {
+    width: 100%;
+  }
+}
+
+/* No prefers-color-scheme override here: matching the rest of the site
+   (see Medicines.css), this is a single light "Modern Apothecary" identity,
+   not OS-driven dark mode. */

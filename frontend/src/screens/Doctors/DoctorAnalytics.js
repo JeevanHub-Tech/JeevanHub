@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import {
   PieChart,
   Pie,
@@ -18,6 +18,7 @@ import {
 } from "recharts";
 import "./DoctorAnalytics.css";
 import { authFetch } from "../../utils/authFetch";
+import { AuthContext } from "../../context/AuthContext";
 
 // Customized label for Pie/Donut Chart
 const RADIAN = Math.PI / 180;
@@ -45,12 +46,21 @@ function DoctorAnalytics() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const email = localStorage.getItem("email");
+  const { auth } = useContext(AuthContext);
+  const doctorId = auth.user?.id;
 
   useEffect(() => {
+    // Note: /api/bookings/bookings is admin-only (403 for a doctor) -- doctors
+    // must fetch their own bookings through the doctor-scoped endpoint instead.
     const fetchBookings = async () => {
+      if (!doctorId) {
+        setLoading(false);
+        setError("Error: Doctor ID not found.");
+        return;
+      }
+
       try {
-        const response = await authFetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/bookings/bookings`, {
+        const response = await authFetch(`${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/bookings/doctor/${doctorId}`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`
           }
@@ -60,9 +70,7 @@ function DoctorAnalytics() {
         }
 
         const data = await response.json();
-        const doctorBookings = data.bookings.filter(
-          (booking) => booking.doctorEmail === email
-        );
+        const doctorBookings = Array.isArray(data.bookings) ? data.bookings : [];
         setBookings(doctorBookings);
         setLoading(false);
       } catch (error) {
@@ -72,7 +80,7 @@ function DoctorAnalytics() {
     };
 
     fetchBookings();
-  }, [email]);
+  }, [doctorId]);
 
   // Data for Gender Pie Chart
   const genderData = [

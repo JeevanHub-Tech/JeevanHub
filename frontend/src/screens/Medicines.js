@@ -60,15 +60,24 @@ const Medicines = () => {
 				setCategories(uniqueCategories);
 
 				// 2. Set Cart (Transform Backend Structure to Frontend Flat Structure)
-				// Backend returns: items: [{ medicineId: { _id: "...", name: "..." }, quantity: 2 }]
+				// GET /api/cart/:patientId returns { defaultCart, doctorCarts } (see Cart.js),
+				// NOT { cartItems }  -- that shape is only returned by the add/update/remove
+				// mutation endpoints. Reading .cartItems here silently produced an empty
+				// cart on every load regardless of what was actually in it.
+				// Backend item shape: [{ medicineId: { _id: "...", name: "..." }, quantity: 2 }]
 				// Frontend needs: [{ _id: "...", name: "...", quantity: 2 }]
-				const backendItems = cartResponse.data.cartItems?.items || [];
-				const formattedCart = backendItems.map(item => ({
-					...item.medicineId, // Spread medicine details (name, price, image)
-					quantity: item.quantity,
-					// Keep the Medicine ID as _id so existing frontend logic works
-					_id: item.medicineId._id
-				}));
+				const backendItems = cartResponse.data.defaultCart?.items || [];
+				const formattedCart = backendItems.reduce((acc, item) => {
+					if (item.medicineId) {
+						acc.push({
+							...item.medicineId, // Spread medicine details (name, price, image)
+							quantity: item.quantity,
+							// Keep the Medicine ID as _id so existing frontend logic works
+							_id: item.medicineId._id
+						});
+					}
+					return acc;
+				}, []);
 
 				setCart(formattedCart);
 				setLoading(false);

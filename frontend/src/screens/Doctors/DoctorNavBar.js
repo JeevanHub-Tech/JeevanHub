@@ -82,6 +82,8 @@ function DoctorNavBar() {
 
 		fetchPendingCount();
 
+		if (!doctorId) return;
+
 		const token = localStorage.getItem("token");
 		const sseUrl = `${process.env.REACT_APP_AYURVEDA_BACKEND_URL}/api/bookings/stream-notifications/${doctorId}?token=${token}`;
 		const eventSource = new EventSource(sseUrl);

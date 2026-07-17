@@ -348,15 +348,26 @@ exports.updateOrderStatus = async (req, res) => {
             return res.status(403).json({ message: 'You do not own any items in this order' });
         }
 
-        // Calculate global orderStatus based on item statuses
+        // Calculate global orderStatus based on item statuses.
+        // 'accepted'/'rejected' are the retailer's initial response to a
+        // pending order and must be checked before the generic "some item
+        // moved past pending -> processing" fallback, otherwise Accept/Reject
+        // both collapse into 'processing' and the order disappears from the
+        // Accepted/Rejected tabs in the retailer's MyOrders screen.
         const allStatuses = order.items.map(item => item.itemStatus);
-        
+
         if (allStatuses.every(s => s === 'delivered')) {
             order.orderStatus = 'delivered';
         } else if (allStatuses.every(s => s === 'shipped' || s === 'delivered')) {
             order.orderStatus = 'shipped';
-        } else if (allStatuses.some(s => s !== 'pending')) {
+        } else if (allStatuses.every(s => s === 'rejected')) {
+            order.orderStatus = 'rejected';
+        } else if (allStatuses.every(s => s === 'accepted' || s === 'rejected')) {
+            order.orderStatus = 'accepted';
+        } else if (allStatuses.some(s => s === 'processing' || s === 'shipped' || s === 'delivered')) {
             order.orderStatus = 'processing';
+        } else if (allStatuses.some(s => s !== 'pending')) {
+            order.orderStatus = 'accepted';
         } else {
             order.orderStatus = 'pending';
         }

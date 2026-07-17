@@ -859,8 +859,11 @@ exports.getBookingsByPatientId = async (req, res) => {
 			const bookingObj = booking.toObject ? booking.toObject() : booking;
 			const doctor = booking.doctorId;
 
-			// Resolve the current startTime for the booking based on base template
-			if (doctor && doctor.availableSlots) {
+			// Resolve the current startTime for the booking based on base template.
+			// Older/malformed bookings can have a missing slotId (or one that no
+			// longer matches any base slot) -- guard the .toString() calls so a
+			// single bad record doesn't 500 the whole list.
+			if (doctor && doctor.availableSlots && booking.slotId) {
 				const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][new Date(booking.dateOfAppointment).getDay()];
 				const baseSlots = doctor.availableSlots[dayName] || [];
 				const baseSlot = baseSlots.find(s => s._id.toString() === booking.slotId.toString());
@@ -869,7 +872,7 @@ exports.getBookingsByPatientId = async (req, res) => {
 				}
 			}
 
-			if (doctor && Array.isArray(doctor.scheduleOverrides)) {
+			if (doctor && Array.isArray(doctor.scheduleOverrides) && booking.slotId) {
 				const bookingDateStr = new Date(booking.dateOfAppointment).toDateString();
 				const override = doctor.scheduleOverrides.find(o => {
 					return new Date(o.date).toDateString() === bookingDateStr &&
@@ -947,7 +950,10 @@ exports.getBookingsByDoctorId = async (req, res) => {
 			processedBookings = bookings.map(booking => {
 				const bookingObj = booking.toObject ? booking.toObject() : booking;
 
-				if (doctor.availableSlots) {
+				// Bookings with a missing/legacy slotId can't be matched against the
+				// doctor's current slot templates -- skip that resolution instead of
+				// letting a bad record crash the whole list with a 500.
+				if (doctor.availableSlots && booking.slotId) {
 					const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][new Date(booking.dateOfAppointment).getDay()];
 					const baseSlots = doctor.availableSlots[dayName] || [];
 					const baseSlot = baseSlots.find(s => s._id.toString() === booking.slotId.toString());
@@ -957,7 +963,7 @@ exports.getBookingsByDoctorId = async (req, res) => {
 				}
 
 				// Process bookings with doctor schedule overrides (cancellations and reschedules)
-				if (Array.isArray(doctor.scheduleOverrides)) {
+				if (Array.isArray(doctor.scheduleOverrides) && booking.slotId) {
 					const bookingDateStr = new Date(booking.dateOfAppointment).toDateString();
 					const override = doctor.scheduleOverrides.find(o => {
 						return new Date(o.date).toDateString() === bookingDateStr &&

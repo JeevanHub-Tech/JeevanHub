@@ -2,6 +2,7 @@ const Patient = require("../models/Patient");
 const DietYoga = require("../models/DietYoga");
 const Order = require("../models/Order");
 const Medicine = require("../models/Medicine");
+const Booking = require("../models/Booking");
 const cloudinary = require("../config/cloudinary");
 const path = require("path");
 
@@ -394,13 +395,22 @@ exports.uploadMedicalHistory = async (req, res) => {
 	}
 };
 
-// Get a patient's previous medical history documents (self, admin, or a doctor reviewing the patient)
+// Get a patient's previous medical history documents (self, admin, or a doctor
+// who actually has a booking with this patient -- NOT any doctor for any
+// patient, which is what "req.user.role !== 'doctor'" alone used to allow).
 exports.getMedicalHistory = async (req, res) => {
 	const { id } = req.params;
 
 	try {
-		if (req.user.role !== 'admin' && req.user.role !== 'doctor' && req.user._id.toString() !== id) {
-			return res.status(403).json({ message: "Not authorized to view this patient's medical history" });
+		const isSelf = req.user._id.toString() === id;
+		if (req.user.role !== 'admin' && !isSelf) {
+			if (req.user.role !== 'doctor') {
+				return res.status(403).json({ message: "Not authorized to view this patient's medical history" });
+			}
+			const hasRelationship = await Booking.exists({ doctorId: req.user._id, patientId: id });
+			if (!hasRelationship) {
+				return res.status(403).json({ message: "Not authorized to view this patient's medical history" });
+			}
 		}
 
 		const patient = await Patient.findById(id).select('medicalHistory');

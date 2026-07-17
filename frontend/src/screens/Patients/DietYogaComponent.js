@@ -21,6 +21,7 @@ const DAY_UI_META = {
 const DietYogaComponent = () => {
     const { auth } = useContext(AuthContext);
     const patientId = auth?.user?.id;
+    const role = auth?.role;
 
     const token = localStorage.getItem('token');
 
@@ -48,6 +49,13 @@ const DietYogaComponent = () => {
 
     // 1. Fetch Prakriti
     useEffect(() => {
+        // This screen is a patient-only feature: Prakriti/dosha data is
+        // per-patient PHI-adjacent data. Doctors, admins, and retailers
+        // must never see a (real or fabricated) dosha result here.
+        if (role && role !== 'patient') {
+            setLoadingPrakriti(false);
+            return;
+        }
         const fetchPrakritiData = async () => {
             if (!patientId) return;
             try {
@@ -55,7 +63,10 @@ const DietYogaComponent = () => {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const data = await response.json();
-                setPrakriti(data.dominantDosha || 'Vata');
+                // No fallback to a default dosha: a missing/empty result means
+                // the assessment genuinely hasn't been taken yet, and the UI
+                // must show that plainly instead of a fabricated "result".
+                setPrakriti(data && data.dominantDosha ? data.dominantDosha : null);
             } catch (err) {
                 console.error("Error fetching Prakriti:", err);
             } finally {
@@ -63,10 +74,14 @@ const DietYogaComponent = () => {
             }
         };
         fetchPrakritiData();
-    }, [patientId, token]);
+    }, [patientId, token, role]);
 
     // 2. Fetch Diet Plan
     useEffect(() => {
+        if (role && role !== 'patient') {
+            setLoadingDiet(false);
+            return;
+        }
         const fetchDietYoga = async () => {
             if (!patientId) return;
             setLoadingDiet(true);
@@ -93,7 +108,7 @@ const DietYogaComponent = () => {
             }
         };
         fetchDietYoga();
-    }, [patientId, token]);
+    }, [patientId, token, role]);
 
     // --- HELPERS ---
 
@@ -118,7 +133,7 @@ const DietYogaComponent = () => {
                 yoga: "Vigorous Flow, Power Yoga, Chest Opening Poses."
             }
         };
-        return plans[type] || plans.Vata;
+        return plans[type] || null;
     };
 
     // Re-added helper to prevent crashes in View 3
@@ -330,8 +345,18 @@ const DietYogaComponent = () => {
             {/* TAB: GENERAL PROTOCOL */}
             {activeTab === 'general' && (
                 <div className="dashboard-view-animate">
-                    {loadingPrakriti ? (
+                    {role && role !== 'patient' ? (
+                        <div className="empty-state">
+                            Prakriti/dosha assessments are a patient-only feature. There is no
+                            Prakriti result to show on this account.
+                        </div>
+                    ) : loadingPrakriti ? (
                         <div className="loading-state">Loading Prakriti...</div>
+                    ) : !prakriti || !activePlan ? (
+                        <div className="empty-state">
+                            You haven't taken the Prakriti assessment yet. Complete it to see
+                            your personalized dosha type and general diet &amp; yoga guidelines.
+                        </div>
                     ) : (
                         <>
                             <div className="status-banner">

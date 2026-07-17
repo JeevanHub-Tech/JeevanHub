@@ -1,89 +1,87 @@
-import React, { useContext } from 'react';
+import React, { useContext, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import ProtectedRoute from './components/ProtectedRoute';
-import HomeScreen from './screens/HomeScreen';
-import MedicinesScreen from './screens/Medicines';
-import DietYogaScreen from './screens/Patients/DietYogaComponent';
 import NavBar from './screens/Navbar';
 import PatientNavBar from './screens/Patients/PatientNavBar';  // Patient specific navbar
 import DoctorNavBar from './screens/Doctors/DoctorNavBar';    // Doctor specific navbar
 import RetailerNavBar from './screens/Retailers/RetailerNavBar'; // Retailer specific navbar
-import SanjeevaniChatbot from './components/SanjeevaniChatbot';
-
-// import BlogsVideosScreen from './screens/BlogsVideosScreen';
-import BlogsVideosScreen from './screens/BlogVideos/BlogsVideosScreen';
-
-import CartScreen from './screens/Cart';
-import PaymentScreen from './screens/Payment';
-import BlogScreen from './screens/Blogs';
-import Blog from './screens/BlogVideos/Blog';
-import DoctorsScreen from './screens/DoctorsScreen';
-import DoctorDetailPage from './screens/Patients/DoctorDetailPage';
-import DoctorReviewsPage from './screens/Doctors/DoctorReviewsPage';
-import SignInScreen from './screens/SignInScreen';
-import SignUpScreen from './screens/SignUpScreen';
-import SignUpPatientScreen from './screens/Patients/SignUpPatientScreen';
-import SignUpDoctorScreen from './screens/Doctors/SignUpDoctorScreen';
-import SignUpRetailerScreen from './screens/Retailers/SignUpRetailerScreen';
-import PrakritiDetermination from './screens/Patients/PrakritiDetermination';
-import TreatmentsScreen from './screens/Treatments';
-import AppointedDoctor from './screens/Patients/Appointments/AppointedDoctor';
-import Payment from './screens/Patients/Appointments/PaymentPage';
-import PatientPage from './screens/Patients/PatientPage'
-import OrderHistory from './screens/Patients/OrderHistory';
-import DoctorHomeScreen from './screens/Doctors/DoctorHomeScreen';
-import DoctorAnalytics from './screens/Doctors/DoctorAnalytics';
-import CurrentRequests from './screens/Doctors/CurrentRequests';
-import AppointmentSlots from './screens/Doctors/AppointmentSlots';
-import PatientList from './screens/Doctors/PatientList';
-import HealthBlogs from './screens/Doctors/HealthBlogs';
-import TreatmentDetailsScreen from './screens/TreatmentDetailsScreen';
-import CheckoutScreen from './screens/CheckoutScreen';
-
-import AdminPage from './screens/admin/AdminPage';
-import AdminUsers from './screens/admin/AdminUsers';
-import AdminProfile from './screens/admin/AdminProfile';
-import AdminManagement from './screens/admin/AdminManagement';
-import AdminAuditLogs from './screens/admin/AdminAuditLogs';
-import AdminRetailers from './screens/admin/Retailer/AdminRetailers';
 import AdminNavBar from './screens/admin/AdminNavbar';
-import AdminBlogs from './screens/admin/AdminBlogs';
-import AdminBlogsUpdate from './screens/admin/AdminBlogsUpdate';
-
-import RetailerDashboard from './screens/Retailers/RetailerDashboard';
-import ManageProducts from './screens/Retailers/ManageProducts';
-import BulkMedicineUpload from './screens/Retailers/BulkMedicineUpload';
-import MyItems from './screens/Retailers/MyItems';
-import RetailerAnalytics from './screens/Retailers/RetailerAnalytics';
-import MyOrders from './screens/Retailers/MyOrders';
-import CustomerSupport from './screens/Retailers/CustomerSupport';
-
 import Footer from './screens/Footer';
-import Notification from './screens/Patients/Notification'; // Patient notifications
-import DoctorNotification from './screens/Doctors/DoctorNotification'; // Doctor notifications
-import RetailerNotification from './screens/Retailers/RetailerNotification';
-import MobileChatApp from './screens/MobileChatApp';
+import SanjeevaniChatbot from './components/SanjeevaniChatbot';
 import BackToChatFab from './components/BackToChatFab';
 import { AuthContext } from './context/AuthContext';
-import PaymentPage from './screens/Patients/Appointments/PaymentPage';
 
-// make changes by myself
-import PatientFullDetails from "./screens/admin/patient/PatientFullDetails";
-import DoctorFullDetails from './screens/admin/doctors/DoctorFullDetails';
-import Transactions from './screens/admin/transactions';
-import RetailerManagement from './screens/admin/Retailer/RetailerManagement';
-import Patientprofile from './screens/admin/patient/PatientProfile';
-import PatientProfileNew from './screens/Patients/PatientProfile'; // New patient profile
-import DoctorProfileNew from './screens/Doctors/DoctorProfile';    // New doctor profile
-import RetailerProfileNew from './screens/Retailers/RetailerProfile'; // New retailer profile
-import DoctorList from './screens/admin/doctors/DoctorList';
-import RetailerFullDetails from './screens/admin/Retailer/RetailerFullDetails';
-import { PatientHeader } from './screens/Doctors/doctorPrescribe/PatientHeader';
-import PrescribeIndex from './screens/Doctors/doctorPrescribe/PrescribeIndex';
-import PatientFeedback from './screens/Patients/PatientFeedback';
-import BuyerFeedback from './screens/Patients/BuyerFeedback';
-import MedicineIdDetails from './screens/MedicineIdDetails';
-import PrakritiAssessment from './screens/Patients/PrakritiAssessment';
+// Every screen is route-level, so it's only ever needed once the user
+// actually navigates there — lazy-load them so the initial bundle isn't
+// ~150 screens' worth of JS (see the Vite build warning this replaced).
+const MobileChatApp = lazy(() => import('./screens/MobileChatApp'));
+const HomeScreen = lazy(() => import('./screens/HomeScreen'));
+const MedicinesScreen = lazy(() => import('./screens/Medicines'));
+const DietYogaScreen = lazy(() => import('./screens/Patients/DietYogaComponent'));
+const BlogsVideosScreen = lazy(() => import('./screens/BlogVideos/BlogsVideosScreen'));
+const CartScreen = lazy(() => import('./screens/Cart'));
+const PaymentScreen = lazy(() => import('./screens/Payment'));
+const BlogScreen = lazy(() => import('./screens/Blogs'));
+const Blog = lazy(() => import('./screens/BlogVideos/Blog'));
+const DoctorsScreen = lazy(() => import('./screens/DoctorsScreen'));
+const DoctorDetailPage = lazy(() => import('./screens/Patients/DoctorDetailPage'));
+const DoctorReviewsPage = lazy(() => import('./screens/Doctors/DoctorReviewsPage'));
+const SignInScreen = lazy(() => import('./screens/SignInScreen'));
+const SignUpScreen = lazy(() => import('./screens/SignUpScreen'));
+const SignUpPatientScreen = lazy(() => import('./screens/Patients/SignUpPatientScreen'));
+const SignUpDoctorScreen = lazy(() => import('./screens/Doctors/SignUpDoctorScreen'));
+const SignUpRetailerScreen = lazy(() => import('./screens/Retailers/SignUpRetailerScreen'));
+const PrakritiDetermination = lazy(() => import('./screens/Patients/PrakritiDetermination'));
+const TreatmentsScreen = lazy(() => import('./screens/Treatments'));
+const AppointedDoctor = lazy(() => import('./screens/Patients/Appointments/AppointedDoctor'));
+const PaymentPage = lazy(() => import('./screens/Patients/Appointments/PaymentPage'));
+const PatientPage = lazy(() => import('./screens/Patients/PatientPage'));
+const OrderHistory = lazy(() => import('./screens/Patients/OrderHistory'));
+const DoctorHomeScreen = lazy(() => import('./screens/Doctors/DoctorHomeScreen'));
+const DoctorAnalytics = lazy(() => import('./screens/Doctors/DoctorAnalytics'));
+const CurrentRequests = lazy(() => import('./screens/Doctors/CurrentRequests'));
+const AppointmentSlots = lazy(() => import('./screens/Doctors/AppointmentSlots'));
+const PatientList = lazy(() => import('./screens/Doctors/PatientList'));
+const HealthBlogs = lazy(() => import('./screens/Doctors/HealthBlogs'));
+const TreatmentDetailsScreen = lazy(() => import('./screens/TreatmentDetailsScreen'));
+const CheckoutScreen = lazy(() => import('./screens/CheckoutScreen'));
+
+const AdminPage = lazy(() => import('./screens/admin/AdminPage'));
+const AdminUsers = lazy(() => import('./screens/admin/AdminUsers'));
+const AdminProfile = lazy(() => import('./screens/admin/AdminProfile'));
+const AdminManagement = lazy(() => import('./screens/admin/AdminManagement'));
+const AdminAuditLogs = lazy(() => import('./screens/admin/AdminAuditLogs'));
+const AdminRetailers = lazy(() => import('./screens/admin/Retailer/AdminRetailers'));
+const AdminBlogs = lazy(() => import('./screens/admin/AdminBlogs'));
+const AdminBlogsUpdate = lazy(() => import('./screens/admin/AdminBlogsUpdate'));
+
+const RetailerDashboard = lazy(() => import('./screens/Retailers/RetailerDashboard'));
+const ManageProducts = lazy(() => import('./screens/Retailers/ManageProducts'));
+const BulkMedicineUpload = lazy(() => import('./screens/Retailers/BulkMedicineUpload'));
+const MyItems = lazy(() => import('./screens/Retailers/MyItems'));
+const RetailerAnalytics = lazy(() => import('./screens/Retailers/RetailerAnalytics'));
+const MyOrders = lazy(() => import('./screens/Retailers/MyOrders'));
+const CustomerSupport = lazy(() => import('./screens/Retailers/CustomerSupport'));
+
+const Notification = lazy(() => import('./screens/Patients/Notification')); // Patient notifications
+const DoctorNotification = lazy(() => import('./screens/Doctors/DoctorNotification')); // Doctor notifications
+const RetailerNotification = lazy(() => import('./screens/Retailers/RetailerNotification'));
+
+const PatientFullDetails = lazy(() => import('./screens/admin/patient/PatientFullDetails'));
+const DoctorFullDetails = lazy(() => import('./screens/admin/doctors/DoctorFullDetails'));
+const Transactions = lazy(() => import('./screens/admin/transactions'));
+const RetailerManagement = lazy(() => import('./screens/admin/Retailer/RetailerManagement'));
+const Patientprofile = lazy(() => import('./screens/admin/patient/PatientProfile'));
+const PatientProfileNew = lazy(() => import('./screens/Patients/PatientProfile')); // New patient profile
+const DoctorProfileNew = lazy(() => import('./screens/Doctors/DoctorProfile'));    // New doctor profile
+const RetailerProfileNew = lazy(() => import('./screens/Retailers/RetailerProfile')); // New retailer profile
+const DoctorList = lazy(() => import('./screens/admin/doctors/DoctorList'));
+const RetailerFullDetails = lazy(() => import('./screens/admin/Retailer/RetailerFullDetails'));
+const PrescribeIndex = lazy(() => import('./screens/Doctors/doctorPrescribe/PrescribeIndex'));
+const PatientFeedback = lazy(() => import('./screens/Patients/PatientFeedback'));
+const BuyerFeedback = lazy(() => import('./screens/Patients/BuyerFeedback'));
+const MedicineIdDetails = lazy(() => import('./screens/MedicineIdDetails'));
+const PrakritiAssessment = lazy(() => import('./screens/Patients/PrakritiAssessment'));
 
 function App() {
   const { auth } = useContext(AuthContext);
@@ -97,7 +95,9 @@ function App() {
   if (isChatbotPWA) {
     return (
       <Router>
-        <MobileChatApp />
+        <Suspense fallback={null}>
+          <MobileChatApp />
+        </Suspense>
       </Router>
     );
   }
@@ -121,88 +121,83 @@ function App() {
   return (
     <Router>
       {renderNavBar()}
-      <Routes>
-        <Route path="/" element={<HomeScreen />} />
-        <Route path="/signin" element={<SignInScreen />} />
-        <Route path="/signup" element={<SignUpScreen />} />
-        <Route path="/treatments" element={<TreatmentsScreen />} />
-        <Route path="/treatment/:category" element={<TreatmentDetailsScreen />} />
-        <Route path="/diet-yoga" element={<DietYogaScreen />} />
-        <Route path="/blogs-videos" element={<BlogsVideosScreen />} />
-        <Route path="/blogs" element={<BlogScreen />} />
-        <Route path="/blog/:id" element={<Blog />} />
-        <Route path="/cart" element={<CartScreen />} />
-        <Route path="/payment" element={<PaymentScreen />} />
-        <Route path="/doctors" element={<DoctorsScreen />} />
-        <Route path="/doctor-detail" element={<DoctorDetailPage />} />
-        <Route path="/medicines" element={<MedicinesScreen />} />
-        <Route path="/medicines/:id" element={<MedicineIdDetails />} />
+      <Suspense fallback={null}>
+        <Routes>
+          <Route path="/" element={<HomeScreen />} />
+          <Route path="/signin" element={<SignInScreen />} />
+          <Route path="/signup" element={<SignUpScreen />} />
+          <Route path="/treatments" element={<TreatmentsScreen />} />
+          <Route path="/treatment/:category" element={<TreatmentDetailsScreen />} />
+          <Route path="/diet-yoga" element={<DietYogaScreen />} />
+          <Route path="/blogs-videos" element={<BlogsVideosScreen />} />
+          <Route path="/blogs" element={<BlogScreen />} />
+          <Route path="/blog/:id" element={<Blog />} />
+          <Route path="/cart" element={<CartScreen />} />
+          <Route path="/payment" element={<PaymentScreen />} />
+          <Route path="/doctors" element={<DoctorsScreen />} />
+          <Route path="/doctor-detail" element={<DoctorDetailPage />} />
+          <Route path="/medicines" element={<MedicinesScreen />} />
+          <Route path="/medicines/:id" element={<MedicineIdDetails />} />
 
-        <Route path="/signup-patient" element={<SignUpPatientScreen />} />
-        <Route path="/signup-doctor" element={<SignUpDoctorScreen />} />
-        <Route path="/signup-retailer" element={<SignUpRetailerScreen />} />
-        <Route path="/prakritidetermination" element={<PrakritiDetermination />} />
-        <Route path="/appointed-doctor" element={<AppointedDoctor />} />
-        <Route path="/payment2" element={<PaymentPage />} />
-        <Route path="/patient-home" element={<PatientPage />} />
+          <Route path="/signup-patient" element={<SignUpPatientScreen />} />
+          <Route path="/signup-doctor" element={<SignUpDoctorScreen />} />
+          <Route path="/signup-retailer" element={<SignUpRetailerScreen />} />
+          <Route path="/prakritidetermination" element={<PrakritiDetermination />} />
+          <Route path="/appointed-doctor" element={<AppointedDoctor />} />
+          <Route path="/payment2" element={<PaymentPage />} />
+          <Route path="/patient-home" element={<PatientPage />} />
 
-        <Route path="/admin-home" element={<AdminPage />} />
-        <Route path="/admin/profile" element={<AdminProfile />} />
-        <Route path="/admin/management" element={<AdminManagement />} />
-        <Route path="/admin/audit-logs" element={<AdminAuditLogs />} />
-        <Route path="/admin/consultations" element={<DoctorList />} />
-        <Route path="/admin/blogs" element={<AdminBlogs />} />
-        <Route path="/admin/blogs/update/:id" element={<AdminBlogsUpdate />} />
-        <Route path="/patients/:id" element={<Patientprofile />} />
-        <Route path="/admin/consultations/:id" element={<DoctorFullDetails />} />
-        <Route path="/admin/transactions" element={<Transactions />} />
-        <Route path="/admin/medicine-orders" element={<RetailerManagement />} />
-        <Route path="/admin/users" element={<PatientFullDetails />} />
-        <Route path="/admin/medicine-orders/:id" element={<RetailerFullDetails />} />
+          <Route path="/admin-home" element={<AdminPage />} />
+          <Route path="/admin/profile" element={<AdminProfile />} />
+          <Route path="/admin/management" element={<AdminManagement />} />
+          <Route path="/admin/audit-logs" element={<AdminAuditLogs />} />
+          <Route path="/admin/consultations" element={<DoctorList />} />
+          <Route path="/admin/blogs" element={<AdminBlogs />} />
+          <Route path="/admin/blogs/update/:id" element={<AdminBlogsUpdate />} />
+          <Route path="/patients/:id" element={<Patientprofile />} />
+          <Route path="/admin/consultations/:id" element={<DoctorFullDetails />} />
+          <Route path="/admin/transactions" element={<Transactions />} />
+          <Route path="/admin/medicine-orders" element={<RetailerManagement />} />
+          <Route path="/admin/users" element={<PatientFullDetails />} />
+          <Route path="/admin/medicine-orders/:id" element={<RetailerFullDetails />} />
 
-        <Route path="/profile/doctor/:id" element={<DoctorFullDetails />} />
-        <Route path="/profile/retailer/:id" element={<RetailerFullDetails />} />
-        <Route path="/profile/patient/:id" element={<Patientprofile />} />
-        <Route path="/prakritiassessment" element={<PrakritiAssessment />} />
+          <Route path="/profile/doctor/:id" element={<DoctorFullDetails />} />
+          <Route path="/profile/retailer/:id" element={<RetailerFullDetails />} />
+          <Route path="/profile/patient/:id" element={<Patientprofile />} />
+          <Route path="/prakritiassessment" element={<PrakritiAssessment />} />
 
+          <Route element={<ProtectedRoute />}>
+            <Route path="/profile/patient" element={<PatientProfileNew />} />
+            <Route path="/profile/doctor" element={<DoctorProfileNew />} />
+            <Route path="/profile/retailer" element={<RetailerProfileNew />} />
+            <Route path="/current-requests" element={<CurrentRequests />} />
 
+            <Route path="/PatientFeedback/:id" element={<PatientFeedback />} />
+            <Route path="/BuyerFeedback/:id" element={<BuyerFeedback />} />
+            <Route path="/doctorsprescribe/:bookingId" element={<PrescribeIndex />} />
+            <Route path="/doctor-home" element={<DoctorHomeScreen />} />
+            <Route path="/appointment-slots" element={<AppointmentSlots />} />
+            <Route path="/doctor-analytics" element={<DoctorAnalytics />} />
+            <Route path="/patient-list" element={<PatientList />} />
+            <Route path="/health-blogs" element={<HealthBlogs />} />
+            <Route path="/notifications" element={<Notification />} />
 
-
-        <Route element={<ProtectedRoute />}>
-          <Route path="/profile/patient" element={<PatientProfileNew />} />
-          <Route path="/profile/doctor" element={<DoctorProfileNew />} />
-          <Route path="/profile/retailer" element={<RetailerProfileNew />} />
-          <Route path="/current-requests" element={<CurrentRequests />} />
-          {/* my changes */}
-
-          <Route path="/PatientFeedback/:id" element={<PatientFeedback />} />
-          <Route path="/BuyerFeedback/:id" element={<BuyerFeedback />} />
-          <Route path="/doctorsprescribe/:bookingId" element={<PrescribeIndex />} />
-          <Route path="/doctor-home" element={<DoctorHomeScreen />} />
-          <Route path="/appointment-slots" element={<AppointmentSlots />} />
-          <Route path="/doctor-analytics" element={<DoctorAnalytics />} />
-          <Route path="/patient-list" element={<PatientList />} />
-          <Route path="/health-blogs" element={<HealthBlogs />} />
-          <Route path="/notifications" element={<Notification />} />
-          {/* make chane */}
-
-
-
-          <Route path="/retailer-home" element={<RetailerDashboard />} />
-          <Route path="/doctor-notifications" element={<DoctorNotification />} />
-          <Route path="/manage-products" element={<ManageProducts />}>
-            <Route path="add" element={<BulkMedicineUpload />} />
-            <Route path="items" element={<MyItems />} />
+            <Route path="/retailer-home" element={<RetailerDashboard />} />
+            <Route path="/doctor-notifications" element={<DoctorNotification />} />
+            <Route path="/manage-products" element={<ManageProducts />}>
+              <Route path="add" element={<BulkMedicineUpload />} />
+              <Route path="items" element={<MyItems />} />
+            </Route>
+            <Route path="/order-history" element={<OrderHistory />} />
+            <Route path="/doctor-reviews" element={<DoctorReviewsPage />} />
+            <Route path="/checkout" element={<CheckoutScreen />} />
+            <Route path="/retailer-analytics" element={<RetailerAnalytics />} />
+            <Route path="/retailer-notifications" element={<RetailerNotification />} />
+            <Route path="/my-orders" element={<MyOrders />} />
+            <Route path="/customer-support" element={<CustomerSupport />} />
           </Route>
-          <Route path="/order-history" element={<OrderHistory />} />
-          <Route path="/doctor-reviews" element={<DoctorReviewsPage />} />
-          <Route path="/checkout" element={<CheckoutScreen />} />
-          <Route path="/retailer-analytics" element={<RetailerAnalytics />} />
-          <Route path="/retailer-notifications" element={<RetailerNotification />} />
-          <Route path="/my-orders" element={<MyOrders />} />
-          <Route path="/customer-support" element={<CustomerSupport />} />
-        </Route>
-      </Routes>
+        </Routes>
+      </Suspense>
       <Footer />
       <SanjeevaniChatbot />
       <BackToChatFab />

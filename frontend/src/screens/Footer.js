@@ -28,21 +28,21 @@ function Footer() {
         </div>
         <div className="footer-section">
           <h4>Contact Us</h4>
-          <p>Email: support@ayurvedic.com</p>
+          <p>Email: jeevanhub0@gmail.com</p>
           <p>Phone: 8688324518</p>
         </div>
         <div className="footer-section">
           <h4>Follow Us</h4>
           <ul className="social-links">
-            <li><a href="https://facebook.com">Facebook</a></li>
-            <li><a href="https://twitter.com">Twitter</a></li>
-            <li><a href="https://instagram.com">Instagram</a></li>
-            <li><a href="https://linkedin.com">LinkedIn</a></li>
+            <li><a href="https://www.facebook.com/profile.php?id=61590780691533&sk=photos" target="_blank" rel="noopener noreferrer">Facebook</a></li>
+            <li><a href="https://x.com/jeevanhub_" target="_blank" rel="noopener noreferrer">Twitter</a></li>
+            <li><a href="https://www.instagram.com/jeevanhub_ayurveda/?hl=en" target="_blank" rel="noopener noreferrer">Instagram</a></li>
+            <li><a href="https://www.linkedin.com/in/jeevanhub-undefined-9b9128417/" target="_blank" rel="noopener noreferrer">LinkedIn</a></li>
           </ul>
         </div>
       </div>
       <div className="footer-bottom">
-        <p>&copy; {new Date().getFullYear()} Ayurvedic Consultations. All rights reserved.</p>
+        <p>&copy; {new Date().getFullYear()} JeevanHub. All rights reserved.</p>
       </div>
     </footer>
   );

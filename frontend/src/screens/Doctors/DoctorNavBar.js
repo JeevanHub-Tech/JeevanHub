@@ -169,7 +169,6 @@ function DoctorNavBar() {
 									case "doctor": navigate("/doctors"); break;
 									case "disease": navigate("/treatments"); break;
 									case "medicine": navigate("/medicines"); break;
-									case "diet-yoga": navigate("/diet-yoga"); break;
 									case "blogs-videos": navigate("/blogs-videos"); break;
 									default: break;
 								}
@@ -178,7 +177,6 @@ function DoctorNavBar() {
 								<option value="doctor">Doctor</option>
 								<option value="disease">Diseases</option>
 								<option value="medicine">Medicines</option>
-								<option value="diet-yoga">Diet And Yoga</option>
 								<option value="blogs-videos">Blogs</option>
 							</select>
 						</div>

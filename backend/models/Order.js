@@ -7,7 +7,11 @@ const orderSchema = new mongoose.Schema({
     medicineId: { type: mongoose.Schema.Types.ObjectId, ref: 'Medicine', required: true },
     quantity: { type: Number, required: true },
     subTotal: { type: Number, required: true },
-    itemStatus: { type: String, enum: ['pending', 'processing', 'shipped', 'delivered', 'cancelled'], default: 'pending' },
+    // 'accepted'/'rejected' cover the retailer's initial response to a pending
+    // order; without them in the enum, the retailer "Accept"/"Reject" actions
+    // (MyOrders.js) fail Mongoose validation on save and the order silently
+    // never progresses past "pending" -- see updateOrderStatus below.
+    itemStatus: { type: String, enum: ['pending', 'accepted', 'rejected', 'processing', 'shipped', 'delivered', 'cancelled'], default: 'pending' },
     retailerStatus: { type: String, enum: ['received', 'accepted', 'rejected', 'shipped'], default: 'received' }
   }],
   totalPrice: Number,
@@ -54,7 +58,7 @@ const orderSchema = new mongoose.Schema({
   },
   orderStatus: {
     type: String,
-    enum: ['pending', 'processing', 'shipped', 'delivered', 'cancelled'],
+    enum: ['pending', 'accepted', 'rejected', 'processing', 'shipped', 'delivered', 'cancelled'],
     default: 'pending'
   },
   retailerStatus: {

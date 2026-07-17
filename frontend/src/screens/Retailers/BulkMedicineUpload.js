@@ -435,10 +435,25 @@ const BulkMedicineUpload = () => {
         setZipFile(e.target.files[0]);
     };
 
+    // Extensions the backend (excelParserController.parseBulkUpload) knows how to parse.
+    const SUPPORTED_BULK_EXTENSIONS = ['.zip', '.csv', '.xlsx'];
+
+    const getFileExtension = (file) => {
+        const name = file?.name || '';
+        const idx = name.lastIndexOf('.');
+        return idx === -1 ? '' : name.slice(idx).toLowerCase();
+    };
+
     const handleZipSubmit = async (e) => {
         e.preventDefault();
         if (!zipFile) {
-            setZipError("Please upload a zip file.");
+            setZipError("Please upload a .zip, .csv, or .xlsx file.");
+            return;
+        }
+
+        const ext = getFileExtension(zipFile);
+        if (!SUPPORTED_BULK_EXTENSIONS.includes(ext)) {
+            setZipError(`Unsupported file type "${ext || 'unknown'}". Please upload a .zip, .csv, or .xlsx file.`);
             return;
         }
 
@@ -459,23 +474,23 @@ const BulkMedicineUpload = () => {
             if (response.ok) {
                 const data = await response.json();
                 const newStagedRows = data.stagedRows || [];
-                
+
                 // Remove trailing empty rows so staged rows flow cleanly after manual entries
                 let filteredRows = [...rows];
                 while (filteredRows.length > 0 && isRowEmpty(filteredRows[filteredRows.length - 1]) && !filteredRows[filteredRows.length - 1].isStaged) {
                     filteredRows.pop();
                 }
-                
+
                 updateRowsAndSync([...filteredRows, ...newStagedRows]);
                 alert("File parsed successfully! Please review the staged items.");
                 setZipFile(null);
                 setZipError(null);
             } else {
                 const data = await response.json();
-                setZipError(data.message || "Failed to add items from zip");
+                setZipError(data.message || "Failed to add items from file");
             }
         } catch (error) {
-            setZipError("An error occurred while uploading the zip file");
+            setZipError("An error occurred while uploading the file");
         }
     };
 
@@ -679,14 +694,14 @@ const BulkMedicineUpload = () => {
                 <div className="header-actions" style={{ display: 'flex', flexDirection: 'row', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
                     <form className="zip-form-inline" onSubmit={handleZipSubmit} style={{ margin: 0 }}>
                         {zipError && <span className="zip-error">{zipError}</span>}
-                        <label className="zip-file-label" title={zipFile ? zipFile.name : 'Choose ZIP File'}>
-                            <input 
-                                type="file" 
-                                accept=".zip" 
+                        <label className="zip-file-label" title={zipFile ? zipFile.name : 'Choose .zip, .csv, or .xlsx File'}>
+                            <input
+                                type="file"
+                                accept=".zip,.csv,.xlsx,application/zip,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                                 onClick={(e) => { e.target.value = null; }}
-                                onChange={handleZipChange} 
-                                style={{ display: 'none' }} 
-                                required 
+                                onChange={handleZipChange}
+                                style={{ display: 'none' }}
+                                required
                             />
                             <span>{zipFile ? zipFile.name : 'Choose File'}</span>
                         </label>

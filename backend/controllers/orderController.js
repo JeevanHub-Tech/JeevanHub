@@ -585,9 +585,7 @@ exports.getOrdersByRetailerId = async (req, res) => {
         const medicineIds = medicines.map(m => m._id);
 
         if (medicineIds.length === 0) {
-            return res.status(404).json({
-                message: "No products found for this retailer, so no orders could be found.",
-            });
+            return res.status(200).json({ orders: [] });
         }
 
         const orders = await Order.find({
@@ -686,9 +684,7 @@ exports.getFeedbackByRetailerId = async (req, res) => {
         const medicineIds = medicines.map(med => med._id);
 
         if (medicineIds.length === 0) {
-            return res.status(404).json({
-                message: "No products found for this retailer.",
-            });
+            return res.status(200).json({ feedback: [] });
         }
 
         const ordersWithFeedback = await Order.find({
@@ -702,9 +698,7 @@ exports.getFeedbackByRetailerId = async (req, res) => {
             });
 
         if (!ordersWithFeedback || ordersWithFeedback.length === 0) {
-            return res.status(404).json({
-                message: "No feedback found for this retailer.",
-            });
+            return res.status(200).json({ feedback: [] });
         }
 
         const flattenedFeedback = ordersWithFeedback.map(order => ({

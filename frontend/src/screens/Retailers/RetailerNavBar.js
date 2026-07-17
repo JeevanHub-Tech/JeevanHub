@@ -107,8 +107,8 @@ function RetailerNavBar() {
 				<div className="logo-container">
 					<img src={logo} alt="Retailer Logo" className="nav-logo" />
 					<div className="text-container">
-						<div className="logo-text">AYURVEDIC</div>
-						<div className="consultations-text">eHub</div>
+						<div className="logo-text">Jeevan</div>
+						<div className="consultations-text">Hub</div>
 					</div>
 				</div>
 				<div className="search-signin">

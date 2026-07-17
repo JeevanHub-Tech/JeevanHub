@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 const WebChatSession = require('../models/WebChatSession');
 const jwt = require('jsonwebtoken');
 const nativeAi = require('../services/nativeAiService');
@@ -10,6 +11,65 @@ const Patient = require('../models/Patient');
 const Booking = require('../models/Booking');
 const Retailer = require('../models/Retailer');
 const Admin = require('../models/Admin');
+const Medicine = require('../models/Medicine');
+const Order = require('../models/Order');
+
+// Matches questions that ask about real product/inventory/sales data — these
+// must be answered from the DB, never from the LLM's imagination. See
+// documentation/issues Retailer Dashboard Issue 5 ("Sanjeevani AI misinformation":
+// the bot was inventing a "top-selling" product that doesn't exist).
+const PRODUCT_QUERY_REGEX = /top[\s-]?sell|best[\s-]?sell|best[\s-]?product|most\s*popular|popular\s*product|top\s*product|which\s*product/i;
+const INVENTORY_QUERY_REGEX = /\binventory\b|\bstock\b|how\s*many\s*product|number\s*of\s*product|product\s*count|products?\s*(are\s*)?(available|listed|added)/i;
+
+// ─── Utility: Ground product/sales questions in real DB data ─────────────────
+// Queries the actual Medicine/Order collections so the AI never has to guess
+// or invent product names/figures. scopeRetailerId (a verified retailer's own
+// id) narrows the query to that retailer's own products; leave it null for a
+// platform-wide answer.
+async function getProductGroundingContext(scopeRetailerId) {
+    try {
+        // Match the convention used elsewhere (medicineController.js) — treat a
+        // missing isActive field as active, don't require it to be strictly true.
+        const medicineMatch = { isActive: { $ne: false } };
+        if (scopeRetailerId) {
+            medicineMatch.retailerId = new mongoose.Types.ObjectId(scopeRetailerId);
+        }
+        const totalProducts = await Medicine.countDocuments(medicineMatch);
+
+        if (totalProducts === 0) {
+            return `REAL INVENTORY DATA (queried from the database right now — this is ground truth, not a guess):
+- Total active products${scopeRetailerId ? ' for this retailer' : ' on the platform'}: 0
+- Since there are zero products, there is NO sales history and NO "top-selling" or "most popular" product.
+- You MUST tell the user plainly that no products have been added yet, so there is nothing to rank as best-selling or popular. Do NOT name any product — none exist.`;
+        }
+
+        const pipeline = [
+            { $unwind: '$items' },
+            { $match: { 'items.itemStatus': { $nin: ['cancelled', 'rejected'] } } },
+            { $group: { _id: '$items.medicineId', totalQty: { $sum: '$items.quantity' } } },
+            { $sort: { totalQty: -1 } },
+            { $limit: 5 },
+            { $lookup: { from: 'medicines', localField: '_id', foreignField: '_id', as: 'medicine' } },
+            { $unwind: '$medicine' },
+        ];
+        if (scopeRetailerId) {
+            pipeline.push({ $match: { 'medicine.retailerId': new mongoose.Types.ObjectId(scopeRetailerId) } });
+        }
+        const topSellers = await Order.aggregate(pipeline);
+
+        const sellerLines = topSellers.length > 0
+            ? topSellers.map((s, i) => `${i + 1}. ${s.medicine.name} — ${s.totalQty} unit(s) sold`).join('\n')
+            : 'No completed orders exist yet, so there is no real sales data to rank a "top-selling" product from.';
+
+        return `REAL INVENTORY DATA (queried from the database right now — this is ground truth, not a guess):
+- Total active products${scopeRetailerId ? ' for this retailer' : ' on the platform'}: ${totalProducts}
+- Actual top-selling products by units sold (from real order records):
+${sellerLines}`;
+    } catch (e) {
+        console.error('Product grounding query failed:', e.message);
+        return '';
+    }
+}
 
 let doctorCache = {
     data: null,
@@ -251,7 +311,23 @@ router.post('/message', async (req, res) => {
 
         // ── Route based on intent ──────────────────────────────────────
 
-        if (intent.intent === 'greeting') {
+        if (PRODUCT_QUERY_REGEX.test(message) || INVENTORY_QUERY_REGEX.test(message)) {
+            // Grounding fix for retailer/product questions (documentation/issues
+            // Retailer Dashboard Issue 5): never let the LLM freely answer
+            // "top-selling"/"popular"/inventory questions from its own imagination.
+            // Always query the real Medicine/Order collections first and force the
+            // model to use ONLY that verified data.
+            session.currentFlow = 'idle';
+            const effectiveRole = verifiedRole || (session.isRegistered ? userRole : null);
+            const scopeRetailerId = (effectiveRole === 'retailer' && verifiedUserId) ? verifiedUserId : null;
+            const groundingContext = await getProductGroundingContext(scopeRetailerId);
+            responseText = await nativeAi.generateResponse(message, session.conversationHistory, {
+                userName: session.profile?.firstName,
+                productContext: groundingContext,
+                customInstruction: 'The user is asking about product inventory, sales, or which product is "top-selling"/"best"/"most popular". You MUST base your answer STRICTLY on the REAL INVENTORY DATA block in context — never invent a product name, count, or sales figure that is not in that block. If it says there are zero products, say plainly that no products have been added to the platform yet and there is no top-seller to report.'
+            });
+
+        } else if (intent.intent === 'greeting') {
             session.currentFlow = 'idle';
             session.healthData = {};
             if (session.isRegistered || isRegistered) {

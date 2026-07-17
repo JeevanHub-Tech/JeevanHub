@@ -336,6 +336,9 @@ async function generateResponse(userMessage, conversationHistory = [], contextIn
         if (contextInfo.customInstruction) {
             contextParts.push(`Special instruction: ${contextInfo.customInstruction}`);
         }
+        if (contextInfo.productContext) {
+            contextParts.push(contextInfo.productContext);
+        }
 
         const contextString = contextParts.length > 0
             ? `\n\nCURRENT CONTEXT:\n${contextParts.join('\n')}`

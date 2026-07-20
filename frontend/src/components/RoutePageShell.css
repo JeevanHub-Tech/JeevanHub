@@ -1,5 +1,5 @@
 .route-page-shell {
-	min-height: calc(100vh - 106px);
+	min-height: 100vh;
 	display: flex;
 	flex-direction: column;
 	box-sizing: border-box;

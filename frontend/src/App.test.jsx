@@ -9,4 +9,5 @@ test('renders the homepage nav without crashing', () => {
     </AuthProvider>
   );
   expect(screen.getAllByText(/JeevanHub|Jeevan/i).length).toBeGreaterThan(0);
+  expect(screen.queryByRole('contentinfo')).toBeInTheDocument();
 });

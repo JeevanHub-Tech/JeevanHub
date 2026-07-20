@@ -158,7 +158,7 @@ const YogaPositions = () => {
 					effect="coverflow"
 					grabCursor={true}
 					centeredSlides={true}
-					loop={true}
+					loop={yogaPositions.length > 5}
 					slidesPerView="auto"
 					coverflowEffect={{
 						rotate: 0,

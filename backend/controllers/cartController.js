@@ -18,6 +18,7 @@ const recalcTotal = (cart) => {
 // by a doctor's prescriptions, kept as separate documents (never merged).
 exports.getCartByPatientID = async (req, res) => {
     const { patientId } = req.params;
+    const defaultOnly = req.query.scope === 'default';
 
     try {
         if (!patientId) {
@@ -27,13 +28,19 @@ exports.getCartByPatientID = async (req, res) => {
             return res.status(403).json({ message: "Not authorized" });
         }
 
+        const defaultCartQuery = Cart.findOne({ patientId, doctorId: null })
+            .populate(CART_ITEM_POPULATE)
+            .lean();
+
         const [defaultCart, doctorCarts] = await Promise.all([
-            Cart.findOne({ patientId, doctorId: null }).populate(CART_ITEM_POPULATE),
-            // Most recently active (last prescribed/updated) doctor cart first.
-            Cart.find({ patientId, doctorId: { $ne: null } })
-                .sort({ updatedAt: -1 })
-                .populate(CART_ITEM_POPULATE)
-                .populate({ path: 'doctorId', select: 'firstName lastName' })
+            defaultCartQuery,
+            defaultOnly
+                ? Promise.resolve([])
+                : Cart.find({ patientId, doctorId: { $ne: null } })
+                    .sort({ updatedAt: -1 })
+                    .populate(CART_ITEM_POPULATE)
+                    .populate({ path: 'doctorId', select: 'firstName lastName' })
+                    .lean()
         ]);
 
         return res.status(200).json({

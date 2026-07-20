@@ -4,6 +4,7 @@ import { AuthContext } from '../context/AuthContext';
 import { authFetch } from '../utils/authFetch';
 import './CheckoutScreen.css';
 import { BACKEND_URL, RAZORPAY_KEY_ID } from '../config';
+import { getCheckoutCartUrl, getDefaultCartItems } from '../utils/cartData';
 
 const CheckoutScreen = () => {
 	const navigate = useNavigate();
@@ -60,7 +61,7 @@ const CheckoutScreen = () => {
 				return;
 			}
 			try {
-				const response = await authFetch(`${BACKEND_URL}/api/cart/${userId}`, {
+				const response = await authFetch(`${BACKEND_URL}${getCheckoutCartUrl(userId)}`, {
 					method: 'GET',
 					headers: { 'Content-Type': 'application/json' }
 				});
@@ -68,7 +69,7 @@ const CheckoutScreen = () => {
 				if (!response.ok) {
 					throw new Error(data.message || 'Failed to load cart');
 				}
-				setCartItems(data.cartItems ? data.cartItems.items : []);
+				setCartItems(getDefaultCartItems(data));
 			} catch (err) {
 				console.error('Error fetching cart:', err);
 				setError('Could not load your cart. Please go back and try again.');

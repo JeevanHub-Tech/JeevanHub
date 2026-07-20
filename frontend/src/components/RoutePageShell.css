@@ -1,0 +1,10 @@
+.route-page-shell {
+	min-height: calc(100vh - 106px);
+	display: flex;
+	flex-direction: column;
+	box-sizing: border-box;
+}
+
+.route-page-shell > * {
+	flex: 1 0 auto;
+}

@@ -9,6 +9,8 @@ import AdminNavBar from './screens/admin/AdminNavbar';
 import Footer from './screens/Footer';
 import SanjeevaniChatbot from './components/SanjeevaniChatbot';
 import BackToChatFab from './components/BackToChatFab';
+import AppLoadingState from './components/AppLoadingState';
+import RoutePageShell from './components/RoutePageShell';
 import { AuthContext } from './context/AuthContext';
 
 // Every screen is route-level, so it's only ever needed once the user
@@ -95,7 +97,7 @@ function App() {
   if (isChatbotPWA) {
     return (
       <Router>
-        <Suspense fallback={null}>
+        <Suspense fallback={<AppLoadingState />}>
           <MobileChatApp />
         </Suspense>
       </Router>
@@ -121,7 +123,8 @@ function App() {
   return (
     <Router>
       {renderNavBar()}
-      <Suspense fallback={null}>
+      <RoutePageShell>
+      <Suspense fallback={<AppLoadingState />}>
         <Routes>
           <Route path="/" element={<HomeScreen />} />
           <Route path="/signin" element={<SignInScreen />} />
@@ -198,6 +201,7 @@ function App() {
           </Route>
         </Routes>
       </Suspense>
+      </RoutePageShell>
       <Footer />
       <SanjeevaniChatbot />
       <BackToChatFab />

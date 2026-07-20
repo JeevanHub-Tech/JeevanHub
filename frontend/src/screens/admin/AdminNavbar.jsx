@@ -120,7 +120,7 @@ function AdminNavBar() {
 				<div className="search-signin">
 					<div className="search-bar">
 						<div className="dropdown">
-							<select onChange={(e) => {
+							<select defaultValue="" onChange={(e) => {
 								const value = e.target.value;
 								switch(value) {
 									case "doctor": navigate("/doctors"); break;
@@ -131,7 +131,7 @@ function AdminNavBar() {
 									default: break;
 								}
 							}}>
-								<option value="" disabled selected hidden>Explore...</option>
+								<option value="" disabled hidden>Explore...</option>
 								<option value="doctor">Doctor</option>
 								<option value="disease">Diseases</option>
 								<option value="medicine">Medicines</option>

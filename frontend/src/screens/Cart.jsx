@@ -82,7 +82,7 @@ const MyCartEmptyPlaceholder = ({ onBrowse }) => (
 
 const CartScreen = () => {
 	const navigate = useNavigate();
-	const { auth } = useContext(AuthContext);
+	const { auth, loading: authLoading } = useContext(AuthContext);
 
 	const [defaultCart, setDefaultCart] = useState({ items: [], totalPrice: 0 });
 	const [doctorCarts, setDoctorCarts] = useState([]);
@@ -95,6 +95,7 @@ const CartScreen = () => {
 
 	useEffect(() => {
 		const fetchCart = async () => {
+			if (authLoading) return;
 			if (!patientId) {
 				setLoading(false);
 				return;
@@ -139,7 +140,7 @@ const CartScreen = () => {
 		};
 
 		fetchCart();
-	}, [patientId, token]);
+	}, [authLoading, patientId, token]);
 
 	const toggleExpanded = (doctorId) => {
 		setExpandedIds(prev => {
@@ -325,7 +326,7 @@ const CartScreen = () => {
 	const isEverythingEmpty = defaultCart.items.length === 0 && doctorCarts.length === 0;
 	const hasDoctorCarts = doctorCarts.length > 0;
 
-	if (loading) {
+	if (authLoading || loading) {
 		return (
 			<div className="cart-page">
 				<div className="cart-status-container">

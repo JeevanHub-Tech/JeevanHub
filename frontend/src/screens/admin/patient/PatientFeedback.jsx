@@ -1,17 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import './PatientFeedback.css';
 import { MessageSquareText, Star } from 'lucide-react';
+
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { cn } from "@/lib/utils";
 import { authFetch } from '../../../utils/authFetch';
 import { BACKEND_URL } from '../../../config';
 
 const StarRating = ({ rating }) => {
 	return (
-		<div className="star-display">
+		<div className="flex gap-1">
 			{[...Array(5)].map((_, index) => (
 				<Star
 					key={index}
 					size={18}
-					className={index < rating ? 'star filled' : 'star'}
+					className={cn(index < rating ? "fill-(--jh-turmeric-gold) text-(--jh-turmeric-gold)" : "fill-transparent text-border")}
 				/>
 			))}
 		</div>
@@ -25,7 +28,6 @@ const Feedback = ({ patientId }) => {
 	const [loadingReviewedOrders, setLoadingReviewedOrders] = useState(true);
 	const [feedbackList, setFeedbackList] = useState([]);
 
-	// ✅ Fetch reviewed bookings for a patient
 	useEffect(() => {
 		const fetchReviewedBookings = async () => {
 			try {
@@ -48,7 +50,6 @@ const Feedback = ({ patientId }) => {
 
 				const data = await res.json();
 				setReviewedBookings(data.bookings);
-				console.log("Reviewed Bookings:", data.bookings);
 			} catch (error) {
 				console.error("❌ Error fetching reviewed bookings:", error);
 			} finally {
@@ -59,7 +60,6 @@ const Feedback = ({ patientId }) => {
 		if (patientId) fetchReviewedBookings();
 	}, [patientId]);
 
-	// ✅ Fetch reviewed orders for a buyer
 	useEffect(() => {
 		const fetchReviewedOrders = async () => {
 			try {
@@ -82,7 +82,6 @@ const Feedback = ({ patientId }) => {
 
 				const data = await res.json();
 				setReviewedOrders(data.orders);
-				console.log("Reviewed Orders:", data.orders);
 			} catch (error) {
 				console.error("❌ Error fetching reviewed orders:", error);
 			} finally {
@@ -93,7 +92,6 @@ const Feedback = ({ patientId }) => {
 		if (patientId) fetchReviewedOrders();
 	}, [patientId]);
 
-	// ✅ Merge both into one list
 	useEffect(() => {
 		if (!loadingReviewedBookings && !loadingReviewedOrders) {
 			const bookingsFeedback = reviewedBookings.map((b) => ({
@@ -123,18 +121,19 @@ const Feedback = ({ patientId }) => {
 	}, [reviewedBookings, reviewedOrders, loadingReviewedBookings, loadingReviewedOrders]);
 
 	return (
-		<div className="card feedback-display-card">
-			<h3>
-				<MessageSquareText size={20} /> Feedback History
-			</h3>
-
-			<div className="feedback-list">
+		<Card>
+			<CardHeader>
+				<CardTitle className="flex items-center gap-2 font-display text-xl">
+					<MessageSquareText size={20} /> Feedback History
+				</CardTitle>
+			</CardHeader>
+			<CardContent className="flex flex-col gap-6">
 				{feedbackList.length > 0 ? (
 					feedbackList.map((fb) => (
-						<div key={fb.id} className="feedback-item-card">
-							<div className="feedback-item-header">
-								<span className="feedback-category">{fb.doctorName}</span>
-								<span className="feedback-date">
+						<div key={fb.id} className="flex flex-col gap-3 rounded-(--jh-radius-md) border border-border bg-secondary/40 p-5">
+							<div className="flex flex-col items-start">
+								<span className="mb-1 text-lg font-bold text-foreground">{fb.doctorName}</span>
+								<span className="text-sm text-muted-foreground">
 									{new Date(fb.date).toLocaleDateString('en-GB', {
 										day: 'numeric',
 										month: 'long',
@@ -142,17 +141,17 @@ const Feedback = ({ patientId }) => {
 									})}
 								</span>
 							</div>
-							<div className="feedback-item-rating">
-								<StarRating rating={fb.rating} />
-							</div>
-							<p className="feedback-item-comment">"{fb.comment}"</p>
+							<StarRating rating={fb.rating} />
+							<p className="w-full rounded-(--jh-radius-sm) border border-border bg-card p-4 text-sm leading-relaxed text-foreground">
+								"{fb.comment}"
+							</p>
 						</div>
 					))
 				) : (
-					<p className="no-feedback">No feedback has been submitted yet.</p>
+					<EmptyState icon={MessageSquareText} title="No feedback yet" description="Submitted reviews for consultations and orders will appear here." />
 				)}
-			</div>
-		</div>
+			</CardContent>
+		</Card>
 	);
 };
 

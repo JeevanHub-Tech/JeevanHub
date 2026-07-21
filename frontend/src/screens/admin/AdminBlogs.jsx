@@ -1,11 +1,21 @@
-// src/AdminBlogs.jsx
-import React, { useState, useEffect, useContext } from "react";
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect, useContext } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import "./AdminBlogs.css";
-import { AuthContext } from "../../context/AuthContext";
 import moment from "moment";
-import { BACKEND_URL } from '../../config';
+import { CircleCheck, CircleAlert, ExternalLink } from "lucide-react";
+
+import { AuthContext } from "../../context/AuthContext";
+import { BACKEND_URL } from "../../config";
+import { DashboardShell, DashboardPageHeader } from "@/components/layout/DashboardShell";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { FieldGroup, Field, FieldLabel } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 
 const formatDate = (isoString) => moment(isoString).format("DD MMM YYYY");
 
@@ -13,21 +23,19 @@ const AdminBlogs = () => {
 	const { auth } = useContext(AuthContext);
 	const navigate = useNavigate();
 
-	// State management
 	const [activeTab, setActiveTab] = useState("view");
 	const [blogs, setBlogs] = useState([]);
 	const [newBlog, setNewBlog] = useState({
 		title: "",
-		description: "",     // maps to content.text
-		image: "",           // maps to content.images[0].url
-		type: "Blog",        // "Blog" | "Video"
-		tags: "",            // comma-separated -> array
+		description: "",
+		image: "",
+		type: "Blog",
+		tags: "",
 	});
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState(null);
 	const [successAlert, setSuccessAlert] = useState(null);
 
-	// Fetch all blogs from webhook API (matches BlogsVideosScreen)
 	useEffect(() => {
 		fetchBlogs();
 	}, []);
@@ -36,12 +44,8 @@ const AdminBlogs = () => {
 		setIsLoading(true);
 		try {
 			const res = await axios.get(`${BACKEND_URL}/api/webhook/getAllBlogs/`);
-			// expected shape: { blogs: [...] }
 			const items = Array.isArray(res.data?.blogs) ? res.data.blogs : [];
-			// sort by timestamp desc (matches screen)
-			const sorted = items.sort(
-				(a, b) => new Date(b.timestamp) - new Date(a.timestamp)
-			);
+			const sorted = items.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 			setBlogs(sorted);
 			setError(null);
 		} catch (err) {
@@ -52,13 +56,11 @@ const AdminBlogs = () => {
 		}
 	};
 
-	// Handle form input change
 	const handleChange = (e) => {
 		const { name, value } = e.target;
 		setNewBlog((prev) => ({ ...prev, [name]: value }));
 	};
 
-	// Add a new blog post to webhook API with the structure the screen expects
 	const addBlog = async () => {
 		if (!newBlog.title || !newBlog.description) {
 			setError("Please fill required fields (title and content)!");
@@ -70,10 +72,12 @@ const AdminBlogs = () => {
 		const fullAuthorName = `${authorFirstName} ${authorLastName}`.trim();
 
 		const tagsArray = newBlog.tags
-			? newBlog.tags.split(",").map((t) => t.trim()).filter(Boolean)
+			? newBlog.tags
+					.split(",")
+					.map((t) => t.trim())
+					.filter(Boolean)
 			: [];
 
-		// Payload matching BlogsVideosScreen
 		const payload = {
 			title: newBlog.title,
 			type: newBlog.type || "Blog",
@@ -110,7 +114,6 @@ const AdminBlogs = () => {
 		}
 	};
 
-	// Delete a blog post via webhook API
 	const deleteBlog = async (id) => {
 		if (!window.confirm("Are you sure you want to delete this blog post?")) return;
 
@@ -134,202 +137,197 @@ const AdminBlogs = () => {
 	};
 
 	return (
-		<div className="admin-blogs">
-			<h1>Admin Blog Management</h1>
+		<DashboardShell>
+			<DashboardPageHeader title="Admin Blog Management" />
 
-			{/* Tabs */}
-			<div className="blog-tabs">
-				<button
-					className={`tab-button ${activeTab === "view" ? "active" : ""}`}
-					onClick={() => setActiveTab("view")}
-				>
-					View All Blogs
-				</button>
-				<button
-					className={`tab-button ${activeTab === "add" ? "active" : ""}`}
-					onClick={() => setActiveTab("add")}
-				>
-					Add New Blog
-				</button>
-				<button
-					className={`tab-button ${activeTab === "generate" ? "active" : ""}`}
-					onClick={() => setActiveTab("generate")}
-				>
-					Generate Content
-				</button>
-			</div>
+			{error ? (
+				<Alert variant="destructive" className="mb-6">
+					<CircleAlert />
+					<AlertDescription>{error}</AlertDescription>
+				</Alert>
+			) : null}
+			{successAlert ? (
+				<Alert className="mb-6">
+					<CircleCheck />
+					<AlertDescription>{successAlert}</AlertDescription>
+				</Alert>
+			) : null}
 
-			{/* Alerts */}
-			{error && <div className="error-alert">{error}</div>}
-			{successAlert && <div className="success-alert">{successAlert}</div>}
+			<Tabs value={activeTab} onValueChange={setActiveTab}>
+				<TabsList className="mb-6">
+					<TabsTrigger value="view">View All Blogs</TabsTrigger>
+					<TabsTrigger value="add">Add New Blog</TabsTrigger>
+					<TabsTrigger value="generate">Generate Content</TabsTrigger>
+				</TabsList>
 
-			{/* View */}
-			{activeTab === "view" && (
-				<div className="blog-list">
-					<h2>All Blogs</h2>
-					{isLoading && <p className="loading-text">Loading blogs...</p>}
-					{!isLoading && blogs.length === 0 && <p>No blogs available.</p>}
-					{blogs.length > 0 && (
-						<div className="blogs-container">
+				<TabsContent value="view">
+					{isLoading ? <p className="text-center text-muted-foreground">Loading blogs...</p> : null}
+					{!isLoading && blogs.length === 0 ? (
+						<p className="text-center text-muted-foreground">No blogs available.</p>
+					) : null}
+					{blogs.length > 0 ? (
+						<div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
 							{blogs.map((blog) => {
-								const img =
-									blog?.content?.images?.length ? blog.content.images[0].url : "";
+								const img = blog?.content?.images?.length ? blog.content.images[0].url : "";
 								const desc = blog?.content?.text || "";
 								return (
-									<div key={blog._id} className="blog-item">
-										<h3>{blog.title}</h3>
-										<p className="blog-meta">
-											<span>By: {blog.author || "Anonymous"} | {formatDate(blog.timestamp)}</span>
-											{blog.type && <span className="blog-category">{blog.type}</span>}
-										</p>
-										<p className="blog-excerpt">
-											{desc.substring(0, 150)}
-											{desc.length > 150 ? "..." : ""}
-										</p>
-										{img && (
-											<div className="blog-image">
-												<img src={img} alt={blog.title} />
+									<Card key={blog._id} className="overflow-hidden py-0 transition-transform hover:-translate-y-1">
+										{img ? (
+											<div className="aspect-video overflow-hidden">
+												<img src={img} alt={blog.title} className="size-full object-cover" />
 											</div>
-										)}
-										{Array.isArray(blog.tags) && blog.tags.length > 0 && (
-											<div className="blog-tags">
-												{blog.tags.map((t, i) => (
-													<span key={i} className="tag">#{t}</span>
-												))}
+										) : null}
+										<div className="flex flex-col gap-2 p-4">
+											<h3 className="text-lg font-semibold text-foreground">{blog.title}</h3>
+											<div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+												<span>
+													By: {blog.author || "Anonymous"} | {formatDate(blog.timestamp)}
+												</span>
+												{blog.type ? (
+													<Badge variant="secondary" className="ml-auto">
+														{blog.type}
+													</Badge>
+												) : null}
 											</div>
-										)}
-										<div className="blog-actions">
-											<button
-												onClick={() => handleUpdateClick(blog)}
-												className="updatee-btn"
-												disabled={isLoading}
-											>
-												Update
-											</button>
-											<button
-												onClick={() => deleteBlog(blog._id)}
-												className="delete-btn"
-												disabled={isLoading}
-											>
-												Delete
-											</button>
+											<p className="text-sm text-foreground/80">
+												{desc.substring(0, 150)}
+												{desc.length > 150 ? "..." : ""}
+											</p>
+											{Array.isArray(blog.tags) && blog.tags.length > 0 ? (
+												<div className="flex flex-wrap gap-2">
+													{blog.tags.map((t, i) => (
+														<Badge key={i} variant="outline">
+															#{t}
+														</Badge>
+													))}
+												</div>
+											) : null}
 										</div>
-									</div>
+										<div className="flex justify-end gap-2 bg-muted/40 p-3">
+											<Button variant="outline" size="sm" disabled={isLoading} onClick={() => handleUpdateClick(blog)}>
+												Update
+											</Button>
+											<Button variant="destructive" size="sm" disabled={isLoading} onClick={() => deleteBlog(blog._id)}>
+												Delete
+											</Button>
+										</div>
+									</Card>
 								);
 							})}
 						</div>
-					)}
-				</div>
-			)}
+					) : null}
+				</TabsContent>
 
-			{/* Add */}
-			{activeTab === "add" && (
-				<div className="blog-form">
-					<h2>Add New Blog</h2>
+				<TabsContent value="add">
+					<Card className="max-w-2xl p-6">
+						<h2 className="mb-5 text-lg font-semibold text-foreground">Add New Blog</h2>
+						<FieldGroup>
+							<Field>
+								<FieldLabel htmlFor="title">
+									Blog Title <span className="text-destructive">*</span>
+								</FieldLabel>
+								<Input
+									id="title"
+									name="title"
+									value={newBlog.title}
+									onChange={handleChange}
+									placeholder="Enter blog title"
+									required
+								/>
+							</Field>
 
-					<div className="form-group">
-						<label htmlFor="title">Blog Title <span className="required">*</span></label>
-						<input
-							type="text"
-							id="title"
-							name="title"
-							value={newBlog.title}
-							onChange={handleChange}
-							placeholder="Enter blog title"
-							required
-						/>
-					</div>
+							<Field>
+								<FieldLabel htmlFor="description">
+									Blog Content <span className="text-destructive">*</span>
+								</FieldLabel>
+								<Textarea
+									id="description"
+									name="description"
+									value={newBlog.description}
+									onChange={handleChange}
+									placeholder="Enter blog content"
+									rows={8}
+									required
+								/>
+							</Field>
 
-					<div className="form-group">
-						<label htmlFor="description">Blog Content <span className="required">*</span></label>
-						<textarea
-							id="description"
-							name="description"
-							value={newBlog.description}
-							onChange={handleChange}
-							placeholder="Enter blog content"
-							required
-						/>
-					</div>
+							<Field>
+								<FieldLabel htmlFor="type">Type</FieldLabel>
+								<Select value={newBlog.type} onValueChange={(value) => setNewBlog((prev) => ({ ...prev, type: value }))}>
+									<SelectTrigger id="type">
+										<SelectValue />
+									</SelectTrigger>
+									<SelectContent>
+										<SelectItem value="Blog">Blog</SelectItem>
+										<SelectItem value="Video">Video</SelectItem>
+									</SelectContent>
+								</Select>
+							</Field>
 
-					<div className="form-group">
-						<label htmlFor="type">Type</label>
-						<select
-							id="type"
-							name="type"
-							value={newBlog.type}
-							onChange={handleChange}
+							<Field>
+								<FieldLabel htmlFor="tags">Tags (comma separated)</FieldLabel>
+								<Input
+									id="tags"
+									name="tags"
+									value={newBlog.tags}
+									onChange={handleChange}
+									placeholder="e.g., health, herbs, diet"
+								/>
+							</Field>
+
+							<Field>
+								<FieldLabel htmlFor="image">Image URL</FieldLabel>
+								<Input
+									id="image"
+									name="image"
+									value={newBlog.image}
+									onChange={handleChange}
+									placeholder="Enter image URL (optional)"
+								/>
+								{newBlog.image ? (
+									<div className="mt-2 max-h-52 overflow-hidden rounded-lg border border-border">
+										<img src={newBlog.image} alt="Preview" className="w-full object-contain" />
+									</div>
+								) : null}
+							</Field>
+
+							<Button onClick={addBlog} disabled={isLoading} className="w-fit">
+								{isLoading ? "Adding..." : "Add Blog"}
+							</Button>
+						</FieldGroup>
+					</Card>
+				</TabsContent>
+
+				<TabsContent value="generate">
+					<Card className="max-w-2xl p-6">
+						<h2 className="mb-3 text-lg font-semibold text-foreground">Generate Blog Content</h2>
+						<p className="text-sm text-foreground/80">
+							This feature currently works via an external tool. Clicking the button below will open{" "}
+							<a
+								href="https://agiagentworld.com/"
+								target="_blank"
+								rel="noopener noreferrer"
+								className="text-primary underline hover:no-underline"
+							>
+								AGI Agent World
+							</a>{" "}
+							in a new tab.
+						</p>
+						<p className="mt-3 text-sm text-foreground/80">
+							Once your content is ready, copy it back here and add it using the "Add New Blog" tab.
+						</p>
+						<p className="mt-3 text-sm text-foreground/80">Happy creating!</p>
+
+						<Button
+							className="mt-4"
+							onClick={() => window.open("https://agiagentworld.com/", "_blank", "noopener,noreferrer")}
 						>
-							<option value="Blog">Blog</option>
-							<option value="Video">Video</option>
-						</select>
-					</div>
-
-					<div className="form-group">
-						<label htmlFor="tags">Tags (comma separated)</label>
-						<input
-							type="text"
-							id="tags"
-							name="tags"
-							value={newBlog.tags}
-							onChange={handleChange}
-							placeholder="e.g., health, herbs, diet"
-						/>
-					</div>
-
-					<div className="form-group">
-						<label htmlFor="image">Image URL</label>
-						<input
-							type="text"
-							id="image"
-							name="image"
-							value={newBlog.image}
-							onChange={handleChange}
-							placeholder="Enter image URL (optional)"
-						/>
-						{newBlog.image && (
-							<div className="image-preview">
-								<img src={newBlog.image} alt="Preview" />
-							</div>
-						)}
-					</div>
-
-					<button
-						onClick={addBlog}
-						disabled={isLoading}
-						className="submit-btn"
-					>
-						{isLoading ? "Adding..." : "Add Blog"}
-					</button>
-				</div>
-			)}
-
-			{/* Generate */}
-			{activeTab === "generate" && (
-				<div className="generate-blog">
-					<h2>Generate Blog Content</h2>
-					<p>
-						This feature currently works via an external tool. Clicking the button below will open{" "}
-						<a href="https://agiagentworld.com/" target="_blank" rel="noopener noreferrer">
-							AGI Agent World
-						</a>{" "}
-						in a new tab.
-					</p>
-					<p>
-						Once your content is ready, copy it back here and add it using the "Add New Blog" tab.
-					</p>
-					<p>Happy creating! 🚀</p>
-
-					<button
-						onClick={() =>
-							window.open("https://agiagentworld.com/", "_blank", "noopener,noreferrer")
-						}
-					>
-						Go to AGI Agent World
-					</button>
-				</div>
-			)}
-		</div>
+							Go to AGI Agent World <ExternalLink data-icon="inline-end" />
+						</Button>
+					</Card>
+				</TabsContent>
+			</Tabs>
+		</DashboardShell>
 	);
 };
 

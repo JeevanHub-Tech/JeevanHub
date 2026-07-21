@@ -1,14 +1,23 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import "./PatientProfile.css";
 
 import PatientTrans from "./patientTrans";
 import PatientFeedback from "./PatientFeedback";
 import PatientHistory from "./PatientHistory";
-import DietPlan from "./DietPlan"; // ← your DietPlan component
+import DietPlan from "./DietPlan";
 import Prescription from "./Prescription";
 import { authFetch } from "../../../utils/authFetch";
 
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 
 import {
 	Pill,
@@ -19,9 +28,10 @@ import {
 	Mail,
 	Phone,
 	MapPin,
-	X, Upload, User,
+	Upload,
+	User,
 	CalendarDays,
-	HeartPulse,
+	ArrowLeft,
 } from "lucide-react";
 import { BACKEND_URL } from '../../../config';
 
@@ -33,19 +43,167 @@ const tabs = [
 	{ name: "Feedback", icon: MessageSquareText },
 ];
 
+const GENDER_OPTIONS = [
+	{ value: "male", label: "Male" },
+	{ value: "female", label: "Female" },
+	{ value: "other", label: "Other" },
+	{ value: "prefer-not-to-say", label: "Prefer not to say" },
+];
+
+function formatDOB(dobString) {
+	const date = new Date(dobString);
+	const day = date.getDate().toString().padStart(2, "0");
+	const month = (date.getMonth() + 1).toString().padStart(2, "0");
+	const year = date.getFullYear();
+	return `${day}-${month}-${year}`;
+}
+
+function formatDOB2(dobString) {
+	const date = new Date(dobString);
+	const day = date.getDate().toString().padStart(2, "0");
+	const month = (date.getMonth() + 1).toString().padStart(2, "0");
+	const year = date.getFullYear();
+	return `${year}-${month}-${day}`;
+}
+
+function EditProfileDialog({ open, onOpenChange, currentProfile, onUpdate }) {
+	const [formData, setFormData] = useState(currentProfile);
+	const [previewImage, setPreviewImage] = useState(currentProfile.profileImage || null);
+	const fileInputRef = useRef(null);
+
+	useEffect(() => {
+		if (open) {
+			setFormData(currentProfile);
+			setPreviewImage(currentProfile.profileImage || null);
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [open]);
+
+	const handleInputChange = (e) => {
+		const { name, value } = e.target;
+		setFormData((prev) => ({ ...prev, [name]: value }));
+	};
+
+	const handleImageUpload = (e) => {
+		const file = e.target.files?.[0];
+		if (!file) return;
+
+		if (file.size > 100 * 1024) {
+			alert("Image must be less than 500KB");
+			return;
+		}
+
+		if (!file.type.startsWith("image/")) {
+			alert("Only image files allowed");
+			return;
+		}
+
+		const reader = new FileReader();
+		reader.onloadend = () => {
+			const result = reader.result;
+			setPreviewImage(result);
+			setFormData((prev) => ({ ...prev, profileImage: result }));
+		};
+		reader.readAsDataURL(file);
+	};
+
+	const handleSubmit = async (e) => {
+		e.preventDefault();
+		const success = await onUpdate(formData);
+		if (success) onOpenChange(false);
+	};
+
+	return (
+		<Dialog open={open} onOpenChange={onOpenChange}>
+			<DialogContent className="max-w-2xl">
+				<DialogHeader>
+					<DialogTitle className="text-2xl">Update Profile</DialogTitle>
+				</DialogHeader>
+
+				<form onSubmit={handleSubmit} className="flex flex-col gap-6 overflow-y-auto">
+					<div className="flex flex-col items-center gap-4 rounded-(--jh-radius-md) bg-secondary p-6">
+						<Avatar size="lg" className="size-28 border-4 border-primary shadow-(--jh-shadow-card)">
+							<AvatarImage src={previewImage} alt="Profile preview" />
+							<AvatarFallback className="bg-muted text-muted-foreground">
+								<User size={40} />
+							</AvatarFallback>
+						</Avatar>
+						<Button type="button" onClick={() => fileInputRef.current?.click()}>
+							<Upload size={16} data-icon="inline-start" />
+							Upload Photo
+						</Button>
+						<input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+					</div>
+
+					<FieldGroup className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+						<Field>
+							<FieldLabel htmlFor="firstName">First Name *</FieldLabel>
+							<Input id="firstName" name="firstName" value={formData.firstName} onChange={handleInputChange} required />
+						</Field>
+
+						<Field>
+							<FieldLabel htmlFor="lastName">Last Name *</FieldLabel>
+							<Input id="lastName" name="lastName" value={formData.lastName} onChange={handleInputChange} required />
+						</Field>
+
+						<Field>
+							<FieldLabel htmlFor="email">Email *</FieldLabel>
+							<Input id="email" type="email" name="email" value={formData.email} onChange={handleInputChange} required />
+						</Field>
+
+						<Field>
+							<FieldLabel htmlFor="dob">Date of Birth *</FieldLabel>
+							<Input id="dob" type="date" name="dob" value={formData.dob} onChange={handleInputChange} required />
+						</Field>
+
+						<Field>
+							<FieldLabel htmlFor="gender">Gender *</FieldLabel>
+							<Select value={formData.gender} onValueChange={(value) => setFormData((prev) => ({ ...prev, gender: value }))}>
+								<SelectTrigger id="gender">
+									<SelectValue placeholder="Select gender" />
+								</SelectTrigger>
+								<SelectContent>
+									{GENDER_OPTIONS.map((g) => (
+										<SelectItem key={g.value} value={g.value}>
+											{g.label}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+						</Field>
+
+						<Field>
+							<FieldLabel htmlFor="pincode">Pincode *</FieldLabel>
+							<Input id="pincode" name="pincode" value={formData.pincode} onChange={handleInputChange} pattern="[0-9]{6}" maxLength={6} required />
+						</Field>
+
+						<Field className="sm:col-span-2">
+							<FieldLabel htmlFor="address">Address *</FieldLabel>
+							<Textarea id="address" name="address" value={formData.address} onChange={handleInputChange} rows={3} required />
+						</Field>
+					</FieldGroup>
+
+					<div className="flex flex-col-reverse gap-3 border-t border-border pt-5 sm:flex-row sm:justify-end">
+						<Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+							Cancel
+						</Button>
+						<Button type="submit">Save Changes</Button>
+					</div>
+				</form>
+			</DialogContent>
+		</Dialog>
+	);
+}
+
 const PatientProfile = () => {
 	const { id: patientId } = useParams();
 	const navigate = useNavigate();
 	const [activeTab, setActiveTab] = useState("Diet Plan");
 	const [patientData, setPatientData] = useState(null);
-	const [dietYogaData, setDietYogaData] = useState(null);
-	const [loadingDiet, setLoadingDiet] = useState(true);
 	const [loading, setLoading] = useState(true);
 	const [patientBookings, setPatientBookings] = useState([]);
-	const [loadingBookings, setLoadingBookings] = useState(true);
 	const [showEditModal, setShowEditModal] = useState(false);
 
-	// Fetch patient bookings
 	useEffect(() => {
 		const fetchPatientBookings = async () => {
 			try {
@@ -66,15 +224,12 @@ const PatientProfile = () => {
 				setPatientBookings(data.bookings);
 			} catch (error) {
 				console.error("❌ Error fetching patient bookings:", error);
-			} finally {
-				setLoadingBookings(false);
 			}
 		};
 
 		if (patientId) fetchPatientBookings();
 	}, [patientId]);
 
-	// Fetch patient details
 	useEffect(() => {
 		const fetchPatient = async () => {
 			try {
@@ -94,34 +249,6 @@ const PatientProfile = () => {
 		fetchPatient();
 	}, [patientId]);
 
-	// Fetch diet & yoga data (your DietPlan component likely needs this)
-	useEffect(() => {
-		const fetchDietYoga = async () => {
-			try {
-				const res = await authFetch(
-					`${BACKEND_URL}/api/patients/dietYoga/${patientId}`,
-					{ headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
-				);
-				if (!res.ok) {
-					if (res.status === 404) {
-						setDietYogaData({ message: "Patient has not subscribed to a diet & yoga plan yet" });
-						return;
-					}
-					throw new Error("Failed to fetch diet & yoga plan");
-				}
-				const data = await res.json();
-				setDietYogaData(data);
-			} catch (error) {
-				console.error("Error fetching diet & yoga plan:", error);
-			} finally {
-				setLoadingDiet(false);
-			}
-		};
-
-		fetchDietYoga();
-	}, [patientId]);
-
-	// Update profile info
 	const handleUpdateProfile = async (updatedData) => {
 		try {
 			const res = await authFetch(
@@ -140,407 +267,117 @@ const PatientProfile = () => {
 
 			if (res.ok && data.success) {
 				setPatientData(data.data);
-
 				return true;
-			} else {
-				alert("Failed to update profile. Please try again.");
-				return false;
 			}
+			alert("Failed to update profile. Please try again.");
+			return false;
 		} catch (error) {
 			console.error("Error updating profile:", error);
 			alert("An error occurred while updating the profile. Please try again.");
 			return false;
 		}
-	}
-
-	const EditModal = ({
-		isOpen,
-		onClose,
-		currentProfile,
-		onUpdate,
-	}) => {
-		const [formData, setFormData] = useState(currentProfile);
-		const [previewImage, setPreviewImage] = useState(currentProfile.profileImage || null);
-		const fileInputRef = useRef(null);
-
-		if (!isOpen) return null;
-
-		const handleInputChange = (e) => {
-			const { name, value } = e.target;
-			setFormData((prev) => ({
-				...prev,
-				[name]: value,
-			}));
-		};
-
-		const handleImageUpload = (e) => {
-			const file = e.target.files?.[0];
-			if (!file) return;
-
-			// 500 KB limit
-			if (file.size > 100 * 1024) {
-				alert("Image must be less than 500KB");
-				return;
-			}
-
-			// optional but sane
-			if (!file.type.startsWith("image/")) {
-				alert("Only image files allowed");
-				return;
-			}
-
-			if (file) {
-				const reader = new FileReader();
-				reader.onloadend = () => {
-					const result = reader.result;
-					setPreviewImage(result);
-					setFormData((prev) => ({
-						...prev,
-						profileImage: result,
-					}));
-				};
-				reader.readAsDataURL(file);
-			}
-		};
-
-		const handleSubmit = async (e) => {
-			e.preventDefault();
-
-			const success = await onUpdate(formData);
-
-			if (success) {
-				onClose();
-			}
-		};
-
-		return (
-			<div className="update_box_overlay" onClick={onClose}>
-				<div className="update_box_container" onClick={(e) => e.stopPropagation()}>
-					<div className="update_box_header">
-						<h2 className="update_box_title">Update Profile</h2>
-						<button
-							className="update_box_close_button"
-							onClick={onClose}
-							style={{
-								border: "1px solid black",
-								borderRadius: "6px",
-								backgroundColor: "transparent",
-								color: "black",
-								cursor: "pointer",
-								padding: "4px",
-								display: "flex",
-								alignItems: "center",
-								justifyContent: "center",
-							}}
-						>
-							<X size={24} color="black" />
-						</button>
-					</div>
-
-					<form onSubmit={handleSubmit} className="update_box_form">
-						<div className="update_box_image_section">
-							<div className="update_box_image_preview">
-								{previewImage ? (
-									<img
-										src={previewImage}
-										alt="Profile preview"
-										className="update_box_profile_image"
-									/>
-								) : (
-									<div className="update_box_placeholder_image">
-										<User size={48} />
-									</div>
-								)}
-							</div>
-							<button
-								type="button"
-								className="update_box_upload_button"
-								onClick={() => fileInputRef.current?.click()}
-								style={{ border: "1px solid black", color: "black" }}
-							>
-								<Upload size={18} />
-								Upload Photo
-							</button>
-							<input
-								ref={fileInputRef}
-								type="file"
-								accept="image/*"
-								onChange={handleImageUpload}
-								className="update_box_file_input"
-							/>
-						</div>
-
-						<div className="update_box_form_grid">
-							{/* firstname */}
-							<div className="update_box_form_group">
-								<label className="update_box_label" htmlFor="name">
-									First Name *
-								</label>
-								<input
-									type="text"
-									id="firstName"
-									name="firstName"
-									value={formData.firstName}
-									onChange={handleInputChange}
-									className="update_box_input"
-									required
-								/>
-							</div>
-
-							{/* lastname */}
-							<div className="update_box_form_group">
-								<label className="update_box_label" htmlFor="name">
-									Last Name *
-								</label>
-								<input
-									type="text"
-									id="lastName"
-									name="lastName"
-									value={formData.lastName}
-									onChange={handleInputChange}
-									className="update_box_input"
-									required
-								/>
-							</div>
-
-							{/* Email */}
-							<div className="update_box_form_group">
-								<label className="update_box_label" htmlFor="email">
-									Email *
-								</label>
-								<input
-									type="email"
-									id="email"
-									name="email"
-									value={formData.email}
-									onChange={handleInputChange}
-									className="update_box_input"
-									required
-								/>
-							</div>
-
-							{/* date of birth  */}
-							<div className="update_box_form_group">
-								<label className="update_box_label" htmlFor="dateOfBirth">
-									Date of Birth *
-								</label>
-								<input
-									type="date"
-									id="dob"
-									name="dob"
-									value={formData.dob}
-									onChange={handleInputChange}
-									className="update_box_input"
-									required
-								/>
-							</div>
-
-							{/* gender */}
-							<div className="update_box_form_group">
-								<label className="update_box_label" htmlFor="gender">
-									Gender *
-								</label>
-								<select
-									id="gender"
-									name="gender"
-									value={formData.gender}
-									onChange={handleInputChange}
-									className="update_box_input"
-									required
-								>
-									<option value="">Select Gender</option>
-									<option value="male">Male</option>
-									<option value="female">Female</option>
-									<option value="other">Other</option>
-									<option value="prefer-not-to-say">Prefer not to say</option>
-								</select>
-							</div>
-
-							{/* address */}
-							<div className="update_box_form_group update_box_full_width">
-								<label className="update_box_label" htmlFor="address">
-									Address *
-								</label>
-								<textarea
-									id="address"
-									name="address"
-									value={formData.address}
-									onChange={handleInputChange}
-									className="update_box_textarea"
-									rows={3}
-									required
-								/>
-							</div>
-
-							{/* pincode */}
-							<div className="update_box_form_group">
-								<label className="update_box_label" htmlFor="pincode">
-									Pincode *
-								</label>
-								<input
-									type="text"
-									id="pincode"
-									name="pincode"
-									value={formData.pincode}
-									onChange={handleInputChange}
-									className="update_box_input"
-									pattern="[0-9]{6}"
-									maxLength={6}
-									required
-								/>
-							</div>
-						</div>
-
-						<div className="update_box_form_actions">
-							<button
-								type="button"
-								className="update_box_cancel_button"
-								onClick={onClose}
-							>
-								Cancel
-							</button>
-							<button type="submit" className="update_box_submit_button"
-								style={{ border: "1px solid black", color: "black" }}>
-								Save Changes
-							</button>
-						</div>
-
-					</form>
-				</div>
-			</div>
-		);
 	};
-
-	const renderContent = () => {
-		switch (activeTab) {
-			case "Prescriptions":
-				return <Prescription patientBookings={patientBookings} />;
-
-
-			case "Diet Plan":
-				return <DietPlan dietYogaData={dietYogaData} loading={loadingDiet} patientId={patientId} />;
-
-			case "History":
-				return patientBookings ? <PatientHistory bookings={patientBookings} /> : <p style={{ marginTop: "150px" }}>Loading patients...</p>;
-
-			case "Transactions":
-				return patientBookings ? <PatientTrans bookings={patientBookings} patientId={patientId} /> : <p style={{ marginTop: "150px" }}>Loading patients...</p>;
-
-			case "Feedback":
-				return <PatientFeedback patientId={patientId} />;
-
-			default:
-				return null;
-		}
-	};
-
-	function formatDOB(dobString) {
-		const date = new Date(dobString);
-		const day = date.getDate().toString().padStart(2, "0");
-		const month = (date.getMonth() + 1).toString().padStart(2, "0"); // Months are 0-indexed
-		const year = date.getFullYear();
-		return `${day}-${month}-${year}`;
-	}
-
-	function formatDOB2(dobString) {
-		const date = new Date(dobString);
-		const day = date.getDate().toString().padStart(2, "0");
-		const month = (date.getMonth() + 1).toString().padStart(2, "0"); // Months are 0-indexed
-		const year = date.getFullYear();
-		return `${year}-${month}-${day}`;
-	}
 
 	if (loading) {
-		return <p style={{ marginTop: "150px" }}>Loading patients...</p>;
+		return (
+			<div className="mx-auto max-w-7xl p-8">
+				<Skeleton className="h-64 w-full rounded-(--jh-radius-lg)" />
+			</div>
+		);
 	}
 
 	return (
-		<div className="profile-page">
-			{showEditModal && (
-				<EditModal
-					isOpen={showEditModal}
-					onClose={() => setShowEditModal(false)}
+		<div className="mx-auto max-w-7xl p-4 sm:p-8">
+			{showEditModal && patientData && (
+				<EditProfileDialog
+					open={showEditModal}
+					onOpenChange={setShowEditModal}
 					onUpdate={handleUpdateProfile}
 					currentProfile={{
-						firstName: (patientData.firstName),
-						lastName: (patientData.lastName),
-						email: (patientData.email),
-						dateOfBirth: (formatDOB2(patientData.dob)),
-						gender: (patientData.gender),
-						address: (patientData.address) || "",
+						firstName: patientData.firstName,
+						lastName: patientData.lastName,
+						email: patientData.email,
+						dob: formatDOB2(patientData.dob),
+						gender: patientData.gender,
+						address: patientData.address || "",
 						pincode: patientData.zipCode,
-						profileImage: patientData.profileImage || null
+						profileImage: patientData.profileImage || null,
 					}}
 				/>
 			)}
 
-			<button className="back-btn" onClick={() => navigate(-1)}>
-				← Back to Patients
-			</button>
+			<Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="mb-6 text-muted-foreground hover:text-foreground">
+				<ArrowLeft size={16} data-icon="inline-start" />
+				Back to Patients
+			</Button>
 
-			<h1>Patient Dashboard</h1>
-			<p className="subtitle">Complete medical and dietary information</p>
+			<h1 className="font-display text-3xl text-foreground sm:text-4xl">Patient Dashboard</h1>
+			<p className="mt-2 mb-8 text-muted-foreground">Complete medical and dietary information</p>
 
-			<div className="profile-container">
-				<div className="left-panel">
-					<div className="avatar">
-						{patientData.profileImage ? (
-							<img
-								src={patientData.profileImage}
-								alt="Profile"
-								style={{
-									width: "100%",
-									height: "100%",
-									objectFit: "cover",
-									borderRadius: "50%",
-								}}
-							/>
-						) : (
-							patientData.firstName.charAt(0)
-						)}
-					</div>
-					<h2>{patientData.firstName}</h2>
-					<p className="muted">Patient ID: {patientData._id}</p>
+			<div className="flex flex-col overflow-hidden rounded-(--jh-radius-lg) border border-border bg-card shadow-(--jh-shadow-card) lg:flex-row">
+				<div className="flex shrink-0 flex-col items-center border-b border-border bg-secondary/50 p-8 text-center lg:w-80 lg:border-b-0 lg:border-r">
+					<Avatar size="lg" className="size-20 bg-primary text-3xl font-semibold text-primary-foreground">
+						<AvatarImage src={patientData.profileImage} alt="Profile" />
+						<AvatarFallback className="bg-primary text-3xl font-semibold text-primary-foreground">
+							{patientData.firstName.charAt(0)}
+						</AvatarFallback>
+					</Avatar>
 
-					<div style={{ border: "grey solid 2px", borderRadius: "8px", position: "relative", top: "-230px", left: "-110px" }}>
-						<button className="back-btn" style={{ margin: "0 0 0 0" }}
-							onClick={() => setShowEditModal(true)}>Edit</button>
-					</div>
+					<Button variant="outline" size="sm" className="mt-4" onClick={() => setShowEditModal(true)}>
+						Edit
+					</Button>
 
-					<div className="info">
-						<p><Mail size={16} /> {patientData.email}</p>
-						<p><Phone size={16} /> {patientData.phone}</p>
-						<p><MapPin size={16} /> {patientData.zipCode}</p>
-						<p><CalendarDays size={16} />{` DOB: ${formatDOB(patientData.dob)}`}</p>
+					<h2 className="mt-4 font-display text-2xl text-foreground">{patientData.firstName}</h2>
+					<p className="mb-6 text-sm text-muted-foreground">Patient ID: {patientData._id}</p>
+
+					<Separator className="w-full" />
+
+					<div className="mt-6 flex w-full flex-col gap-3 text-left">
+						<p className="flex items-start gap-2 text-sm text-foreground"><Mail size={16} className="mt-0.5 shrink-0 text-muted-foreground" /> {patientData.email}</p>
+						<p className="flex items-start gap-2 text-sm text-foreground"><Phone size={16} className="mt-0.5 shrink-0 text-muted-foreground" /> {patientData.phone}</p>
+						<p className="flex items-start gap-2 text-sm text-foreground"><MapPin size={16} className="mt-0.5 shrink-0 text-muted-foreground" /> {patientData.zipCode}</p>
+						<p className="flex items-start gap-2 text-sm text-foreground"><CalendarDays size={16} className="mt-0.5 shrink-0 text-muted-foreground" /> DOB: {formatDOB(patientData.dob)}</p>
 					</div>
 
-					<div className="stats">
+					<div className="mt-6 flex w-full justify-around">
 						<div>
-							<p className="stat-value">{patientData.age}</p>
-							<p className="stat-label">Age</p>
+							<p className="text-2xl font-semibold text-foreground">{patientData.age}</p>
+							<p className="mt-1 text-sm text-muted-foreground">Age</p>
 						</div>
 						<div>
-							<p className="stat-value">{patientData.gender}</p>
-							<p className="stat-label">Gender</p>
+							<p className="text-2xl font-semibold capitalize text-foreground">{patientData.gender}</p>
+							<p className="mt-1 text-sm text-muted-foreground">Gender</p>
 						</div>
 					</div>
 				</div>
 
-				<div className="right-panel">
-					<div className="tabs-container">
-						{tabs.map((tab) => (
-							<button
-								key={tab.name}
-								className={`tab-btn ${activeTab === tab.name ? "active" : ""}`}
-								onClick={() => setActiveTab(tab.name)}
-							>
-								<tab.icon size={16} strokeWidth={2.5} />
-								{tab.name}
-							</button>
-						))}
-					</div>
+				<div className="flex min-w-0 flex-1 flex-col p-6 sm:p-8">
+					<Tabs value={activeTab} onValueChange={setActiveTab}>
+						<TabsList className="mb-6 h-auto flex-wrap bg-secondary p-1">
+							{tabs.map((tab) => (
+								<TabsTrigger key={tab.name} value={tab.name} className="gap-2 py-2.5 text-sm font-semibold">
+									<tab.icon data-icon="inline-start" strokeWidth={2.5} />
+									{tab.name}
+								</TabsTrigger>
+							))}
+						</TabsList>
 
-					<div className="tab-content">{renderContent()}</div>
+						<TabsContent value="Prescriptions" className="min-w-0">
+							<Prescription patientBookings={patientBookings} />
+						</TabsContent>
+						<TabsContent value="Diet Plan" className="min-w-0">
+							<DietPlan patientId={patientId} />
+						</TabsContent>
+						<TabsContent value="History" className="min-w-0">
+							<PatientHistory bookings={patientBookings} />
+						</TabsContent>
+						<TabsContent value="Transactions" className="min-w-0">
+							<PatientTrans bookings={patientBookings} patientId={patientId} />
+						</TabsContent>
+						<TabsContent value="Feedback" className="min-w-0">
+							<PatientFeedback patientId={patientId} />
+						</TabsContent>
+					</Tabs>
 				</div>
 			</div>
 		</div>

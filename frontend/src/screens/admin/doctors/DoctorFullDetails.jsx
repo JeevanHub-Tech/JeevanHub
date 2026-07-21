@@ -1,29 +1,233 @@
-import React, { useState, useEffect, useRef, useContext } from "react";
-import { useParams } from "react-router-dom";
-import { AuthContext } from "../../../context/AuthContext";
-import { useNavigate } from "react-router-dom";
-import DoctorDetails from './DoctorDetails';
-import AppointmentsTab from './Appointment';
-import FeedbackTab from './DoctorFeedback';
-import PrescriptionsTab from "./Precription";
-import Transactions from "./DoctorTrans";
+import { useState, useEffect, useRef, useContext } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import {
 	Pill,
 	CalendarCheck2,
 	MessageCircleMore,
-	UserCircle2,
 	Mail,
 	Phone,
 	MapPin,
-	Stethoscope,
 	Star,
-	X, Upload, User,
+	Upload,
+	User,
 	ArrowLeft,
 	Briefcase,
-	IndianRupee
-} from 'lucide-react';
-import { BACKEND_URL } from '../../../config';
+	IndianRupee,
+} from "lucide-react";
+
+import { AuthContext } from "../../../context/AuthContext";
+import { DashboardShell, DashboardPageHeader } from "@/components/layout/DashboardShell";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import {
+	Dialog,
+	DialogContent,
+	DialogHeader,
+	DialogTitle,
+	DialogFooter,
+} from "@/components/ui/dialog";
+import { FieldGroup, Field, FieldLabel } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+
+import DoctorDetails from "./DoctorDetails";
+import AppointmentsTab from "./Appointment";
+import FeedbackTab from "./DoctorFeedback";
+import PrescriptionsTab from "./Precription";
+import Transactions from "./DoctorTrans";
+import { BACKEND_URL } from "../../../config";
 import { authFetch } from "../../../utils/authFetch";
+
+const tabs = [
+	{ name: "Details", icon: Briefcase },
+	{ name: "Prescriptions", icon: Pill },
+	{ name: "Appointments", icon: CalendarCheck2 },
+	{ name: "Transction", icon: IndianRupee },
+	{ name: "Feedback", icon: MessageCircleMore },
+];
+
+function statusBadgeVariant(status) {
+	if (status === "Approved") return "default";
+	if (status === "Rejected") return "destructive";
+	return "secondary";
+}
+
+function EditModal({ isOpen, onClose, currentProfile, onUpdate }) {
+	const [formData, setFormData] = useState(currentProfile);
+	const [previewImage, setPreviewImage] = useState(currentProfile.profileImage || null);
+	const fileInputRef = useRef(null);
+
+	const handleInputChange = (e) => {
+		const { name, value } = e.target;
+		setFormData((prev) => ({ ...prev, [name]: value }));
+	};
+
+	const handleImageUpload = (e) => {
+		const file = e.target.files?.[0];
+		if (file) {
+			const reader = new FileReader();
+			reader.onloadend = () => {
+				const result = reader.result;
+				setPreviewImage(result);
+				setFormData((prev) => ({ ...prev, profileImage: result }));
+			};
+			reader.readAsDataURL(file);
+		}
+	};
+
+	const handleSubmit = async (e) => {
+		e.preventDefault();
+		const success = await onUpdate(formData);
+		if (success) onClose();
+	};
+
+	return (
+		<Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+			<DialogContent className="max-w-2xl">
+				<DialogHeader>
+					<DialogTitle>Update Profile</DialogTitle>
+				</DialogHeader>
+
+				<form onSubmit={handleSubmit} className="flex flex-col gap-6">
+					<div className="flex flex-col items-center gap-3">
+						<Avatar className="size-24">
+							{previewImage ? <AvatarImage src={previewImage} alt="Profile preview" /> : null}
+							<AvatarFallback>
+								<User className="size-10" />
+							</AvatarFallback>
+						</Avatar>
+						<Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+							<Upload data-icon="inline-start" />
+							Upload Photo
+						</Button>
+						<input
+							ref={fileInputRef}
+							type="file"
+							accept="image/*"
+							onChange={handleImageUpload}
+							className="hidden"
+						/>
+					</div>
+
+					<FieldGroup className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+						<Field>
+							<FieldLabel htmlFor="firstName">First Name *</FieldLabel>
+							<Input
+								id="firstName"
+								name="firstName"
+								value={formData.firstName}
+								onChange={handleInputChange}
+								required
+							/>
+						</Field>
+
+						<Field>
+							<FieldLabel htmlFor="lastName">Last Name *</FieldLabel>
+							<Input
+								id="lastName"
+								name="lastName"
+								value={formData.lastName}
+								onChange={handleInputChange}
+								required
+							/>
+						</Field>
+
+						<Field>
+							<FieldLabel htmlFor="email">Email *</FieldLabel>
+							<Input
+								id="email"
+								type="email"
+								name="email"
+								value={formData.email}
+								onChange={handleInputChange}
+								required
+							/>
+						</Field>
+
+						<Field>
+							<FieldLabel htmlFor="yearsOfExperience">Years of Experience *</FieldLabel>
+							<Input
+								id="yearsOfExperience"
+								type="number"
+								name="yearsOfExperience"
+								value={formData.yearsOfExperience}
+								onChange={handleInputChange}
+								min="0"
+								required
+							/>
+						</Field>
+
+						<Field>
+							<FieldLabel htmlFor="specialization">Specialization *</FieldLabel>
+							<Input
+								id="specialization"
+								name="specialization"
+								value={formData.specialization}
+								onChange={handleInputChange}
+								required
+							/>
+						</Field>
+
+						<Field>
+							<FieldLabel htmlFor="gender">Gender *</FieldLabel>
+							<Select
+								value={formData.gender}
+								onValueChange={(value) => setFormData((prev) => ({ ...prev, gender: value }))}
+							>
+								<SelectTrigger id="gender">
+									<SelectValue placeholder="Select Gender" />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="male">Male</SelectItem>
+									<SelectItem value="female">Female</SelectItem>
+									<SelectItem value="other">Other</SelectItem>
+									<SelectItem value="prefer-not-to-say">Prefer not to say</SelectItem>
+								</SelectContent>
+							</Select>
+						</Field>
+
+						<Field className="sm:col-span-2">
+							<FieldLabel htmlFor="address">Address *</FieldLabel>
+							<Textarea
+								id="address"
+								name="address"
+								value={formData.address}
+								onChange={handleInputChange}
+								rows={3}
+								required
+							/>
+						</Field>
+
+						<Field>
+							<FieldLabel htmlFor="pincode">Pincode *</FieldLabel>
+							<Input
+								id="pincode"
+								name="pincode"
+								value={formData.pincode}
+								onChange={handleInputChange}
+								pattern="[0-9]{6}"
+								maxLength={6}
+								required
+							/>
+						</Field>
+					</FieldGroup>
+
+					<DialogFooter>
+						<Button type="button" variant="outline" onClick={onClose}>
+							Cancel
+						</Button>
+						<Button type="submit">Save Changes</Button>
+					</DialogFooter>
+				</form>
+			</DialogContent>
+		</Dialog>
+	);
+}
 
 const DoctorFullDetails = () => {
 	const { auth } = useContext(AuthContext);
@@ -34,19 +238,15 @@ const DoctorFullDetails = () => {
 	const [activeTab, setActiveTab] = useState("Details");
 	const [showEditModal, setShowEditModal] = useState(false);
 
-	// Fetch doctor details by ID
 	useEffect(() => {
 		const fetchDoctorById = async () => {
 			try {
 				const token = localStorage.getItem("token");
-				const res = await authFetch(
-					`${BACKEND_URL}/api/doctors/getDoctorById/${doctorId}`,
-					{
-						headers: {
-							Authorization: `Bearer ${token}`
-						}
-					}
-				);
+				const res = await authFetch(`${BACKEND_URL}/api/doctors/getDoctorById/${doctorId}`, {
+					headers: {
+						Authorization: `Bearer ${token}`,
+					},
+				});
 
 				if (!res.ok) {
 					if (res.status === 404) {
@@ -59,7 +259,7 @@ const DoctorFullDetails = () => {
 				const data = await res.json();
 				setDoctor(data);
 			} catch (error) {
-				console.error("❌ Error fetching doctors:", error);
+				console.error("Error fetching doctors:", error);
 			} finally {
 				setLoadingDoctor(false);
 			}
@@ -68,32 +268,25 @@ const DoctorFullDetails = () => {
 		fetchDoctorById();
 	}, [doctorId]);
 
-	// Function to handle the API call
 	const handleUpdateProfile = async (updatedData) => {
 		try {
-			const res = await fetch(
-				`${BACKEND_URL}/api/doctors/updateDoctor/${doctorId}`,
-				{
-					method: "PUT", // Assuming your route uses PUT for updates
-					headers: {
-						"Content-Type": "application/json",
-					},
-					body: JSON.stringify(updatedData),
-				}
-			);
+			const res = await fetch(`${BACKEND_URL}/api/doctors/updateDoctor/${doctorId}`, {
+				method: "PUT",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify(updatedData),
+			});
 
 			const data = await res.json();
 
 			if (res.ok && data.success) {
-				// 1. Update the local state so the UI reflects changes immediately
 				setDoctor(data.data);
-
-				// 2. Return true to signal success to the modal
 				return true;
-			} else {
-				alert(data.message || "Failed to update profile");
-				return false;
 			}
+
+			alert(data.message || "Failed to update profile");
+			return false;
 		} catch (error) {
 			console.error("Error updating doctor:", error);
 			alert("An error occurred while updating.");
@@ -104,17 +297,14 @@ const DoctorFullDetails = () => {
 	const handleVerify = async (status) => {
 		try {
 			const token = localStorage.getItem("token") || "";
-			const res = await authFetch(
-				`${BACKEND_URL}/api/doctors/verify/${doctorId}`,
-				{
-					method: "PUT",
-					headers: {
-						"Content-Type": "application/json",
-						Authorization: `Bearer ${token}`
-					},
-					body: JSON.stringify({ approvalStatus: status }),
-				}
-			);
+			const res = await authFetch(`${BACKEND_URL}/api/doctors/verify/${doctorId}`, {
+				method: "PUT",
+				headers: {
+					"Content-Type": "application/json",
+					Authorization: `Bearer ${token}`,
+				},
+				body: JSON.stringify({ approvalStatus: status }),
+			});
 			const data = await res.json();
 			if (res.ok) {
 				setDoctor((prev) => ({ ...prev, approvalStatus: status }));
@@ -128,22 +318,12 @@ const DoctorFullDetails = () => {
 		}
 	};
 
-	const tabs = [
-		{ name: "Details", icon: Briefcase },
-		{ name: "Prescriptions", icon: Pill },
-		{ name: "Appointments", icon: CalendarCheck2 },
-		{ name: "Transction", icon: IndianRupee },
-		{ name: "Feedback", icon: MessageCircleMore },
-	];
-
 	const renderContent = () => {
 		switch (activeTab) {
 			case "Details":
 				return <DoctorDetails doctor={doctor} />;
 			case "Prescriptions":
-				return (
-					<PrescriptionsTab doctorId={doctor._id} doctor={doctor} />
-				);
+				return <PrescriptionsTab doctorId={doctor._id} doctor={doctor} />;
 			case "Appointments":
 				return <AppointmentsTab doctorId={doctor._id} doctor={doctor} />;
 			case "Transction":
@@ -155,273 +335,17 @@ const DoctorFullDetails = () => {
 		}
 	};
 
-	const EditModal = ({
-		isOpen,
-		onClose,
-		currentProfile,
-		onUpdate,
-	}) => {
-		const [formData, setFormData] = useState(currentProfile);
-		const [previewImage, setPreviewImage] = useState(currentProfile.profileImage || null);
-		const fileInputRef = useRef(null);
-
-		if (!isOpen) return null;
-
-		const handleInputChange = (e) => {
-			const { name, value } = e.target;
-			setFormData((prev) => ({
-				...prev,
-				[name]: value,
-			}));
-		};
-
-		const handleImageUpload = (e) => {
-			const file = e.target.files?.[0];
-			if (file) {
-				const reader = new FileReader();
-				reader.onloadend = () => {
-					const result = reader.result;
-					setPreviewImage(result);
-					setFormData((prev) => ({
-						...prev,
-						profileImage: result,
-					}));
-				};
-				reader.readAsDataURL(file);
-			}
-		};
-
-		const handleSubmit = async (e) => {
-			e.preventDefault();
-
-			const success = await onUpdate(formData);
-
-			if (success) {
-				onClose();
-			}
-		};
-
-		return (
-			<div className="update_box_overlay" onClick={onClose}>
-				<div className="update_box_container" onClick={(e) => e.stopPropagation()}>
-					<div className="update_box_header">
-						<h2 className="update_box_title">Update Profile</h2>
-						<button
-							className="update_box_close_button"
-							onClick={onClose}
-							style={{
-								border: "1px solid black",
-								borderRadius: "6px",
-								backgroundColor: "transparent",
-								color: "black",
-								cursor: "pointer",
-								padding: "4px",
-								display: "flex",
-								alignItems: "center",
-								justifyContent: "center",
-							}}
-						>
-							<X size={24} color="black" />
-						</button>
-					</div>
-
-					<form onSubmit={handleSubmit} className="update_box_form">
-						<div className="update_box_image_section">
-							<div className="update_box_image_preview">
-								{previewImage ? (
-									<img
-										src={previewImage}
-										alt="Profile preview"
-										className="update_box_profile_image"
-									/>
-								) : (
-									<div className="update_box_placeholder_image">
-										<User size={48} />
-									</div>
-								)}
-							</div>
-							<button
-								type="button"
-								className="update_box_upload_button"
-								onClick={() => fileInputRef.current?.click()}
-								style={{ border: "1px solid black", color: "black" }}
-							>
-								<Upload size={18} />
-								Upload Photo
-							</button>
-							<input
-								ref={fileInputRef}
-								type="file"
-								accept="image/*"
-								onChange={handleImageUpload}
-								className="update_box_file_input"
-							/>
-						</div>
-
-						{/* firstname */}
-						<div className="update_box_form_grid">
-							<div className="update_box_form_group">
-								<label className="update_box_label" htmlFor="name">
-									First Name *
-								</label>
-								<input
-									type="text"
-									id="name"
-									name="firstName"
-									value={formData.firstName}
-									onChange={handleInputChange}
-									className="update_box_input"
-									required
-								/>
-							</div>
-
-
-							{/* last name */}
-							<div className="update_box_form_group">
-								<label className="update_box_label" htmlFor="name">
-									Last Name *
-								</label>
-								<input
-									type="text"
-									id="name"
-									name="lastName"
-									value={formData.lastName}
-									onChange={handleInputChange}
-									className="update_box_input"
-									required
-								/>
-							</div>
-
-							{/* email */}
-							<div className="update_box_form_group">
-								<label className="update_box_label" htmlFor="email">
-									Email *
-								</label>
-								<input
-									type="email"
-									id="email"
-									name="email"
-									value={formData.email}
-									onChange={handleInputChange}
-									className="update_box_input"
-									required
-								/>
-							</div>
-
-							{/* experience */}
-							<div className="update_box_form_group">
-								<label className="update_box_label" htmlFor="yearsOfExperience">
-									Years of Experience *
-								</label>
-								<input
-									type="number"
-									id="yearsOfExperience"
-									name="yearsOfExperience"
-									value={formData.yearsOfExperience}
-									onChange={handleInputChange}
-									className="update_box_input"
-									min="0"
-									required
-								/>
-							</div>
-
-							{/* specialization */}
-							<div className="update_box_form_group">
-								<label className="update_box_label" htmlFor="yearsOfExperience">
-									Specialization *
-								</label>
-								<input
-									type="text"
-									id="specialization"
-									name="specialization"
-									value={formData.specialization}
-									onChange={handleInputChange}
-									className="update_box_input"
-									required
-								/>
-							</div>
-
-							{/* gender */}
-							<div className="update_box_form_group">
-								<label className="update_box_label" htmlFor="gender">
-									Gender *
-								</label>
-								<select
-									id="gender"
-									name="gender"
-									value={formData.gender}
-									onChange={handleInputChange}
-									className="update_box_input"
-									required
-								>
-									<option value="">Select Gender</option>
-									<option value="male">Male</option>
-									<option value="female">Female</option>
-									<option value="other">Other</option>
-									<option value="prefer-not-to-say">Prefer not to say</option>
-								</select>
-							</div>
-
-							{/* address */}
-							<div className="update_box_form_group update_box_full_width">
-								<label className="update_box_label" htmlFor="address">
-									Address *
-								</label>
-								<textarea
-									id="address"
-									name="address"
-									value={formData.address}
-									onChange={handleInputChange}
-									className="update_box_textarea"
-									rows={3}
-									required
-								/>
-							</div>
-
-							<div className="update_box_form_group">
-								<label className="update_box_label" htmlFor="pincode">
-									Pincode *
-								</label>
-								<input
-									type="text"
-									id="pincode"
-									name="pincode"
-									value={formData.pincode}
-									onChange={handleInputChange}
-									className="update_box_input"
-									pattern="[0-9]{6}"
-									maxLength={6}
-									required
-								/>
-							</div>
-						</div>
-
-						<div className="update_box_form_actions">
-							<button
-								type="button"
-								className="update_box_cancel_button"
-								onClick={onClose}
-							>
-								Cancel
-							</button>
-							<button type="submit" className="update_box_submit_button"
-								style={{ border: "1px solid black", color: "black" }}>
-								Save Changes
-							</button>
-						</div>
-					</form>
-				</div>
-			</div>
-		);
-	};
-
 	if (loadingDoctor) {
-		return <p style={{ marginTop: "150px" }}>Loading patients...</p>;
+		return (
+			<DashboardShell>
+				<p className="text-muted-foreground">Loading patients...</p>
+			</DashboardShell>
+		);
 	}
 
 	return (
-		<div className="profile-page">
-			{showEditModal && (
+		<DashboardShell>
+			{showEditModal && doctor && (
 				<EditModal
 					isOpen={showEditModal}
 					onClose={() => setShowEditModal(false)}
@@ -435,98 +359,112 @@ const DoctorFullDetails = () => {
 						gender: doctor.gender,
 						specialization: doctor.specialization,
 						address: doctor.address,
-						pincode: typeof doctor.zipCode === "object" && doctor.zipCode !== null
-							? (doctor.zipCode.specific || doctor.zipCode.pincode || "")
-							: (doctor.zipCode || ""),
+						pincode:
+							typeof doctor.zipCode === "object" && doctor.zipCode !== null
+								? doctor.zipCode.specific || doctor.zipCode.pincode || ""
+								: doctor.zipCode || "",
 						profileImage: doctor.profileImage || "",
 					}}
 				/>
 			)}
-			<button className="back-btn" onClick={() => navigate(-1)}>
-				<ArrowLeft size={16} /> Back to Doctors
-			</button>
 
-			<h1>Doctor Dashboard</h1>
-			<p className="subtitle">Detailed information and activity</p>
+			<Button variant="ghost" className="mb-4 -ml-2" onClick={() => navigate(-1)}>
+				<ArrowLeft data-icon="inline-start" /> Back to Doctors
+			</Button>
 
-			<div className="profile-container">
-				{/* Left Panel - Summary */}
-				{doctor &&
-					<div className="left-panel">
-						<div className="avatar">{doctor.firstName ? doctor.firstName.charAt(0) : "?"}</div>
-						<h2>{doctor.firstName || "Unknown"} {doctor.lastName || ""}</h2>
-						<p className="muted">      {Array.isArray(doctor.specialization) && doctor.specialization.length > 0
-							? doctor.specialization.join(", ")
-							: "Not specified"}</p>
+			<DashboardPageHeader title="Doctor Dashboard" description="Detailed information and activity" />
 
-						<div style={{ border: "grey solid 2px", borderRadius: "8px", position: "relative", top: "-180px", left: "-120px" }}>
-							<button className="back-btn" style={{ margin: "0 0 0 0", padding: "3px 6px" }}
-								onClick={() => setShowEditModal(true)}>Edit</button>
+			<div className="grid grid-cols-1 gap-6 lg:grid-cols-[320px_1fr]">
+				{doctor && (
+					<Card className="h-fit p-6 text-center">
+						<Avatar className="mx-auto size-20 text-2xl">
+							<AvatarFallback>{doctor.firstName ? doctor.firstName.charAt(0) : "?"}</AvatarFallback>
+						</Avatar>
+						<h2 className="mt-3 text-lg font-semibold text-foreground">
+							{doctor.firstName || "Unknown"} {doctor.lastName || ""}
+						</h2>
+						<p className="text-sm text-muted-foreground">
+							{Array.isArray(doctor.specialization) && doctor.specialization.length > 0
+								? doctor.specialization.join(", ")
+								: "Not specified"}
+						</p>
+
+						<Button variant="outline" size="sm" className="mt-3" onClick={() => setShowEditModal(true)}>
+							Edit
+						</Button>
+
+						<Separator className="my-5" />
+
+						<div className="flex flex-col gap-2 text-left text-sm text-foreground/80">
+							<p className="flex items-center gap-2">
+								<Mail className="size-4 shrink-0 text-muted-foreground" /> {doctor.email || "Not specified"}
+							</p>
+							<p className="flex items-center gap-2">
+								<Phone className="size-4 shrink-0 text-muted-foreground" /> {doctor.phone || "Not specified"}
+							</p>
+							<p className="flex items-center gap-2">
+								<MapPin className="size-4 shrink-0 text-muted-foreground" />{" "}
+								{typeof doctor.zipCode === "object" && doctor.zipCode !== null
+									? doctor.zipCode.specific || doctor.zipCode.pincode || "Not specified"
+									: doctor.zipCode || "Not specified"}
+							</p>
 						</div>
 
-						<div className="info">
-							<p><Mail size={16} /> {doctor.email || "Not specified"}</p>
-							<p><Phone size={16} /> {doctor.phone || "Not specified"}</p>
-							<p><MapPin size={16} /> {typeof doctor.zipCode === "object" && doctor.zipCode !== null
-								? (doctor.zipCode.specific || doctor.zipCode.pincode || "Not specified")
-								: (doctor.zipCode || "Not specified")}</p>
-						</div>
+						<Separator className="my-5" />
 
-						<div className="stats">
+						<div className="grid grid-cols-2 gap-4">
 							<div>
-								{/* <p className="stat-value">{doctor.rating}</p> */}
-								<p className="stat-value">4.5</p>
-
-								<p className="stat-label"><Star size={14} fill="#FFD700" color="#FFD700" /> Rating</p>
+								<p className="text-xl font-bold text-foreground">4.5</p>
+								<p className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
+									<Star className="size-3.5 fill-primary text-primary" /> Rating
+								</p>
 							</div>
 							<div>
-								<p className="stat-value">{doctor.experience || "N/A"}</p>
-								<p className="stat-label">Years of Exp</p>
+								<p className="text-xl font-bold text-foreground">{doctor.experience || "N/A"}</p>
+								<p className="text-xs text-muted-foreground">Years of Exp</p>
 							</div>
 						</div>
-						
-						<div className="status-section" style={{ marginTop: "20px", paddingTop: "20px", borderTop: "1px solid #eee" }}>
-							<p className="stat-label" style={{ marginBottom: "10px" }}>Verification Status</p>
-							<div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-								<span style={{
-									padding: "4px 12px", borderRadius: "12px", fontSize: "14px", fontWeight: "bold",
-									backgroundColor: doctor.approvalStatus === 'Approved' ? '#d4edda' : doctor.approvalStatus === 'Rejected' ? '#f8d7da' : '#fff3cd',
-									color: doctor.approvalStatus === 'Approved' ? '#155724' : doctor.approvalStatus === 'Rejected' ? '#721c24' : '#856404'
-								}}>
-									{doctor.approvalStatus || 'Pending'}
-								</span>
-								{auth?.user?.role === 'admin' && auth?.user?.permissions?.manageDoctors && (
+
+						<Separator className="my-5" />
+
+						<div>
+							<p className="mb-2 text-xs font-medium text-muted-foreground">Verification Status</p>
+							<div className="flex flex-wrap items-center justify-center gap-2">
+								<Badge variant={statusBadgeVariant(doctor.approvalStatus)}>{doctor.approvalStatus || "Pending"}</Badge>
+								{auth?.user?.role === "admin" && auth?.user?.permissions?.manageDoctors && (
 									<>
-										{doctor.approvalStatus !== 'Approved' && (
-											<button onClick={() => handleVerify('Approved')} style={{ backgroundColor: "#28a745", color: "white", border: "none", padding: "6px 12px", borderRadius: "4px", cursor: "pointer" }}>Approve</button>
+										{doctor.approvalStatus !== "Approved" && (
+											<Button size="sm" onClick={() => handleVerify("Approved")}>
+												Approve
+											</Button>
 										)}
-										{doctor.approvalStatus !== 'Rejected' && (
-											<button onClick={() => handleVerify('Rejected')} style={{ backgroundColor: "#dc3545", color: "white", border: "none", padding: "6px 12px", borderRadius: "4px", cursor: "pointer" }}>Reject</button>
+										{doctor.approvalStatus !== "Rejected" && (
+											<Button size="sm" variant="destructive" onClick={() => handleVerify("Rejected")}>
+												Reject
+											</Button>
 										)}
 									</>
 								)}
 							</div>
 						</div>
-					</div>}
+					</Card>
+				)}
 
-				{/* Right Panel - Tabbed Content */}
-				<div className="right-panel">
-					<div className="tabs-container">
-						{tabs.map((tab) => (
-							<button
-								key={tab.name}
-								className={`tab-btn ${activeTab === tab.name ? "active" : ""}`}
-								onClick={() => setActiveTab(tab.name)}
-							>
-								<tab.icon size={16} strokeWidth={2.5} />
-								{tab.name}
-							</button>
-						))}
-					</div>
-					<div className="tab-content">{renderContent()}</div>
+				<div>
+					<Tabs value={activeTab} onValueChange={setActiveTab}>
+						<TabsList className="mb-6 h-auto flex-wrap">
+							{tabs.map((tab) => (
+								<TabsTrigger key={tab.name} value={tab.name}>
+									<tab.icon data-icon="inline-start" />
+									{tab.name}
+								</TabsTrigger>
+							))}
+						</TabsList>
+						<TabsContent value={activeTab}>{renderContent()}</TabsContent>
+					</Tabs>
 				</div>
 			</div>
-		</div>
+		</DashboardShell>
 	);
 };
 

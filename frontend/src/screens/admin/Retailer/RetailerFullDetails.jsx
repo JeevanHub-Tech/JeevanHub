@@ -1,23 +1,18 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { ShoppingBag, MessageCircleMore, Mail, Phone, MapPin, ArrowLeft, Briefcase } from "lucide-react";
+
+import { DashboardShell, DashboardPageHeader } from "@/components/layout/DashboardShell";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import RetailerOrdersTab from "./RetailerOrdersTab";
 import RetailerProfileTab from "./RetailerProfileTab";
 import RetailerFeedbackTab from "./RetailerFeedbackTab";
-import RetailerTransactions from "./RetailerTrans";
-import {
-	ShoppingBag,
-	MessageCircleMore,
-	Mail,
-	Phone,
-	MapPin,
-	Star,
-	ArrowLeft,
-	Briefcase,
-	IndianRupee,
-} from "lucide-react";
-import { BACKEND_URL } from '../../../config';
+import { BACKEND_URL } from "../../../config";
 import { authFetch } from "../../../utils/authFetch";
-
 
 const dummyRetailerData = [
 	{
@@ -34,7 +29,7 @@ const dummyRetailerData = [
 		zipCode: "10001",
 		password: "********",
 		status: "active",
-	}
+	},
 ];
 
 const fetchRetailerById = async (retailerId, setRetailer, setLoading, setError) => {
@@ -42,14 +37,11 @@ const fetchRetailerById = async (retailerId, setRetailer, setLoading, setError) 
 	setError(null);
 	try {
 		const token = localStorage.getItem("token");
-		const res = await authFetch(
-			`${BACKEND_URL}/api/retailers/getSingleRetailer/${retailerId}`,
-			{
-				headers: {
-					Authorization: `Bearer ${token}`
-				}
-			}
-		);
+		const res = await authFetch(`${BACKEND_URL}/api/retailers/getSingleRetailer/${retailerId}`, {
+			headers: {
+				Authorization: `Bearer ${token}`,
+			},
+		});
 
 		if (!res.ok) {
 			const errorData = await res.json();
@@ -58,22 +50,27 @@ const fetchRetailerById = async (retailerId, setRetailer, setLoading, setError) 
 
 		const data = await res.json();
 		setRetailer(data);
-		console.log("Fetched retailer data:", data);
 	} catch (error) {
-		console.error("❌ Error fetching retailer:", error);
+		console.error("Error fetching retailer:", error);
 		setError(error.message);
 	} finally {
 		setLoading(false);
 	}
 };
 
+const tabs = [
+	{ name: "Profile", icon: Briefcase },
+	{ name: "Orders", icon: ShoppingBag },
+	{ name: "Feedback", icon: MessageCircleMore },
+];
+
 const RetailerFullDetails = () => {
 	const navigate = useNavigate();
 	const { id: retailerId } = useParams();
 	const [activeTab, setActiveTab] = useState("Profile");
-	const [retailer, setRetailer] = useState(dummyRetailerData.find(r => r._id === "66e2c4d68b7573f0c2934a1b"));
-	const [loading, setLoading] = useState(false);
-	const [error, setError] = useState(null);
+	const [retailer, setRetailer] = useState(dummyRetailerData.find((r) => r._id === "66e2c4d68b7573f0c2934a1b"));
+	const [, setLoading] = useState(false);
+	const [, setError] = useState(null);
 
 	useEffect(() => {
 		if (retailerId) {
@@ -81,23 +78,12 @@ const RetailerFullDetails = () => {
 		}
 	}, [retailerId]);
 
-	// Define the tabs for the retailer page
-	const tabs = [
-		{ name: "Profile", icon: Briefcase },
-		{ name: "Orders", icon: ShoppingBag },
-		// { name: "Transactions", icon: IndianRupee },
-		{ name: "Feedback", icon: MessageCircleMore },
-	];
-
-	// Render the correct tab content based on the active tab
 	const renderContent = () => {
 		switch (activeTab) {
 			case "Profile":
 				return <RetailerProfileTab retailer={retailer} />;
 			case "Orders":
 				return <RetailerOrdersTab retailerId={retailerId} />;
-			// case "Transactions":
-			// 	return <RetailerTransactions retailerId={retailerId} />;
 			case "Feedback":
 				return <RetailerFeedbackTab retailerId={retailerId} />;
 			default:
@@ -106,68 +92,61 @@ const RetailerFullDetails = () => {
 	};
 
 	if (!retailer) {
-		return <div style={{ textAlign: 'center', marginTop: '150px' }}>Retailer not found.</div>;
+		return (
+			<DashboardShell>
+				<p className="text-center text-muted-foreground">Retailer not found.</p>
+			</DashboardShell>
+		);
 	}
 
 	return (
-		<div className="profile-page">
-			<button className="back-btn" onClick={() => navigate(-1)}>
-				<ArrowLeft size={16} /> Back to Retailers
-			</button>
+		<DashboardShell>
+			<Button variant="ghost" className="mb-4 -ml-2" onClick={() => navigate(-1)}>
+				<ArrowLeft data-icon="inline-start" /> Back to Retailers
+			</Button>
 
-			<h1>Retailer Profile</h1>
-			<p className="subtitle">Detailed information and activity</p>
+			<DashboardPageHeader title="Retailer Profile" description="Detailed information and activity" />
 
-			<div className="profile-container">
-				<div className="left-panel">
-					<div className="avatar">{retailer.firstName.charAt(0)}</div>
-					<h2>{retailer.firstName} {retailer.lastName}</h2>
-					<p className="muted">{retailer.BusinessName}</p>
+			<div className="grid grid-cols-1 gap-6 lg:grid-cols-[320px_1fr]">
+				<Card className="h-fit p-6 text-center">
+					<Avatar className="mx-auto size-20 text-2xl">
+						<AvatarFallback>{retailer.firstName.charAt(0)}</AvatarFallback>
+					</Avatar>
+					<h2 className="mt-3 text-lg font-semibold text-foreground">
+						{retailer.firstName} {retailer.lastName}
+					</h2>
+					<p className="text-sm text-muted-foreground">{retailer.BusinessName}</p>
 
-					<div className="info">
-						<p>
-							<Mail size={16} /> {retailer.email}
+					<Separator className="my-5" />
+
+					<div className="flex flex-col gap-2 text-left text-sm text-foreground/80">
+						<p className="flex items-center gap-2">
+							<Mail className="size-4 shrink-0 text-muted-foreground" /> {retailer.email}
 						</p>
-						<p>
-							<Phone size={16} /> {retailer.phone}
+						<p className="flex items-center gap-2">
+							<Phone className="size-4 shrink-0 text-muted-foreground" /> {retailer.phone}
 						</p>
-						<p>
-							<MapPin size={16} /> ZipCode - {retailer.zipCode}
+						<p className="flex items-center gap-2">
+							<MapPin className="size-4 shrink-0 text-muted-foreground" /> ZipCode - {retailer.zipCode}
 						</p>
 					</div>
+				</Card>
 
-					{/* <div className="stats">
-						<div>
-							<p className="stat-value">N/A</p>
-							<p className="stat-label">
-								<Star size={14} fill="#FFD700" color="#FFD700" /> Rating
-							</p>
-						</div>
-						<div>
-							<p className="stat-value">N/A</p>
-							<p className="stat-label">Years in Business</p>
-						</div>
-					</div> */}
-				</div>
-
-				{/* Right Panel - Tabbed Content */}
-				<div className="right-panel">
-					<div className="tabs-container">
-						{tabs.map((tab) => (
-							<button
-								key={tab.name}
-								className={`tab-btn ${activeTab === tab.name ? "active" : ""}`}
-								onClick={() => setActiveTab(tab.name)}
-							>
-								<tab.icon size={16} strokeWidth={2.5} />
-								{tab.name}
-							</button>
-						))}
-					</div>
-					<div className="tab-content">{renderContent()}</div>
+				<div>
+					<Tabs value={activeTab} onValueChange={setActiveTab}>
+						<TabsList className="mb-6 h-auto flex-wrap">
+							{tabs.map((tab) => (
+								<TabsTrigger key={tab.name} value={tab.name}>
+									<tab.icon data-icon="inline-start" />
+									{tab.name}
+								</TabsTrigger>
+							))}
+						</TabsList>
+						<TabsContent value={activeTab}>{renderContent()}</TabsContent>
+					</Tabs>
 				</div>
 			</div>
-		</div>
+		</DashboardShell>
 	);
 };
 

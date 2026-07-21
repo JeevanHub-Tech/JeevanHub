@@ -1,20 +1,22 @@
-import React, { useEffect } from 'react';
-import { Package, CheckCircle2, Truck, AlertTriangle } from 'lucide-react';
-import './RetailerOrdersTab.css';
-import { authFetch } from '../../../utils/authFetch';
-import { BACKEND_URL } from '../../../config';
+import { useEffect, useState } from "react";
+import { Package, CheckCircle2, Truck, AlertTriangle } from "lucide-react";
 
-// Helper function to determine the class and icon for a given status
+import { Badge } from "@/components/ui/badge";
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
+import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
+import { authFetch } from "../../../utils/authFetch";
+import { BACKEND_URL } from "../../../config";
+
 const getStatusBadge = (status) => {
 	switch (status.toLowerCase()) {
-		case 'delivered':
-			return { className: 'status-delivered', Icon: CheckCircle2 };
-		case 'shipped':
-			return { className: 'status-shipped', Icon: Truck };
-		case 'pending':
-			return { className: 'status-pending', Icon: AlertTriangle };
+		case "delivered":
+			return { variant: "default", Icon: CheckCircle2 };
+		case "shipped":
+			return { variant: "secondary", Icon: Truck };
+		case "pending":
+			return { variant: "destructive", Icon: AlertTriangle };
 		default:
-			return { className: 'status-default', Icon: Package };
+			return { variant: "outline", Icon: Package };
 	}
 };
 
@@ -23,25 +25,21 @@ const fetchRetailerOrders = async (retailerId, setOrders, setLoading, setError) 
 	setError(null);
 	try {
 		const token = localStorage.getItem("token");
-		const response = await authFetch(
-			`${BACKEND_URL}/api/orders/getOrdersByRetailerId/${retailerId}`,
-			{
-				headers: {
-					Authorization: `Bearer ${token}`
-				}
-			}
-		);
+		const response = await authFetch(`${BACKEND_URL}/api/orders/getOrdersByRetailerId/${retailerId}`, {
+			headers: {
+				Authorization: `Bearer ${token}`,
+			},
+		});
 
 		if (!response.ok) {
 			const errorData = await response.json();
-			throw new Error(errorData.message || 'Failed to fetch orders for this retailer.');
+			throw new Error(errorData.message || "Failed to fetch orders for this retailer.");
 		}
 
 		const data = await response.json();
 		setOrders(data.orders);
-		console.log(data.orders);
 	} catch (error) {
-		console.error("❌ Error fetching retailer's orders:", error);
+		console.error("Error fetching retailer's orders:", error);
 		setError(error.message);
 	} finally {
 		setLoading(false);
@@ -49,9 +47,9 @@ const fetchRetailerOrders = async (retailerId, setOrders, setLoading, setError) 
 };
 
 const RetailerOrdersTab = ({ retailerId }) => {
-	const [loading, setLoading] = React.useState(false);
-	const [error, setError] = React.useState(null);
-	const [orders, setOrders] = React.useState([]);
+	const [, setLoading] = useState(false);
+	const [error, setError] = useState(null);
+	const [orders, setOrders] = useState([]);
 
 	useEffect(() => {
 		if (retailerId) {
@@ -61,83 +59,78 @@ const RetailerOrdersTab = ({ retailerId }) => {
 
 	if (error) {
 		return (
-			<div className="no-orders-container">
-				<Package size={48} className="no-orders-icon" />
-				<h3>No Orders Found</h3>
-				<p>{error}</p>
-			</div>
+			<Empty>
+				<EmptyHeader>
+					<EmptyMedia variant="icon">
+						<Package />
+					</EmptyMedia>
+					<EmptyTitle>No Orders Found</EmptyTitle>
+					<EmptyDescription>{error}</EmptyDescription>
+				</EmptyHeader>
+			</Empty>
 		);
 	}
 
 	if (!orders || orders.length === 0) {
 		return (
-			<div className="no-orders-container">
-				<Package size={48} className="no-orders-icon" />
-				<h3>No Orders Found</h3>
-				<p>This retailer does not have any order history yet.</p>
-			</div>
+			<Empty>
+				<EmptyHeader>
+					<EmptyMedia variant="icon">
+						<Package />
+					</EmptyMedia>
+					<EmptyTitle>No Orders Found</EmptyTitle>
+					<EmptyDescription>This retailer does not have any order history yet.</EmptyDescription>
+				</EmptyHeader>
+			</Empty>
 		);
 	}
 
 	return (
-		<div className="orders-tab-container">
-			<div className="orders-header">
-				<h3 className="orders-title">Order History</h3>
-				<p className="orders-subtitle">
-					Showing all {orders.length} orders placed with this retailer.
-				</p>
+		<div>
+			<div className="mb-5">
+				<h3 className="text-xl font-semibold text-foreground">Order History</h3>
+				<p className="text-sm text-muted-foreground">Showing all {orders.length} orders placed with this retailer.</p>
 			</div>
-			<div className="orders-table-wrapper">
-				<table className="orders-table">
-					<thead>
-						<tr>
-							<th>Order ID</th>
-							<th>Customer Name</th>
-							<th>Medicine</th>
-							{/* <th>Quantity</th> */}
-							<th>Order Date</th>
-							<th>Status</th>
-							<th>Amount</th>
-						</tr>
-					</thead>
-					<tbody>
+			<div className="overflow-x-auto rounded-lg border border-border">
+				<Table>
+					<TableHeader>
+						<TableRow>
+							<TableHead>Order ID</TableHead>
+							<TableHead>Customer Name</TableHead>
+							<TableHead>Medicine</TableHead>
+							<TableHead>Order Date</TableHead>
+							<TableHead>Status</TableHead>
+							<TableHead>Amount</TableHead>
+						</TableRow>
+					</TableHeader>
+					<TableBody>
 						{orders.map((order) => {
-							const { className, Icon } = getStatusBadge(order.status);
+							const { variant, Icon } = getStatusBadge(order.status);
 							return (
-								<tr key={`${order._id}`}>
-									<td data-label="Order ID">
-										<span className="order-id">{order._id}</span>
-									</td>
-									<td data-label="Customer Name">{order.customerName}</td>
-									<td data-label="Medicine">
-										{order.items.map(item => `${item.medicineName} X ${item.quantity}`).join(', ')}
-									</td>
-
-									{/* <td data-label="Quantity">{item.quantity}</td> */}
-									<td data-label="Order Date">
-										{new Date(order.date).toLocaleDateString('en-GB')}
-									</td>
-									<td data-label="Status">
-										<span className={`status-badge ${className}`}>
-											<Icon size={14} />
+								<TableRow key={order._id}>
+									<TableCell className="font-semibold text-foreground">{order._id}</TableCell>
+									<TableCell>{order.customerName}</TableCell>
+									<TableCell>
+										{order.items.map((item) => `${item.medicineName} X ${item.quantity}`).join(", ")}
+									</TableCell>
+									<TableCell>{new Date(order.date).toLocaleDateString("en-GB")}</TableCell>
+									<TableCell>
+										<Badge variant={variant} className="gap-1 capitalize">
+											<Icon className="size-3.5" />
 											{order.status}
-										</span>
-									</td>
-									<td data-label="Amount">
-										<span className="order-total">
-											₹{order.orderTotal.toLocaleString('en-IN')}
-										</span>
-									</td>
-								</tr>
+										</Badge>
+									</TableCell>
+									<TableCell className="font-semibold text-foreground">
+										₹{order.orderTotal.toLocaleString("en-IN")}
+									</TableCell>
+								</TableRow>
 							);
 						})}
-					</tbody>
-
-				</table>
+					</TableBody>
+				</Table>
 			</div>
 		</div>
 	);
 };
 
 export default RetailerOrdersTab;
-

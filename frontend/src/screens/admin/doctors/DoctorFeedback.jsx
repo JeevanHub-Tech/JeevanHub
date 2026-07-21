@@ -1,17 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import './DoctorFeedback.css';
-import { MessageSquareText, Star } from 'lucide-react';
-import { authFetch } from '../../../utils/authFetch';
-import { BACKEND_URL } from '../../../config';
+import { useState, useEffect } from "react";
+import { MessageSquareText, Star } from "lucide-react";
 
-// ⭐ Read-only stars
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { authFetch } from "../../../utils/authFetch";
+import { BACKEND_URL } from "../../../config";
+
 const StarRating = ({ rating }) => (
-	<div className="star-display">
+	<div className="mb-4 flex gap-0.5">
 		{[...Array(5)].map((_, index) => (
 			<Star
 				key={index}
-				size={18}
-				className={index < (rating || 0) ? 'star filled' : 'star'}
+				className={index < (rating || 0) ? "size-4.5 fill-primary text-primary" : "size-4.5 text-muted-foreground/40"}
 			/>
 		))}
 	</div>
@@ -26,19 +26,15 @@ const Feedback = ({ doctorId }) => {
 
 	const [feedbackList, setFeedbackList] = useState([]);
 
-	// ✅ Fetch reviewed bookings for doctor
 	useEffect(() => {
 		const fetchReviewedBookings = async () => {
 			try {
 				const token = localStorage.getItem("token");
-				const res = await authFetch(
-					`${BACKEND_URL}/api/bookings/doctor/reviews/${doctorId}`,
-					{
-						headers: {
-							Authorization: `Bearer ${token}`
-						}
-					}
-				);
+				const res = await authFetch(`${BACKEND_URL}/api/bookings/doctor/reviews/${doctorId}`, {
+					headers: {
+						Authorization: `Bearer ${token}`,
+					},
+				});
 
 				if (!res.ok) {
 					if (res.status === 404) {
@@ -51,7 +47,7 @@ const Feedback = ({ doctorId }) => {
 				const data = await res.json();
 				setReviewedBookings(data.bookings || []);
 			} catch (error) {
-				console.error("❌ Error fetching reviewed bookings:", error);
+				console.error("Error fetching reviewed bookings:", error);
 			} finally {
 				setLoadingReviewedBookings(false);
 			}
@@ -60,19 +56,15 @@ const Feedback = ({ doctorId }) => {
 		if (doctorId) fetchReviewedBookings();
 	}, [doctorId]);
 
-	// ✅ Fetch reviewed orders for doctor
 	useEffect(() => {
 		const fetchReviewedOrders = async () => {
 			try {
 				const token = localStorage.getItem("token");
-				const res = await authFetch(
-					`${BACKEND_URL}/api/orders/reviews/${doctorId}`,
-					{
-						headers: {
-							Authorization: `Bearer ${token}`
-						}
-					}
-				);
+				const res = await authFetch(`${BACKEND_URL}/api/orders/reviews/${doctorId}`, {
+					headers: {
+						Authorization: `Bearer ${token}`,
+					},
+				});
 
 				if (!res.ok) {
 					if (res.status === 404) {
@@ -85,7 +77,7 @@ const Feedback = ({ doctorId }) => {
 				const data = await res.json();
 				setReviewedOrders(data.orders || []);
 			} catch (error) {
-				console.error("❌ Error fetching reviewed orders:", error);
+				console.error("Error fetching reviewed orders:", error);
 			} finally {
 				setLoadingReviewedOrders(false);
 			}
@@ -94,12 +86,11 @@ const Feedback = ({ doctorId }) => {
 		if (doctorId) fetchReviewedOrders();
 	}, [doctorId]);
 
-	// ✅ Merge both
 	useEffect(() => {
 		if (!loadingReviewedBookings && !loadingReviewedOrders) {
 			const bookingsFeedback = reviewedBookings.map((b) => ({
 				id: b._id,
-				reviewerName: b.patientName, // patient gave feedback
+				reviewerName: b.patientName,
 				date: b.dateOfAppointment || b.createdAt,
 				rating: b.rating,
 				comment: b.review,
@@ -115,46 +106,44 @@ const Feedback = ({ doctorId }) => {
 				type: "Order",
 			}));
 
-			const merged = [...bookingsFeedback, ...ordersFeedback].sort(
-				(a, b) => new Date(b.date) - new Date(a.date)
-			);
+			const merged = [...bookingsFeedback, ...ordersFeedback].sort((a, b) => new Date(b.date) - new Date(a.date));
 
 			setFeedbackList(merged);
 		}
 	}, [reviewedBookings, reviewedOrders, loadingReviewedBookings, loadingReviewedOrders]);
 
 	return (
-		<div className="card feedback-display-card">
-			<h3>
-				<MessageSquareText size={20} /> Feedback History
+		<Card className="p-6">
+			<h3 className="flex items-center gap-2 border-b border-border pb-4 text-xl font-semibold text-foreground">
+				<MessageSquareText className="size-5" /> Feedback History
 			</h3>
 
-			<div className="feedback-list">
+			<div className="mt-5 flex flex-col gap-4">
 				{feedbackList.length > 0 ? (
 					feedbackList.map((fb) => (
-						<div key={fb.id} className="feedback-item-card">
-							<div className="feedback-item-header">
-								<span className="feedback-category">{fb.reviewerName}</span>
-								<span className="feedback-date">
-									{new Date(fb.date).toLocaleDateString('en-GB', {
-										day: 'numeric',
-										month: 'long',
-										year: 'numeric',
+						<div key={fb.id} className="rounded-lg border border-border bg-muted/40 p-5">
+							<div className="mb-3 flex items-center justify-between gap-2">
+								<Badge variant="secondary">{fb.reviewerName}</Badge>
+								<span className="text-sm font-medium text-muted-foreground">
+									{new Date(fb.date).toLocaleDateString("en-GB", {
+										day: "numeric",
+										month: "long",
+										year: "numeric",
 									})}
 								</span>
 							</div>
-							<div className="feedback-item-rating">
-								<StarRating rating={fb.rating} />
-							</div>
-							<p className="feedback-item-comment">"{fb.comment}"</p>
-							<span className="feedback-type">({fb.type})</span>
+							<StarRating rating={fb.rating} />
+							<p className="border-l border-border pl-4 text-[0.95rem] leading-relaxed text-foreground/80">
+								&quot;{fb.comment}&quot;
+							</p>
+							<span className="mt-2 block text-sm text-muted-foreground">({fb.type})</span>
 						</div>
 					))
 				) : (
-					<p className="no-feedback">No feedback has been submitted yet.</p>
+					<p className="py-8 text-center text-muted-foreground">No feedback has been submitted yet.</p>
 				)}
 			</div>
-		</div>
+		</Card>
 	);
 };
 

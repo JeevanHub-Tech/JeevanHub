@@ -1,16 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import './patientTrans.css'; // Assuming your CSS file is named this
 import { ReceiptText, Search } from 'lucide-react';
+
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { authFetch } from '../../../utils/authFetch';
 import { BACKEND_URL } from '../../../config';
 
 const Transactions = ({ bookings, patientId }) => {
 	const [searchTerm, setSearchTerm] = useState('');
 	const [patientOrders, setPatientOrders] = useState([]);
-	const [loadingOrders, setLoadingOrders] = useState(true);
 	const [transactions, setTransactions] = useState([]);
 
-	// ✅ Fetch all orders for a patient
 	useEffect(() => {
 		const fetchPatientOrders = async () => {
 			try {
@@ -25,7 +27,7 @@ const Transactions = ({ bookings, patientId }) => {
 
 				if (!res.ok) {
 					if (res.status === 404) {
-						setPatientOrders([]); // no orders
+						setPatientOrders([]);
 						return;
 					}
 					throw new Error("Failed to fetch patient orders");
@@ -35,16 +37,12 @@ const Transactions = ({ bookings, patientId }) => {
 				setPatientOrders(data);
 			} catch (error) {
 				console.error("❌ Error fetching patient orders:", error);
-			} finally {
-				setLoadingOrders(false);
 			}
 		};
 
 		if (patientId) fetchPatientOrders();
 	}, [patientId]);
 
-
-	// 🩺 Map Bookings to Transactions
 	const mapBookingsToTransactions = (bookings) => {
 		return bookings.map((b) => ({
 			id: b._id,
@@ -56,7 +54,6 @@ const Transactions = ({ bookings, patientId }) => {
 		}));
 	};
 
-	// 💊 Map Orders to Transactions
 	const mapOrdersToTransactions = (orders) => {
 		return orders.map((o) => ({
 			id: o._id,
@@ -76,17 +73,14 @@ const Transactions = ({ bookings, patientId }) => {
 			];
 
 			allTransactions.forEach(t => {
-				t.dateObj = new Date(t.date); // store Date object for reliable sorting
+				t.dateObj = new Date(t.date);
 			});
 
-			// Sort newest → oldest
 			allTransactions.sort((a, b) => b.dateObj - a.dateObj);
 
 			setTransactions(allTransactions);
 		}
 	}, [bookings, patientOrders]);
-
-
 
 	const filteredTransactions = transactions.filter((t) => {
 		const term = searchTerm.toLowerCase();
@@ -94,70 +88,72 @@ const Transactions = ({ bookings, patientId }) => {
 			t.doctor.toLowerCase().includes(term) ||
 			t.amount.toString().includes(term) ||
 			t.id.toLowerCase().includes(term) ||
-			t.type.toLowerCase().includes(term) // also allow search by type
+			t.type.toLowerCase().includes(term)
 		);
 	});
 
-
-
 	return (
-		<div className="card transaction-card">
-			<div className="transaction-header">
-				<h3>
-					<ReceiptText size={20} /> Transaction History
-				</h3>
-				<div className="search-container">
-					<Search size={18} className="search-icon" />
-					<input
+		<Card className="overflow-hidden py-0">
+			<CardHeader className="flex-row flex-wrap items-center justify-between gap-4 border-b border-border bg-secondary/50 px-6 py-5">
+				<CardTitle className="flex items-center gap-2 font-display text-xl">
+					<ReceiptText size={20} className="text-primary" /> Transaction History
+				</CardTitle>
+				<div className="relative flex items-center">
+					<Search size={16} className="pointer-events-none absolute left-3.5 text-muted-foreground" />
+					<Input
 						type="text"
 						placeholder="Search by Doctor, Amount, or ID..."
 						value={searchTerm}
 						onChange={(e) => setSearchTerm(e.target.value)}
+						className="h-10 w-full rounded-(--jh-radius-pill) pl-11 sm:w-80"
 					/>
 				</div>
-			</div>
+			</CardHeader>
 
-			<div className="transaction-table-container">
-				<table className="transaction-table">
-					<thead>
-						<tr>
-							<th>Transaction ID</th>
-							<th>Date</th>
-							<th>Doctor</th>
-							<th>Description</th>
-							<th>Amount Paid</th>
-						</tr>
-					</thead>
-					<tbody>
+			<CardContent className="px-0">
+				<Table className="min-w-[700px]">
+					<TableHeader>
+						<TableRow className="hover:bg-transparent">
+							<TableHead className="bg-secondary/40 px-6 py-3 text-xs font-semibold uppercase tracking-wide">Transaction ID</TableHead>
+							<TableHead className="bg-secondary/40 px-6 py-3 text-xs font-semibold uppercase tracking-wide">Date</TableHead>
+							<TableHead className="bg-secondary/40 px-6 py-3 text-xs font-semibold uppercase tracking-wide">Doctor</TableHead>
+							<TableHead className="bg-secondary/40 px-6 py-3 text-xs font-semibold uppercase tracking-wide">Description</TableHead>
+							<TableHead className="bg-secondary/40 px-6 py-3 text-xs font-semibold uppercase tracking-wide">Amount Paid</TableHead>
+						</TableRow>
+					</TableHeader>
+					<TableBody>
 						{filteredTransactions.length > 0 ? (
 							filteredTransactions.map((t) => (
-								<tr key={t.id}>
-									<td className="transaction-id">{t.id}</td>
-									<td>{new Date(t.date).toLocaleDateString()}</td>
-									<td className="doctor-name">{t.doctor}</td>
-									<td>
-										{t.description}
-										<span className={`badge ${t.type}`}>
-											{t.type === "consultation" ? "Consultation" : "Medicine"}
+								<TableRow key={t.id} className="hover:bg-secondary/30">
+									<TableCell className="px-6 py-3">
+										<span className="inline-block max-w-[150px] truncate rounded-(--jh-radius-sm) bg-secondary px-2 py-1 font-mono text-[0.8125rem] text-muted-foreground">
+											{t.id}
 										</span>
-									</td>
-									<td className="transaction-amount">
+									</TableCell>
+									<TableCell className="px-6 py-3 text-foreground">{new Date(t.date).toLocaleDateString()}</TableCell>
+									<TableCell className="px-6 py-3 font-semibold text-foreground">{t.doctor}</TableCell>
+									<TableCell className="max-w-[300px] px-6 py-3 whitespace-normal text-foreground">
+										<span className="mb-1 block">{t.description}</span>
+										<Badge variant={t.type === "consultation" ? "default" : "success"} className="capitalize">
+											{t.type === "consultation" ? "Consultation" : "Medicine"}
+										</Badge>
+									</TableCell>
+									<TableCell className="px-6 py-3 font-bold text-primary">
 										₹{t.amount.toLocaleString("en-IN")}
-									</td>
-								</tr>
+									</TableCell>
+								</TableRow>
 							))
 						) : (
-							<tr>
-								<td colSpan="5" className="no-results">
+							<TableRow className="hover:bg-transparent">
+								<TableCell colSpan={5} className="bg-secondary/30 px-6 py-10 text-center italic text-muted-foreground">
 									No transactions found.
-								</td>
-							</tr>
+								</TableCell>
+							</TableRow>
 						)}
-					</tbody>
-
-				</table>
-			</div>
-		</div>
+					</TableBody>
+				</Table>
+			</CardContent>
+		</Card>
 	);
 };
 

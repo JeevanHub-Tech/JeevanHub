@@ -1,45 +1,35 @@
-import React, { useContext } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { AuthContext } from '../../context/AuthContext';
+import { useContext } from "react";
+import { Users, Stethoscope, Store, Receipt, Newspaper, ShieldCheck, FileClock } from "lucide-react";
+
+import { DashboardShell, DashboardPageHeader } from "@/components/layout/DashboardShell";
+import { DashboardNavCard } from "@/components/layout/DashboardNavCard";
+import { AuthContext } from "@/context/AuthContext";
 
 const AdminDashboard = () => {
-	const navigate = useNavigate();
 	const { auth } = useContext(AuthContext);
 
-	let sections = [
-		{ name: 'Patient Management', path: '/admin/users' },
-		{ name: 'Doctor Management', path: '/admin/consultations' },
-		{ name: 'Retailer Management', path: '/admin/medicine-orders' },
-		{ name: 'Transactions', path: '/admin/transactions' },
-		{ name: 'Blogs', path: '/admin/blogs' }
+	const sections = [
+		{ to: "/admin/users", icon: Users, label: "Patient Management", description: "View and manage patient accounts" },
+		{ to: "/admin/consultations", icon: Stethoscope, label: "Doctor Management", description: "Review doctors and consultations" },
+		{ to: "/admin/medicine-orders", icon: Store, label: "Retailer Management", description: "Manage retailers and medicine orders" },
+		{ to: "/admin/transactions", icon: Receipt, label: "Transactions", description: "Track platform payments" },
+		{ to: "/admin/blogs", icon: Newspaper, label: "Blogs", description: "Manage published articles" },
 	];
 
 	if (auth.user?.permissions?.manageAdmins) {
-		sections.push({ name: 'Admin Management', path: '/admin/management' });
-		sections.push({ name: 'Audit Logs', path: '/admin/audit-logs' });
+		sections.push({ to: "/admin/management", icon: ShieldCheck, label: "Admin Management", description: "Manage admin accounts and roles" });
+		sections.push({ to: "/admin/audit-logs", icon: FileClock, label: "Audit Logs", description: "Review admin activity history" });
 	}
 
 	return (
-		<div style={{ textAlign: 'center', marginTop: '165px', padding: "25px", boxSizing: "border-box", margin: "165px auto 25px auto", maxWidth: "95%", background:"white", borderRadius:"15px" }}>
-			<h1>Admin Dashboard</h1>
-			<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', padding: '20px' }}>
-				{sections.map((section, index) => (
-					<div
-						key={index}
-						style={{
-							padding: '20px',
-							backgroundColor: '#f8f9fa',
-							borderRadius: '10px',
-							cursor: 'pointer',
-							boxShadow: '0px 4px 6px rgba(0,0,0,0.1)'
-						}}
-						onClick={() => navigate(section.path)}
-					>
-						<h3>{section.name}</h3>
-					</div>
+		<DashboardShell>
+			<DashboardPageHeader title="Admin Dashboard" description="Manage patients, doctors, retailers, and platform content." />
+			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+				{sections.map((section) => (
+					<DashboardNavCard key={section.to} {...section} />
 				))}
 			</div>
-		</div>
+		</DashboardShell>
 	);
 };
 

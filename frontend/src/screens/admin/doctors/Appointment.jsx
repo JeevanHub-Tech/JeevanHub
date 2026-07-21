@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from "react";
-import "./Appointment.css";
+import { useState, useEffect } from "react";
 import { CalendarClock, History as HistoryIcon } from "lucide-react";
+
+import { Card } from "@/components/ui/card";
 import { authFetch } from "../../../utils/authFetch";
-import { BACKEND_URL } from '../../../config';
+import { BACKEND_URL } from "../../../config";
 
 const Appointments = ({ doctorId }) => {
 	const [doctorBookings, setDoctorBookings] = useState([]);
@@ -10,19 +11,15 @@ const Appointments = ({ doctorId }) => {
 	const [upcomingAppointments, setUpcomingAppointments] = useState([]);
 	const [pastAppointments, setPastAppointments] = useState([]);
 
-	// ✅ Fetch all bookings for a doctor
 	useEffect(() => {
 		const fetchDoctorBookings = async () => {
 			try {
 				const token = localStorage.getItem("token");
-				const res = await authFetch(
-					`${BACKEND_URL}/api/bookings/doctor/${doctorId}`,
-					{
-						headers: {
-							Authorization: `Bearer ${token}`
-						}
-					}
-				);
+				const res = await authFetch(`${BACKEND_URL}/api/bookings/doctor/${doctorId}`, {
+					headers: {
+						Authorization: `Bearer ${token}`,
+					},
+				});
 
 				if (!res.ok) {
 					if (res.status === 404) {
@@ -34,9 +31,8 @@ const Appointments = ({ doctorId }) => {
 
 				const data = await res.json();
 				setDoctorBookings(data.bookings || []);
-				console.log("Doctor Bookings Data:", data);
 			} catch (error) {
-				console.error("❌ Error fetching doctor bookings:", error);
+				console.error("Error fetching doctor bookings:", error);
 			} finally {
 				setLoadingBookings(false);
 			}
@@ -45,7 +41,6 @@ const Appointments = ({ doctorId }) => {
 		if (doctorId) fetchDoctorBookings();
 	}, [doctorId]);
 
-	// ✅ Split into upcoming / past
 	useEffect(() => {
 		const now = new Date();
 
@@ -76,80 +71,80 @@ const Appointments = ({ doctorId }) => {
 	}, [doctorBookings]);
 
 	return (
-		<div className="card appointments-card">
-			<h3>
-				<CalendarClock size={20} /> My Appointments
+		<Card className="p-6">
+			<h3 className="flex items-center gap-2 border-b border-border pb-4 text-xl font-semibold text-foreground">
+				<CalendarClock className="size-5" /> My Appointments
 			</h3>
 
-			{/* Upcoming Appointments Section */}
-			<div className="appointments-section">
-				<h4>
-					<CalendarClock size={18} /> Upcoming Schedule
+			<div className="mt-5">
+				<h4 className="mb-4 flex items-center gap-2 text-lg font-semibold text-muted-foreground">
+					<CalendarClock className="size-4" /> Upcoming Schedule
 				</h4>
-				<div className="upcoming-list">
+				<div className="flex flex-col gap-3">
 					{loadingBookings ? (
-						<p>Loading appointments...</p>
+						<p className="text-sm text-muted-foreground">Loading appointments...</p>
 					) : upcomingAppointments.length > 0 ? (
 						upcomingAppointments.map((appt) => (
-							<div key={appt.id} className="upcoming-appointment-card">
-								<div className="upcoming-date">
-									<span>
+							<div
+								key={appt.id}
+								className="flex items-center gap-5 rounded-lg border border-border bg-muted/40 p-4 transition-transform hover:-translate-y-0.5 hover:shadow-md"
+							>
+								<div className="flex w-16 shrink-0 flex-col items-center justify-center rounded-lg bg-primary py-2 text-center font-bold text-primary-foreground">
+									<span className="text-2xl leading-none">
 										{new Date(appt.date).toLocaleDateString("en-US", { day: "numeric" })}
 									</span>
-									<span>
+									<span className="text-xs uppercase">
 										{new Date(appt.date).toLocaleDateString("en-US", { month: "short" })}
 									</span>
 								</div>
-								<div className="upcoming-details">
-									<p className="patient-name">Patient: {appt.patient}</p>
-									<p className="appointment-reason">Illness: {appt.reason}</p>
+								<div className="min-w-0 flex-1">
+									<p className="font-semibold text-foreground">Patient: {appt.patient}</p>
+									<p className="mt-1 text-sm text-muted-foreground">Illness: {appt.reason}</p>
 								</div>
-								<div className="upcoming-time">{appt.time}</div>
+								<div className="shrink-0 font-bold text-primary">{appt.time}</div>
 							</div>
 						))
 					) : (
-						<p className="no-appointments">No upcoming appointments scheduled.</p>
+						<p className="rounded-lg py-5 text-center italic text-muted-foreground">
+							No upcoming appointments scheduled.
+						</p>
 					)}
 				</div>
 			</div>
 
-			{/* Past Appointments Section - Timeline */}
-			<div className="appointments-section">
-				<h4>
-					<HistoryIcon size={18} /> Past Visits
+			<div className="mt-5">
+				<h4 className="mb-4 flex items-center gap-2 text-lg font-semibold text-muted-foreground">
+					<HistoryIcon className="size-4" /> Past Visits
 				</h4>
-				<div className="timeline">
+				<div className="flex flex-col gap-4 pl-2">
 					{loadingBookings ? (
-						<p>Loading past visits...</p>
+						<p className="text-sm text-muted-foreground">Loading past visits...</p>
 					) : pastAppointments.length > 0 ? (
 						pastAppointments.map((visit) => (
-							<div key={visit.id} className="timeline-item">
-								<div className="timeline-dot"></div>
-								<div className="timeline-content">
-									<div className="timeline-header">
-										<p className="timeline-patient">Patient: {visit.patient}</p>
-										<p className="timeline-date">
-											{new Date(visit.date).toLocaleDateString("en-GB", {
-												day: "numeric",
-												month: "long",
-												year: "numeric",
-											})}
-										</p>
-									</div>
-									<div className="timeline-details">
-										<p>
-											<strong>Notes:</strong> {visit.reason}
-										</p>
-									</div>
+							<div key={visit.id} className="rounded-lg border border-border bg-muted/40 p-4">
+								<div className="flex flex-wrap items-center justify-between gap-1">
+									<p className="font-bold text-foreground">Patient: {visit.patient}</p>
+									<p className="text-sm text-muted-foreground">
+										{new Date(visit.date).toLocaleDateString("en-GB", {
+											day: "numeric",
+											month: "long",
+											year: "numeric",
+										})}
+									</p>
+								</div>
+								<div className="mt-1 text-sm text-muted-foreground">
+									<p>
+										<strong className="text-foreground">Notes:</strong> {visit.reason}
+									</p>
 								</div>
 							</div>
 						))
 					) : (
-						<p className="no-appointments">No past visits recorded.</p>
+						<p className="rounded-lg py-5 text-center italic text-muted-foreground">No past visits recorded.</p>
 					)}
 				</div>
 			</div>
-		</div>
+		</Card>
 	);
 };
 

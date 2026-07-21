@@ -1,174 +1,152 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+
 import { recordsData } from "./Patientdata";
 import { authFetch } from "../../utils/authFetch";
-import { BACKEND_URL } from '../../config';
+import { BACKEND_URL } from "../../config";
+import { DashboardShell, DashboardPageHeader } from "@/components/layout/DashboardShell";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 
 const AdminUsers = () => {
-  const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
+	const [, setUsers] = useState([]);
+	const [loading, setLoading] = useState(true);
 
-  const navigate = useNavigate();
+	const navigate = useNavigate();
 
-  //   const handleUpdate = (id) => {
-  //     navigate(`/patients/update/${id}`);
-  //   };
+	const handleRowClick = (id) => {
+		navigate(`/patients/${id}`);
+	};
 
-  // Row click → go to details page
-  const handleRowClick = (id) => {
-    navigate(`/patients/${id}`);
-  };
+	useEffect(() => {
+		fetchUsers();
+	}, []);
 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
+	const fetchUsers = async () => {
+		try {
+			const token = localStorage.getItem("token");
+			if (!token) {
+				console.error("No authentication token found.");
+				return;
+			}
 
-  const fetchUsers = async () => {
-    try {
-      const token = localStorage.getItem("token"); // Retrieve token from local storage
-      if (!token) {
-        console.error("No authentication token found.");
-        return;
-      }
+			const response = await authFetch(`${BACKEND_URL}/api/patient-records/getAllRecords`, {
+				method: "GET",
+				headers: {
+					Authorization: `Bearer ${token}`,
+					"Content-Type": "application/json",
+				},
+			});
 
-      const response = await authFetch(
-        `${BACKEND_URL}/api/patient-records/getAllRecords`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`, // Include the token
-            "Content-Type": "application/json",
-          },
-        }
-      );
+			if (!response.ok) {
+				throw new Error(`HTTP error! Status: ${response.status}`);
+			}
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`);
-      }
+			const data = await response.json();
+			setUsers(data?.data?.records || []);
+			setLoading(false);
+		} catch (error) {
+			console.error("Error fetching users:", error);
+			setLoading(false);
+		}
+	};
 
-      const data = await response.json();
-      console.log("Fetched users:", data);
-      setUsers(data?.data?.records || []);
-      setLoading(false);
-    } catch (error) {
-      console.error("Error fetching users:", error);
-      setLoading(false);
-    }
-  };
+	const handleDelete = async (userId) => {
+		if (window.confirm("Are you sure you want to delete this user?")) {
+			try {
+				const token = localStorage.getItem("token");
+				const response = await authFetch(`${BACKEND_URL}/api/auth/users/${userId}`, {
+					method: "DELETE",
+					headers: {
+						Authorization: `Bearer ${token}`,
+						"Content-Type": "application/json",
+					},
+				});
 
-  const handleDelete = async (userId) => {
-    if (window.confirm("Are you sure you want to delete this user?")) {
-      try {
-        const token = localStorage.getItem("token");
-        const response = await authFetch(
-          `${BACKEND_URL}/api/auth/users/${userId}`,
-          {
-            method: "DELETE",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          }
-        );
+				if (!response.ok) {
+					throw new Error(`Error deleting user: ${response.status}`);
+				}
 
-        if (!response.ok) {
-          throw new Error(`Error deleting user: ${response.status}`);
-        }
+				fetchUsers();
+			} catch (error) {
+				console.error("Error deleting user:", error);
+			}
+		}
+	};
 
-        console.log(`User ${userId} deleted successfully`);
-        fetchUsers();
-      } catch (error) {
-        console.error("Error deleting user:", error);
-      }
-    }
-  };
+	if (loading) {
+		return (
+			<DashboardShell>
+				<p className="text-center text-muted-foreground">Loading users...</p>
+			</DashboardShell>
+		);
+	}
 
-  if (loading) return <p>Loading users...</p>;
+	return (
+		<DashboardShell>
+			<DashboardPageHeader title="Manage Users" />
 
-  return (
-    <div
-      style={{
-        padding: "20px",
-        margin: "160px 50px 25px 50px",
-        background: "white",
-        borderRadius: "15px",
-        overflow: "hidden",
-      }}
-    >
-      <h2>Manage Users</h2>
-      <div style={{ width: "100%", overflowX: "auto", padding: "0px 25px" }}>
-        <table
-          border="1"
-          style={{ width: "90%", textAlign: "left", marginTop: "20px" }}
-        >
-          <thead>
-            <tr>
-              <th style={{ padding: "10px", background: "#8f9f6d" }}>Name</th>
-              <th style={{ padding: "0px 10px", background: "#8f9f6d" }}>
-                Email
-              </th>
-              <th style={{ padding: "0px 10px", background: "#8f9f6d" }}>
-                Phone No.
-              </th>
-              <th style={{ padding: "0px 10px", background: "#8f9f6d" }}>
-                Gender
-              </th>
-              <th style={{ padding: "0px 10px", background: "#8f9f6d" }}>
-                Age
-              </th>
-              <th style={{ padding: "0px 10px", background: "#8f9f6d" }}>
-                ZipCode
-              </th>
-              <th style={{ padding: "0px 10px", background: "#8f9f6d" }}>
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {recordsData.map((record) => {
-              const patient = record.patient; // ✅ extract nested patient
-              return (
-                <tr
-                  key={record._id}
-                  onClick={() => handleRowClick(record._id)}
-                  style={{ cursor: "pointer" }}
-                >
-                  <td style={{ padding: "0px 10px" }}>
-                    {patient.firstName} {patient.lastName}
-                  </td>
-                  <td style={{ padding: "0px 10px" }}>{patient.email}</td>
-                  <td style={{ padding: "0px 10px" }}>{patient.phone}</td>
-                  <td style={{ padding: "0px 10px" }}>{patient.gender}</td>
-                  <td style={{ padding: "0px 10px" }}>{patient.age}</td>
-                  <td style={{ padding: "0px 10px" }}>{patient.zipCode}</td>
-                  <td style={{ padding: "0px 10px" }}>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDelete(record._id);
-                      }}
-                      style={{ marginLeft: "10px", color: "white" }}
-                    >
-                      Delete
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigate(`/patients/${record._id}`);
-                      }}
-                      style={{ marginLeft: "20px", color: "white" }}
-                    >
-                      Update
-                    </button>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
+			<Card className="overflow-hidden p-0">
+				<div className="overflow-x-auto">
+					<Table>
+						<TableHeader>
+							<TableRow>
+								<TableHead>Name</TableHead>
+								<TableHead>Email</TableHead>
+								<TableHead>Phone No.</TableHead>
+								<TableHead>Gender</TableHead>
+								<TableHead>Age</TableHead>
+								<TableHead>ZipCode</TableHead>
+								<TableHead>Actions</TableHead>
+							</TableRow>
+						</TableHeader>
+						<TableBody>
+							{recordsData.map((record) => {
+								const patient = record.patient;
+								return (
+									<TableRow key={record._id} className="cursor-pointer" onClick={() => handleRowClick(record._id)}>
+										<TableCell className="font-medium text-foreground">
+											{patient.firstName} {patient.lastName}
+										</TableCell>
+										<TableCell>{patient.email}</TableCell>
+										<TableCell>{patient.phone}</TableCell>
+										<TableCell>{patient.gender}</TableCell>
+										<TableCell>{patient.age}</TableCell>
+										<TableCell>{patient.zipCode}</TableCell>
+										<TableCell>
+											<div className="flex gap-2">
+												<Button
+													variant="destructive"
+													size="sm"
+													onClick={(e) => {
+														e.stopPropagation();
+														handleDelete(record._id);
+													}}
+												>
+													Delete
+												</Button>
+												<Button
+													variant="outline"
+													size="sm"
+													onClick={(e) => {
+														e.stopPropagation();
+														navigate(`/patients/${record._id}`);
+													}}
+												>
+													Update
+												</Button>
+											</div>
+										</TableCell>
+									</TableRow>
+								);
+							})}
+						</TableBody>
+					</Table>
+				</div>
+			</Card>
+		</DashboardShell>
+	);
 };
 
 export default AdminUsers;

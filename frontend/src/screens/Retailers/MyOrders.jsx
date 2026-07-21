@@ -1,8 +1,21 @@
-import React, { useState, useEffect, useContext } from "react";
+import { useState, useEffect, useContext } from "react";
 import axios from "axios";
-import "./MyOrders.css";
+
 import { AuthContext } from "../../context/AuthContext";
-import { BACKEND_URL } from '../../config';
+import { BACKEND_URL } from "../../config";
+import { DashboardShell, DashboardPageHeader } from "@/components/layout/DashboardShell";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
+
+const STATUS_TABS = [
+	{ value: "pending", label: "Received" },
+	{ value: "accepted", label: "Accepted" },
+	{ value: "delivered", label: "Delivered" },
+	{ value: "shipped", label: "Shipped" },
+	{ value: "rejected", label: "Rejected" },
+];
 
 function MyOrders() {
 	const [orders, setOrders] = useState([]);
@@ -13,15 +26,11 @@ function MyOrders() {
 	useEffect(() => {
 		const fetchOrders = async () => {
 			try {
-				const response = await axios.get(
-					`${BACKEND_URL}/api/orders/getOrdersByRetailerId/${retailerId}`,
-					{
-						headers: { Authorization: `Bearer ${auth.token}` },
-					}
-				);
+				const response = await axios.get(`${BACKEND_URL}/api/orders/getOrdersByRetailerId/${retailerId}`, {
+					headers: { Authorization: `Bearer ${auth.token}` },
+				});
 
 				setOrders(response.data.orders || []);
-				console.log(response.data.orders);
 			} catch (error) {
 				console.error("Error fetching orders:", error);
 			}
@@ -42,11 +51,7 @@ function MyOrders() {
 					headers: { Authorization: `Bearer ${auth.token}` },
 				}
 			);
-			setOrders((prevOrders) =>
-				prevOrders.map((order) =>
-					order._id === orderId ? { ...order, status: newStatus } : order
-				)
-			);
+			setOrders((prevOrders) => prevOrders.map((order) => (order._id === orderId ? { ...order, status: newStatus } : order)));
 		} catch (error) {
 			console.error("Error updating order status:", error);
 		}
@@ -55,124 +60,98 @@ function MyOrders() {
 	const filteredOrders = orders.filter((order) => order.status === status);
 
 	return (
-		<div
-			className="myorders-container"
-			style={{ marginTop: "175px", padding: "15px", borderRadius: "15px" }}
-		>
-			<h1>My Orders</h1>
+		<DashboardShell>
+			<DashboardPageHeader title="My Orders" />
 
-			<div className="myorders-tabs">
-				<button
-					className={status === "pending" ? "myorders-active" : ""}
-					onClick={() => setStatus("pending")}
-				>
-					Received
-				</button>
-				<button
-					className={status === "accepted" ? "myorders-active" : ""}
-					onClick={() => setStatus("accepted")}
-				>
-					Accepted
-				</button>
-				<button
-					className={status === "delivered" ? "myorders-active" : ""}
-					onClick={() => setStatus("delivered")}
-				>
-					Delivered
-				</button>
-				<button
-					className={status === "shipped" ? "myorders-active" : ""}
-					onClick={() => setStatus("shipped")}
-				>
-					Shipped
-				</button>
-				<button
-					className={status === "rejected" ? "myorders-active" : ""}
-					onClick={() => setStatus("rejected")}
-				>
-					Rejected
-				</button>
-			</div>
+			<Tabs value={status} onValueChange={setStatus}>
+				<TabsList className="mb-6 h-auto flex-wrap">
+					{STATUS_TABS.map((tab) => (
+						<TabsTrigger key={tab.value} value={tab.value}>
+							{tab.label}
+						</TabsTrigger>
+					))}
+				</TabsList>
+			</Tabs>
 
 			{filteredOrders.length === 0 ? (
-				<div style={{ textAlign: "center", marginTop: "40px", fontSize: "18px", color: "#6e6e33" }}>
-					No orders found in the <strong>{status}</strong> category.
-				</div>
+				<p className="mt-10 text-center text-lg text-muted-foreground">
+					No orders found in the <strong className="text-foreground">{status}</strong> category.
+				</p>
 			) : (
-				filteredOrders.map((order) => (
-					<div key={order._id} className="myorders-card">
-						<p>
-							<strong>Buyer Name:</strong> {order.customerName}
-						</p>
-						<p>
-							<strong>Order Recieving Date:</strong>{" "}
-							{new Date(order.date).toLocaleDateString()}
-						</p>
+				<div className="flex flex-col gap-6">
+					{filteredOrders.map((order) => (
+						<Card key={order._id} className="p-6 transition-transform hover:-translate-y-1">
+							<p className="mb-2">
+								<strong className="text-foreground">Buyer Name:</strong> {order.customerName}
+							</p>
+							<p className="mb-2">
+								<strong className="text-foreground">Order Receiving Date:</strong> {new Date(order.date).toLocaleDateString()}
+							</p>
+							<p className="mb-2">
+								<strong className="text-foreground">Shipping Address:</strong>{" "}
+								{order.shippingAddress
+									? `${order.shippingAddress.street}, ${order.shippingAddress.city}, ${order.shippingAddress.state}, ${order.shippingAddress.postalCode}, ${order.shippingAddress.country}`
+									: "N/A"}
+							</p>
+							<p className="mb-2">
+								<strong className="text-foreground">Items:</strong>
+							</p>
 
-						<p>
-							<strong>Shipping Address:</strong>{" "}
-							{order.shippingAddress
-								? `${order.shippingAddress.street}, ${order.shippingAddress.city}, ${order.shippingAddress.state}, ${order.shippingAddress.postalCode}, ${order.shippingAddress.country}`
-								: "N/A"}
-						</p>
+							<div className="mb-3 overflow-x-auto rounded-lg border border-border">
+								<Table>
+									<TableHeader>
+										<TableRow>
+											<TableHead>Medicine</TableHead>
+											<TableHead>Unit Price</TableHead>
+											<TableHead>Quantity</TableHead>
+											<TableHead>Subtotal</TableHead>
+										</TableRow>
+									</TableHeader>
+									<TableBody>
+										{order.items.map((item, idx) => (
+											<TableRow key={idx}>
+												<TableCell>{item.medicineName}</TableCell>
+												<TableCell>{item.unitPrice}</TableCell>
+												<TableCell>{item.quantity}</TableCell>
+												<TableCell>{item.subTotal}</TableCell>
+											</TableRow>
+										))}
+									</TableBody>
+								</Table>
+							</div>
 
-						<p>
-							<strong>Items:</strong>
-						</p>
+							<p className="mb-2">
+								<strong className="text-foreground">Order Total:</strong> {order.orderTotal}
+							</p>
+							<p>
+								<strong className="text-foreground">Status:</strong> {order.status}
+							</p>
 
-						<table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "10px" }}>
-							<thead>
-								<tr>
-									<th style={{ border: "1px solid #ccc", padding: "6px" }}>Medicine</th>
-									<th style={{ border: "1px solid #ccc", padding: "6px" }}>Unit Price</th>
-									<th style={{ border: "1px solid #ccc", padding: "6px" }}>Quantity</th>
-									<th style={{ border: "1px solid #ccc", padding: "6px" }}>Subtotal</th>
-								</tr>
-							</thead>
-							<tbody>
-								{order.items.map((item, idx) => (
-									<tr key={idx}>
-										<td style={{ border: "1px solid #ccc", padding: "6px" }}>{item.medicineName}</td>
-										<td style={{ border: "1px solid #ccc", padding: "6px" }}>{item.unitPrice}</td>
-										<td style={{ border: "1px solid #ccc", padding: "6px" }}>{item.quantity}</td>
-										<td style={{ border: "1px solid #ccc", padding: "6px" }}>{item.subTotal}</td>
-									</tr>
-								))}
-							</tbody>
-						</table>
-
-						<p>
-							<strong>Order Total:</strong> {order.orderTotal}
-						</p>
-						<p>
-							<strong>Status:</strong> {order.status}
-						</p>
-
-						<div className="myorders-actions">
-							{(status === "pending" || status === "accepted") && "Update Status:"}
-
-							{status === "pending" && (
-								<button onClick={() => updateOrderStatus(order._id, "accepted")}>
-									Accept
-								</button>
+							{(status === "pending" || status === "accepted") && (
+								<div className="mt-5 flex items-center gap-3">
+									<span className="text-sm text-muted-foreground">Update Status:</span>
+									{status === "pending" ? (
+										<>
+											<Button size="sm" onClick={() => updateOrderStatus(order._id, "accepted")}>
+												Accept
+											</Button>
+											<Button size="sm" variant="destructive" onClick={() => updateOrderStatus(order._id, "rejected")}>
+												Reject
+											</Button>
+										</>
+									) : null}
+									{status === "accepted" ? (
+										<Button size="sm" onClick={() => updateOrderStatus(order._id, "shipped")}>
+											Shipped
+										</Button>
+									) : null}
+								</div>
 							)}
-
-							{status === "pending" && (
-								<button onClick={() => updateOrderStatus(order._id, "rejected")}>
-									Reject
-								</button>
-							)}
-
-							{status === "accepted" && (
-								<button onClick={() => updateOrderStatus(order._id, "shipped")}>
-									Shipped
-								</button>
-							)}
-						</div>
-					</div>
-				))
+						</Card>
+					))}
+				</div>
 			)}
-		</div>
+		</DashboardShell>
 	);
 }
 

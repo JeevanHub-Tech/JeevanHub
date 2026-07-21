@@ -1,7 +1,12 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Upload } from "lucide-react";
+
 import { authFetch } from "../../utils/authFetch";
-import { BACKEND_URL } from '../../config';
+import { BACKEND_URL } from "../../config";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { FieldGroup, Field, FieldLabel } from "@/components/ui/field";
 
 const AddItem = () => {
 	const [file, setFile] = useState(null);
@@ -45,23 +50,30 @@ const AddItem = () => {
 	};
 
 	return (
-		<form className="add-item-form" onSubmit={handleSubmit}>
-			{error && <p style={{ color: "red" }}>{error}</p>}
+		<Card className="mx-auto max-w-lg p-6">
+			<form onSubmit={handleSubmit}>
+				<FieldGroup>
+					{error ? <p className="text-sm text-destructive">{error}</p> : null}
 
-			<div className="add-iten-form-uploader">
-				<label htmlFor="file">Upload Zip File (Excel + Images):</label>
-				<input
-					id="file"
-					name="file"
-					type="file"
-					accept=".zip"
-					onChange={handleFileChange}
-					required
-				/>
-			</div>
+					<Field>
+						<FieldLabel htmlFor="file">Upload Zip File (Excel + Images)</FieldLabel>
+						<input
+							id="file"
+							name="file"
+							type="file"
+							accept=".zip"
+							onChange={handleFileChange}
+							required
+							className="rounded-lg border border-dashed border-input bg-muted/40 p-3 text-sm text-foreground file:mr-3.5 file:cursor-pointer file:rounded-full file:border-0 file:bg-primary file:px-5 file:py-2 file:text-sm file:font-semibold file:text-primary-foreground"
+						/>
+					</Field>
 
-			<button type="submit">Upload Medicines from Zip</button>
-		</form>
+					<Button type="submit">
+						<Upload data-icon="inline-start" /> Upload Medicines from Zip
+					</Button>
+				</FieldGroup>
+			</form>
+		</Card>
 	);
 };
 

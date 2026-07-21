@@ -1,15 +1,12 @@
-import React from "react";
-import { Outlet, useLocation } from "react-router-dom";
-import "./ManageProducts.css"; 
+import { Outlet } from "react-router-dom";
+
+import { DashboardShell } from "@/components/layout/DashboardShell";
 
 function ManageProducts() {
-	const location = useLocation();
-	const isBulk = location.pathname.includes('/add');
-
 	return (
-		<div className={isBulk ? "manage-products-bulk" : "manage-products-container"}>
+		<DashboardShell>
 			<Outlet />
-		</div>
+		</DashboardShell>
 	);
 }
 

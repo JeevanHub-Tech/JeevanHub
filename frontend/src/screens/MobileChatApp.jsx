@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import SanjeevaniChatbot from '../components/SanjeevaniChatbot';
+import SanjeevaniChatbot from '../components/Chatbot/SanjeevaniChatbot';
 
 const MobileChatApp = () => {
 

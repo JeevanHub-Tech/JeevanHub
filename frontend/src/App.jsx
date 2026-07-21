@@ -1,23 +1,23 @@
 import React, { useContext, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
-import ProtectedRoute from './components/ProtectedRoute';
+import ProtectedRoute from './components/AppShell/ProtectedRoute';
 import NavBar from './screens/Navbar';
 import PatientNavBar from './screens/Patients/PatientNavBar';  // Patient specific navbar
 import DoctorNavBar from './screens/Doctors/DoctorNavBar';    // Doctor specific navbar
 import RetailerNavBar from './screens/Retailers/RetailerNavBar'; // Retailer specific navbar
 import AdminNavBar from './screens/admin/AdminNavbar';
 import Footer from './screens/Footer';
-import SanjeevaniChatbot from './components/SanjeevaniChatbot';
-import BackToChatFab from './components/BackToChatFab';
-import AppLoadingState from './components/AppLoadingState';
-import RoutePageShell from './components/RoutePageShell';
+import SanjeevaniChatbot from './components/Chatbot/SanjeevaniChatbot';
+import BackToChatFab from './components/Chatbot/BackToChatFab';
+import AppLoadingState from './components/AppShell/AppLoadingState';
+import RoutePageShell from './components/AppShell/RoutePageShell';
 import { AuthContext } from './context/AuthContext';
 
 // Every screen is route-level, so it's only ever needed once the user
 // actually navigates there — lazy-load them so the initial bundle isn't
 // ~150 screens' worth of JS (see the Vite build warning this replaced).
 const MobileChatApp = lazy(() => import('./screens/MobileChatApp'));
-const HomeScreen = lazy(() => import('./screens/HomeScreen'));
+const HomeScreen = lazy(() => import('./screens/Home'));
 const MedicinesScreen = lazy(() => import('./screens/Medicines'));
 const DietYogaScreen = lazy(() => import('./screens/Patients/DietYogaComponent'));
 const BlogsVideosScreen = lazy(() => import('./screens/BlogVideos/BlogsVideosScreen'));

@@ -72,7 +72,7 @@ const Notification = () => {
 	};
 
 	return (
-		<main className="bg-background pt-20 lg:pt-28">
+		<main className="bg-background">
 			<div className="mx-auto max-w-2xl px-4 py-10 sm:px-6">
 				<div className="flex items-center justify-between gap-3">
 					<h1 className="font-display text-3xl text-foreground">Your notifications</h1>

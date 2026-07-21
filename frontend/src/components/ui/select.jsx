@@ -12,8 +12,8 @@ function SelectTrigger({ className, children, ...props }) {
     <SelectPrimitive.Trigger
       data-slot="select-trigger"
       className={cn(
-        "flex h-9 w-full cursor-pointer items-center justify-between gap-2 rounded-(--jh-radius-sm) border border-input bg-transparent px-3 py-2 text-sm text-foreground outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 data-[popup-open]:border-ring",
-        className
+        "flex h-9 w-full cursor-pointer items-center justify-between gap-2 rounded-(--jh-radius-sm) border border-input bg-transparent px-3 py-2 text-sm text-foreground outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 data-popup-open:border-ring",
+        className,
       )}
       {...props}
     >
@@ -43,7 +43,7 @@ function SelectContent({ className, children, ...props }) {
           data-slot="select-content"
           className={cn(
             "max-h-(--available-height) w-(--anchor-width) min-w-32 overflow-y-auto rounded-(--jh-radius-md) border border-border bg-popover p-1 text-popover-foreground shadow-(--jh-shadow-hover) outline-none transition-all duration-150 data-ending-style:scale-95 data-ending-style:opacity-0 data-starting-style:scale-95 data-starting-style:opacity-0",
-            className
+            className,
           )}
           {...props}
         >
@@ -59,8 +59,8 @@ function SelectItem({ className, children, ...props }) {
     <SelectPrimitive.Item
       data-slot="select-item"
       className={cn(
-        "relative flex cursor-pointer items-center gap-2 rounded-(--jh-radius-sm) py-1.5 pr-8 pl-2.5 text-sm text-foreground outline-none select-none data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground",
-        className
+        "relative flex cursor-pointer items-center gap-2 rounded-(--jh-radius-sm) py-1.5 pr-8 pl-2.5 text-sm text-foreground outline-none select-none data-highlighted:bg-accent data-highlighted:text-accent-foreground",
+        className,
       )}
       {...props}
     >

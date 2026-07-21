@@ -1,8 +1,18 @@
-import React, { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import "./DoctorsScreen.css";
+import { ChevronDown, Stethoscope, X } from "lucide-react";
+
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Field, FieldLabel } from "@/components/ui/field";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 import { authFetch } from "../utils/authFetch";
-import { BACKEND_URL } from '../config';
+import { BACKEND_URL } from "../config";
 
 function isValidImage(src) {
   return Boolean(src) && src !== "undefined" && src !== "null";
@@ -19,20 +29,13 @@ function getInitials(name) {
 }
 
 function DoctorAvatar({ src, name }) {
-  const [failed, setFailed] = useState(false);
-  const showImage = isValidImage(src) && !failed;
-
-  return showImage ? (
-    <img
-      src={src}
-      alt={name}
-      className="doctor-avatar"
-      onError={() => setFailed(true)}
-    />
-  ) : (
-    <div className="doctor-avatar doctor-avatar-fallback" aria-hidden="true">
-      {getInitials(name)}
-    </div>
+  return (
+    <Avatar size="lg">
+      {isValidImage(src) && <AvatarImage src={src} alt={name} />}
+      <AvatarFallback className="bg-secondary font-semibold text-primary">
+        {getInitials(name)}
+      </AvatarFallback>
+    </Avatar>
   );
 }
 
@@ -58,6 +61,65 @@ const FILTER_CHIP_LABELS = {
   rating: (v) => `${v}★`,
   gender: (v) => v,
 };
+
+const SPECIALIZATION_OPTIONS = [
+  { value: "Skin Diseases", label: "Skin Diseases" },
+  { value: "Digestive and Metabolic", label: "Digestive and Metabolic" },
+  { value: "Respiratory Diseases", label: "Respiratory Diseases" },
+];
+const EXPERIENCE_OPTIONS = [
+  { value: "1", label: "1 year or less" },
+  { value: "2-5", label: "2 - 5 years" },
+  { value: "5+", label: "More than 5 years" },
+];
+const PRICE_RANGE_OPTIONS = [
+  { value: "Low", label: "Less than ₹500" },
+  { value: "Medium", label: "₹500 - ₹1000" },
+  { value: "High", label: "More than ₹1000" },
+];
+const LOCATION_OPTIONS = [
+  { value: "Jamshedpur, Jharkhand", label: "Jamshedpur, Jharkhand" },
+  { value: "Gurugram, Haryana", label: "Gurugram, Haryana" },
+];
+const LANGUAGE_OPTIONS = [
+  { value: "English", label: "English" },
+  { value: "Hindi", label: "Hindi" },
+];
+const GENDER_OPTIONS = [
+  { value: "Male", label: "Male" },
+  { value: "Female", label: "Female" },
+];
+const RATING_OPTIONS = [
+  { value: "1.0", label: "1 star" },
+  { value: "2.0", label: "2 star" },
+  { value: "3.0", label: "3 star" },
+  { value: "4.0", label: "4 star" },
+  { value: "5.0", label: "5 star" },
+];
+const SORT_OPTIONS = [
+  { value: "lowToHigh", label: "Rating: Low to High" },
+  { value: "highToLow", label: "Rating: High to Low" },
+];
+
+function FilterSelect({ id, label, placeholder, options, value, onValueChange }) {
+  return (
+    <Field>
+      <FieldLabel htmlFor={id}>{label}</FieldLabel>
+      <Select value={value} onValueChange={onValueChange}>
+        <SelectTrigger id={id}>
+          <SelectValue placeholder={placeholder} />
+        </SelectTrigger>
+        <SelectContent>
+          {options.map((option) => (
+            <SelectItem key={option.value} value={option.value}>
+              {option.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </Field>
+  );
+}
 
 function DoctorsScreen() {
   const navigate = useNavigate();
@@ -136,7 +198,7 @@ function DoctorsScreen() {
     [filters],
   );
 
-  const setFilter = (key) => (e) => setFilters((prev) => ({ ...prev, [key]: e.target.value }));
+  const setFilterValue = (key) => (value) => setFilters((prev) => ({ ...prev, [key]: value }));
   const clearFilter = (key) => setFilters((prev) => ({ ...prev, [key]: "" }));
 
   const handleDoctorClick = (doctor) => {
@@ -144,154 +206,152 @@ function DoctorsScreen() {
   };
 
   return (
-    <div className="doctors-page">
-      <div className="doctors-page-head">
-        <h1>Find Your Ayurvedic Doctor</h1>
-        <p className="subtitle">
+    <div className="relative -mt-8 min-h-screen bg-linear-to-b from-(--jh-cream-tint) to-background pt-8 pb-20">
+      <div className="mx-auto mb-10 max-w-2xl px-6 text-center">
+        <h1 className="font-display text-3xl leading-tight text-foreground sm:text-4xl">
+          Find Your Ayurvedic Doctor
+        </h1>
+        <p className="mt-4 text-base leading-relaxed text-muted-foreground">
           Browse practitioner profiles by specialization, experience, and language to find the right fit for your care.
         </p>
       </div>
 
-      <div className="doctors-container">
-        <aside className="filters">
+      <div className="mx-auto flex max-w-6xl items-start gap-6 px-4 sm:px-6 lg:px-8">
+        <aside className="sticky top-6 w-full flex-none max-md:static md:w-70">
           <button
             type="button"
-            className="filters-header"
+            className="flex w-full items-center justify-between gap-2 rounded-xl border border-border bg-card px-4.5 py-4 text-left text-base font-semibold text-foreground shadow-(--jh-shadow-rest)"
             aria-expanded={showFilter}
             onClick={() => setShowFilter((v) => !v)}
           >
-            <span>
+            <span className="inline-flex items-center gap-2">
               Filter doctors
-              {activeChips.length > 0 && <span className="filter-count">{activeChips.length}</span>}
+              {activeChips.length > 0 && (
+                <Badge className="min-w-5 justify-center">{activeChips.length}</Badge>
+              )}
             </span>
-            <svg
-              className={`chevron ${showFilter ? "chevron-open" : ""}`}
-              width="16"
-              height="16"
-              viewBox="0 0 16 16"
-              fill="none"
+            <ChevronDown
+              className={cn("size-4 shrink-0 text-primary transition-transform duration-200", showFilter && "rotate-180")}
               aria-hidden="true"
-            >
-              <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
+            />
           </button>
 
-          <div className={`filters-menu-collapse ${showFilter ? "open" : ""}`}>
-            <div className="filters-menu-inner">
-              <div className="filters-menu">
-                <div className="filters-menu-top">
-                  <p className="filters-hint">Narrow the list by specialization, budget, and more.</p>
-                  <button
-                    type="button"
-                    className="clear-all"
-                    disabled={activeChips.length === 0}
-                    onClick={() => setFilters(DEFAULT_FILTERS)}
-                  >
-                    Clear all
-                  </button>
+          <div
+            className={cn(
+              "grid transition-[grid-template-rows] duration-300 ease-out",
+              showFilter ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
+            )}
+          >
+            <div className="min-h-0 overflow-hidden">
+              <Card className="mt-2.5 gap-4 p-4.5 shadow-(--jh-shadow-rest)">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm leading-relaxed text-muted-foreground">
+                    Narrow the list by specialization, budget, and more.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="link"
+                  size="sm"
+                  className="h-auto self-start p-0 text-(--jh-bark-brown) disabled:opacity-50"
+                  disabled={activeChips.length === 0}
+                  onClick={() => setFilters(DEFAULT_FILTERS)}
+                >
+                  Clear all
+                </Button>
+
+                <FilterSelect
+                  id="specialization"
+                  label="Specialization"
+                  placeholder="All specializations"
+                  options={SPECIALIZATION_OPTIONS}
+                  value={filters.specialization}
+                  onValueChange={setFilterValue("specialization")}
+                />
+
+                <div className="grid grid-cols-2 gap-3.5">
+                  <FilterSelect
+                    id="experience"
+                    label="Experience"
+                    placeholder="Any"
+                    options={EXPERIENCE_OPTIONS}
+                    value={filters.experience}
+                    onValueChange={setFilterValue("experience")}
+                  />
+                  <FilterSelect
+                    id="priceRange"
+                    label="Price range"
+                    placeholder="All"
+                    options={PRICE_RANGE_OPTIONS}
+                    value={filters.priceRange}
+                    onValueChange={setFilterValue("priceRange")}
+                  />
+                  <FilterSelect
+                    id="location"
+                    label="Location"
+                    placeholder="All locations"
+                    options={LOCATION_OPTIONS}
+                    value={filters.location}
+                    onValueChange={setFilterValue("location")}
+                  />
+                  <FilterSelect
+                    id="language"
+                    label="Language"
+                    placeholder="All languages"
+                    options={LANGUAGE_OPTIONS}
+                    value={filters.language}
+                    onValueChange={setFilterValue("language")}
+                  />
+                  <FilterSelect
+                    id="gender"
+                    label="Gender"
+                    placeholder="Any"
+                    options={GENDER_OPTIONS}
+                    value={filters.gender}
+                    onValueChange={setFilterValue("gender")}
+                  />
+                  <FilterSelect
+                    id="rating"
+                    label="Rating"
+                    placeholder="Any"
+                    options={RATING_OPTIONS}
+                    value={filters.rating}
+                    onValueChange={setFilterValue("rating")}
+                  />
                 </div>
 
-                <div className="filter-group filter-group-full">
-                  <label htmlFor="specialization">Specialization</label>
-                  <select id="specialization" value={filters.specialization} onChange={setFilter("specialization")}>
-                    <option value="">All specializations</option>
-                    <option value="Skin Diseases">Skin Diseases</option>
-                    <option value="Digestive and Metabolic">Digestive and Metabolic</option>
-                    <option value="Respiratory Diseases">Respiratory Diseases</option>
-                  </select>
+                <div className="border-t border-border pt-4">
+                  <FilterSelect
+                    id="sort"
+                    label="Sort by"
+                    placeholder="Default"
+                    options={SORT_OPTIONS}
+                    value={filters.sort}
+                    onValueChange={setFilterValue("sort")}
+                  />
                 </div>
-
-                <div className="filter-grid">
-                  <div className="filter-group">
-                    <label htmlFor="experience">Experience</label>
-                    <select id="experience" value={filters.experience} onChange={setFilter("experience")}>
-                      <option value="">Any</option>
-                      <option value="1">1 year or less</option>
-                      <option value="2-5">2 - 5 years</option>
-                      <option value="5+">More than 5 years</option>
-                    </select>
-                  </div>
-
-                  <div className="filter-group">
-                    <label htmlFor="priceRange">Price range</label>
-                    <select id="priceRange" value={filters.priceRange} onChange={setFilter("priceRange")}>
-                      <option value="">All</option>
-                      <option value="Low">Less than ₹500</option>
-                      <option value="Medium">₹500 - ₹1000</option>
-                      <option value="High">More than ₹1000</option>
-                    </select>
-                  </div>
-
-                  <div className="filter-group">
-                    <label htmlFor="location">Location</label>
-                    <select id="location" value={filters.location} onChange={setFilter("location")}>
-                      <option value="">All locations</option>
-                      <option value="Jamshedpur, Jharkhand">Jamshedpur, Jharkhand</option>
-                      <option value="Gurugram, Haryana">Gurugram, Haryana</option>
-                    </select>
-                  </div>
-
-                  <div className="filter-group">
-                    <label htmlFor="language">Language</label>
-                    <select id="language" value={filters.language} onChange={setFilter("language")}>
-                      <option value="">All languages</option>
-                      <option value="English">English</option>
-                      <option value="Hindi">Hindi</option>
-                    </select>
-                  </div>
-
-                  <div className="filter-group">
-                    <label htmlFor="gender">Gender</label>
-                    <select id="gender" value={filters.gender} onChange={setFilter("gender")}>
-                      <option value="">Any</option>
-                      <option value="Male">Male</option>
-                      <option value="Female">Female</option>
-                    </select>
-                  </div>
-
-                  <div className="filter-group">
-                    <label htmlFor="rating">Rating</label>
-                    <select id="rating" value={filters.rating} onChange={setFilter("rating")}>
-                      <option value="">Any</option>
-                      <option value="1.0">1 star</option>
-                      <option value="2.0">2 star</option>
-                      <option value="3.0">3 star</option>
-                      <option value="4.0">4 star</option>
-                      <option value="5.0">5 star</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="filter-group filter-group-full filter-group-sort">
-                  <label htmlFor="sort">Sort by</label>
-                  <select id="sort" value={filters.sort} onChange={setFilter("sort")}>
-                    <option value="">Default</option>
-                    <option value="lowToHigh">Rating: Low to High</option>
-                    <option value="highToLow">Rating: High to Low</option>
-                  </select>
-                </div>
-              </div>
+              </Card>
             </div>
           </div>
         </aside>
 
-        <div className="doctors-results">
-          <div className="results-bar">
-            <span className="results-count">
-              {status === "ready" ? `${sortedDoctors.length} doctor${sortedDoctors.length === 1 ? "" : "s"} found` : " "}
+        <div className="min-w-0 flex-1">
+          <div className="mb-4.5 flex min-h-8 flex-wrap items-center gap-x-4 gap-y-2.5">
+            <span className="text-sm font-semibold whitespace-nowrap text-muted-foreground">
+              {status === "ready" ? `${sortedDoctors.length} doctor${sortedDoctors.length === 1 ? "" : "s"} found` : " "}
             </span>
 
             {activeChips.length > 0 && (
-              <div className="active-chips">
+              <div className="flex flex-wrap gap-2">
                 {activeChips.map((chip) => (
                   <button
                     type="button"
                     key={chip.key}
-                    className="active-chip"
+                    className="inline-flex items-center gap-1.5 rounded-full border border-border bg-(--jh-sage-pale) py-1.5 pr-2.5 pl-3.5 text-sm font-semibold text-(--jh-olive-deep) transition-colors hover:bg-(--jh-sage-pale-2)"
                     onClick={() => clearFilter(chip.key)}
                   >
                     {chip.text}
-                    <span className="active-chip-remove" aria-hidden="true">×</span>
+                    <X className="size-3.5" aria-hidden="true" />
                     <span className="sr-only">Remove {chip.text} filter</span>
                   </button>
                 ))}
@@ -299,79 +359,87 @@ function DoctorsScreen() {
             )}
           </div>
 
-          <div className="doctors-list">
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(280px,1fr))] items-stretch gap-5">
             {status === "loading" &&
               Array.from({ length: 4 }).map((_, i) => (
-                <div className="doctor-card doctor-card-skeleton" key={i} aria-hidden="true">
-                  <div className="skeleton skeleton-avatar" />
-                  <div className="skeleton skeleton-line" style={{ width: "60%" }} />
-                  <div className="skeleton skeleton-line" style={{ width: "85%" }} />
-                  <div className="skeleton skeleton-line" style={{ width: "70%" }} />
-                  <div className="skeleton skeleton-button" />
-                </div>
+                <Card key={i} className="gap-3 p-6" aria-hidden="true">
+                  <Skeleton className="size-13 rounded-full" />
+                  <Skeleton className="h-3.5 w-3/5" />
+                  <Skeleton className="h-3.5 w-4/5" />
+                  <Skeleton className="h-3.5 w-7/10" />
+                  <Skeleton className="mt-2 h-10.5 w-full" />
+                </Card>
               ))}
 
             {status === "error" && (
-              <div className="doctors-empty">
-                <p>We couldn&apos;t load doctors right now. Please refresh the page.</p>
-              </div>
+              <EmptyState
+                className="col-span-full"
+                icon={Stethoscope}
+                title="Couldn't load doctors"
+                description="Please refresh the page and try again."
+              />
             )}
 
             {status === "ready" && sortedDoctors.length === 0 && (
-              <div className="doctors-empty">
-                <p>No doctors match your filters yet.</p>
-                <button type="button" className="clear-all" onClick={() => setFilters(DEFAULT_FILTERS)}>
-                  Clear filters
-                </button>
-              </div>
+              <EmptyState
+                className="col-span-full"
+                icon={Stethoscope}
+                title="No doctors match your filters"
+                description="Try clearing a filter to see more results."
+                action={
+                  <Button type="button" variant="outline" onClick={() => setFilters(DEFAULT_FILTERS)}>
+                    Clear filters
+                  </Button>
+                }
+              />
             )}
 
             {status === "ready" &&
               sortedDoctors.map((doctor) => (
-                <div key={doctor.id} className="doctor-card" onClick={() => handleDoctorClick(doctor)}>
-                  <div className="doctor-info">
-                    <div className="doctor-profile">
+                <Card
+                  key={doctor.id}
+                  className="cursor-pointer justify-between gap-3.5 p-6 shadow-(--jh-shadow-card) transition-all duration-300 ease-out hover:-translate-y-1.5 hover:shadow-(--jh-shadow-hover)"
+                  onClick={() => handleDoctorClick(doctor)}
+                >
+                  <div className="flex flex-col gap-2">
+                    <div className="mb-1.5 flex items-center gap-3">
                       <DoctorAvatar src={doctor.profileImage} name={doctor.name} />
-                      <div className="doctor-name">Dr. {doctor.name}</div>
+                      <div className="font-display text-lg font-semibold text-foreground">Dr. {doctor.name}</div>
                     </div>
 
-                    <div className="doctor-detail">
-                      <span className="label-text">Specialization</span>
+                    <p className="text-sm leading-relaxed text-muted-foreground">
+                      <span className="mr-1 font-bold text-foreground">Specialization</span>
                       {doctor.specialization}
-                    </div>
-
-                    <div className="doctor-detail">
-                      <span className="label-text">Experience</span>
+                    </p>
+                    <p className="text-sm leading-relaxed text-muted-foreground">
+                      <span className="mr-1 font-bold text-foreground">Experience</span>
                       {doctor.experience}
-                    </div>
-
-                    <div className="doctor-detail">
-                      <span className="label-text">Location</span>
+                    </p>
+                    <p className="text-sm leading-relaxed text-muted-foreground">
+                      <span className="mr-1 font-bold text-foreground">Location</span>
                       {doctor.location}
-                    </div>
-
-                    <div className="doctor-detail">
-                      <span className="label-text">Languages</span>
+                    </p>
+                    <p className="text-sm leading-relaxed text-muted-foreground">
+                      <span className="mr-1 font-bold text-foreground">Languages</span>
                       {doctor.language}
-                    </div>
-
-                    <div className="doctor-detail">
-                      <span className="label-text">Gender</span>
+                    </p>
+                    <p className="text-sm leading-relaxed text-muted-foreground">
+                      <span className="mr-1 font-bold text-foreground">Gender</span>
                       {doctor.gender}
-                    </div>
+                    </p>
                   </div>
 
-                  <button
+                  <Button
                     type="button"
-                    className="book-consultation"
+                    className="w-full"
                     onClick={(e) => {
                       e.stopPropagation();
                       handleDoctorClick(doctor);
                     }}
                   >
                     Book Consultation
-                  </button>
-                </div>
+                  </Button>
+                </Card>
               ))}
           </div>
         </div>

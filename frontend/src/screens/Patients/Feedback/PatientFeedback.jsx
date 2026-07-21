@@ -53,7 +53,7 @@ const PatientFeedback = () => {
 	};
 
 	return (
-		<main className="bg-background pt-20 lg:pt-28">
+		<main className="bg-background">
 			<div className="mx-auto max-w-xl px-4 py-10 sm:px-6">
 				<Card>
 					<CardHeader>

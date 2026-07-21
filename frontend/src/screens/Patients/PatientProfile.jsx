@@ -8,15 +8,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DocumentViewerModal } from "../../components/DocumentViewerModal";
 import { AuthContext } from "../../context/AuthContext";
 import { BACKEND_URL } from "../../config";
 import defaultProfilePic from "../../media/default-profile.png";
 
 const API = BACKEND_URL || "http://localhost:8080";
-
-const selectClassName =
-	"h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1 text-base outline-none transition-colors disabled:pointer-events-none disabled:opacity-50 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm";
 
 function Field({ label, htmlFor, children }) {
 	return (
@@ -257,7 +255,7 @@ const PatientProfile = () => {
 	};
 
 	return (
-		<main className="bg-background pt-20 lg:pt-28">
+		<main className="bg-background">
 			<div className="mx-auto grid max-w-5xl gap-6 px-4 py-10 sm:px-6 lg:grid-cols-[280px_1fr] lg:px-8">
 				<Card className="h-fit">
 					<CardContent className="flex flex-col items-center gap-3 text-center">
@@ -327,12 +325,20 @@ const PatientProfile = () => {
 								<Input id="dob" type="date" name="dob" value={patientData.dob} onChange={handleInputChange} disabled={!isEditing} />
 							</Field>
 							<Field label="Gender" htmlFor="gender">
-								<select id="gender" name="gender" value={patientData.gender} onChange={handleInputChange} disabled={!isEditing} className={selectClassName}>
-									<option value="">Select</option>
-									<option value="Male">Male</option>
-									<option value="Female">Female</option>
-									<option value="Other">Other</option>
-								</select>
+								<Select
+									value={patientData.gender}
+									onValueChange={(value) => setPatientData({ ...patientData, gender: value })}
+									disabled={!isEditing}
+								>
+									<SelectTrigger id="gender">
+										<SelectValue placeholder="Select" />
+									</SelectTrigger>
+									<SelectContent>
+										<SelectItem value="Male">Male</SelectItem>
+										<SelectItem value="Female">Female</SelectItem>
+										<SelectItem value="Other">Other</SelectItem>
+									</SelectContent>
+								</Select>
 							</Field>
 							<Field label="Zip code" htmlFor="zipCode">
 								<Input id="zipCode" name="zipCode" value={patientData.zipCode} onChange={handleInputChange} disabled={!isEditing} />

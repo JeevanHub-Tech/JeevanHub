@@ -63,7 +63,7 @@ function BlogsVideosScreen() {
 	});
 
 	return (
-		<main className="bg-background pt-20 lg:pt-28">
+		<main className="bg-background">
 			<section className="relative flex min-h-[60vh] items-center justify-center overflow-hidden pt-8 pb-12 text-center">
 				<img src="/images/blog_bg.jpg" alt="" className="absolute inset-0 -z-20 size-full object-cover" />
 				<div className="absolute inset-0 -z-10 bg-white/20" />

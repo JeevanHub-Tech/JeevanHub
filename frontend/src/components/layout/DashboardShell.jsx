@@ -1,12 +1,11 @@
 import { cn } from "@/lib/utils";
 
 // Shared content shell for authenticated dashboard screens (Doctor, Retailer,
-// Admin, Patient home/hub pages). Matches the pt-20/lg:pt-28 clearance used by
-// public pages (see HomeScreen.jsx) so content never sits under the fixed
-// DashboardNavbar/Navbar header.
+// Admin, Patient home/hub pages). Navbar clearance comes from RoutePageShell
+// (App.jsx) - this only owns the max-width/padding grid all four roles share.
 function DashboardShell({ children, className }) {
 	return (
-		<main className={cn("min-h-screen bg-background pt-20 lg:pt-28", className)}>
+		<main className={cn("min-h-screen bg-background", className)}>
 			<div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">{children}</div>
 		</main>
 	);

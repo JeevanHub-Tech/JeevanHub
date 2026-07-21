@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { Loader2, ShoppingBag, AlertCircle, Minus, Plus, Trash2, Stethoscope, ArrowRightLeft, Lock, ChevronDown } from "lucide-react";
-import "./Cart.css";
+
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { AuthContext } from "../context/AuthContext";
 import { authFetch } from "../utils/authFetch";
 import { BACKEND_URL } from '../config';
@@ -25,45 +28,59 @@ const CartItemRow = ({ item, onIncrement, onDecrement, onRemove, onViewDetails }
 	const lineTotal = (item.medicineId?.price || 0) * item.quantity;
 	const name = item.medicineId?.name || "Unknown Medicine";
 	return (
-		<li className="cart-item">
-			<img
-				src={getMedicineThumb(item.medicineId?.images)}
-				alt={name}
-				className="cart-item__thumb"
-				onClick={onViewDetails}
-				onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = FALLBACK_IMAGE; }}
-			/>
+		<li className="list-none">
+			<Card className="@container flex-row gap-0 overflow-hidden rounded-(--jh-radius-lg) border-border p-0 py-0 shadow-(--jh-shadow-rest) transition-all duration-250 ease-out hover:-translate-y-1 hover:border-(--jh-olive-leaf) hover:shadow-(--jh-shadow-hover)">
+				<img
+					src={getMedicineThumb(item.medicineId?.images)}
+					alt={name}
+					className="h-24 w-24 shrink-0 cursor-pointer border-r border-border bg-secondary object-cover object-center sm:h-32 sm:w-32"
+					onClick={onViewDetails}
+					onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = FALLBACK_IMAGE; }}
+				/>
 
-			<div className="cart-details">
-				<div className="cart-details__info" onClick={onViewDetails}>
-					<h3>{name}</h3>
-					<div className="cart-details__price-row">
-						<p className="item-price">₹{item.medicineId?.price?.toFixed(2)} each</p>
-						<button
-							onClick={(e) => { e.stopPropagation(); onRemove(); }}
-							className="remove-item-btn"
-							aria-label={`Remove ${name} from cart`}
-						>
-							<Trash2 size={15} />
-							Remove
-						</button>
-					</div>
-				</div>
-
-				<div className="cart-details__controls">
-					<div className="quantity-controls">
-						<button onClick={onDecrement} disabled={item.quantity <= 1} aria-label={`Decrease quantity of ${name}`}>
-							<Minus size={16} />
-						</button>
-						<span>{item.quantity}</span>
-						<button onClick={onIncrement} aria-label={`Increase quantity of ${name}`}>
-							<Plus size={16} />
-						</button>
+				<div className="flex min-w-0 flex-1 flex-col gap-3.5 p-5 @[700px]:flex-row @[700px]:items-center @[700px]:justify-between">
+					<div className="min-w-0 cursor-pointer @[700px]:min-w-0 @[700px]:flex-1" onClick={onViewDetails}>
+						<h3 className="m-0 mb-0.5 line-clamp-2 font-display text-lg leading-snug font-semibold wrap-break-word text-(--jh-ink-strong)">{name}</h3>
+						<div className="flex items-center justify-between gap-3">
+							<p className="m-0 text-sm font-medium text-muted-foreground">₹{item.medicineId?.price?.toFixed(2)} each</p>
+							<button
+								onClick={(e) => { e.stopPropagation(); onRemove(); }}
+								className="inline-flex shrink-0 items-center gap-1.5 bg-transparent p-0 text-sm font-semibold text-destructive transition-opacity hover:opacity-75"
+								aria-label={`Remove ${name} from cart`}
+								type="button"
+							>
+								<Trash2 size={15} />
+								Remove
+							</button>
+						</div>
 					</div>
 
-					<p className="item-subtotal">₹{lineTotal.toFixed(2)}</p>
+					<div className="flex flex-wrap items-center justify-between gap-4 @[700px]:shrink-0">
+						<div className="flex w-fit items-center gap-2.5 rounded-(--jh-radius-md) bg-secondary p-1.5">
+							<button
+								onClick={onDecrement}
+								disabled={item.quantity <= 1}
+								aria-label={`Decrease quantity of ${name}`}
+								type="button"
+								className="flex size-8.5 items-center justify-center rounded-(--jh-radius-sm) border-[1.5px] border-(--jh-line-strong) bg-card text-primary transition-all duration-200 ease-out disabled:cursor-not-allowed disabled:opacity-40 enabled:hover:scale-105 enabled:hover:border-primary enabled:hover:bg-primary enabled:hover:text-primary-foreground"
+							>
+								<Minus size={16} />
+							</button>
+							<span className="min-w-7 text-center text-base font-bold text-(--jh-ink-strong)">{item.quantity}</span>
+							<button
+								onClick={onIncrement}
+								aria-label={`Increase quantity of ${name}`}
+								type="button"
+								className="flex size-8.5 items-center justify-center rounded-(--jh-radius-sm) border-[1.5px] border-(--jh-line-strong) bg-card text-primary transition-all duration-200 ease-out hover:scale-105 hover:border-primary hover:bg-primary hover:text-primary-foreground"
+							>
+								<Plus size={16} />
+							</button>
+						</div>
+
+						<p className="m-0 text-base font-bold text-(--jh-ink-strong)">₹{lineTotal.toFixed(2)}</p>
+					</div>
 				</div>
-			</div>
+			</Card>
 		</li>
 	);
 };
@@ -71,13 +88,16 @@ const CartItemRow = ({ item, onIncrement, onDecrement, onRemove, onViewDetails }
 // Compact placeholder shown for "My Cart" when it has nothing in it yet,
 // even while doctor-prescribed carts are present — the two are never conflated.
 const MyCartEmptyPlaceholder = ({ onBrowse }) => (
-	<div className="cart-mycart-empty">
-		<ShoppingBag size={28} className="cart-empty__icon" aria-hidden="true" />
-		<p>Your cart is empty. Add medicines you need — they&rsquo;ll show up here.</p>
-		<button onClick={onBrowse} className="cart-btn cart-btn--primary">
-			Browse Medicines
-		</button>
-	</div>
+	<EmptyState
+		icon={ShoppingBag}
+		description="Your cart is empty. Add medicines you need — they'll show up here."
+		action={
+			<Button type="button" onClick={onBrowse}>
+				Browse Medicines
+			</Button>
+		}
+		className="border-dashed"
+	/>
 );
 
 const CartScreen = () => {
@@ -328,9 +348,9 @@ const CartScreen = () => {
 
 	if (authLoading || loading) {
 		return (
-			<div className="cart-page">
-				<div className="cart-status-container">
-					<Loader2 className="cart-spinner" size={40} />
+			<div className="min-h-screen bg-background px-4 pb-32.5 font-body text-foreground sm:px-5 sm:pb-15">
+				<div className="flex min-h-[40vh] flex-col items-center justify-center gap-4 text-center text-muted-foreground">
+					<Loader2 className="size-10 animate-spin text-(--jh-olive-leaf)" />
 					<p>Loading your cart&hellip;</p>
 				</div>
 			</div>
@@ -339,13 +359,13 @@ const CartScreen = () => {
 
 	if (error) {
 		return (
-			<div className="cart-page">
-				<div className="cart-status-container">
-					<AlertCircle size={40} className="cart-status-icon cart-status-icon--danger" />
+			<div className="min-h-screen bg-background px-4 pb-32.5 font-body text-foreground sm:px-5 sm:pb-15">
+				<div className="flex min-h-[40vh] flex-col items-center justify-center gap-4 text-center text-muted-foreground">
+					<AlertCircle size={40} className="text-destructive" />
 					<p>{error}</p>
-					<button onClick={() => window.location.reload()} className="cart-btn cart-btn--primary">
+					<Button type="button" onClick={() => window.location.reload()}>
 						Retry
-					</button>
+					</Button>
 				</div>
 			</div>
 		);
@@ -354,7 +374,7 @@ const CartScreen = () => {
 	// The "My Cart" items + summary block, reused as-is in both layouts below.
 	const myCartItemsAndSummary = (
 		<>
-			<ul className="cart-items">
+			<ul className="@container m-0 flex w-full list-none flex-col gap-5 p-0">
 				{defaultCart.items.map((item) => (
 					<CartItemRow
 						key={item._id}
@@ -367,68 +387,67 @@ const CartScreen = () => {
 				))}
 			</ul>
 
-			<aside className="cart-summary">
-				<h2>Order summary</h2>
-				<div className="cart-summary__row">
+			<aside className="fixed inset-x-0 bottom-0 z-40 rounded-none border-0 border-t border-border bg-card p-4 shadow-[0_-6px_20px_rgba(47,53,36,0.14)] sm:static sm:rounded-(--jh-radius-lg) sm:border sm:p-7 sm:shadow-(--jh-shadow-card) in-[.cart-layout--stacked]:sm:static">
+				<h2 className="m-0 mb-4.5 hidden font-display text-xl font-semibold text-(--jh-ink-strong) sm:block">Order summary</h2>
+				<div className="mb-4 hidden justify-between border-b border-border pb-4 text-sm text-muted-foreground sm:flex">
 					<span>{itemCount} {itemCount === 1 ? "item" : "items"}</span>
 					<span>₹{totalPrice.toFixed(2)}</span>
 				</div>
-				<div className="cart-summary__total">
+				<div className="mb-3.5 flex items-baseline justify-between font-display text-lg font-semibold text-(--jh-ink-strong) sm:mb-6 sm:text-2xl">
 					<span>Total</span>
 					<span>₹{totalPrice.toFixed(2)}</span>
 				</div>
-				<button onClick={handleProceedToCheckout} className="cart-btn cart-btn--primary cart-btn--full">
+				<Button type="button" onClick={handleProceedToCheckout} className="w-full">
 					Proceed to Checkout
-				</button>
+				</Button>
 			</aside>
 		</>
 	);
 
 	return (
-		<div
-			className={`cart-page ${hasDoctorCarts ? 'cart-page--wide' : ''}`}
-			// Inline style as a deliberate belt-and-suspenders alongside the
-			// .cart-page--wide CSS rule: inline styles always win over
-			// external stylesheet rules regardless of cascade/specificity.
-			style={hasDoctorCarts ? { maxWidth: 'none' } : undefined}
-		>
-			<header className="cart-header">
-				<h1>Your Cart</h1>
-				<span className="cart-header__accent" aria-hidden="true" />
+		<div className={`mx-auto min-h-screen bg-background px-4 pb-32.5 font-body text-foreground transition-[max-width] duration-200 ease-out sm:px-5 sm:pb-15 ${hasDoctorCarts ? 'max-w-none' : 'max-w-275'}`}>
+			<header className="mb-10 flex flex-col items-center text-center">
+				<h1 className="m-0 font-display text-3xl leading-tight font-normal tracking-tight text-(--jh-ink-strong) sm:text-4xl">Your Cart</h1>
+				<span
+					aria-hidden="true"
+					className="mt-3.5 block h-1 w-21 rounded-(--jh-radius-pill) bg-linear-to-r from-(--jh-olive-leaf) via-(--jh-turmeric-gold) to-(--jh-bark-brown)"
+				/>
 				{defaultCart.items.length > 0 && (
-					<p className="cart-header__count">
+					<p className="mt-3.5 text-sm text-muted-foreground">
 						{itemCount} {itemCount === 1 ? "item" : "items"} ready for checkout
 					</p>
 				)}
 			</header>
 
 			{isEverythingEmpty ? (
-				<div className="cart-empty">
-					<ShoppingBag size={40} className="cart-empty__icon" aria-hidden="true" />
-					<h2>Your cart is empty</h2>
-					<p>Browse our ayurvedic medicines and add what you need — we&rsquo;ll keep it here for you.</p>
-					<button onClick={() => navigate('/medicines')} className="cart-btn cart-btn--primary">
-						Browse Medicines
-					</button>
-				</div>
+				<EmptyState
+					icon={ShoppingBag}
+					title="Your cart is empty"
+					description="Browse our ayurvedic medicines and add what you need — we'll keep it here for you."
+					action={
+						<Button type="button" onClick={() => navigate('/medicines')}>
+							Browse Medicines
+						</Button>
+					}
+				/>
 			) : hasDoctorCarts ? (
 				// Split layout: My Cart takes priority (it's the actual checkout path),
 				// doctor-prescribed carts sit alongside it, most recent expanded.
-				<div className="cart-split">
-					<div className="cart-split__mycart">
-						<h2 className="cart-split__heading">My Cart</h2>
+				<div className="grid grid-cols-1 items-start gap-10 min-[900px]:grid-cols-[55%_1fr] min-[900px]:gap-0">
+					<div className="min-[900px]:border-r min-[900px]:border-border min-[900px]:pr-3.5">
+						<h2 className="m-0 mb-5 font-display text-xl font-semibold text-(--jh-ink-strong)">My Cart</h2>
 						{defaultCart.items.length > 0
-							? <div className="cart-layout cart-layout--stacked">{myCartItemsAndSummary}</div>
+							? <div className="cart-layout--stacked flex flex-col gap-6">{myCartItemsAndSummary}</div>
 							: <MyCartEmptyPlaceholder onBrowse={() => navigate('/medicines')} />
 						}
 					</div>
 
-					<div className="cart-split__doctors">
-						<h2 className="cart-doctor-section__title">
-							<Stethoscope size={20} />
+					<div className="min-w-0 min-[900px]:pl-3.5">
+						<h2 className="m-0 mb-1.5 flex items-center gap-2.5 font-display text-lg font-semibold text-(--jh-ink-strong)">
+							<Stethoscope size={20} className="shrink-0 text-(--jh-olive-leaf)" />
 							Prescribed by Your Doctors
 						</h2>
-						<p className="cart-doctor-section__hint">
+						<p className="mb-5 text-sm text-muted-foreground">
 							Kept separate from your own cart, most recent first. Move a doctor&rsquo;s items into your cart to check out, or remove them.
 						</p>
 
@@ -441,38 +460,41 @@ const CartScreen = () => {
 							const isExpanded = expandedIds.has(doctorId);
 
 							return (
-								<div key={doctorId || dc._id} className={`cart-doctor-card ${isExpanded ? 'is-expanded' : 'is-collapsed'}`}>
+								<Card key={doctorId || dc._id} className={`mb-4 gap-0 overflow-hidden rounded-(--jh-radius-lg) border-border p-0 py-0 shadow-(--jh-shadow-rest) transition-shadow duration-200 ease-out ${isExpanded ? 'shadow-(--jh-shadow-card)' : ''}`}>
 									<button
 										type="button"
-										className="cart-doctor-card__header"
+										className={`flex w-full items-center gap-3 bg-transparent p-4.5 text-left hover:bg-secondary ${isExpanded ? 'border-b border-dashed border-border' : ''}`}
 										onClick={() => toggleExpanded(doctorId)}
 										aria-expanded={isExpanded}
 									>
-										<h3><Stethoscope size={16} /> <span className="cart-doctor-card__name-text">{doctorName}</span></h3>
+										<h3 className="m-0 flex min-w-10 shrink items-center gap-2 font-display text-base font-semibold text-(--jh-ink-strong)">
+											<Stethoscope size={16} className="shrink-0 text-(--jh-olive-leaf)" />
+											<span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">{doctorName}</span>
+										</h3>
 
 										{!isExpanded && (
-											<div className="cart-doctor-card__preview">
+											<div className="flex min-w-0 flex-1 -space-x-2.5">
 												{dc.items.slice(0, 3).map((item, i) => (
 													<img
 														key={item._id || i}
 														src={getMedicineThumb(item.medicineId?.images)}
 														alt=""
-														className="cart-doctor-card__preview-thumb"
+														className="size-7.5 shrink-0 rounded-full border-2 border-card bg-secondary object-cover ring-1 ring-border"
 														onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = FALLBACK_IMAGE; }}
 													/>
 												))}
 											</div>
 										)}
 
-										<span className="cart-doctor-card__count">
+										<span className="ml-auto shrink-0 text-sm font-semibold whitespace-nowrap text-muted-foreground">
 											{count} {count === 1 ? "item" : "items"} · ₹{dc.totalPrice.toFixed(2)}
 										</span>
-										<ChevronDown size={18} className="cart-doctor-card__chevron" />
+										<ChevronDown size={18} className={`shrink-0 text-muted-foreground transition-transform duration-200 ease-out ${isExpanded ? 'rotate-180' : ''}`} />
 									</button>
 
 									{isExpanded && (
-										<div className="cart-doctor-card__body">
-											<ul className="cart-items">
+										<div className="p-5">
+											<ul className="@container m-0 mb-5 flex list-none flex-col gap-5 p-0">
 												{dc.items.map((item) => (
 													<CartItemRow
 														key={item._id}
@@ -485,39 +507,43 @@ const CartScreen = () => {
 												))}
 											</ul>
 
-											<div className="cart-doctor-card__actions">
-												<button
-													className="cart-btn cart-btn--secondary"
+											<div className="flex flex-wrap gap-3 max-[640px]:flex-col max-[640px]:items-stretch">
+												<Button
+													type="button"
+													variant="secondary"
 													onClick={() => handleMoveToDefault(doctorId, doctorName)}
 												>
 													<ArrowRightLeft size={16} />
 													Move Items to My Cart
-												</button>
-												<button
-													className="cart-btn cart-btn--ghost-danger"
+												</Button>
+												<Button
+													type="button"
+													variant="destructive"
 													onClick={() => handleDeleteDoctorCart(doctorId, doctorName)}
 												>
 													<Trash2 size={16} />
 													Delete Cart
-												</button>
-												<button
-													className="cart-btn cart-btn--disabled"
+												</Button>
+												<Button
+													type="button"
+													variant="outline"
 													disabled
 													title="Checking out a doctor's cart directly is coming soon — move it to your cart to check out for now."
+													className="ml-auto max-[640px]:ml-0"
 												>
 													<Lock size={15} />
 													Checkout This Cart
-												</button>
+												</Button>
 											</div>
 										</div>
 									)}
-								</div>
+								</Card>
 							);
 						})}
 					</div>
 				</div>
 			) : (
-				<div className="cart-layout">
+				<div className="grid grid-cols-1 items-start gap-8 min-[860px]:grid-cols-[1fr_340px]">
 					{myCartItemsAndSummary}
 				</div>
 			)}

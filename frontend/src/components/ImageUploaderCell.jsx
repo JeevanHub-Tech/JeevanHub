@@ -1,7 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import axios from 'axios';
-import './ImageUploaderCell.css';
 import { BACKEND_URL } from '../config';
 
 const MAX_IMAGES = 10;
@@ -184,12 +183,15 @@ const ImageUploaderCell = ({ images, onImagesChange, disabled = false }) => {
     };
 
     return (
-        <div className={`img-cell-container ${isScrollable ? 'scrollable' : ''}`} ref={containerRef}>
+        <div
+            className={`relative flex items-center gap-2 p-2 max-w-44 [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:rounded ${isScrollable ? 'overflow-x-auto overflow-y-hidden whitespace-nowrap' : ''}`}
+            ref={containerRef}
+        >
             {/* Filled Slots */}
             {images.map((imgUrl, index) => (
-                <div 
-                    key={`filled-${index}`} 
-                    className="img-box filled"
+                <div
+                    key={`filled-${index}`}
+                    className="group relative box-border flex h-12 w-12 shrink-0 select-none flex-col items-center justify-center rounded-md border border-border bg-card transition-all duration-200 cursor-grab active:cursor-grabbing"
                     draggable={!disabled}
                     onDragStart={!disabled ? (e) => handleDragStart(e, index) : undefined}
                     onDragEnd={!disabled ? handleDragEnd : undefined}
@@ -199,9 +201,18 @@ const ImageUploaderCell = ({ images, onImagesChange, disabled = false }) => {
                     title={disabled ? "Click to preview" : "Click to preview, hold to drag"}
                     style={{ cursor: disabled ? 'pointer' : undefined }}
                 >
-                    <img src={imgUrl.startsWith('/') ? `${BACKEND_URL || 'http://localhost:8080'}${imgUrl}` : imgUrl} alt={`img${index + 1}`} />
-                    <span className="img-label">img{index + 1}</span>
-                    {!disabled && <button className="remove-img-btn" onClick={(e) => handleRemove(index, e)}>×</button>}
+                    <img
+                        src={imgUrl.startsWith('/') ? `${BACKEND_URL || 'http://localhost:8080'}${imgUrl}` : imgUrl}
+                        alt={`img${index + 1}`}
+                        className="h-full w-full rounded-md object-cover pointer-events-none"
+                    />
+                    <span className="pointer-events-none absolute bottom-0 w-full whitespace-nowrap rounded-b-md bg-black/50 py-0.5 text-center text-[9px] text-white">img{index + 1}</span>
+                    {!disabled && (
+                        <button
+                            className="absolute -top-3.5 -right-2 z-2 hidden h-4.5 w-4.5 items-center justify-center rounded-full border-none bg-destructive p-0 text-xs leading-3 text-white shadow-[0_2px_4px_rgba(0,0,0,0.2)] transition-all duration-200 ease-in-out cursor-pointer group-hover:flex hover:scale-110 hover:brightness-90"
+                            onClick={(e) => handleRemove(index, e)}
+                        >×</button>
+                    )}
                 </div>
             ))}
 
@@ -209,14 +220,14 @@ const ImageUploaderCell = ({ images, onImagesChange, disabled = false }) => {
             {!disabled && Array.from({ length: totalSlots - images.length }).map((_, i) => {
                 const globalIndex = images.length + i;
                 return (
-                    <div 
+                    <div
                         key={`empty-${globalIndex}`}
-                        className={`img-box empty ${uploading && i === 0 ? 'uploading' : ''}`} 
+                        className={`relative box-border flex h-12 w-12 shrink-0 select-none flex-col items-center justify-center rounded-md border-2 border-dashed border-border bg-muted text-base font-light text-muted-foreground transition-all duration-200 cursor-pointer hover:border-primary hover:bg-accent hover:text-primary ${uploading && i === 0 ? 'pointer-events-none opacity-50' : ''}`}
                         onClick={() => fileInputRef.current && fileInputRef.current.click()}
                         title="Click to upload"
                     >
                         {uploading && i === 0 ? '...' : '+'}
-                        <span className="img-label">img{globalIndex + 1}</span>
+                        <span className="pointer-events-none absolute -bottom-4 whitespace-nowrap text-[10px] text-muted-foreground">img{globalIndex + 1}</span>
                     </div>
                 );
             })}
@@ -231,18 +242,19 @@ const ImageUploaderCell = ({ images, onImagesChange, disabled = false }) => {
 
             {/* Small Fixed Preview Popup */}
             {previewState.url && createPortal(
-                <div 
-                    className="fixed-small-preview"
-                    style={{ 
-                        left: previewState.x, 
+                <div
+                    className="fixed-small-preview fixed z-999999 block h-112.5 w-112.5 cursor-pointer overflow-auto rounded-lg border border-border bg-card p-0 shadow-[0_8px_24px_rgba(0,0,0,0.3)]"
+                    style={{
+                        left: previewState.x,
                         top: previewState.y,
                         transform: previewState.isBelow ? 'translate(-50%, 0)' : 'translate(-50%, -100%)'
                     }}
                     onClick={(e) => { e.stopPropagation(); setPreviewState({ url: null, x: 0, y: 0 }); }}
                 >
-                    <img 
-                        src={previewState.url} 
-                        alt="Preview" 
+                    <img
+                        src={previewState.url}
+                        alt="Preview"
+                        className="m-0 block max-w-none max-h-none"
                         onLoad={(e) => {
                             const { naturalWidth, naturalHeight } = e.target;
                             if (naturalWidth > naturalHeight) setPreviewImgAspect('landscape');

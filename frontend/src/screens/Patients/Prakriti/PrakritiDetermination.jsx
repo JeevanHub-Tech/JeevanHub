@@ -6,14 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { cn } from "@/lib/utils";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AuthContext } from "../../../context/AuthContext";
 import { BACKEND_URL } from "../../../config";
-
-const selectClassName = cn(
-	"h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1 text-base outline-none transition-colors",
-	"focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm",
-);
 
 function Field({ label, htmlFor, children }) {
 	return (
@@ -28,14 +23,18 @@ function SelectField({ label, value, onChange, options }) {
 	const id = `field-${label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
 	return (
 		<Field label={label} htmlFor={id}>
-			<select id={id} value={value} onChange={onChange} required className={selectClassName}>
-				<option value="">Select...</option>
-				{options.map((option) => (
-					<option key={option} value={option}>
-						{option}
-					</option>
-				))}
-			</select>
+			<Select value={value} onValueChange={(next) => onChange({ target: { value: next } })}>
+				<SelectTrigger id={id}>
+					<SelectValue placeholder="Select..." />
+				</SelectTrigger>
+				<SelectContent>
+					{options.map((option) => (
+						<SelectItem key={option} value={option}>
+							{option}
+						</SelectItem>
+					))}
+				</SelectContent>
+			</Select>
 		</Field>
 	);
 }
@@ -133,7 +132,7 @@ function PrakritiDetermination() {
 	const handleSkipClick = () => navigate("/patient-home");
 
 	return (
-		<main className="bg-background pt-20 lg:pt-28">
+		<main className="bg-background">
 			<div className="mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
 				<h1 className="font-display text-3xl leading-tight text-foreground sm:text-4xl">
 					Prakriti Determination Form

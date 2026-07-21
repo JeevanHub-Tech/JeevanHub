@@ -1,10 +1,40 @@
 import React, { useState, useEffect, useContext, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { CheckCircle2, Loader2, ShoppingCart } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
 import { authFetch } from '../utils/authFetch';
-import './CheckoutScreen.css';
 import { BACKEND_URL, RAZORPAY_KEY_ID } from '../config';
 import { getCheckoutCartUrl, getDefaultCartItems } from '../utils/cartData';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
+import { Field, FieldContent, FieldDescription, FieldLabel, FieldTitle } from '@/components/ui/field';
+import { Input } from '@/components/ui/input';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { cn } from '@/lib/utils';
+
+const STEP_LABELS = {
+	summary: 'Order Summary',
+	shipping: 'Shipping',
+	prescription: 'Prescription',
+	payment: 'Payment',
+	confirmation: 'Confirmation'
+};
+
+const PAYMENT_METHODS = [
+	{
+		value: 'cashOnDelivery',
+		label: 'Cash on Delivery',
+		description: 'Pay with cash when your order is delivered.'
+	},
+	{
+		value: 'onlinePayment',
+		label: 'Online Payment',
+		description: 'Pay now using UPI, Net Banking, or other online methods (Razorpay).'
+	}
+];
 
 const CheckoutScreen = () => {
 	const navigate = useNavigate();
@@ -110,8 +140,8 @@ const CheckoutScreen = () => {
 		setAddress(prev => ({ ...prev, [name]: value }));
 	};
 
-	const handlePaymentMethodChange = (e) => {
-		setPaymentMethod(e.target.value);
+	const handlePaymentMethodChange = (value) => {
+		setPaymentMethod(value);
 	};
 
 	const handlePrescriptionFileChange = (e) => {
@@ -288,17 +318,25 @@ const CheckoutScreen = () => {
 	};
 
 	if (cartLoading) {
-		return <div className="checkout-container"><p>Loading your cart&hellip;</p></div>;
+		return (
+			<div className="flex min-h-screen items-center justify-center bg-background">
+				<div className="flex flex-col items-center gap-3 text-muted-foreground">
+					<Loader2 className="size-8 animate-spin text-primary" />
+					<p>Loading your cart…</p>
+				</div>
+			</div>
+		);
 	}
 
 	if (cartItems.length === 0 && currentStep !== 'confirmation') {
 		return (
-			<div className="checkout-container">
-				<div className="checkout-step">
-					<h2>Your cart is empty</h2>
-					<p>Add some medicines to your cart before checking out.</p>
-					<button onClick={() => navigate('/medicines')} className="next-btn">Browse Medicines</button>
-				</div>
+			<div className="flex min-h-screen items-center justify-center bg-background px-4">
+				<EmptyState
+					icon={ShoppingCart}
+					title="Your cart is empty"
+					description="Add some medicines to your cart before checking out."
+					action={<Button onClick={() => navigate('/medicines')}>Browse Medicines</Button>}
+				/>
 			</div>
 		);
 	}
@@ -307,50 +345,57 @@ const CheckoutScreen = () => {
 		switch (currentStep) {
 			case 'summary':
 				return (
-					<div className="checkout-step">
-						<h2>Order Summary</h2>
-						<div className="order-items">
+					<div>
+						<h2 className="font-display mb-5 border-b border-border pb-3 text-xl font-semibold text-foreground">
+							Order Summary
+						</h2>
+						<div className="mb-5 flex flex-col gap-4">
 							{cartItems.map((item) => (
-								<div key={item._id} className="order-item">
+								<div key={item._id} className="flex gap-4 border-b border-border pb-4 last:border-b-0 last:pb-0">
 									<img
 										src={item.medicineId?.image ? `${BACKEND_URL}/${item.medicineId.image}` : 'https://via.placeholder.com/80'}
 										alt={item.medicineId?.name}
+										className="size-20 shrink-0 rounded-lg object-cover"
 									/>
-									<div className="item-details">
-										<h3>{item.medicineId?.name}</h3>
+									<div className="flex-1">
+										<h3 className="text-base font-medium text-foreground">{item.medicineId?.name}</h3>
 										{item.medicineId?.prescription && (
-											<p className="item-rx-badge">Prescription required</p>
+											<Badge variant="warning" className="mt-1">Prescription required</Badge>
 										)}
-										<p>Price: ₹{(item.medicineId?.price || 0).toFixed(2)} × {item.quantity}</p>
-										<p className="item-subtotal">
+										<p className="mt-1 text-sm text-muted-foreground">
+											Price: ₹{(item.medicineId?.price || 0).toFixed(2)} × {item.quantity}
+										</p>
+										<p className="text-sm font-semibold text-foreground">
 											Subtotal: ₹{((item.medicineId?.price || 0) * item.quantity).toFixed(2)}
 										</p>
 									</div>
 								</div>
 							))}
 						</div>
-						<div className="order-summary-total">
-							<h3>Total: ₹{totalPrice.toFixed(2)}</h3>
+						<div className="mb-5 flex justify-end border-t border-border pt-4 text-lg font-semibold text-foreground">
+							Total: ₹{totalPrice.toFixed(2)}
 						</div>
-						<div className="navigation-buttons">
-							<button onClick={() => navigate('/cart')} className="back-btn">
+						<div className="flex flex-wrap justify-between gap-3">
+							<Button type="button" variant="outline" onClick={() => navigate('/cart')}>
 								Back to Cart
-							</button>
-							<button onClick={handleNext} className="next-btn">
+							</Button>
+							<Button type="button" onClick={handleNext}>
 								Next: Shipping Details
-							</button>
+							</Button>
 						</div>
 					</div>
 				);
 
 			case 'shipping':
 				return (
-					<div className="checkout-step">
-						<h2>Shipping Address</h2>
-						<form className="address-form">
-							<div className="form-group">
-								<label htmlFor="street">Street Address</label>
-								<input
+					<div>
+						<h2 className="font-display mb-5 border-b border-border pb-3 text-xl font-semibold text-foreground">
+							Shipping Address
+						</h2>
+						<form className="flex flex-col gap-4">
+							<Field>
+								<FieldLabel htmlFor="street">Street Address</FieldLabel>
+								<Input
 									type="text"
 									id="street"
 									name="street"
@@ -359,11 +404,11 @@ const CheckoutScreen = () => {
 									placeholder="Enter your street address"
 									required
 								/>
-							</div>
+							</Field>
 
-							<div className="form-group">
-								<label htmlFor="city">City</label>
-								<input
+							<Field>
+								<FieldLabel htmlFor="city">City</FieldLabel>
+								<Input
 									type="text"
 									id="city"
 									name="city"
@@ -372,12 +417,12 @@ const CheckoutScreen = () => {
 									placeholder="Enter your city"
 									required
 								/>
-							</div>
+							</Field>
 
-							<div className="form-row">
-								<div className="form-group">
-									<label htmlFor="state">State</label>
-									<input
+							<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+								<Field>
+									<FieldLabel htmlFor="state">State</FieldLabel>
+									<Input
 										type="text"
 										id="state"
 										name="state"
@@ -386,11 +431,11 @@ const CheckoutScreen = () => {
 										placeholder="Enter your state"
 										required
 									/>
-								</div>
+								</Field>
 
-								<div className="form-group">
-									<label htmlFor="postalCode">Postal Code</label>
-									<input
+								<Field>
+									<FieldLabel htmlFor="postalCode">Postal Code</FieldLabel>
+									<Input
 										type="text"
 										id="postalCode"
 										name="postalCode"
@@ -399,12 +444,12 @@ const CheckoutScreen = () => {
 										placeholder="Enter postal code"
 										required
 									/>
-								</div>
+								</Field>
 							</div>
 
-							<div className="form-group">
-								<label htmlFor="country">Country</label>
-								<input
+							<Field>
+								<FieldLabel htmlFor="country">Country</FieldLabel>
+								<Input
 									type="text"
 									id="country"
 									name="country"
@@ -412,63 +457,73 @@ const CheckoutScreen = () => {
 									onChange={handleAddressChange}
 									readOnly
 								/>
-							</div>
+							</Field>
 						</form>
 
-						{error && <div className="error-message">{error}</div>}
+						{error && (
+							<Alert variant="destructive" className="mt-4">
+								<AlertDescription>{error}</AlertDescription>
+							</Alert>
+						)}
 
-						<div className="navigation-buttons">
-							<button onClick={prevStep} className="back-btn">
+						<div className="mt-5 flex flex-wrap justify-between gap-3">
+							<Button type="button" variant="outline" onClick={prevStep}>
 								Back to Order Summary
-							</button>
-							<button onClick={handleNext} className="next-btn">
+							</Button>
+							<Button type="button" onClick={handleNext}>
 								{prescriptionNeeded ? 'Next: Upload Prescription' : 'Next: Payment Method'}
-							</button>
+							</Button>
 						</div>
 					</div>
 				);
 
 			case 'prescription':
 				return (
-					<div className="checkout-step">
-						<h2>Upload Prescription</h2>
-						<p>
+					<div>
+						<h2 className="font-display mb-5 border-b border-border pb-3 text-xl font-semibold text-foreground">
+							Upload Prescription
+						</h2>
+						<p className="mb-4 text-sm text-muted-foreground">
 							Your cart contains one or more prescription-required medicines.
 							Please upload a clear photo or scan of a valid prescription before continuing.
 						</p>
 
-						<div className="payment-proof-upload">
-							<label htmlFor="prescriptionFile">Prescription Image</label>
-							<input
+						<Field className="mb-4">
+							<FieldLabel htmlFor="prescriptionFile">Prescription Image</FieldLabel>
+							<Input
 								type="file"
 								id="prescriptionFile"
 								accept="image/*,application/pdf"
 								onChange={handlePrescriptionFileChange}
 							/>
-						</div>
+						</Field>
 
 						{prescriptionUrl && (
-							<p className="item-rx-badge">Prescription uploaded successfully.</p>
+							<Badge variant="warning" className="mb-4">Prescription uploaded successfully.</Badge>
 						)}
 
-						{error && <div className="error-message">{error}</div>}
+						{error && (
+							<Alert variant="destructive" className="mb-4">
+								<AlertDescription>{error}</AlertDescription>
+							</Alert>
+						)}
 
-						<div className="navigation-buttons">
-							<button onClick={prevStep} className="back-btn">
+						<div className="flex flex-wrap justify-between gap-3">
+							<Button type="button" variant="outline" onClick={prevStep}>
 								Back to Shipping
-							</button>
+							</Button>
 							{!prescriptionUrl ? (
-								<button
+								<Button
+									type="button"
 									onClick={uploadPrescription}
-									className="next-btn"
 									disabled={prescriptionUploading || !prescriptionFile}
 								>
 									{prescriptionUploading ? 'Uploading...' : 'Upload Prescription'}
-								</button>
+								</Button>
 							) : (
-								<button onClick={handleNext} className="next-btn">
+								<Button type="button" onClick={handleNext}>
 									Next: Payment Method
-								</button>
+								</Button>
 							)}
 						</div>
 					</div>
@@ -476,70 +531,62 @@ const CheckoutScreen = () => {
 
 			case 'payment':
 				return (
-					<div className="checkout-step">
-						<h2>Payment Method</h2>
-						<div className="payment-options">
-							<div className="payment-option">
-								<input
-									type="radio"
-									id="cashOnDelivery"
-									name="paymentMethod"
-									value="cashOnDelivery"
-									checked={paymentMethod === 'cashOnDelivery'}
-									onChange={handlePaymentMethodChange}
-								/>
-								<label htmlFor="cashOnDelivery">Cash on Delivery</label>
-								<p className="payment-description">
-									Pay with cash when your order is delivered.
-								</p>
-							</div>
+					<div>
+						<h2 className="font-display mb-5 border-b border-border pb-3 text-xl font-semibold text-foreground">
+							Payment Method
+						</h2>
+						<RadioGroup
+							value={paymentMethod}
+							onValueChange={handlePaymentMethodChange}
+							className="mb-5 gap-3"
+						>
+							{PAYMENT_METHODS.map((method) => (
+								<FieldLabel key={method.value} htmlFor={method.value}>
+									<Field orientation="horizontal">
+										<RadioGroupItem value={method.value} id={method.value} />
+										<FieldContent>
+											<FieldTitle>{method.label}</FieldTitle>
+											<FieldDescription>{method.description}</FieldDescription>
+										</FieldContent>
+									</Field>
+								</FieldLabel>
+							))}
+						</RadioGroup>
 
-							<div className="payment-option">
-								<input
-									type="radio"
-									id="onlinePayment"
-									name="paymentMethod"
-									value="onlinePayment"
-									checked={paymentMethod === 'onlinePayment'}
-									onChange={handlePaymentMethodChange}
-								/>
-								<label htmlFor="onlinePayment">Online Payment</label>
-								<p className="payment-description">
-									Pay now using UPI, Net Banking, or other online methods (Razorpay).
-								</p>
-							</div>
+						<div className="mb-5 flex justify-end border-t border-border pt-4 text-lg font-semibold text-foreground">
+							Order Total: ₹{totalPrice.toFixed(2)}
 						</div>
 
-						<div className="order-final-summary">
-							<h3>Order Total: ₹{totalPrice.toFixed(2)}</h3>
-						</div>
+						{error && (
+							<Alert variant="destructive" className="mb-4">
+								<AlertDescription>{error}</AlertDescription>
+							</Alert>
+						)}
 
-						{error && <div className="error-message">{error}</div>}
-
-						<div className="navigation-buttons">
-							<button onClick={prevStep} className="back-btn">
+						<div className="flex flex-wrap justify-between gap-3">
+							<Button type="button" variant="outline" onClick={prevStep}>
 								Back
-							</button>
-							<button
+							</Button>
+							<Button
+								type="button"
 								onClick={placeOrder}
-								className="place-order-btn"
 								disabled={loading}
 							>
 								{loading ? 'Processing...' : paymentMethod === 'onlinePayment' ? 'Pay Now' : 'Place Order'}
-							</button>
+							</Button>
 						</div>
 					</div>
 				);
 
 			case 'confirmation':
 				return (
-					<div className="checkout-step order-confirmation">
-						<div className="success-icon">✓</div>
-						<h2>Order Placed Successfully!</h2>
-						<p>Thank you for your order.</p>
+					<div className="flex flex-col items-center gap-3 py-10 text-center">
+						<CheckCircle2 className="size-12 text-primary" />
+						<h2 className="font-display text-2xl font-semibold text-foreground">Order Placed Successfully!</h2>
+						<p className="text-muted-foreground">Thank you for your order.</p>
 
-						<div className="order-details">
-							<p>Order ID: <span>{orderId}</span></p>
+						<div className="mt-2 flex flex-col gap-2 text-sm text-foreground">
+							<p>Order ID: <span className="font-semibold">{orderId}</span></p>
 							{paymentMethod === 'cashOnDelivery' ? (
 								<p>You have selected Cash on Delivery. Please keep cash ready at the time of delivery.</p>
 							) : (
@@ -550,13 +597,13 @@ const CheckoutScreen = () => {
 							)}
 						</div>
 
-						<div className="navigation-buttons">
-							<button onClick={() => navigate('/order-history')} className="view-orders-btn">
+						<div className="mt-6 flex flex-wrap justify-center gap-3">
+							<Button type="button" onClick={() => navigate('/order-history')}>
 								View My Orders
-							</button>
-							<button onClick={() => navigate('/')} className="shop-more-btn">
+							</Button>
+							<Button type="button" variant="outline" onClick={() => navigate('/')}>
 								Continue Shopping
-							</button>
+							</Button>
 						</div>
 					</div>
 				);
@@ -567,26 +614,39 @@ const CheckoutScreen = () => {
 	};
 
 	return (
-		<div className="checkout-container">
-			<div className="checkout-progress">
-				{steps.map((step, index) => (
-					<div key={step} className={`progress-step ${currentStepIndex >= index ? 'active' : ''}`}>
-						<span className="step-number">{index + 1}</span>
-						<span className="step-name">
-							{{
-								summary: 'Order Summary',
-								shipping: 'Shipping',
-								prescription: 'Prescription',
-								payment: 'Payment',
-								confirmation: 'Confirmation'
-							}[step]}
-						</span>
+		<div className="min-h-screen bg-background pb-16">
+			<div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
+				<div className="relative mb-10">
+					<div className="absolute top-4 right-0 left-0 h-0.5 bg-border" />
+					<div className="relative flex justify-between">
+						{steps.map((step, index) => (
+							<div key={step} className="flex flex-col items-center gap-2">
+								<span
+									className={cn(
+										'flex size-8 items-center justify-center rounded-full text-sm font-semibold',
+										currentStepIndex >= index
+											? 'bg-primary text-primary-foreground'
+											: 'bg-secondary text-muted-foreground'
+									)}
+								>
+									{index + 1}
+								</span>
+								<span
+									className={cn(
+										'text-xs',
+										currentStepIndex >= index ? 'font-semibold text-foreground' : 'text-muted-foreground'
+									)}
+								>
+									{STEP_LABELS[step]}
+								</span>
+							</div>
+						))}
 					</div>
-				))}
-			</div>
+				</div>
 
-			<div className="checkout-content">
-				{renderStepContent()}
+				<Card className="p-6">
+					{renderStepContent()}
+				</Card>
 			</div>
 		</div>
 	);

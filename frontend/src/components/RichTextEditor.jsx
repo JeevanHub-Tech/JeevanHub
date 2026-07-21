@@ -30,7 +30,17 @@ import {
     Film,
 } from "lucide-react";
 
-import "./RichTextEditor.css";
+import { cn } from "@/lib/utils";
+
+// Toolbar buttons all share this dark-chrome toggle look; active state is
+// driven per-render from editor.isActive(...), not a variant prop, so a
+// small local helper keeps the className logic out of the JSX below.
+const toolbarButtonClass = (isActive) =>
+    cn(
+        "cursor-pointer rounded-md p-1.5 text-(--jh-chrome-text) transition-colors",
+        "hover:bg-(--jh-chrome-border) hover:text-(--jh-chrome-text-strong)",
+        isActive && "bg-(--jh-chrome-active) text-(--jh-chrome-text-strong)"
+    );
 
 const RichTextEditor = ({ content, onChange }) => {
     const editor = useEditor({
@@ -91,14 +101,71 @@ const RichTextEditor = ({ content, onChange }) => {
     };
 
     return (
-        <div className="rte-container">
-            <div className="rte-toolbar">
+        <div className="w-full self-center rounded-lg bg-(--jh-chrome-bg) p-2.5 text-(--jh-chrome-text-strong)">
+            {/* This <style> block covers only selectors that target HTML Tiptap/ProseMirror
+                injects into the contenteditable area at runtime (headings, lists, links,
+                highlight marks, the empty-state placeholder, embedded video wrapper). That
+                markup isn't React-rendered JSX, so Tailwind utility classes can't reach it —
+                these rules have no Tailwind-equivalent and must stay as real CSS. */}
+            <style>{`
+                .rte-editor .ProseMirror {
+                    min-height: 100%;
+                    height: 100%;
+                    box-sizing: border-box;
+                    outline: none;
+                    padding: 12px;
+                    font-family: var(--jh-font-body);
+                    color: var(--jh-ink);
+                }
+                .rte-editor .ProseMirror.is-editor-empty::before,
+                .rte-editor .ProseMirror p.is-editor-empty::before {
+                    color: var(--jh-muted);
+                }
+                .rte-editor .ProseMirror h1,
+                .rte-editor .ProseMirror h2,
+                .rte-editor .ProseMirror h3,
+                .rte-editor .ProseMirror h4,
+                .rte-editor .ProseMirror h5,
+                .rte-editor .ProseMirror h6 {
+                    color: var(--jh-ink);
+                }
+                .rte-editor .ProseMirror p {
+                    margin: 0.5em 0;
+                }
+                .rte-editor .ProseMirror mark {
+                    background-color: var(--jh-turmeric-gold);
+                    color: var(--jh-ink);
+                }
+                .rte-editor .ProseMirror a {
+                    color: var(--jh-olive-leaf);
+                    text-decoration: underline;
+                    cursor: pointer;
+                }
+                .rte-editor .ProseMirror ul {
+                    list-style-type: disc;
+                    padding-left: 1.5em;
+                    margin: 0.5em 0;
+                }
+                .rte-editor .ProseMirror ol {
+                    list-style-type: decimal;
+                    padding-left: 1.5em;
+                    margin: 0.5em 0;
+                }
+                .rte-editor .iframe-container,
+                .blog-content .iframe-container {
+                    position: relative;
+                    width: 100%;
+                }
+            `}</style>
+
+            <div className="mb-2.5 flex flex-wrap items-center gap-2 rounded-md bg-(--jh-chrome-surface) p-2">
                 {/* 1. Heading Dropdown Fix (using value and onChange) */}
-                <div className="rte-heading-select">
+                <div className="flex items-center gap-1">
                     <Heading1 size={18} />
                     <select
                         onChange={handleHeadingChange}
                         value={getCurrentHeadingLevel()} // Set the current active value
+                        className="rounded border border-(--jh-chrome-border) bg-(--jh-chrome-surface) px-1.5 py-1 text-sm text-(--jh-chrome-text-strong)"
                     >
                         <option value="paragraph">Paragraph</option>
                         <option value="1">H1</option>
@@ -113,8 +180,7 @@ const RichTextEditor = ({ content, onChange }) => {
                 {/* 2. Bold Button Fix (using editor.isActive() and a conditional class) */}
                 <button
                     onClick={() => editor.chain().focus().toggleBold().run()}
-                    // Conditionally add a class when the formatting is active
-                    className={editor.isActive("bold") ? "is-active" : ""}
+                    className={toolbarButtonClass(editor.isActive("bold"))}
                 >
                     <Bold size={18} />
                 </button>
@@ -122,7 +188,7 @@ const RichTextEditor = ({ content, onChange }) => {
                 {/* Italic Button Fix */}
                 <button
                     onClick={() => editor.chain().focus().toggleItalic().run()}
-                    className={editor.isActive("italic") ? "is-active" : ""}
+                    className={toolbarButtonClass(editor.isActive("italic"))}
                 >
                     <Italic size={18} />
                 </button>
@@ -130,7 +196,7 @@ const RichTextEditor = ({ content, onChange }) => {
                 {/* Underline Button Fix */}
                 <button
                     onClick={() => editor.chain().focus().toggleUnderline().run()}
-                    className={editor.isActive("underline") ? "is-active" : ""}
+                    className={toolbarButtonClass(editor.isActive("underline"))}
                 >
                     <UnderlineIcon size={18} />
                 </button>
@@ -138,7 +204,7 @@ const RichTextEditor = ({ content, onChange }) => {
                 {/* Bullet List Fix */}
                 <button
                     onClick={() => editor.chain().focus().toggleBulletList().run()}
-                    className={editor.isActive("bulletList") ? "is-active" : ""}
+                    className={toolbarButtonClass(editor.isActive("bulletList"))}
                 >
                     <List size={18} />
                 </button>
@@ -146,7 +212,7 @@ const RichTextEditor = ({ content, onChange }) => {
                 {/* Ordered List Fix */}
                 <button
                     onClick={() => editor.chain().focus().toggleOrderedList().run()}
-                    className={editor.isActive("orderedList") ? "is-active" : ""}
+                    className={toolbarButtonClass(editor.isActive("orderedList"))}
                 >
                     <ListOrdered size={18} />
                 </button>
@@ -154,21 +220,21 @@ const RichTextEditor = ({ content, onChange }) => {
                 {/* Text Align Buttons Fix */}
                 <button
                     onClick={() => editor.chain().focus().setTextAlign("left").run()}
-                    className={editor.isActive({ textAlign: "left" }) ? "is-active" : ""}
+                    className={toolbarButtonClass(editor.isActive({ textAlign: "left" }))}
                 >
                     <AlignLeft size={18} />
                 </button>
 
                 <button
                     onClick={() => editor.chain().focus().setTextAlign("center").run()}
-                    className={editor.isActive({ textAlign: "center" }) ? "is-active" : ""}
+                    className={toolbarButtonClass(editor.isActive({ textAlign: "center" }))}
                 >
                     <AlignCenter size={18} />
                 </button>
 
                 <button
                     onClick={() => editor.chain().focus().setTextAlign("right").run()}
-                    className={editor.isActive({ textAlign: "right" }) ? "is-active" : ""}
+                    className={toolbarButtonClass(editor.isActive({ textAlign: "right" }))}
                 >
                     <AlignRight size={18} />
                 </button>
@@ -176,19 +242,20 @@ const RichTextEditor = ({ content, onChange }) => {
                 {/* Highlight Button Fix */}
                 <button
                     onClick={() => editor.chain().focus().toggleHighlight().run()}
-                    className={editor.isActive("highlight") ? "is-active" : ""}
+                    className={toolbarButtonClass(editor.isActive("highlight"))}
                 >
                     <Highlighter size={18} />
                 </button>
 
                 {/* Link and Image buttons don't typically have an active state in the same way,
-                    but you could check if a link is active for a "remove link" button if you wanted. 
+                    but you could check if a link is active for a "remove link" button if you wanted.
                     I'll keep them as they are for simplicity here. */}
                 <button
                     onClick={() => {
                         const url = window.prompt("Enter image URL:");
                         if (url) editor.chain().focus().setImage({ src: url }).run();
                     }}
+                    className={toolbarButtonClass(false)}
                 >
                     <ImageIcon size={18} />
                 </button>
@@ -198,15 +265,16 @@ const RichTextEditor = ({ content, onChange }) => {
                     onClick={() => {
                         const url = window.prompt("Enter YouTube URL or Video ID:");
                         if (url) {
-                            editor.chain().focus().setYoutubeVideo({ 
+                            editor.chain().focus().setYoutubeVideo({
                                 src: url,
                                 width: 640,
                                 height: 480,
                             }).run();
                         }
                     }}
+                    className={toolbarButtonClass(false)}
                 >
-                    <Film size={18} /> 
+                    <Film size={18} />
                 </button>
 
                 {/* Hyperlink */}
@@ -226,12 +294,15 @@ const RichTextEditor = ({ content, onChange }) => {
                             editor.chain().focus().unsetLink().run();
                         }
                     }}
-                    className={editor.isActive("link") ? "is-active" : ""}
+                    className={toolbarButtonClass(editor.isActive("link"))}
                 >
                     <LinkIcon size={18} />
                 </button>
             </div>
-            <EditorContent editor={editor} className="rte-editor" />
+            <EditorContent
+                editor={editor}
+                className="rte-editor flex max-h-[80vh] flex-col overflow-y-scroll rounded-md border border-(--jh-line-strong) bg-(--jh-surface) p-3 text-(--jh-ink) focus-within:border-(--jh-olive-leaf)"
+            />
         </div>
     );
 };

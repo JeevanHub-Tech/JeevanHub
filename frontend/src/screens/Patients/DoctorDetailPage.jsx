@@ -361,7 +361,7 @@ function DoctorDetail() {
 			: defaultProfilePic;
 
 	return (
-		<main className="bg-background pt-20 lg:pt-28">
+		<main className="bg-background">
 			<div className="mx-auto grid max-w-5xl gap-6 px-4 py-10 sm:px-6 lg:grid-cols-[1fr_1.1fr] lg:px-8">
 				<div className="flex flex-col gap-6">
 					<div className="rounded-(--jh-radius-lg) bg-card p-5 shadow-(--jh-shadow-rest) sm:p-6">

@@ -303,7 +303,7 @@ const DietYogaComponent = () => {
 	);
 
 	return (
-		<main className="bg-background pt-20 lg:pt-28">
+		<main className="bg-background">
 			<div className="mx-auto max-w-3xl px-4 py-10 sm:px-6 lg:px-8">
 				<div className="grid gap-3 sm:grid-cols-2">
 					<button

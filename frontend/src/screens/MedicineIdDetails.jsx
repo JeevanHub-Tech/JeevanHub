@@ -1,8 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import axios from "axios";
-import "./MedicineIdDetails.css";
-import { BACKEND_URL } from '../config';
+import { ChevronLeft, ChevronRight, X } from "lucide-react";
+
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { BACKEND_URL } from "../config";
 
 // Fallback image (real generic pharmacy photo)
 const FALLBACK_IMAGE =
@@ -23,30 +28,34 @@ function MedicineIdDetails({ addToCart }) {
   const [touchStart, setTouchStart] = useState(null);
   const [touchEnd, setTouchEnd] = useState(null);
 
-  const incrementQty = () => setQuantity(q => q + 1);
-  const decrementQty = () => setQuantity(q => Math.max(1, q - 1));
+  const incrementQty = () => setQuantity((q) => q + 1);
+  const decrementQty = () => setQuantity((q) => Math.max(1, q - 1));
 
   useEffect(() => {
     // Scroll to top when opening a new detail page
     window.scrollTo(0, 0);
-    
+
     const fetchMedicine = async () => {
       try {
-        const response = await axios.get(`${BACKEND_URL || 'http://localhost:8080'}/api/medicines/${paramId}`);
+        const response = await axios.get(`${BACKEND_URL || "http://localhost:8080"}/api/medicines/${paramId}`);
         const data = response.data;
-        
+
         // Map backend data to frontend expected format
         const formattedMedicine = {
           id: data._id,
           name: data.name,
-          pharmacy: data.retailerId ? `${data.retailerId.firstName || ''} ${data.retailerId.lastName || ''}`.trim() : "Unknown Pharmacy",
+          pharmacy: data.retailerId ? `${data.retailerId.firstName || ""} ${data.retailerId.lastName || ""}`.trim() : "Unknown Pharmacy",
           price: data.price,
-          images: data.images && data.images.length > 0 
-            ? data.images.map(img => img.startsWith('http') ? img : `${BACKEND_URL || 'http://localhost:8080'}/${img}`)
-            : [FALLBACK_IMAGE],
-          imageSrc: data.images && data.images.length > 0 
-            ? (data.images[0].startsWith('http') ? data.images[0] : `${BACKEND_URL || 'http://localhost:8080'}/${data.images[0]}`)
-            : FALLBACK_IMAGE,
+          images:
+            data.images && data.images.length > 0
+              ? data.images.map((img) => (img.startsWith("http") ? img : `${BACKEND_URL || "http://localhost:8080"}/${img}`))
+              : [FALLBACK_IMAGE],
+          imageSrc:
+            data.images && data.images.length > 0
+              ? data.images[0].startsWith("http")
+                ? data.images[0]
+                : `${BACKEND_URL || "http://localhost:8080"}/${data.images[0]}`
+              : FALLBACK_IMAGE,
           description: data.description || "No description provided.",
           prescription: data.prescription || false,
           // Fill placeholders for fields not in backend schema yet
@@ -55,7 +64,7 @@ function MedicineIdDetails({ addToCart }) {
           dosage: "Please consult your doctor.",
           storageSafety: "Store in a cool, dry place.",
         };
-        
+
         setMedicine(formattedMedicine);
       } catch (err) {
         console.error("Error fetching medicine details:", err);
@@ -71,37 +80,35 @@ function MedicineIdDetails({ addToCart }) {
   }, [paramId]);
 
   if (loading) {
-    return <main className="medicine-details"><h2>Loading...</h2></main>;
+    return (
+      <main className="min-h-screen bg-background pb-16">
+        <h2 className="mx-auto max-w-6xl px-4 text-lg text-muted-foreground">Loading...</h2>
+      </main>
+    );
   }
 
   if (error || !medicine) {
     return (
-      <main className="medicine-details">
-        <div className="medicine-details__header">
-          <button
-            type="button"
-            className="btn btn--ghost"
-            onClick={() => navigate(-1)}
-            aria-label="Go back"
-          >
-            ← Back
-          </button>
+      <main className="min-h-screen bg-background pb-16" aria-labelledby="medicine-title">
+        <div className="mx-auto mb-4 max-w-6xl px-4">
+          <Button type="button" variant="ghost" onClick={() => navigate(-1)} aria-label="Go back">
+            <ChevronLeft className="size-4" />
+            Back
+          </Button>
         </div>
-        <section className="medicine-details__not-found">
-          <h2>Medicine not found</h2>
-          <p>We couldn’t find a medicine for ID: {paramId}</p>
-          <Link to="/medicines" className="btn btn--primary">
-            Browse medicines
-          </Link>
+        <section className="mx-auto flex max-w-6xl flex-col items-start gap-4 px-4">
+          <h2 className="font-display text-2xl text-foreground">Medicine not found</h2>
+          <p className="text-muted-foreground">We couldn't find a medicine for ID: {paramId}</p>
+          <Button asChild>
+            <Link to="/medicines">Browse medicines</Link>
+          </Button>
         </section>
       </main>
     );
   }
 
   const priceNumber = Number.parseFloat(medicine.price);
-  const formattedPrice = isNaN(priceNumber)
-    ? `₹${medicine.price}`
-    : `₹${priceNumber.toFixed(2)}`;
+  const formattedPrice = isNaN(priceNumber) ? `₹${medicine.price}` : `₹${priceNumber.toFixed(2)}`;
 
   const handleAddToCart = async () => {
     const patientId = localStorage.getItem("userId");
@@ -114,7 +121,7 @@ function MedicineIdDetails({ addToCart }) {
 
     try {
       await axios.post(
-        `${BACKEND_URL || 'http://localhost:8080'}/api/cart/add`,
+        `${BACKEND_URL || "http://localhost:8080"}/api/cart/add`,
         { patientId, medicineId: medicine.id, quantity: quantity },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -127,7 +134,7 @@ function MedicineIdDetails({ addToCart }) {
 
   const handleBuyNow = () => {
     handleAddToCart();
-    navigate('/cart');
+    navigate("/cart");
   };
 
   // --- Image Swipe Logic ---
@@ -154,47 +161,63 @@ function MedicineIdDetails({ addToCart }) {
     }
   };
 
+  const showPrevImage = () => setCurrentImageIndex((prev) => (prev === 0 ? medicine.images.length - 1 : prev - 1));
+  const showNextImage = () => setCurrentImageIndex((prev) => (prev === medicine.images.length - 1 ? 0 : prev + 1));
+
+  const carouselDots = (extraClassName = "") =>
+    medicine.images.length > 1 && (
+      <div className={`flex items-center justify-center gap-2 ${extraClassName}`}>
+        {medicine.images.map((_, idx) => (
+          <span
+            key={idx}
+            onClick={() => setCurrentImageIndex(idx)}
+            className={`size-2 cursor-pointer rounded-full transition-all duration-200 ${
+              idx === currentImageIndex ? "scale-120 bg-primary" : "bg-border"
+            }`}
+          />
+        ))}
+      </div>
+    );
+
   return (
-    <main className="medicine-details" aria-labelledby="medicine-title">
-      <div className="medicine-details__header">
-        <button
-          type="button"
-          className="btn btn--ghost"
-          onClick={() => navigate(-1)}
-          aria-label="Go back"
-        >
-          ← Back
-        </button>
+    <main className="min-h-screen bg-background pb-16" aria-labelledby="medicine-title">
+      <div className="mx-auto mb-4 max-w-6xl px-4">
+        <Button type="button" variant="ghost" onClick={() => navigate(-1)} aria-label="Go back">
+          <ChevronLeft className="size-4" />
+          Back
+        </Button>
       </div>
 
-      <div className="medicine-details__layout">
+      <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4">
         {/* TOP SECTION: Image + Core Info (Responsive grid) */}
-        <section className="medicine-details__top">
-          <div 
-            className="medicine-details__image-col"
+        <Card className="flex-row overflow-hidden p-0 max-md:flex-col">
+          <div
+            className="flex w-2/5 flex-col items-center justify-center gap-4 border-r border-border bg-card p-8 max-md:w-full max-md:border-r-0 max-md:border-b max-md:p-6"
             onTouchStart={onTouchStart}
             onTouchMove={onTouchMove}
             onTouchEnd={onTouchEnd}
           >
-            <div className="medicine-details__image-carousel">
-              <div className="medicine-details__image-wrapper">
+            <div className="flex w-full items-center justify-center">
+              <div className="relative inline-block max-w-full">
                 {medicine.images.length > 1 && (
-                  <button 
-                    className="carousel-btn medicine-details__prev-btn" 
-                    onClick={() => setCurrentImageIndex(prev => prev === 0 ? medicine.images.length - 1 : prev - 1)}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={showPrevImage}
                     aria-label="Previous Image"
+                    className="absolute top-1/2 left-[-18px] z-10 -translate-y-1/2 rounded-full bg-card/90 shadow-(--jh-shadow-rest)"
                   >
-                    &#10094;
-                  </button>
+                    <ChevronLeft className="size-4" />
+                  </Button>
                 )}
-                
+
                 <img
                   src={medicine.images[currentImageIndex]}
                   alt={`${medicine.name} - image ${currentImageIndex + 1}`}
-                  className="medicine-details__image"
+                  className="block max-h-88 max-w-full cursor-zoom-in object-contain transition-opacity duration-300 ease-out max-md:max-h-63"
                   loading="lazy"
                   onClick={() => setIsEnlarged(true)}
-                  style={{ cursor: "zoom-in" }}
                   onError={(e) => {
                     e.currentTarget.onerror = null;
                     e.currentTarget.src = FALLBACK_IMAGE;
@@ -202,167 +225,174 @@ function MedicineIdDetails({ addToCart }) {
                 />
 
                 {medicine.images.length > 1 && (
-                  <button 
-                    className="carousel-btn medicine-details__next-btn" 
-                    onClick={() => setCurrentImageIndex(prev => prev === medicine.images.length - 1 ? 0 : prev + 1)}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={showNextImage}
                     aria-label="Next Image"
+                    className="absolute top-1/2 right-[-18px] z-10 -translate-y-1/2 rounded-full bg-card/90 shadow-(--jh-shadow-rest)"
                   >
-                    &#10095;
-                  </button>
+                    <ChevronRight className="size-4" />
+                  </Button>
                 )}
               </div>
             </div>
-            
-            {medicine.images.length > 1 && (
-              <div className="medicine-details__carousel-dots">
-                {medicine.images.map((_, idx) => (
-                  <span 
-                    key={idx} 
-                    className={`dot ${idx === currentImageIndex ? 'active' : ''}`}
-                    onClick={() => setCurrentImageIndex(idx)}
-                  />
-                ))}
-              </div>
-            )}
+
+            {carouselDots()}
           </div>
 
-          <div className="medicine-details__summary-col">
-            <h1 id="medicine-title" className="medicine-details__title">
+          <div className="flex flex-1 flex-col p-8 max-md:p-6">
+            <h1 id="medicine-title" className="font-display mb-1 text-2xl leading-tight font-bold text-foreground max-md:text-xl">
               {medicine.name}
             </h1>
-            
+
             {medicine.prescription && (
-              <div className="medicine-details__prescription-badge">
+              <Badge variant="destructive" className="mb-3 self-start uppercase">
                 Rx Prescription Required
-              </div>
+              </Badge>
             )}
 
-            <div className="medicine-details__price-box">
-              <span className="medicine-details__price">{formattedPrice}</span>
-              <span className="medicine-details__tax-info">Inclusive of all taxes</span>
+            <div className="mb-6 flex items-baseline gap-2">
+              <span className="text-3xl font-bold text-foreground max-md:text-2xl">{formattedPrice}</span>
+              <span className="text-sm text-muted-foreground">Inclusive of all taxes</span>
             </div>
 
-            <div className="medicine-details__actions-box">
-              <div className="qty-selector">
-                <button type="button" onClick={decrementQty} aria-label="Decrease quantity">−</button>
-                <span className="qty-value">{quantity}</span>
-                <button type="button" onClick={incrementQty} aria-label="Increase quantity">+</button>
-              </div>
-
-              <div className="action-buttons">
+            <div className="mb-8 border-b border-dashed border-border pb-8">
+              <div className="mb-4 inline-flex items-center overflow-hidden rounded-md border border-border bg-card">
                 <button
                   type="button"
-                  className="btn btn--outline"
+                  onClick={decrementQty}
+                  aria-label="Decrease quantity"
+                  className="flex size-9 items-center justify-center bg-muted text-lg text-foreground transition-colors hover:bg-secondary"
+                >
+                  −
+                </button>
+                <span className="w-10 text-center text-base font-semibold text-foreground">{quantity}</span>
+                <button
+                  type="button"
+                  onClick={incrementQty}
+                  aria-label="Increase quantity"
+                  className="flex size-9 items-center justify-center bg-muted text-lg text-foreground transition-colors hover:bg-secondary"
+                >
+                  +
+                </button>
+              </div>
+
+              <div className="flex max-w-100 gap-4 max-md:max-w-full max-md:flex-col">
+                <Button
+                  type="button"
+                  variant="outline"
                   onClick={handleAddToCart}
                   aria-label={`Add ${medicine.name} to cart`}
+                  className="flex-1"
                 >
                   Add to Cart
-                </button>
-                <button
-                  type="button"
-                  className="btn btn--primary"
-                  onClick={handleBuyNow}
-                  aria-label={`Buy ${medicine.name} now`}
-                >
+                </Button>
+                <Button type="button" onClick={handleBuyNow} aria-label={`Buy ${medicine.name} now`} className="flex-1">
                   Buy Now
-                </button>
+                </Button>
               </div>
             </div>
           </div>
-        </section>
+        </Card>
 
         {/* BOTTOM SECTION: Detailed Info */}
-        <section className="medicine-details__bottom">
-          <div className="medicine-details__description-card">
-            <h2>Product Description</h2>
-            <p className="medicine-details__description">{medicine.description}</p>
-          </div>
+        <section className="flex flex-col gap-6">
+          <Card className="p-8 max-md:p-6">
+            <h2 className="mb-4 border-b border-border pb-2 text-lg font-semibold text-foreground">Product Description</h2>
+            <p className="text-sm leading-relaxed text-muted-foreground">{medicine.description}</p>
+          </Card>
 
-          <div className="medicine-details__grid-info">
-            <div className="medicine-details__section">
-              <h2>Ingredients</h2>
-              <ul>
+          <Card className="grid grid-cols-[repeat(auto-fit,minmax(250px,1fr))] gap-8 p-8 max-md:p-6">
+            <div>
+              <h2 className="mb-4 border-b border-border pb-2 text-lg font-semibold text-foreground">Ingredients</h2>
+              <ul className="list-inside list-disc space-y-1 text-sm leading-relaxed text-muted-foreground">
                 {medicine.ingredients.map((item, idx) => (
                   <li key={idx}>{item}</li>
                 ))}
               </ul>
             </div>
 
-            <div className="medicine-details__section">
-              <h2>Uses & Benefits</h2>
-              <ul>
+            <div>
+              <h2 className="mb-4 border-b border-border pb-2 text-lg font-semibold text-foreground">Uses & Benefits</h2>
+              <ul className="list-inside list-disc space-y-1 text-sm leading-relaxed text-muted-foreground">
                 {medicine.usesBenefits.map((item, idx) => (
                   <li key={idx}>{item}</li>
                 ))}
               </ul>
             </div>
 
-            <div className="medicine-details__section">
-              <h2>Dosage</h2>
-              <p>{medicine.dosage}</p>
+            <div>
+              <h2 className="mb-4 border-b border-border pb-2 text-lg font-semibold text-foreground">Dosage</h2>
+              <p className="text-sm leading-relaxed text-muted-foreground">{medicine.dosage}</p>
             </div>
 
-            <div className="medicine-details__section">
-              <h2>Storage & Safety</h2>
-              <p>{medicine.storageSafety}</p>
+            <div>
+              <h2 className="mb-4 border-b border-border pb-2 text-lg font-semibold text-foreground">Storage & Safety</h2>
+              <p className="text-sm leading-relaxed text-muted-foreground">{medicine.storageSafety}</p>
             </div>
-          </div>
+          </Card>
         </section>
       </div>
+
       {/* ENLARGED IMAGE MODAL */}
-      {isEnlarged && (
-        <div className="medicine-details__enlarged-overlay" onClick={() => setIsEnlarged(false)}>
-          <button className="medicine-details__enlarged-close" onClick={() => setIsEnlarged(false)}>
-            &times;
-          </button>
-          
-          <div 
-            className="medicine-details__enlarged-content"
-            onClick={(e) => e.stopPropagation()}
-            onTouchStart={onTouchStart}
-            onTouchMove={onTouchMove}
-            onTouchEnd={onTouchEnd}
+      <Dialog open={isEnlarged} onOpenChange={setIsEnlarged}>
+        <DialogContent
+          showClose={false}
+          className="flex h-[90vh] w-[90vw] max-w-none flex-col items-center justify-center gap-4 bg-transparent p-0 shadow-none ring-0"
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={onTouchEnd}
+        >
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            onClick={() => setIsEnlarged(false)}
+            aria-label="Close"
+            className="absolute top-6 right-6 z-10 size-11 rounded-full bg-card/90"
           >
+            <X className="size-5" />
+          </Button>
+
+          <div className="relative flex w-full flex-1 items-center justify-center">
             {medicine.images.length > 1 && (
-              <button 
-                className="carousel-btn medicine-details__prev-btn" 
-                onClick={() => setCurrentImageIndex(prev => prev === 0 ? medicine.images.length - 1 : prev - 1)}
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={showPrevImage}
                 aria-label="Previous Image"
+                className="absolute top-1/2 left-2 z-10 -translate-y-1/2 rounded-full bg-card/90"
               >
-                &#10094;
-              </button>
+                <ChevronLeft className="size-4" />
+              </Button>
             )}
 
             <img
               src={medicine.images[currentImageIndex]}
               alt={`${medicine.name} - enlarged image ${currentImageIndex + 1}`}
-              className="medicine-details__enlarged-image"
+              className="max-h-[80vh] max-w-full object-contain select-none"
             />
 
             {medicine.images.length > 1 && (
-              <button 
-                className="carousel-btn medicine-details__next-btn" 
-                onClick={() => setCurrentImageIndex(prev => prev === medicine.images.length - 1 ? 0 : prev + 1)}
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={showNextImage}
                 aria-label="Next Image"
+                className="absolute top-1/2 right-2 z-10 -translate-y-1/2 rounded-full bg-card/90"
               >
-                &#10095;
-              </button>
-            )}
-            
-            {medicine.images.length > 1 && (
-              <div className="medicine-details__carousel-dots medicine-details__enlarged-dots">
-                {medicine.images.map((_, idx) => (
-                  <span 
-                    key={idx} 
-                    className={`dot ${idx === currentImageIndex ? 'active' : ''}`}
-                    onClick={() => setCurrentImageIndex(idx)}
-                  />
-                ))}
-              </div>
+                <ChevronRight className="size-4" />
+              </Button>
             )}
           </div>
-        </div>
-      )}
+
+          {carouselDots()}
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }

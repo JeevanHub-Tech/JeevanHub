@@ -4,12 +4,10 @@ import { Link as LinkIcon, Loader2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { authFetch } from "../../../utils/authFetch";
 import { BACKEND_URL } from "../../../config";
-
-const selectClassName =
-	"h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
 
 // Lets a patient share context with their doctor ahead of / shortly after a specific
 // booking — either an external file (a photo/PDF of an outside prescription) or a
@@ -138,22 +136,21 @@ const ShareRecordModal = ({ bookingId, onClose, onShared, initialMode = "upload"
 						) : ownBookings.length === 0 ? (
 							<p className="text-sm text-muted-foreground">You don't have any prescriptions on this platform yet.</p>
 						) : (
-							<select
-								id="share-record-reference"
-								value={selectedBookingId}
-								onChange={(e) => setSelectedBookingId(e.target.value)}
-								className={selectClassName}
-							>
-								<option value="">Select one...</option>
-								{ownBookings.map((b) => (
-									<option key={b._id} value={b._id}>
-										Dr. {b.doctorName} — {new Date(b.dateOfAppointment).toLocaleDateString()}
-										{b.recommendedSupplements?.length > 0
-											? ` (${b.recommendedSupplements.map((s) => s.medicineName).join(", ")})`
-											: ""}
-									</option>
-								))}
-							</select>
+							<Select value={selectedBookingId} onValueChange={setSelectedBookingId}>
+								<SelectTrigger id="share-record-reference">
+									<SelectValue placeholder="Select one..." />
+								</SelectTrigger>
+								<SelectContent>
+									{ownBookings.map((b) => (
+										<SelectItem key={b._id} value={b._id}>
+											Dr. {b.doctorName} — {new Date(b.dateOfAppointment).toLocaleDateString()}
+											{b.recommendedSupplements?.length > 0
+												? ` (${b.recommendedSupplements.map((s) => s.medicineName).join(", ")})`
+												: ""}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
 						)}
 					</div>
 				)}

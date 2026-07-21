@@ -58,7 +58,7 @@ const BuyerFeedback = () => {
 	const activeMood = RATING_MOODS[rating];
 
 	return (
-		<main className="bg-background pt-20 lg:pt-28">
+		<main className="bg-background">
 			<div className="mx-auto max-w-xl px-4 py-10 sm:px-6">
 				<Card>
 					<CardHeader className="flex flex-row items-center justify-between gap-3">

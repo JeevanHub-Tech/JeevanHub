@@ -70,6 +70,17 @@
 	/* --- Type --- */
 	--jh-font-display: "Arbutus Slab", Georgia, serif;
 	--jh-font-body: "Quicksand", Inter, system-ui, sans-serif;
+
+	/* --- Chrome: dark toolbar surfaces (e.g. RichTextEditor toolbar) ---
+	   Intentional near-black chrome used as contrast framing around a light
+	   content area — not part of the olive/cream brand palette, so it gets
+	   its own namespaced tokens rather than reusing --jh-ink/--jh-olive-*. */
+	--jh-chrome-bg: #121212; /* outer toolbar container */
+	--jh-chrome-surface: #1e1e1e; /* toolbar bar / select surface */
+	--jh-chrome-border: #333333; /* select border, button hover fill */
+	--jh-chrome-active: #555555; /* active toggle-button fill */
+	--jh-chrome-text: #dddddd; /* default toolbar icon/text color */
+	--jh-chrome-text-strong: #ffffff; /* hover/active toolbar icon/text color */
 }
 
 @theme inline {

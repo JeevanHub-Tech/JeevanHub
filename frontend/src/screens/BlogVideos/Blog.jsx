@@ -10,7 +10,7 @@ export default function Blog() {
 
 	if (!blog) {
 		return (
-			<main className="bg-background pt-20 lg:pt-28">
+			<main className="bg-background">
 				<p className="mx-auto max-w-2xl px-4 py-16 text-center text-muted-foreground">
 					No blog data found for ID: {id}. Maybe refresh?
 				</p>
@@ -23,7 +23,7 @@ export default function Blog() {
 	const mainImageUrl = blog.image || blog.content?.images?.[0]?.url;
 
 	return (
-		<main className="bg-background pt-20 lg:pt-28">
+		<main className="bg-background">
 			<div className="mx-auto max-w-3xl px-4 py-8">
 				<Card className="p-6">
 					{mainImageUrl ? (

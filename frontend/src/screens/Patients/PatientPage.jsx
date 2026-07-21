@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
 import { ArrowRight, Leaf, Sparkles } from "lucide-react";
 
+import { DashboardShell, DashboardPageHeader } from "@/components/layout/DashboardShell";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { AuthContext } from "../../context/AuthContext";
@@ -111,17 +112,13 @@ function PatientPage() {
 	];
 
 	return (
-		<main className="bg-background pt-20 lg:pt-28">
-			<div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
-				<h1 className="font-display text-4xl leading-tight text-foreground sm:text-5xl">
-					Hi {firstName},
-				</h1>
-				<p className="mt-2 max-w-2xl text-base leading-relaxed text-muted-foreground">
-					Welcome back to your Ayurvedic wellness journey. We're here to help you find balance,
-					one step at a time.
-				</p>
+		<DashboardShell>
+			<DashboardPageHeader
+				title={`Hi ${firstName},`}
+				description="Welcome back to your Ayurvedic wellness journey. We're here to help you find balance, one step at a time."
+			/>
 
-				<section
+			<section
 					className={cn(
 						"mt-8 flex flex-col items-start gap-4 rounded-(--jh-radius-lg) bg-card p-6 shadow-(--jh-shadow-card) sm:flex-row sm:items-center sm:justify-between",
 					)}
@@ -160,10 +157,9 @@ function PatientPage() {
 						{services.map((service) => (
 							<ServiceCard key={service.title} {...service} />
 						))}
-					</div>
-				</section>
-			</div>
-		</main>
+				</div>
+			</section>
+		</DashboardShell>
 	);
 }
 

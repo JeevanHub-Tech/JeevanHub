@@ -1,7 +1,7 @@
 import { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import moment from "moment";
+import { format } from "date-fns";
 import { CircleCheck, CircleAlert, ExternalLink } from "lucide-react";
 
 import { AuthContext } from "../../context/AuthContext";
@@ -17,7 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 
-const formatDate = (isoString) => moment(isoString).format("DD MMM YYYY");
+const formatDate = (isoString) => format(new Date(isoString), "dd MMM yyyy");
 
 const AdminBlogs = () => {
 	const { auth } = useContext(AuthContext);

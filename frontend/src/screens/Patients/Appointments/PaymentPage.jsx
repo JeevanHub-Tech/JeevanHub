@@ -72,7 +72,7 @@ function PaymentPage() {
 
 	if (loading) {
 		return (
-			<main className="flex min-h-[60vh] items-center justify-center bg-background pt-20 lg:pt-28">
+			<main className="flex min-h-[60vh] items-center justify-center bg-background">
 				<p className="text-muted-foreground">Loading QR code...</p>
 			</main>
 		);
@@ -80,7 +80,7 @@ function PaymentPage() {
 
 	if (error) {
 		return (
-			<main className="flex min-h-[60vh] items-center justify-center bg-background pt-20 lg:pt-28">
+			<main className="flex min-h-[60vh] items-center justify-center bg-background">
 				<p className="rounded-(--jh-radius-md) bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</p>
 			</main>
 		);
@@ -90,7 +90,7 @@ function PaymentPage() {
 	const qrCodeUrl = `${BACKEND_URL}/uploads/doctors/${qrCodePath}`;
 
 	return (
-		<main className="bg-background pt-20 lg:pt-28">
+		<main className="bg-background">
 			<div className="mx-auto max-w-md px-4 py-10 sm:px-6">
 				<Card>
 					<CardHeader>

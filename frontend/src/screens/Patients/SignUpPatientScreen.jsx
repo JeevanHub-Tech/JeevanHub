@@ -1,11 +1,14 @@
-import React, { useContext, useState } from 'react';
+import { useContext, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import { TextField, SelectField, PasswordPairField, PhoneField } from '../../components/registration/FormFields';
 import { DEFAULT_COUNTRY_DIAL } from '../../components/registration/countryCodes';
 import { required, validateEmail, validatePhone, validateZipCode, validateDob, validatePassword, validateConfirmPassword } from '../../components/registration/validation';
-import '../../components/registration/RegistrationForm.css';
 import { BACKEND_URL } from '../../config';
+import { DashboardShell } from '@/components/layout/DashboardShell';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const GENDER_OPTIONS = ['Male', 'Female', 'Others'];
 
@@ -94,14 +97,18 @@ function SignUpPatientScreen() {
   };
 
   return (
-    <div className="rf-page">
-      <div className="rf-card">
-        <h1 className="rf-heading">Sign Up — Patient</h1>
-        <p className="rf-subheading">Unlock your inner balance. Start your Ayurvedic journey today.</p>
+    <DashboardShell>
+      <Card className="mx-auto max-w-4xl p-7 sm:p-11">
+        <h1 className="font-display text-3xl text-foreground">Sign Up — Patient</h1>
+        <p className="mb-8 text-muted-foreground">Unlock your inner balance. Start your Ayurvedic journey today.</p>
 
-        {serverError && <div className="rf-banner rf-banner-error">{serverError}</div>}
+        {serverError ? (
+          <Alert variant="destructive" className="mb-6">
+            <AlertDescription>{serverError}</AlertDescription>
+          </Alert>
+        ) : null}
 
-        <form className="rf-form" onSubmit={handleSubmit} noValidate autoComplete="off">
+        <form className="grid grid-cols-1 gap-x-7 sm:grid-cols-2" onSubmit={handleSubmit} noValidate autoComplete="off">
           <TextField label="First Name" name="firstName" value={formData.firstName} onChange={handleChange} onBlur={handleBlur} error={showError('firstName')} placeholder="Ram" />
           <TextField label="Last Name" name="lastName" value={formData.lastName} onChange={handleChange} onBlur={handleBlur} error={showError('lastName')} placeholder="Singh" />
           <TextField label="Email ID" name="email" type="email" value={formData.email} onChange={handleChange} onBlur={handleBlur} error={showError('email')} placeholder="abc@gmail.com" />
@@ -130,17 +137,17 @@ function SignUpPatientScreen() {
             }
           />
 
-          <div className="rf-submit-row">
-            <button type="submit" className="rf-submit-btn" disabled={isSubmitting}>
+          <div className="col-span-full mt-6 flex justify-center">
+            <Button type="submit" size="lg" className="rounded-full px-12" disabled={isSubmitting}>
               {isSubmitting ? 'Registering...' : 'Sign Up →'}
-            </button>
+            </Button>
           </div>
-          <p className="rf-footer-note">
-            Already have an account? <a href="/signin">Log in</a>
+          <p className="col-span-full mt-3.5 text-center text-sm text-muted-foreground">
+            Already have an account? <a href="/signin" className="font-semibold text-primary hover:underline">Log in</a>
           </p>
         </form>
-      </div>
-    </div>
+      </Card>
+    </DashboardShell>
   );
 }
 

@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from "react";
-import "./AppointedDoctor.css";
+import { useNavigate } from 'react-router-dom';
+
+import { cn } from "@/lib/utils";
 import RatingModal from "./RatingModal";
 import AppointmentTab from "./AppointmentTab";
 import { fetchDoctorData, fetchSupplements } from "./AppointmentUtils";
-import { useNavigate } from 'react-router-dom';
 import { authFetch } from "../../../utils/authFetch";
 import { BACKEND_URL } from '../../../config';
+
+const TABS = ["Upcoming", "Pending", "Denied", "Previous"];
 
 function AppointedDoctor() {
 	const navigate = useNavigate();
@@ -222,52 +225,63 @@ function AppointedDoctor() {
 	// 	return <p style={{marginTop:"150px",padding:"15px", background:"white", width:"max-content", borderRadius:"15px", marginLeft:"50px"}}>Error: {error}</p>;
 	// }
 
+	const tabCounts = {
+		Upcoming: upcomingAppointments.length,
+		Pending: pendingDoctors.length,
+		Denied: deniedDoctors.length,
+		Previous: previousAppointments.length,
+	};
+
 	return (
-		<>
-			<div className="appointed-container">
+		<main className="bg-background pt-20 lg:pt-28">
+			<div className="mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
+				<h1 className="font-display text-3xl text-foreground sm:text-4xl">Your appointments</h1>
+
 				{/* Tabs for Upcoming, Pending, Denied, and Previous Appointments */}
-				<div className="tabs">
-					<button
-						onClick={() => setActiveTab("Upcoming")}
-						className={`tab ${activeTab === "Upcoming" ? "active" : ""}`}
-					>
-						Upcoming <span className="tab-count">{upcomingAppointments.length}</span>
-					</button>
-					<button
-						onClick={() => setActiveTab("Pending")}
-						className={`tab ${activeTab === "Pending" ? "active" : ""}`}
-					>
-						Pending <span className="tab-count">{pendingDoctors.length}</span>
-					</button>
-					<button
-						onClick={() => setActiveTab("Denied")}
-						className={`tab ${activeTab === "Denied" ? "active" : ""}`}
-					>
-						Denied <span className="tab-count">{deniedDoctors.length}</span>
-					</button>
-					<button
-						onClick={() => setActiveTab("Previous")}
-						className={`tab ${activeTab === "Previous" ? "active" : ""}`}
-					>
-						Previous <span className="tab-count">{previousAppointments.length}</span>
-					</button>
+				<div className="mt-6 flex flex-wrap gap-1 rounded-(--jh-radius-lg) bg-secondary p-1" role="tablist">
+					{TABS.map((tab) => (
+						<button
+							key={tab}
+							role="tab"
+							aria-selected={activeTab === tab}
+							onClick={() => setActiveTab(tab)}
+							className={cn(
+								"flex items-center gap-1.5 rounded-(--jh-radius-md) px-3 py-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+								activeTab === tab
+									? "bg-card text-primary shadow-(--jh-shadow-rest)"
+									: "text-muted-foreground hover:text-foreground",
+							)}
+						>
+							{tab}
+							<span
+								className={cn(
+									"rounded-(--jh-radius-pill) px-1.5 text-xs",
+									activeTab === tab ? "bg-primary/10 text-primary" : "bg-border/60 text-muted-foreground",
+								)}
+							>
+								{tabCounts[tab]}
+							</span>
+						</button>
+					))}
 				</div>
 
-				<AppointmentTab
-					activeTab={activeTab}
-					upcomingAppointments={upcomingAppointments}
-					pendingDoctors={pendingDoctors}
-					deniedDoctors={deniedDoctors}
-					previousAppointments={previousAppointments}
-					supplements={supplements}
-					handlePayFees={handlePayFees}
-					onRatingClick={(appointmentId) => {
-						setCurrentAppointmentId(appointmentId);
-						setIsModalOpen(true);
-					}}
-					onIllnessUpdated={handleIllnessUpdated}
-					onRequestCancelled={handleRequestCancelled}
-				/>
+				<div className="mt-6">
+					<AppointmentTab
+						activeTab={activeTab}
+						upcomingAppointments={upcomingAppointments}
+						pendingDoctors={pendingDoctors}
+						deniedDoctors={deniedDoctors}
+						previousAppointments={previousAppointments}
+						supplements={supplements}
+						handlePayFees={handlePayFees}
+						onRatingClick={(appointmentId) => {
+							setCurrentAppointmentId(appointmentId);
+							setIsModalOpen(true);
+						}}
+						onIllnessUpdated={handleIllnessUpdated}
+						onRequestCancelled={handleRequestCancelled}
+					/>
+				</div>
 
 				{/* Rating Modal */}
 				<RatingModal
@@ -280,7 +294,7 @@ function AppointedDoctor() {
 					setReview={setReview}
 				/>
 			</div>
-		</>
+		</main>
 	);
 }
 

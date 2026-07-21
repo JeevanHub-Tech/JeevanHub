@@ -1,217 +1,169 @@
-import React, { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import "./PatientPage.css"; // Import the CSS file for styling
-import { AuthContext } from "../../context/AuthContext";
-import { BACKEND_URL } from '../../config';
+import { jwtDecode } from "jwt-decode";
+import { ArrowRight, Leaf, Sparkles } from "lucide-react";
 
-// Import images for each service category
-// import appointmentImage from "../../media/doctor.png";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { AuthContext } from "../../context/AuthContext";
+import { BACKEND_URL } from "../../config";
+import { authFetch } from "../../utils/authFetch";
+
 import appointmentImage from "../../media/appoint3.jpg";
 import doctorImage from "../../media/appoint1.jpg";
 import treatmentImage from "../../media/tre-plan.jpg";
-// import yogaImage from "../../media/yoga.jpeg";
-// import medicineImage from "../../media/remedies.jpg";
 import medicineImage from "../../media/capsule.jpg";
-// import medicineImage from "../../media/medicine.png";
 import yogaImage from "../../media/yoga-diet.jpg";
-import { jwtDecode } from 'jwt-decode';
-import PrakritiAssessment from "./PrakritiAssessment";
-import { authFetch } from "../../utils/authFetch";
 
-//import step1Icon from "../../media/step1.png"; // Import icons for steps
-//import step2Icon from "../../media/step2.png";
-//import step3Icon from "../../media/step3.png";
-//import step4Icon from "../../media/step4.png";
+function ServiceCard({ image, title, description, to, onClick }) {
+	return (
+		<button
+			type="button"
+			onClick={onClick}
+			className="group flex flex-col overflow-hidden rounded-(--jh-radius-lg) bg-card text-left shadow-(--jh-shadow-rest) transition-[transform,box-shadow] duration-300 ease-[var(--jh-ease-organic)] hover:-translate-y-2 hover:shadow-(--jh-shadow-hover) focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+		>
+			<div className="h-32 w-full overflow-hidden">
+				<img
+					src={image}
+					alt=""
+					className="size-full object-cover transition-transform duration-500 ease-[var(--jh-ease-organic)] group-hover:scale-108"
+				/>
+			</div>
+			<div className="flex flex-1 flex-col gap-1 p-4">
+				<h3 className="font-display text-lg leading-tight text-foreground">{title}</h3>
+				<p className="text-sm leading-snug text-muted-foreground">{description}</p>
+			</div>
+		</button>
+	);
+}
 
 function PatientPage() {
-	const { auth, setAuth } = useContext(AuthContext);
-	const firstName = auth.user?.firstName || "Patient";
+	const { auth } = useContext(AuthContext);
+	const firstName = auth.user?.firstName || "there";
 	const navigate = useNavigate();
-	const [isPrakritiFilled, setIsPrakritiFilled] = useState(false); // Track if Prakriti form is filled
+	const [isPrakritiFilled, setIsPrakritiFilled] = useState(false);
 	const [userId, setUserId] = useState(null);
 
 	useEffect(() => {
-		const token = localStorage.getItem('token');
+		const token = localStorage.getItem("token");
 		if (token) {
 			try {
-				const decodedToken = jwtDecode(token);
-				setUserId(decodedToken.id);
+				setUserId(jwtDecode(token).id);
 			} catch (error) {
 				console.error("Invalid token:", error);
 			}
 		}
 	}, []);
 
-	const goToPrakritiAssessment = () => {
-		navigate("/PrakritiAssessment");
-	};
-
-	const viewPrakritiResult = () => {
-		// We navigate and pass a state 'viewResult: true'
-		navigate("/PrakritiAssessment", { state: { viewResult: true } });
-	};
-
-	// Fetch Prakriti Determination data from the backend
 	useEffect(() => {
-		const token = localStorage.getItem('token');
+		const token = localStorage.getItem("token");
 		const fetchPrakritiData = async () => {
 			try {
-				const response = await authFetch(
-					`${BACKEND_URL}/api/prakriti/assessment/getall`,
-					{
-						method: "POST",
-						headers: {
-							"Content-Type": "application/json",
-							"Authorization": `Bearer ${token}`
-						},
-						body: JSON.stringify({ patientEmail: auth.user?.email }), // Send email in the request body
-					}
-				);
-
-				if (response.ok) {
-					const data = await response.json();
-					console.log("Prakriti Determination data:", data);
-					if (data) {
-						setIsPrakritiFilled(true); // Prakriti form is filled
-					}
-				} else {
-					setIsPrakritiFilled(false); // Prakriti form is not filled
-				}
+				const response = await authFetch(`${BACKEND_URL}/api/prakriti/assessment/getall`, {
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+						Authorization: `Bearer ${token}`,
+					},
+					body: JSON.stringify({ patientEmail: auth.user?.email }),
+				});
+				setIsPrakritiFilled(response.ok && Boolean(await response.json()));
 			} catch (error) {
 				console.error("Error fetching Prakriti Determination data:", error);
-				setIsPrakritiFilled(false); // Assume form is not filled in case of error
+				setIsPrakritiFilled(false);
 			}
 		};
 
-		if (auth.user?.email) {
-			fetchPrakritiData(); // Fetch data only if the user is logged in
-		}
+		if (auth.user?.email) fetchPrakritiData();
 	}, [auth.user?.email]);
 
-	const goToAppointedDoctor = () => {
-		navigate("/appointed-doctor"); // Navigate to the appointed doctor page
-	};
-
-	const goToProfile = () => {
-		navigate(`/profile/patient/${userId}`);
-	};
-
-	const goToTreatmentPlans = () => {
-		navigate("/treatments"); // Navigate to the treatment plans page
-	};
-
-	const goToYogaAndDiet = () => {
-		navigate("/diet-yoga"); // Navigate to Yoga and Diet page
-	};
-
-	const goToMedicines = () => {
-		navigate("/medicines"); // Navigate to the Ayurvedic medicines page
-	};
-
-	const handleOpenPrakritiForm = () => {
-		navigate("/prakritidetermination"); // Redirect to Prakriti Determination form page
-	};
+	const services = [
+		{
+			title: "Your profile",
+			description: "View and update your details.",
+			image: doctorImage,
+			onClick: () => navigate(`/profile/patient/${userId}`),
+		},
+		{
+			title: "Appointments",
+			description: "See your currently assigned Ayurvedic doctor.",
+			image: appointmentImage,
+			onClick: () => navigate("/appointed-doctor"),
+		},
+		{
+			title: "Treatment plans",
+			description: "Explore personalized Ayurvedic treatment plans.",
+			image: treatmentImage,
+			onClick: () => navigate("/treatments"),
+		},
+		{
+			title: "Yoga & diet",
+			description: "Ayurvedic yoga practices and diet guidance.",
+			image: yogaImage,
+			onClick: () => navigate("/diet-yoga"),
+		},
+		{
+			title: "Medicines & remedies",
+			description: "Browse Ayurvedic medicines and natural remedies.",
+			image: medicineImage,
+			onClick: () => navigate("/medicines"),
+		},
+	];
 
 	return (
-		<div className="patient-container">
-			<main className="content">
-				<h1>Hi {firstName}!</h1>
-				<p>
-					Welcome back to your Ayurvedic wellness journey. We're here to help
-					you achieve balance and harmony in your life.
+		<main className="bg-background pt-20 lg:pt-28">
+			<div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
+				<h1 className="font-display text-4xl leading-tight text-foreground sm:text-5xl">
+					Hi {firstName},
+				</h1>
+				<p className="mt-2 max-w-2xl text-base leading-relaxed text-muted-foreground">
+					Welcome back to your Ayurvedic wellness journey. We're here to help you find balance,
+					one step at a time.
 				</p>
 
-				{/* Match Doctor Automatically Button */}
-				<div className="match-section">
-					{isPrakritiFilled ? (
-						<>
-							<p style={{ textAlign: "center" }}> Thank you for filling the prakriti determination form.</p>
-							<button className="match-btn" onClick={viewPrakritiResult}>
-								View Your Prakriti Result
-							</button>
-
-						</>
-					) : (
-						<>
-							<p style={{ textAlign: "center" }}>
-								Kindly complete the Prakriti Determination Form. This will enable
-								us to automatically identify the most suitable doctor for your
-								needs.
-							</p>
-							<button className="match-btn" onClick={goToPrakritiAssessment}>
-								Prakriti Assesment
-							</button>
-						</>
+				<section
+					className={cn(
+						"mt-8 flex flex-col items-start gap-4 rounded-(--jh-radius-lg) bg-card p-6 shadow-(--jh-shadow-card) sm:flex-row sm:items-center sm:justify-between",
 					)}
-				</div>
-
-				{/* Key Services Section */}
-				<section className="services-section">
-					<h2>What can we help you with today?</h2>
-					<div className="services-cards">
-						<div className="service-card" onClick={goToProfile}>
-							<img
-								src={doctorImage}
-								alt="Appointed Doctor"
-								className="service-image"
-							//   style={{ width: '280px', height: '180px' }}
-							/>
-							<h3>Your Profile</h3>
-							<p>
-								View and update your details.
+				>
+					<div className="flex items-start gap-3">
+						<span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-secondary text-primary">
+							{isPrakritiFilled ? <Sparkles className="size-5" aria-hidden="true" /> : <Leaf className="size-5" aria-hidden="true" />}
+						</span>
+						<div>
+							<p className="font-display text-lg text-foreground">
+								{isPrakritiFilled ? "Thank you for completing your Prakriti assessment." : "Complete your Prakriti Determination"}
 							</p>
-						</div>
-						<div className="service-card" onClick={goToAppointedDoctor}>
-							<img
-								src={appointmentImage}
-								alt="Appointed Doctor"
-								className="service-image"
-							/>
-							<h3>Appointments</h3>
-							<p>
-								View the details of your currently assigned Ayurvedic doctor.
-							</p>
-						</div>
-						<div className="service-card" onClick={goToTreatmentPlans}>
-							<img
-								src={treatmentImage}
-								alt="Treatment Plans"
-								className="service-image"
-							/>
-							<h3>Treatment Plans</h3>
-							<p>
-								Explore personalized Ayurvedic treatment plans designed for your
-								needs.
-							</p>
-						</div>
-						<div className="service-card" onClick={goToYogaAndDiet}>
-							<img
-								src={yogaImage}
-								alt="Yoga & Diet"
-								className="service-image"
-							/>
-							<h3>Yoga & Diet</h3>
-							<p>
-								Discover Ayurvedic yoga practices and diet recommendations for
-								better health.
-							</p>
-						</div>
-						<div className="service-card" onClick={goToMedicines}>
-							<img
-								src={medicineImage}
-								alt="Medicines & Remedies"
-								className="service-image"
-							/>
-							<h3>Medicines & Remedies</h3>
-							<p>
-								Browse our selection of Ayurvedic medicines and natural
-								remedies.
+							<p className="mt-1 text-sm text-muted-foreground">
+								{isPrakritiFilled
+									? "See your result, or share it with your doctor for a more precise plan."
+									: "A short questionnaire that helps us match you with the most suitable doctor."}
 							</p>
 						</div>
 					</div>
+					<Button
+						onClick={() =>
+							isPrakritiFilled
+								? navigate("/PrakritiAssessment", { state: { viewResult: true } })
+								: navigate("/PrakritiAssessment")
+						}
+						className="w-full shrink-0 sm:w-auto"
+					>
+						{isPrakritiFilled ? "View your result" : "Start assessment"}
+						<ArrowRight className="size-4" aria-hidden="true" />
+					</Button>
 				</section>
-			</main>
-		</div>
+
+				<section className="mt-10">
+					<h2 className="font-display text-2xl text-foreground">What can we help you with today?</h2>
+					<div className="mt-5 grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-4">
+						{services.map((service) => (
+							<ServiceCard key={service.title} {...service} />
+						))}
+					</div>
+				</section>
+			</div>
+		</main>
 	);
 }
 

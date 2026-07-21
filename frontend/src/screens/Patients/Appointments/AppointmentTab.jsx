@@ -1,9 +1,31 @@
-import React, { useState } from "react";
-import { Star, Link as LinkIcon, UploadCloud, Calendar, Clock, Stethoscope, Mail, Pill, ChevronDown, Video, CreditCard, MessageSquareText, ShoppingBag, Pencil, XCircle, RotateCcw } from "lucide-react";
+import { useState } from "react";
+import {
+	Calendar,
+	ChevronDown,
+	Clock,
+	CreditCard,
+	Link as LinkIcon,
+	Mail,
+	MessageSquareText,
+	Pencil,
+	Pill,
+	RotateCcw,
+	ShoppingBag,
+	Star,
+	Stethoscope,
+	UploadCloud,
+	Video,
+	XCircle,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
+
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
+import { cn } from "@/lib/utils";
 import ShareRecordModal from "./ShareRecordModal";
 import { authFetch } from "../../../utils/authFetch";
-import { BACKEND_URL } from '../../../config';
+import { BACKEND_URL } from "../../../config";
 
 const BACKEND = BACKEND_URL;
 
@@ -19,16 +41,14 @@ const isWithinSharingWindow = (dateOfAppointment) => {
 
 const formatDate = (d) => new Date(d).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
 
-const STATUS_TONES = {
-	Upcoming: "blue",
-	Pending: "amber",
-	Denied: "red",
-	Completed: "green",
+const STATUS_VARIANTS = {
+	Upcoming: "default",
+	Pending: "warning",
+	Denied: "destructive",
+	Completed: "success",
+	"Cancelled by Doctor": "destructive",
+	Rescheduled: "warning",
 };
-
-const StatusBadge = ({ label, tone }) => (
-	<span className={`apt-badge apt-badge--${tone}`}>{label}</span>
-);
 
 // Collapsed by default (keeps cards short) — expands to show dosage/instructions
 // per medicine, plus the visit's diagnosis if one was recorded.
@@ -38,26 +58,33 @@ const PrescriptionSummary = ({ diagnosis, supplements }) => {
 	if (!count && !diagnosis) return null;
 
 	return (
-		<div className="apt-rx">
-			<button type="button" className="apt-rx-chip" onClick={() => setOpen(o => !o)} aria-expanded={open}>
+		<div className="mt-3 rounded-(--jh-radius-md) bg-secondary/60">
+			<button
+				type="button"
+				onClick={() => setOpen((o) => !o)}
+				aria-expanded={open}
+				className="flex w-full items-center gap-1.5 px-3 py-2 text-left text-xs font-semibold text-primary"
+			>
 				<Pill size={14} />
 				{count > 0 ? `${count} medicine${count > 1 ? "s" : ""} prescribed` : "Diagnosis recorded"}
-				<ChevronDown size={14} className={`apt-rx-chevron ${open ? "is-open" : ""}`} />
+				<ChevronDown size={14} className={cn("ml-auto transition-transform", open && "rotate-180")} />
 			</button>
-			{open && (
-				<div className="apt-rx-body">
-					{diagnosis && (
-						<p className="apt-rx-diagnosis"><Stethoscope size={13} /> <strong>Diagnosis:</strong> {diagnosis}</p>
-					)}
+			{open ? (
+				<div className="flex flex-col gap-2 border-t border-border px-3 pb-3 pt-2 text-sm">
+					{diagnosis ? (
+						<p className="flex items-start gap-1.5 text-foreground">
+							<Stethoscope size={13} className="mt-0.5 shrink-0" /> <strong>Diagnosis:</strong> {diagnosis}
+						</p>
+					) : null}
 					{supplements?.map((s, i) => (
-						<div key={s._id || i} className="apt-rx-item">
-							<span className="apt-rx-item__name">{s.medicineName}</span>
-							{s.dosage && <span className="apt-rx-item__detail"><strong>Dosage:</strong> {s.dosage}</span>}
-							{s.instructions && <span className="apt-rx-item__detail"><strong>Instructions:</strong> {s.instructions}</span>}
+						<div key={s._id || i} className="flex flex-col gap-0.5 rounded-md bg-card px-2.5 py-2">
+							<span className="font-semibold text-foreground">{s.medicineName}</span>
+							{s.dosage ? <span className="text-xs text-muted-foreground"><strong>Dosage:</strong> {s.dosage}</span> : null}
+							{s.instructions ? <span className="text-xs text-muted-foreground"><strong>Instructions:</strong> {s.instructions}</span> : null}
 						</div>
 					))}
 				</div>
-			)}
+			) : null}
 		</div>
 	);
 };
@@ -84,7 +111,7 @@ const IllnessSection = ({ appointmentId, illness, editable, onSaved }) => {
 				const response = await authFetch(`${BACKEND}/api/bookings/${appointmentId}/illness`, {
 					method: "PUT",
 					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify({ patientIllness: trimmed })
+					body: JSON.stringify({ patientIllness: trimmed }),
 				});
 				if (!response.ok) {
 					const err = await response.json().catch(() => ({}));
@@ -100,38 +127,56 @@ const IllnessSection = ({ appointmentId, illness, editable, onSaved }) => {
 		};
 
 		return (
-			<div className="apt-card__illness apt-card__illness--editing">
-				<span className="apt-card__illness-label"><Stethoscope size={13} /> Reason for visit</span>
+			<div className="mt-3 flex flex-col gap-1.5 rounded-(--jh-radius-md) bg-secondary/60 p-3">
+				<span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+					<Stethoscope size={13} /> Reason for visit
+				</span>
 				<textarea
-					className="apt-illness-textarea"
 					value={value}
 					onChange={(e) => setValue(e.target.value)}
 					rows={3}
 					placeholder="Describe your symptoms or reason for this visit..."
+					className="w-full rounded-md border border-input bg-card px-2.5 py-1.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
 				/>
-				<div className="apt-illness-actions">
-					<button type="button" className="apt-btn apt-btn--primary" onClick={handleSave} disabled={saving}>
+				<div className="flex gap-2">
+					<Button size="sm" onClick={handleSave} disabled={saving}>
 						{saving ? "Saving..." : "Save"}
-					</button>
-					<button type="button" className="apt-btn apt-btn--ghost" onClick={() => { setValue(illness || ""); setEditing(false); }} disabled={saving}>
+					</Button>
+					<Button
+						size="sm"
+						variant="ghost"
+						onClick={() => {
+							setValue(illness || "");
+							setEditing(false);
+						}}
+						disabled={saving}
+					>
 						Cancel
-					</button>
+					</Button>
 				</div>
 			</div>
 		);
 	}
 
 	return (
-		<div className="apt-card__illness">
-			<span className="apt-card__illness-label">
+		<div className="mt-3 rounded-(--jh-radius-md) bg-secondary/60 p-3">
+			<span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
 				<Stethoscope size={13} /> Reason for visit
-				{editable && (
-					<button type="button" className="apt-illness-edit-btn" onClick={() => { setValue(illness || ""); setEditing(true); }} aria-label="Edit reason for visit">
+				{editable ? (
+					<button
+						type="button"
+						onClick={() => {
+							setValue(illness || "");
+							setEditing(true);
+						}}
+						aria-label="Edit reason for visit"
+						className="ml-auto rounded p-0.5 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+					>
 						<Pencil size={12} />
 					</button>
-				)}
+				) : null}
 			</span>
-			<p className="apt-card__illness-text">{illness || "Not specified"}</p>
+			<p className="mt-1 text-sm text-foreground">{illness || "Not specified"}</p>
 		</div>
 	);
 };
@@ -146,7 +191,7 @@ const AppointmentTab = ({
 	handlePayFees,
 	onRatingClick,
 	onIllnessUpdated,
-	onRequestCancelled
+	onRequestCancelled,
 }) => {
 	const navigate = useNavigate();
 	// { bookingId, mode: 'upload' | 'reference' } — which action opened the modal
@@ -160,11 +205,11 @@ const AppointmentTab = ({
 		setCancellingId(appointment._id);
 		try {
 			const response = await authFetch(`${BACKEND}/api/bookings/delete/${appointment._id}`, {
-				method: "DELETE"
+				method: "DELETE",
 			});
 			if (!response.ok) throw new Error("Failed to cancel request");
 			onRequestCancelled(appointment._id);
-		} catch (err) {
+		} catch {
 			alert("Could not cancel this request. Please try again.");
 		} finally {
 			setCancellingId(null);
@@ -181,7 +226,7 @@ const AppointmentTab = ({
 			const response = await authFetch(`${BACKEND}/api/doctors/publicDoctors`);
 			if (!response.ok) throw new Error("Failed to load doctor");
 			const doctors = await response.json();
-			const rawDoctor = (doctors.doctors || doctors).find(d => d._id === targetDoctorId);
+			const rawDoctor = (doctors.doctors || doctors).find((d) => d._id === targetDoctorId);
 			if (!rawDoctor) throw new Error("This doctor is no longer available.");
 			// DoctorDetailPage.js expects the same shape DoctorsScreen.js builds when a
 			// patient clicks a doctor card normally (a combined `name`, not raw
@@ -203,10 +248,11 @@ const AppointmentTab = ({
 
 		let badgeLabel = variant === "previous" ? appointment.source : variant.charAt(0).toUpperCase() + variant.slice(1);
 		if (variant === "denied" && isCancelledByDoctor) badgeLabel = "Cancelled by Doctor";
-		const badgeTone = STATUS_TONES[badgeLabel] || (variant === "denied" ? "red" : "blue");
+		const badgeVariant = STATUS_VARIANTS[badgeLabel] || (variant === "denied" ? "destructive" : "default");
 
 		const rowSupplements = supplements[appointment._id];
-		const showRating = (variant === "upcoming" && new Date(appointment.dateOfAppointment) < new Date()) ||
+		const showRating =
+			(variant === "upcoming" && new Date(appointment.dateOfAppointment) < new Date()) ||
 			(variant === "previous" && appointment.source === "Completed");
 		const canShare = variant !== "denied" && isWithinSharingWindow(appointment.dateOfAppointment);
 		const canRebook = variant === "denied" || (variant === "previous" && appointment.source !== "Pending");
@@ -215,19 +261,19 @@ const AppointmentTab = ({
 		const doctorIdStr = appointment.doctorId?._id || appointment.doctorId;
 
 		return (
-			<div className="apt-card">
-				<div className="apt-card__header">
-					<h3>Dr. {appointment.doctorName}</h3>
-					<div className="apt-card__badges">
-						{isRescheduled && <span className="apt-badge apt-badge--amber">Rescheduled</span>}
-						<StatusBadge label={badgeLabel} tone={badgeTone} />
+			<div className="rounded-(--jh-radius-lg) bg-card p-4 shadow-(--jh-shadow-rest) sm:p-5">
+				<div className="flex flex-wrap items-start justify-between gap-2">
+					<h3 className="font-display text-lg text-foreground">Dr. {appointment.doctorName}</h3>
+					<div className="flex flex-wrap items-center gap-1.5">
+						{isRescheduled ? <Badge variant="warning">Rescheduled</Badge> : null}
+						<Badge variant={badgeVariant}>{badgeLabel}</Badge>
 					</div>
 				</div>
 
-				<div className="apt-card__meta">
-					<span className="apt-meta-item"><Calendar size={13} /> {formatDate(appointment.dateOfAppointment)}</span>
-					{appointment.timeSlot && <span className="apt-meta-item"><Clock size={13} /> {appointment.timeSlot}</span>}
-					<span className="apt-meta-item apt-meta-item--muted"><Mail size={12} /> {appointment.doctorEmail}</span>
+				<div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
+					<span className="flex items-center gap-1.5"><Calendar size={13} /> {formatDate(appointment.dateOfAppointment)}</span>
+					{appointment.timeSlot ? <span className="flex items-center gap-1.5"><Clock size={13} /> {appointment.timeSlot}</span> : null}
+					<span className="flex items-center gap-1.5 text-xs"><Mail size={12} /> {appointment.doctorEmail}</span>
 				</div>
 
 				<IllnessSection
@@ -237,168 +283,132 @@ const AppointmentTab = ({
 					onSaved={onIllnessUpdated}
 				/>
 
-				{variant === "denied" && appointment.doctorsMessage && (
-					<p className="apt-card__note"><MessageSquareText size={13} /> {appointment.doctorsMessage}</p>
-				)}
-				{variant === "previous" && appointment.doctorsMessage && (
-					<p className="apt-card__note"><MessageSquareText size={13} /> {appointment.doctorsMessage}</p>
-				)}
+				{(variant === "denied" || variant === "previous") && appointment.doctorsMessage ? (
+					<p className="mt-3 flex items-start gap-1.5 text-sm text-muted-foreground">
+						<MessageSquareText size={13} className="mt-0.5 shrink-0" /> {appointment.doctorsMessage}
+					</p>
+				) : null}
 
-				{(variant === "upcoming" || variant === "previous") && (
+				{variant === "upcoming" || variant === "previous" ? (
 					<PrescriptionSummary diagnosis={appointment.diagnosis} supplements={rowSupplements} />
-				)}
+				) : null}
 
-				{showRating && (
-					appointment.rating != null ? (
-						<div className="apt-rating-row">
-							<span className="apt-rating-stars">
-								{[...Array(5)].map((_, i) => (
-									<Star key={i} size={15} fill={i < appointment.rating ? "#ffc107" : "none"} color={i < appointment.rating ? "#ffc107" : "#d1d5db"} />
-								))}
-							</span>
-							{appointment.review && <span className="apt-rating-review">"{appointment.review}"</span>}
-						</div>
-					) : null
-				)}
+				{showRating && appointment.rating != null ? (
+					<div className="mt-3 flex flex-wrap items-center gap-2">
+						<span className="flex items-center gap-0.5">
+							{[...Array(5)].map((_, i) => (
+								<Star
+									key={i}
+									size={15}
+									className={i < appointment.rating ? "fill-(--jh-turmeric-gold) text-(--jh-turmeric-gold)" : "text-border"}
+								/>
+							))}
+						</span>
+						{appointment.review ? <span className="text-sm italic text-muted-foreground">"{appointment.review}"</span> : null}
+					</div>
+				) : null}
 
-				<div className="apt-card__actions">
-					{variant === "upcoming" && (
-						appointment.meetLink && appointment.meetLink !== "no" ? (
-							<button className="apt-btn apt-btn--primary" onClick={() => window.open(appointment.meetLink, "_blank")}>
+				<div className="mt-4 flex flex-wrap gap-2">
+					{variant === "upcoming" &&
+						(appointment.meetLink && appointment.meetLink !== "no" ? (
+							<Button size="sm" onClick={() => window.open(appointment.meetLink, "_blank")}>
 								<Video size={14} /> Join Meet
-							</button>
+							</Button>
 						) : (
-							<button className="apt-btn apt-btn--primary" onClick={() => handlePayFees(doctorIdStr, appointment._id)}>
+							<Button size="sm" onClick={() => handlePayFees(doctorIdStr, appointment._id)}>
 								<CreditCard size={14} /> Pay Fees
-							</button>
-						)
-					)}
+							</Button>
+						))}
 
-					{variant === "pending" && (
-						<button
-							className="apt-btn apt-btn--ghost-danger"
+					{variant === "pending" ? (
+						<Button
+							size="sm"
+							variant="destructive"
 							onClick={() => handleCancelRequest(appointment)}
 							disabled={cancellingId === appointment._id}
 						>
 							<XCircle size={14} /> {cancellingId === appointment._id ? "Cancelling..." : "Cancel Request"}
-						</button>
-					)}
+						</Button>
+					) : null}
 
-					{showRating && appointment.rating == null && (
-						<button
-							className="apt-btn apt-btn--ghost"
-							onClick={() => variant === "previous" ? navigate(`/PatientFeedback/${appointment._id}`) : onRatingClick(appointment._id)}
+					{showRating && appointment.rating == null ? (
+						<Button
+							size="sm"
+							variant="ghost"
+							onClick={() => (variant === "previous" ? navigate(`/PatientFeedback/${appointment._id}`) : onRatingClick(appointment._id))}
 						>
 							<Star size={14} /> Give Rating
-						</button>
-					)}
+						</Button>
+					) : null}
 
-					{canShare && (
+					{canShare ? (
 						<>
-							<button
-								className="apt-btn apt-btn--ghost-purple"
-								onClick={() => setShareModal({ bookingId: appointment._id, mode: 'reference' })}
-							>
+							<Button size="sm" variant="outline" onClick={() => setShareModal({ bookingId: appointment._id, mode: "reference" })}>
 								<LinkIcon size={14} /> Attach Prescription
-							</button>
-							<button
-								className="apt-btn apt-btn--ghost-purple"
-								onClick={() => setShareModal({ bookingId: appointment._id, mode: 'upload' })}
-							>
+							</Button>
+							<Button size="sm" variant="outline" onClick={() => setShareModal({ bookingId: appointment._id, mode: "upload" })}>
 								<UploadCloud size={14} /> Upload Prescription
-							</button>
+							</Button>
 						</>
-					)}
+					) : null}
 
-					{variant === "previous" && appointment.source === "Completed" && rowSupplements?.length > 0 && (
-						<button className="apt-btn apt-btn--ghost" onClick={() => navigate('/cart')}>
+					{variant === "previous" && appointment.source === "Completed" && rowSupplements?.length > 0 ? (
+						<Button size="sm" variant="ghost" onClick={() => navigate("/cart")}>
 							<ShoppingBag size={14} /> View in Cart
-						</button>
-					)}
+						</Button>
+					) : null}
 
-					{canRebook && (
-						<button
-							className="apt-btn apt-btn--ghost"
-							onClick={() => handleRebook(appointment)}
-							disabled={rebookingId === appointment._id}
-						>
+					{canRebook ? (
+						<Button size="sm" variant="ghost" onClick={() => handleRebook(appointment)} disabled={rebookingId === appointment._id}>
 							<RotateCcw size={14} /> {rebookingId === appointment._id ? "Loading..." : "Rebook with this Doctor"}
-						</button>
-					)}
+						</Button>
+					) : null}
 				</div>
 			</div>
 		);
 	};
 
-	const EmptyState = ({ text }) => <p className="apt-empty">{text}</p>;
-
-	const renderUpcomingAppointments = () => (
-		<div className="apt-list">
-			{upcomingAppointments.length > 0 ? (
-				[...upcomingAppointments]
-					.sort((a, b) => new Date(a.dateOfAppointment) - new Date(b.dateOfAppointment))
-					.map((a) => <AppointmentCard key={a._id} appointment={a} variant="upcoming" />)
-			) : (
-				<EmptyState text="No upcoming doctor assigned." />
-			)}
-		</div>
-	);
-
-	const renderPendingDoctors = () => (
-		<div className="apt-list">
-			{pendingDoctors.length > 0 ? (
-				[...pendingDoctors]
-					.sort((a, b) => new Date(a.dateOfAppointment) - new Date(b.dateOfAppointment))
-					.map((a) => <AppointmentCard key={a._id} appointment={a} variant="pending" />)
-			) : (
-				<EmptyState text="No pending doctor requests at the moment." />
-			)}
-		</div>
-	);
-
-	const renderDeniedDoctors = () => (
-		<div className="apt-list">
-			{deniedDoctors.length > 0 ? (
-				[...deniedDoctors]
-					.sort((a, b) => new Date(b.dateOfAppointment) - new Date(a.dateOfAppointment))
-					.map((a) => <AppointmentCard key={a._id} appointment={a} variant="denied" />)
-			) : (
-				<EmptyState text="No denied doctor requests at the moment." />
-			)}
-		</div>
-	);
-
-	const renderPreviousAppointments = () => (
-		<div className="apt-list">
-			{previousAppointments.length > 0 ? (
-				[...previousAppointments]
-					.sort((a, b) => new Date(b.dateOfAppointment) - new Date(a.dateOfAppointment))
-					.map((a) => <AppointmentCard key={a._id} appointment={a} variant="previous" />)
-			) : (
-				<EmptyState text="No previous appointments in your history." />
-			)}
-		</div>
-	);
+	const renderList = (items, variant, sortDirection, emptyText) => {
+		const sorted = [...items].sort((a, b) =>
+			sortDirection === "asc"
+				? new Date(a.dateOfAppointment) - new Date(b.dateOfAppointment)
+				: new Date(b.dateOfAppointment) - new Date(a.dateOfAppointment),
+		);
+		return (
+			<div className="flex flex-col gap-4">
+				{sorted.length > 0 ? (
+					sorted.map((a) => <AppointmentCard key={a._id} appointment={a} variant={variant} />)
+				) : (
+					<EmptyState title={emptyText} />
+				)}
+			</div>
+		);
+	};
 
 	let content;
 	switch (activeTab) {
-		case "Upcoming": content = renderUpcomingAppointments(); break;
-		case "Pending": content = renderPendingDoctors(); break;
-		case "Denied": content = renderDeniedDoctors(); break;
-		case "Previous": content = renderPreviousAppointments(); break;
-		default: content = <p>Select a tab to view appointments</p>;
+		case "Upcoming":
+			content = renderList(upcomingAppointments, "upcoming", "asc", "No upcoming doctor assigned.");
+			break;
+		case "Pending":
+			content = renderList(pendingDoctors, "pending", "asc", "No pending doctor requests at the moment.");
+			break;
+		case "Denied":
+			content = renderList(deniedDoctors, "denied", "desc", "No denied doctor requests at the moment.");
+			break;
+		case "Previous":
+			content = renderList(previousAppointments, "previous", "desc", "No previous appointments in your history.");
+			break;
+		default:
+			content = <p className="text-muted-foreground">Select a tab to view appointments</p>;
 	}
 
 	return (
 		<>
 			{content}
-			{shareModal && (
-				<ShareRecordModal
-					bookingId={shareModal.bookingId}
-					initialMode={shareModal.mode}
-					onClose={() => setShareModal(null)}
-				/>
-			)}
+			{shareModal ? (
+				<ShareRecordModal bookingId={shareModal.bookingId} initialMode={shareModal.mode} onClose={() => setShareModal(null)} />
+			) : null}
 		</>
 	);
 };

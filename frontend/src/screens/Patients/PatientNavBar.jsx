@@ -1,39 +1,66 @@
-import React, { useContext, useState, useEffect, useRef } from "react";
+import { useContext, useEffect, useState } from "react";
+import { Bell, LogOut, MapPin, Menu, Search, ShoppingCart, X } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
-import "../NavBar.css";
-import "./PatientNavBar.css";
-import logo from "../../media/logo2.png";
-import locationIcon from "../../media/location.png";
-import defaultProfilePic from "../../media/default-profile.png";
-import notificationIcon from "../../media/notifications.png";
-import { AuthContext } from "../../context/AuthContext";
-import menu from "../../media/menu.svg";
-import menu_close from "../../media/menu-close.svg";
-import { OPENCAGE_API_KEY } from '../../config';
 
-const API_KEY = OPENCAGE_API_KEY;
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { AuthContext } from "../../context/AuthContext";
+import { OPENCAGE_API_KEY } from "../../config";
+import { patientExploreOptions, patientNavigation } from "./patientNavigation";
+import defaultProfilePic from "../../media/default-profile.png";
+import logo from "../../media/logo2.png";
+
+function NavigationLink({ item, onNavigate }) {
+	return (
+		<NavLink
+			to={item.to}
+			onClick={onNavigate}
+			className={({ isActive }) =>
+				`relative rounded-md px-3 py-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50 ${
+					isActive
+						? "bg-accent text-accent-foreground"
+						: "text-primary-foreground/75 hover:bg-primary-foreground/10 hover:text-primary-foreground"
+				}`
+			}
+		>
+			{item.label}
+		</NavLink>
+	);
+}
 
 function PatientNavBar() {
 	const navigate = useNavigate();
 	const { auth, logout } = useContext(AuthContext);
-	const [showModal, setShowModal] = useState(false);
-	const modalRef = useRef(null);
-	const [userLocation, setUserLocation] = useState("Fetching location...");
-	const [cityName, setCityName] = useState(""); // State for city name
-	const [userAddress, setUserAddress] = useState(
-		auth.user?.address || "Not available"
-	);
+	const [showMenu, setShowMenu] = useState(false);
+	const [userLocation, setUserLocation] = useState("Your location");
 
 	const profilePic = auth.user?.profileImage || null;
-	const userFirstName = auth.user ? auth.user.firstName : "Guest";
-	const userLastName = auth.user ? auth.user.lastName : "";
-	const userName = userFirstName + " " + userLastName;
-	const userPhone = auth.user ? auth.user.phone : "N/A";
-	const userEmail = auth.user ? auth.user.email : "N/A";
+	const userName = [auth.user?.firstName, auth.user?.lastName].filter(Boolean).join(" ") || "Guest";
 
-	const [showMenu, setShowMenu] = useState(false);
-	const handleMenuClose = () => {
-		setShowMenu(!showMenu);
+	useEffect(() => {
+		if (!navigator.geolocation || !OPENCAGE_API_KEY) return;
+
+		navigator.geolocation.getCurrentPosition(
+			async ({ coords }) => {
+				try {
+					const response = await fetch(
+						`https://api.opencagedata.com/geocode/v1/json?q=${coords.latitude}+${coords.longitude}&key=${OPENCAGE_API_KEY}`,
+					);
+					const data = await response.json();
+					const components = data.results?.[0]?.components;
+					setUserLocation(components?.city || components?.town || "Your location");
+				} catch {
+					setUserLocation("Your location");
+				}
+			},
+			() => setUserLocation("Your location"),
+			{ maximumAge: 300000, timeout: 5000 },
+		);
+	}, []);
+
+	const handleExplore = (event) => {
+		const option = patientExploreOptions.find((item) => item.value === event.target.value);
+		if (option) navigate(option.to);
 	};
 
 	const handleSignOut = () => {
@@ -41,245 +68,123 @@ function PatientNavBar() {
 		navigate("/signin");
 	};
 
-	useEffect(() => {
-		// Function to get the user's location
-		const fetchLocation = () => {
-			if (navigator.geolocation) {
-				navigator.geolocation.getCurrentPosition(
-					(position) => {
-						const { latitude, longitude } = position.coords;
-						setUserLocation(`Lat: ${latitude}, Lon: ${longitude}`);
-						fetchCityName(latitude, longitude);
-					},
-					() => {
-						setUserLocation("Location access denied");
-					}
-				);
-			} else {
-				setUserLocation("Geolocation not supported");
-			}
-		};
-
-		fetchLocation();
-	}, []);
-
-	// Close modal when clicking outside of it
-	useEffect(() => {
-		function handleClickOutside(event) {
-			if (modalRef.current && !modalRef.current.contains(event.target)) {
-				setShowModal(false);
-			}
-		}
-
-		if (showModal) {
-			document.addEventListener("mousedown", handleClickOutside);
-		} else {
-			document.removeEventListener("mousedown", handleClickOutside);
-		}
-
-		return () => {
-			document.removeEventListener("mousedown", handleClickOutside);
-		};
-	}, [showModal]);
-
-	const fetchCityName = async (latitude, longitude) => {
-		try {
-			const response = await fetch(
-				`https://api.opencagedata.com/geocode/v1/json?q=${latitude}+${longitude}&key=${API_KEY}`
-			);
-			const data = await response.json();
-			if (data.results.length > 0) {
-				const city =
-					data.results[0].components.city ||
-					data.results[0].components.town ||
-					"Unknown location";
-				setCityName(city);
-			} else {
-				setCityName("City not found");
-			}
-		} catch (error) {
-			setCityName("Error fetching city name");
-			console.error("Error fetching city name:", error);
-		}
-	};
-
-	const handleProfileClick = () => {
-		navigate("/profile/patient");
-	};
-
 	return (
-		<header className="navbar-header">
-			<div className="top-navbar">
-				<div className="logo-container">
-					<img src={logo} alt="Ayurvedic Logo" className="nav-logo" />
-					<div className="text-container">
-						<div className="logo-text">Jeevan</div>
-						<div className="consultations-text">Hub</div>
-					</div>
-				</div>
-
-				<div className="search-signin">
-					<div className="search-bar">
-						<div className="dropdown">
-							<select defaultValue="" onChange={(e) => {
-								const value = e.target.value;
-								switch(value) {
-									case "doctor": navigate("/doctors"); break;
-									case "disease": navigate("/treatments"); break;
-									case "medicine": navigate("/medicines"); break;
-									case "diet-yoga": navigate("/diet-yoga"); break;
-									case "blogs-videos": navigate("/blogs-videos"); break;
-									default: break;
-								}
-							}}>
-								<option value="" disabled hidden>Explore...</option>
-								<option value="doctor">Doctor</option>
-								<option value="disease">Diseases</option>
-								<option value="medicine">Medicines</option>
-								<option value="diet-yoga">Diet And Yoga</option>
-								<option value="blogs-videos">Blogs</option>
-							</select>
-						</div>
-						<input type="text" placeholder="Search" className="search-input" />
-					</div>
-				</div>
-
-				<div className="auth" onClick={handleProfileClick}>
-					<span className="topnav-username">{userName}</span>
-					<img
-						src={profilePic || defaultProfilePic}
-						alt="Profile"
-						className="profile-pic"
-					/>
-				</div>
-
-				<NavLink to="/notifications" className="notification-icon">
-					<img
-						src={notificationIcon}
-						alt="Notifications"
-						className="notification-img"
-					/>
+		<header className="fixed inset-x-0 top-0 z-50 border-b border-primary-foreground/10 bg-primary text-primary-foreground shadow-(--jh-shadow-rest)">
+			<div className="mx-auto flex min-h-20 max-w-7xl items-center gap-4 px-4 py-3 sm:px-6 lg:px-8">
+				<NavLink
+					to="/patient-home"
+					className="flex shrink-0 items-center gap-2 rounded-md focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+				>
+					<img src={logo} alt="JeevanHub" className="size-11 rounded-xl bg-primary-foreground/10 object-contain p-1" />
+					<span className="hidden font-display text-xl font-semibold tracking-tight sm:inline">JeevanHub</span>
 				</NavLink>
+
+				<div className="hidden min-w-0 flex-1 items-center justify-center lg:flex">
+					<label className="flex h-11 w-full max-w-xl items-center gap-2 rounded-lg bg-primary-foreground/10 px-3 text-primary-foreground/70 ring-1 ring-inset ring-primary-foreground/15 focus-within:ring-2 focus-within:ring-primary-foreground/60">
+						<Search className="size-4 shrink-0" aria-hidden="true" />
+						<select
+							aria-label="Explore JeevanHub"
+							defaultValue=""
+							onChange={handleExplore}
+							className="h-full shrink-0 bg-transparent text-sm font-semibold text-primary-foreground outline-none"
+						>
+							<option value="" disabled>Explore</option>
+							{patientExploreOptions.map((option) => (
+								<option key={option.value} value={option.value} className="text-foreground">
+									{option.label}
+								</option>
+							))}
+						</select>
+						<Input
+							aria-label="Search JeevanHub"
+							placeholder="Search care, doctors, or medicines"
+							className="h-9 border-0 bg-transparent px-1 text-primary-foreground shadow-none placeholder:text-primary-foreground/55 focus-visible:ring-0"
+						/>
+					</label>
+				</div>
+
+				<div className="ml-auto flex items-center gap-1.5">
+					<span className="hidden items-center gap-1.5 text-xs font-medium text-primary-foreground/70 xl:flex">
+						<MapPin className="size-3.5" aria-hidden="true" />
+						{userLocation}
+					</span>
+					<Button variant="ghost" size="icon" aria-label="Cart" render={<NavLink to="/cart" />} className="text-primary-foreground hover:bg-primary-foreground/10">
+						<ShoppingCart />
+					</Button>
+					<Button variant="ghost" size="icon" aria-label="Notifications" render={<NavLink to="/notifications" />} className="text-primary-foreground hover:bg-primary-foreground/10">
+						<Bell />
+					</Button>
+					<NavLink
+						to="/profile/patient"
+						className="hidden items-center gap-2 rounded-md px-2 py-1 text-sm font-semibold hover:bg-primary-foreground/10 sm:flex"
+					>
+						<img
+							src={profilePic || defaultProfilePic}
+							alt=""
+							className="size-8 rounded-full border border-primary-foreground/40 object-cover"
+						/>
+						<span className="max-w-28 truncate">{userName}</span>
+					</NavLink>
+					<NavLink to="/profile/patient" aria-label="Your profile" className="sm:hidden">
+						<img src={profilePic || defaultProfilePic} alt="" className="size-9 rounded-full border border-primary-foreground/40 object-cover" />
+					</NavLink>
+					<Button
+						variant="ghost"
+						size="icon"
+						aria-label="Sign out"
+						onClick={handleSignOut}
+						className="hidden text-primary-foreground hover:bg-primary-foreground/10 sm:inline-flex"
+					>
+						<LogOut />
+					</Button>
+					<Button
+						variant="ghost"
+						size="icon"
+						aria-label={showMenu ? "Close navigation menu" : "Open navigation menu"}
+						aria-expanded={showMenu}
+						onClick={() => setShowMenu((open) => !open)}
+						className="text-primary-foreground hover:bg-primary-foreground/10 lg:hidden"
+					>
+						{showMenu ? <X /> : <Menu />}
+					</Button>
+				</div>
 			</div>
 
-			{/* Modal has been replaced by a dedicated profile page */}
-
-			<nav className="navbar">
-				<div className="left-item">
-					<img
-						src={locationIcon}
-						alt="Location Icon"
-						className="location-icon"
-					/>
-					<span className="location-text">{cityName || userLocation}</span>
-				</div>
-				<div className="center-items">
-					{showMenu && (
-						<div className="nav-menu">
-							<ul className="nav-sidebar" style={{ width: "60%" }}>
-								<img
-									src={menu_close}
-									alt="menu_close"
-									onClick={handleMenuClose}
-									style={{
-										zIndex: "99",
-									}}
-								/>
-								<li>
-									<NavLink to="/patient-home">
-										Home
-									</NavLink>
-								</li>
-								<li>
-									<NavLink to="/treatments">
-										Treatments
-									</NavLink>
-								</li>
-								<li>
-									<NavLink to="/doctors">
-										Doctors
-									</NavLink>
-								</li>
-								<li>
-									<NavLink to="/medicines">
-										Medicines
-									</NavLink>
-								</li>
-								<li>
-									<NavLink to="/diet-yoga">
-										Diet and Yoga Plan
-									</NavLink>
-								</li>
-								<li>
-									<NavLink to="/blogs-videos">
-										Blogs and Videos
-									</NavLink>
-								</li>
-								<li>
-									<NavLink to="/cart">
-										Cart
-									</NavLink>
-								</li>
-								<li>
-									<NavLink to="/order-history">
-										Orders
-									</NavLink>
-								</li>
-							</ul>
-						</div>
-					)}
-					<div className="nav-menu-button">
-						<img src={menu} alt="menu" onClick={handleMenuClose} />
+			<nav className="hidden border-t border-primary-foreground/10 lg:block" aria-label="Patient navigation">
+				<div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-2 sm:px-6 lg:px-8">
+					<span className="flex items-center gap-1.5 text-xs font-medium text-primary-foreground/70">
+						<MapPin className="size-3.5" aria-hidden="true" />
+						{userLocation}
+					</span>
+					<div className="flex items-center gap-1">
+						{patientNavigation.map((item) => (
+							<NavigationLink key={item.to} item={item} />
+						))}
 					</div>
-					<ul className="nav-center-menu">
-						<li>
-							<NavLink to="/patient-home">
-								Home
-							</NavLink>
-						</li>
-						<li>
-							<NavLink to="/appointed-doctor">
-								Appointed Doctor
-							</NavLink>
-						</li>
-						<li>
-							<NavLink to="/treatments">
-								Treatments
-							</NavLink>
-						</li>
-						<li>
-							<NavLink to="/doctors">
-								Doctors
-							</NavLink>
-						</li>
-						<li>
-							<NavLink to="/medicines">
-								Medicines
-							</NavLink>
-						</li>
-						<li>
-							<NavLink to="/diet-yoga">
-								Diet and Yoga Plan
-							</NavLink>
-						</li>
-						<li>
-							<NavLink to="/blogs-videos">
-								Blogs and Videos
-							</NavLink>
-						</li>
-						<li>
-							<NavLink to="/cart">
-								Cart
-							</NavLink>
-						</li>
-						<li>
-							<NavLink to="/order-history">
-								Orders
-							</NavLink>
-						</li>
-					</ul>
+					<span className="w-28" aria-hidden="true" />
 				</div>
 			</nav>
+
+			{showMenu ? (
+				<div className="border-t border-primary-foreground/10 bg-primary px-4 pb-5 pt-3 lg:hidden">
+					<div className="mb-3 flex items-center gap-2 rounded-lg bg-primary-foreground/10 px-3 py-2">
+						<Search className="size-4 shrink-0 text-primary-foreground/70" aria-hidden="true" />
+						<Input
+							aria-label="Search JeevanHub"
+							placeholder="Search JeevanHub"
+							className="h-9 border-0 bg-transparent text-primary-foreground placeholder:text-primary-foreground/55 focus-visible:ring-0"
+						/>
+					</div>
+					<nav className="grid gap-1" aria-label="Mobile patient navigation">
+						{patientNavigation.map((item) => (
+							<NavigationLink key={item.to} item={item} onNavigate={() => setShowMenu(false)} />
+						))}
+					</nav>
+					<Button variant="outline" onClick={handleSignOut} className="mt-3 w-full border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10">
+						<LogOut className="size-4" /> Sign out
+					</Button>
+				</div>
+			) : null}
 		</header>
 	);
 }

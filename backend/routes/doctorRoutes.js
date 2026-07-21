@@ -279,6 +279,9 @@ router.get("/allDoctors", auth, getAllDoctorsData);
 // New route to get all public doctors (Safe fields only, truly public)
 router.get("/publicDoctors", require("../controllers/doctorController").getPublicDoctorsData);
 
+// AI-assisted doctor matching from a patient's free-text concern (public).
+router.post("/ai-match", require("../controllers/doctorController").aiMatchDoctors);
+
 // New route to get doctor by ID from both collections
 router.get("/getDoctorById/:id", auth, getDoctorById);
 

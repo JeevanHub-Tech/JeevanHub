@@ -145,6 +145,8 @@ exports.getPublicDoctorsData = async (req, res) => {
 			experience: doc.experience,
 			price: doc.price,
 			education: doc.education,
+			languages: Array.isArray(doc.languages) ? doc.languages.filter(Boolean) : [],
+			introduction: doc.introduction || "",
 			approvalStatus: doc.approvalStatus || 'Pending',
 			profileImage: doc.profileImage
 				? (doc.profileImage.startsWith('http') ? doc.profileImage : `${process.env.BASE_URL || "http://localhost:5000"}/${doc.profileImage}`)
@@ -158,6 +160,60 @@ exports.getPublicDoctorsData = async (req, res) => {
 			message: "Failed to fetch Public Doctors",
 			error: error.message,
 		});
+	}
+};
+
+// AI-assisted doctor matching (Public). Takes a patient's free-text description
+// of their concern and returns the approved doctors ranked by fit, each with a
+// short reason. The agent is provider-configurable (see services/doctorMatch).
+exports.aiMatchDoctors = async (req, res) => {
+	try {
+		const query = (req.body && req.body.query) || "";
+		if (!query.trim()) {
+			return res.status(400).json({ message: "Please describe your health concern." });
+		}
+
+		const doctors = await Doctor.find({ approvalStatus: 'Approved' })
+			.select('firstName lastName gender designation specialization experience price education languages introduction');
+
+		if (doctors.length === 0) {
+			return res.status(200).json({ ranked: [] });
+		}
+
+		// Attach real ratings so the model can weigh them.
+		const ratings = await Feedback.aggregate([
+			{ $match: { toType: 'Doctor' } },
+			{ $group: { _id: '$to', averageRating: { $avg: '$stars' } } }
+		]);
+		const ratingMap = {};
+		ratings.forEach(r => { if (r._id) ratingMap[r._id.toString()] = r.averageRating; });
+
+		const candidates = doctors.map((doc) => ({
+			id: doc._id.toString(),
+			firstName: doc.firstName,
+			lastName: doc.lastName,
+			specialization: doc.specialization,
+			designation: doc.designation,
+			education: doc.education,
+			experience: doc.experience,
+			languages: doc.languages,
+			introduction: doc.introduction,
+			rating: ratingMap[doc._id.toString()] || null,
+		}));
+
+		const { rankDoctors } = require("../services/doctorMatch/doctorMatchService");
+		const ranked = await rankDoctors({ query, doctors: candidates });
+		return res.status(200).json({ ranked });
+	} catch (error) {
+		// Friendly, specific messages for the config/availability cases; generic 500 otherwise.
+		if (error.code === 'EMPTY_QUERY') {
+			return res.status(400).json({ message: "Please describe your health concern." });
+		}
+		if (error.code === 'DISABLED' || error.code === 'NO_KEY' || error.code === 'PROVIDER_UNIMPLEMENTED') {
+			return res.status(503).json({ message: "AI matching is unavailable right now. Please use the filters instead." });
+		}
+		console.error("AI doctor match failed:", error.message);
+		return res.status(500).json({ message: "Couldn't complete AI matching. Please try again or use the filters." });
 	}
 };
 

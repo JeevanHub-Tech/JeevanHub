@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronDown, Stethoscope, X } from "lucide-react";
+import { ChevronDown, Loader2, Sparkles, Stethoscope, X } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +10,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { authFetch } from "../utils/authFetch";
 import { BACKEND_URL } from "../config";
@@ -101,11 +102,11 @@ const SORT_OPTIONS = [
   { value: "highToLow", label: "Rating: High to Low" },
 ];
 
-function FilterSelect({ id, label, placeholder, options, value, onValueChange }) {
+function FilterSelect({ id, label, placeholder, options, value, onValueChange, disabled }) {
   return (
     <Field>
       <FieldLabel htmlFor={id}>{label}</FieldLabel>
-      <Select value={value} onValueChange={onValueChange}>
+      <Select value={value} onValueChange={onValueChange} disabled={disabled}>
         <SelectTrigger id={id}>
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
@@ -129,6 +130,13 @@ function DoctorsScreen() {
   const [filters, setFilters] = useState(DEFAULT_FILTERS);
   const [doctors, setDoctors] = useState([]);
   const [status, setStatus] = useState("loading"); // loading | ready | error
+
+  // AI illness-match state.
+  const [aiQuery, setAiQuery] = useState("");
+  const [aiStatus, setAiStatus] = useState("idle"); // idle | loading | ready | error
+  const [aiError, setAiError] = useState("");
+  const [aiRanking, setAiRanking] = useState(null); // Map(id -> { score, reason }) | null
+  const [aiQueryUsed, setAiQueryUsed] = useState("");
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -182,11 +190,24 @@ function DoctorsScreen() {
       (filters.gender ? doctor.gender === filters.gender : true),
   );
 
-  const sortedDoctors = [...filteredDoctors].sort((a, b) => {
-    if (filters.sort === "lowToHigh") return a.rating - b.rating;
-    if (filters.sort === "highToLow") return b.rating - a.rating;
-    return 0;
-  });
+  const aiActive = aiRanking != null;
+
+  // When AI matching is active, keep only ranked doctors and order by AI score
+  // instead of the chosen sort; hard filters above still apply, so AI +
+  // filters compose.
+  const sortedDoctors = useMemo(() => {
+    if (aiActive) {
+      return filteredDoctors
+        .filter((d) => aiRanking.has(d.id))
+        .map((d) => ({ ...d, ai: aiRanking.get(d.id) }))
+        .sort((a, b) => b.ai.score - a.ai.score);
+    }
+    return [...filteredDoctors].sort((a, b) => {
+      if (filters.sort === "lowToHigh") return a.rating - b.rating;
+      if (filters.sort === "highToLow") return b.rating - a.rating;
+      return 0;
+    });
+  }, [filteredDoctors, aiActive, aiRanking, filters.sort]);
 
   // Chips reflect narrowing filters only — "sort" changes order, not results,
   // so it's excluded here and from the count.
@@ -205,6 +226,40 @@ function DoctorsScreen() {
     navigate("/doctor-detail", { state: { doctor } });
   };
 
+  const runAiMatch = useCallback(async () => {
+    const query = aiQuery.trim();
+    if (!query) return;
+    setAiStatus("loading");
+    setAiError("");
+    try {
+      const token = localStorage.getItem("token");
+      const res = await authFetch(`${BACKEND_URL}/api/doctors/ai-match`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ query }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "AI matching failed.");
+      const map = new Map((data.ranked || []).map((r) => [r.id, { score: r.score, reason: r.reason }]));
+      setAiRanking(map);
+      setAiQueryUsed(query);
+      setAiStatus("ready");
+    } catch (e) {
+      setAiError(e.message || "Something went wrong. Please try again.");
+      setAiStatus("error");
+    }
+  }, [aiQuery]);
+
+  const clearAiMatch = () => {
+    setAiRanking(null);
+    setAiQueryUsed("");
+    setAiStatus("idle");
+    setAiError("");
+  };
+
   return (
     <div className="relative -mt-8 min-h-screen bg-linear-to-b from-(--jh-cream-tint) to-background pt-8 pb-20">
       <div className="mx-auto mb-10 max-w-2xl px-6 text-center">
@@ -212,8 +267,68 @@ function DoctorsScreen() {
           Find Your Ayurvedic Doctor
         </h1>
         <p className="mt-4 text-base leading-relaxed text-muted-foreground">
-          Browse practitioner profiles by specialization, experience, and language to find the right fit for your care.
+          Describe your concern and let AI find your best-matched practitioners — or browse and filter profiles yourself.
         </p>
+      </div>
+
+      <div className="mx-auto mb-8 max-w-3xl px-4 sm:px-6 lg:px-8">
+        <Card
+          className={cn(
+            "gap-3 border-primary/20 bg-(--jh-sage-pale) p-5 shadow-(--jh-shadow-rest) transition-colors sm:p-6",
+            aiActive && "border-primary/40",
+          )}
+        >
+          <div className="flex flex-col gap-1.5">
+            <Badge className="w-fit">
+              <Sparkles className="size-3.5" aria-hidden="true" /> AI Match
+            </Badge>
+            <h2 className="font-display text-xl text-foreground">Describe your concern, meet your doctor</h2>
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              Tell us your symptoms or condition in your own words. Our AI ranks the doctors best suited to help.
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-2.5 sm:flex-row sm:items-start">
+            <Textarea
+              className="min-h-16 flex-1 bg-card"
+              placeholder="e.g. I've had chronic acidity and bloating after meals for a few months…"
+              value={aiQuery}
+              onChange={(e) => setAiQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) runAiMatch();
+              }}
+              rows={2}
+              maxLength={800}
+            />
+            <Button
+              type="button"
+              className="sm:w-auto"
+              onClick={runAiMatch}
+              disabled={aiStatus === "loading" || !aiQuery.trim()}
+            >
+              {aiStatus === "loading" ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" aria-hidden="true" /> Analyzing…
+                </>
+              ) : (
+                "Find my match"
+              )}
+            </Button>
+          </div>
+
+          {aiStatus === "error" && <p className="text-sm font-medium text-destructive">{aiError}</p>}
+
+          {aiActive && (
+            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3 text-sm">
+              <span className="text-muted-foreground">
+                Showing AI matches for: <strong className="text-foreground">&ldquo;{aiQueryUsed}&rdquo;</strong>
+              </span>
+              <Button type="button" variant="link" size="sm" className="h-auto p-0" onClick={clearAiMatch}>
+                Clear AI match
+              </Button>
+            </div>
+          )}
+        </Card>
       </div>
 
       <div className="mx-auto flex max-w-6xl items-start gap-6 px-4 sm:px-6 lg:px-8">
@@ -328,7 +443,11 @@ function DoctorsScreen() {
                     options={SORT_OPTIONS}
                     value={filters.sort}
                     onValueChange={setFilterValue("sort")}
+                    disabled={aiActive}
                   />
+                  {aiActive && (
+                    <p className="mt-1.5 text-xs text-muted-foreground">Sorting is set by AI match</p>
+                  )}
                 </div>
               </Card>
             </div>
@@ -338,7 +457,9 @@ function DoctorsScreen() {
         <div className="min-w-0 flex-1">
           <div className="mb-4.5 flex min-h-8 flex-wrap items-center gap-x-4 gap-y-2.5">
             <span className="text-sm font-semibold whitespace-nowrap text-muted-foreground">
-              {status === "ready" ? `${sortedDoctors.length} doctor${sortedDoctors.length === 1 ? "" : "s"} found` : " "}
+              {status === "ready"
+                ? `${sortedDoctors.length} doctor${sortedDoctors.length === 1 ? "" : "s"} ${aiActive ? "matched" : "found"}`
+                : " "}
             </span>
 
             {activeChips.length > 0 && (
@@ -384,10 +505,21 @@ function DoctorsScreen() {
               <EmptyState
                 className="col-span-full"
                 icon={Stethoscope}
-                title="No doctors match your filters"
-                description="Try clearing a filter to see more results."
+                title={aiActive ? "No doctors matched your description" : "No doctors match your filters"}
+                description={
+                  aiActive
+                    ? "Try describing your concern differently, or clear your filters to see more results."
+                    : "Try clearing a filter to see more results."
+                }
                 action={
-                  <Button type="button" variant="outline" onClick={() => setFilters(DEFAULT_FILTERS)}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setFilters(DEFAULT_FILTERS);
+                      clearAiMatch();
+                    }}
+                  >
                     Clear filters
                   </Button>
                 }
@@ -398,7 +530,10 @@ function DoctorsScreen() {
               sortedDoctors.map((doctor) => (
                 <Card
                   key={doctor.id}
-                  className="cursor-pointer justify-between gap-3.5 p-6 shadow-(--jh-shadow-card) transition-all duration-300 ease-out hover:-translate-y-1.5 hover:shadow-(--jh-shadow-hover)"
+                  className={cn(
+                    "cursor-pointer justify-between gap-3.5 p-6 shadow-(--jh-shadow-card) transition-all duration-300 ease-out hover:-translate-y-1.5 hover:shadow-(--jh-shadow-hover)",
+                    doctor.ai && "border-primary/40",
+                  )}
                   onClick={() => handleDoctorClick(doctor)}
                 >
                   <div className="flex flex-col gap-2">
@@ -406,6 +541,15 @@ function DoctorsScreen() {
                       <DoctorAvatar src={doctor.profileImage} name={doctor.name} />
                       <div className="font-display text-lg font-semibold text-foreground">Dr. {doctor.name}</div>
                     </div>
+
+                    {doctor.ai && (
+                      <div className="mb-1 flex flex-col gap-1 rounded-lg bg-(--jh-sage-pale) p-2.5">
+                        <Badge className="w-fit">
+                          <Sparkles className="size-3.5" aria-hidden="true" /> {doctor.ai.score}% match
+                        </Badge>
+                        <p className="text-sm leading-relaxed text-(--jh-olive-deep)">{doctor.ai.reason}</p>
+                      </div>
+                    )}
 
                     <p className="text-sm leading-relaxed text-muted-foreground">
                       <span className="mr-1 font-bold text-foreground">Specialization</span>

@@ -1,12 +1,24 @@
-// src/BlogsVideosScreen.jsx
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, BookOpen, Play, Filter } from "lucide-react";
-import "./BlogsVideosScreen.css";
-import { BACKEND_URL } from '../../config';
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
+import { categoryOptions } from "./categoryOptions";
+import { BACKEND_URL } from "@/config";
+
+const tabs = [
+	{ value: "all", label: "All", icon: null },
+	{ value: "blog", label: "Blogs", icon: BookOpen },
+	{ value: "video", label: "Videos", icon: Play },
+];
 
 function BlogsVideosScreen() {
-	const [expanded, setExpanded] = useState({});
 	const [activeTab, setActiveTab] = useState("all");
 	const [category, setCategory] = useState("all");
 	const [searchQuery, setSearchQuery] = useState("");
@@ -14,28 +26,15 @@ function BlogsVideosScreen() {
 	const [loading, setLoading] = useState(true);
 	const navigate = useNavigate();
 
-	const toggleContent = (index) => {
-		setExpanded((prev) => ({
-			...prev,
-			[index]: !prev[index],
-		}));
-	};
-
 	const scrollToContent = () => {
-		const contentSection = document.getElementById("content-section");
-		contentSection?.scrollIntoView({ behavior: "smooth" });
+		document.getElementById("content-section")?.scrollIntoView({ behavior: "smooth" });
 	};
 
-	// Fetch blogs from backend
 	useEffect(() => {
 		fetch(`${BACKEND_URL}/api/webhook/getAllBlogs/`)
 			.then((res) => res.json())
 			.then((data) => {
-				if (data.blogs) {
-					setBlogs(data.blogs);
-					console.log("Fetched blogs:", data.blogs);
-					console.log(data.blogs);
-				}
+				if (data.blogs) setBlogs(data.blogs);
 				setLoading(false);
 			})
 			.catch((err) => {
@@ -44,7 +43,6 @@ function BlogsVideosScreen() {
 			});
 	}, []);
 
-	// Filtering
 	const filteredData = blogs.filter((item) => {
 		const matchesTab =
 			activeTab === "all" ||
@@ -52,16 +50,10 @@ function BlogsVideosScreen() {
 			(activeTab === "video" && item.type === "Video");
 
 		const contentText = item.description;
-		const itemTags =
-			item.type === "normal"
-				? item.category
-					? [item.category]
-					: []
-				: item.tags;
+		const itemTags = item.type === "normal" ? (item.category ? [item.category] : []) : item.tags;
 
 		const matchesCategory =
-			category === "all" ||
-			itemTags?.some((tag) => tag.toLowerCase() === category.toLowerCase());
+			category === "all" || itemTags?.some((tag) => tag.toLowerCase() === category.toLowerCase());
 
 		const matchesSearch =
 			item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -70,191 +62,138 @@ function BlogsVideosScreen() {
 		return matchesTab && matchesCategory && matchesSearch;
 	});
 
-	if (loading) return <p className="bvs-loading">Loading blogs...</p>;
-
 	return (
-		<section className="bvs-blogs-videos-screen">
-			{/* Hero Section */}
-			<div className="bvs-hero-section">
-				<img src="/images/blog_bg.jpg" alt="Hero" className="bvs-hero-bg" />
-				<div className="bvs-hero-overlay" />
-				<div className="bvs-hero-content">
-					<h1 className="bvs-hero-title">
-						<span className="bvs-hero-title1">
-							Welcome to Our <br />
-						</span>
-						<span className="bvs-hero-title2">Ayurveda Guide</span>
+		<main className="bg-background pt-20 lg:pt-28">
+			<section className="relative flex min-h-[60vh] items-center justify-center overflow-hidden pt-8 pb-12 text-center">
+				<img src="/images/blog_bg.jpg" alt="" className="absolute inset-0 -z-20 size-full object-cover" />
+				<div className="absolute inset-0 -z-10 bg-white/20" />
+				<div className="relative mx-auto w-full max-w-3xl px-4">
+					<h1 className="text-balance text-3xl font-bold text-foreground sm:text-4xl">
+						Welcome to Our <br className="hidden sm:block" />
+						<span className="text-primary">Ayurveda Guide</span>
 					</h1>
-					<p className="bvs-hero-subtext">
+					<p className="mt-4 text-pretty text-lg text-foreground/80">
 						Explore expert articles and videos on Ayurveda,
-						<br /> wellness, and natural living.
+						<br className="hidden sm:block" /> wellness, and natural living.
 					</p>
-					<div className="bvs-hero-buttons">
-						<button className="bvs-hero-btn bvs-article" onClick={scrollToContent}>
-							<BookOpen /> <span>Explore Articles</span>
-						</button>
-						<button className="bvs-hero-btn bvs-video" onClick={scrollToContent}>
-							<Play /> Watch Videos
-						</button>
+					<div className="mt-8 flex flex-wrap justify-center gap-4">
+						<Button size="lg" onClick={scrollToContent}>
+							<BookOpen data-icon="inline-start" />
+							Explore Articles
+						</Button>
+						<Button size="lg" variant="secondary" onClick={scrollToContent}>
+							<Play data-icon="inline-start" />
+							Watch Videos
+						</Button>
 					</div>
 				</div>
-			</div>
+			</section>
 
-			{/* Filter Section */}
-			<div className="bvs-filter-section" id="content-section">
-				<div className="bvs-filter-bar">
-					<div className="bvs-search-box">
-						<Search />
-						<input
-							type="text"
-							placeholder="Search blogs and videos..."
+			<section id="content-section" className="mx-auto max-w-6xl px-4 py-6">
+				<div className="flex flex-wrap items-center justify-between gap-4">
+					<div className="flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 sm:max-w-xs">
+						<Search className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+						<Input
 							value={searchQuery}
 							onChange={(e) => setSearchQuery(e.target.value)}
+							placeholder="Search blogs and videos..."
+							className="h-auto border-0 p-0 shadow-none focus-visible:ring-0"
 						/>
 					</div>
 
-					<div className="bvs-dropdown-box">
-						<Filter />
-						<select value={category} onChange={(e) => setCategory(e.target.value)}>
-							<option value="all">All Categories</option>
-							<option value="health">Health Tips</option>
-							<option value="herbs">Herbs & Remedies</option>
-							<option value="diet">Diet & Nutrition</option>
-							<option value="yoga">Yoga & Meditation</option>
-							<option value="lifestyle">Lifestyle</option>
-							<option value="disease management">Disease Management</option>
-							<option value="wellness">Wellness</option>
-							<option value="ayurveda basics">Ayurveda Basics</option>
-							<option value="ayurveda-basics">Ayurveda Basics</option>
-							<option value="seasonal-care">Seasonal Care (Ritucharya)</option>
-							<option value="daily-routine">
-								Ayurvedic Daily Routine (Dinacharya)
-							</option>
-							<option value="skin-hair">Ayurveda for Skin & Hair</option>
-							<option value="home-remedies">Ayurvedic Home Remedies</option>
-							<option value="detox-panchakarma">Detox & Panchakarma</option>
-							<option value="mental-wellness">Stress & Mental Wellness</option>
-							<option value="herbs-spices">Ayurvedic Herbs & Spices</option>
-							<option value="womens-health">Women’s Health in Ayurveda</option>
-							<option value="immunity">Ayurvedic Immunity Boosters</option>
-							<option value="digestion">Ayurveda for Digestion</option>
-							<option value="sleep-relaxation">
-								Ayurvedic Sleep & Relaxation
-							</option>
-							<option value="kids-family">
-								Ayurveda for Kids & Family Care
-							</option>
-							<option value="massage-oils">
-								Ayurvedic Oils & Massage (Abhyanga)
-							</option>
-							<option value="beauty-skincare">
-								Ayurvedic Beauty & Skincare
-							</option>
-							<option value="chronic-conditions">
-								Ayurveda for Chronic Conditions
-							</option>
-						</select>
+					<div className="flex items-center gap-2 sm:min-w-52">
+						<Filter className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+						<Select value={category} onValueChange={setCategory}>
+							<SelectTrigger>
+								<SelectValue />
+							</SelectTrigger>
+							<SelectContent>
+								{categoryOptions.map((option) => (
+									<SelectItem key={option.value} value={option.value}>
+										{option.label}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
 					</div>
 
-					<div className="bvs-tab-buttons">
-						<button
-							className={`bvs-tab ${activeTab === "all" ? "bvs-active" : ""}`}
-							onClick={() => setActiveTab("all")}
-						>
-							All
-						</button>
-						<button
-							className={`bvs-tab ${activeTab === "blog" ? "bvs-active" : ""}`}
-							onClick={() => setActiveTab("blog")}
-						>
-							<BookOpen /> Blogs
-						</button>
-						<button
-							className={`bvs-tab ${activeTab === "video" ? "bvs-active" : ""}`}
-							onClick={() => setActiveTab("video")}
-						>
-							<Play /> Videos
-						</button>
+					<div className="flex flex-wrap gap-2">
+						{tabs.map((tab) => (
+							<Button
+								key={tab.value}
+								variant={activeTab === tab.value ? "default" : "secondary"}
+								onClick={() => setActiveTab(tab.value)}
+							>
+								{tab.icon ? <tab.icon data-icon="inline-start" /> : null}
+								{tab.label}
+							</Button>
+						))}
 					</div>
 				</div>
-			</div>
+			</section>
 
-			{/* Cards */}
-			<div className="bvs-card-grid">
-				{filteredData.length > 0 ? (
-					filteredData.map((item, index) => {
-						const isNormalBlog = item.type === "normal";
+			<section className="mx-auto max-w-6xl px-4 pb-16">
+				{loading ? (
+					<div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+						{Array.from({ length: 6 }).map((_, index) => (
+							<Skeleton key={index} className="h-80 rounded-xl" />
+						))}
+					</div>
+				) : filteredData.length > 0 ? (
+					<div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+						{filteredData.map((item, index) => {
+							const rawHtmlContent = item.description;
+							const previewText = rawHtmlContent
+								? rawHtmlContent.replace(/<[^>]*>/g, "").slice(0, 120)
+								: "No content available...";
+							const imageUrl = item.url || item.content?.images?.[0]?.url || "/images/blog_img.jpg";
+							const itemTags = item.type === "normal" ? (item.category ? [item.category] : []) : item.tags || [];
+							const itemAuthor = item.authorName || (item.user ? item.user.name : "Anonymous");
 
-						const rawHtmlContent = item.description;
-						const previewText = rawHtmlContent
-							? rawHtmlContent.replace(/<[^>]*>/g, "").slice(0, 120)
-							: "No content available...";
-
-						// Image URL
-						const imageUrl = item.url || item.content?.images?.[0]?.url || null;
-
-						const itemTags = isNormalBlog
-							? item.category
-								? [item.category]
-								: []
-							: item.tags || [];
-
-						const itemAuthor =
-							item.authorName ||
-							(item.user ? item.user.name : "Anonymous");
-
-						return (
-							<div className="bvs-card" key={item._id || index}>
-								<div className="bvs-card-header">
-									{imageUrl ? (
-										<img src={imageUrl} alt={item.title} />
-									) : (
-										<img src="/images/blog_img.jpg" alt={item.title} />
-									)}
-									{item.type === "ai" ? (
-										<span className="bvs-card-type">AI</span>
-									) : null}
-								</div>
-
-								<div className="bvs-card-body">
-									<p className="bvs-card-meta">
-										{new Date(item.date).toLocaleDateString()}
-									</p>
-									<h3 className="bvs-card-title">{item.title}</h3>
-
-									<p className="bvs-card-description">
-										{previewText}...
-									</p>
-
-									<p className="bvs-card-author">👤 {itemAuthor}</p>
-
-									<div className="bvs-card-tags">
-										{itemTags.map((tag, idx) => (
-											<span key={idx}>#{tag}</span>
-										))}
+							return (
+								<Card key={item._id || index} className="overflow-hidden py-0">
+									<div className="relative aspect-video">
+										<img src={imageUrl} alt={item.title} className="size-full object-cover" />
+										{item.type === "ai" ? (
+											<Badge className="absolute right-3 top-3 bg-black/60 text-white backdrop-blur-sm hover:bg-black/60">AI</Badge>
+										) : null}
 									</div>
-
-									<button
-										className="bvs-card-action"
-										onClick={() =>
-											navigate(`/blog/${item._id}`, {
-												state: { blog: item },
-											})
-										}
-									>
-										Read Article
-									</button>
-								</div>
-							</div>
-						);
-					})
+									<div className="flex flex-1 flex-col gap-2 p-5 text-center">
+										<p className="text-xs text-muted-foreground">{new Date(item.date).toLocaleDateString()}</p>
+										<h3 className="text-lg font-bold text-foreground">{item.title}</h3>
+										<p className="flex-1 text-sm text-muted-foreground">{previewText}...</p>
+										<p className="text-sm font-semibold text-foreground">👤 {itemAuthor}</p>
+										<div className="flex flex-wrap justify-center gap-2">
+											{itemTags.map((tag) => (
+												<Badge key={tag} variant="secondary">
+													#{tag}
+												</Badge>
+											))}
+										</div>
+										<Button
+											className="mt-2 self-center"
+											onClick={() => navigate(`/blog/${item._id}`, { state: { blog: item } })}
+										>
+											Read Article
+										</Button>
+									</div>
+								</Card>
+							);
+						})}
+					</div>
 				) : (
-					<p className="bvs-no-content">
-						No content found for selected filters.
-					</p>
+					<Empty>
+						<EmptyHeader>
+							<EmptyMedia variant="icon">
+								<Search />
+							</EmptyMedia>
+							<EmptyTitle>No content found</EmptyTitle>
+							<EmptyDescription>Try a different search term or category filter.</EmptyDescription>
+						</EmptyHeader>
+					</Empty>
 				)}
-			</div>
-		</section>
+			</section>
+		</main>
 	);
 }
 

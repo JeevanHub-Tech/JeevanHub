@@ -60,7 +60,7 @@ function DashboardNavbar({ navItems, profileTo, notificationsTo, cartTo, logoTo 
 	};
 
 	return (
-		<header className="fixed inset-x-0 top-0 z-50 border-b border-primary-foreground/10 bg-primary text-primary-foreground shadow-[var(--jh-shadow-rest)]">
+		<header className="fixed inset-x-0 top-0 z-50 border-b border-primary-foreground/10 bg-primary text-primary-foreground shadow-(--jh-shadow-rest)">
 			<div className="mx-auto flex min-h-20 max-w-7xl items-center gap-4 px-4 py-3 sm:px-6 lg:px-8">
 				<NavLink to={logoTo} className="flex shrink-0 items-center gap-2 rounded-md focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
 					<img src={logo} alt="JeevanHub" className="size-11 rounded-xl bg-primary-foreground/10 object-contain p-1" />

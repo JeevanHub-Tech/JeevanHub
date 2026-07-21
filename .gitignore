@@ -45,7 +45,13 @@ Thumbs.db
 
 # Impeccable design context (PRODUCT.md, DESIGN.md, live config) — local only
 .impeccable/
-.claude/settings.local.json
+.claude/
 
 # Local Claude Code guidance file — not shared
 CLAUDE.md
+
+# Local agent/tooling state — not shared
+docs/
+.agents/
+.codex/
+.playwright-mcp/

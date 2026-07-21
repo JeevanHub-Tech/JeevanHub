@@ -1,5 +1,5 @@
 import { useContext, useState } from "react";
-import { Menu, MapPin, Search, X, Bell, LogOut } from "lucide-react";
+import { Menu, MapPin, Search, X, Bell, LogOut, ShoppingCart } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { exploreOptions } from "@/screens/publicNavigation";
+import { exploreOptions as defaultExploreOptions } from "@/screens/publicNavigation";
 import { useUserLocation } from "@/hooks/useUserLocation";
 import { AuthContext } from "@/context/AuthContext";
 import defaultProfilePic from "@/media/default-profile.png";
@@ -40,7 +40,7 @@ function NavigationLink({ item, onNavigate }) {
 // `navItems` array rendered once (desktop row + mobile disclosure), same
 // Explore/search/location treatment as the public nav. Role files own their own
 // data fetching (SSE badge counts, path-aware sublinks) and pass the result in.
-function DashboardNavbar({ navItems, profileTo, notificationsTo, logoTo = "/" }) {
+function DashboardNavbar({ navItems, profileTo, notificationsTo, cartTo, logoTo = "/", exploreOptions = defaultExploreOptions }) {
 	const [showMenu, setShowMenu] = useState(false);
 	const { auth, logout } = useContext(AuthContext);
 	const userLocation = useUserLocation();
@@ -70,7 +70,7 @@ function DashboardNavbar({ navItems, profileTo, notificationsTo, logoTo = "/" })
 				<div className="hidden min-w-0 flex-1 items-center justify-center lg:flex">
 					<div className="flex h-11 w-full max-w-xl items-center gap-2 rounded-lg bg-primary-foreground/10 pl-3 pr-1 text-primary-foreground/70 ring-1 ring-inset ring-primary-foreground/15 focus-within:ring-2 focus-within:ring-primary-foreground/60">
 						<Search className="size-4 shrink-0" aria-hidden="true" />
-						<Select onValueChange={handleExplore}>
+						<Select onValueChange={handleExplore} items={exploreOptions}>
 							<SelectTrigger
 								aria-label="Explore JeevanHub"
 								className="h-8 w-28 shrink-0 gap-1.5 border-0 bg-transparent px-2 text-sm font-semibold text-primary-foreground hover:bg-primary-foreground/10 focus-visible:ring-0 [&_svg]:text-primary-foreground/70"
@@ -92,6 +92,12 @@ function DashboardNavbar({ navItems, profileTo, notificationsTo, logoTo = "/" })
 
 				<div className="ml-auto flex items-center gap-2">
 					<span className="hidden items-center gap-1.5 text-xs font-medium text-primary-foreground/70 xl:flex"><MapPin className="size-3.5" aria-hidden="true" />{userLocation}</span>
+
+					{cartTo ? (
+						<NavLink to={cartTo} aria-label="Cart" className="hidden rounded-md p-2 text-primary-foreground/80 transition-colors hover:bg-primary-foreground/10 hover:text-primary-foreground sm:inline-flex">
+							<ShoppingCart className="size-5" aria-hidden="true" />
+						</NavLink>
+					) : null}
 
 					<NavLink to={notificationsTo} aria-label="Notifications" className="hidden rounded-md p-2 text-primary-foreground/80 transition-colors hover:bg-primary-foreground/10 hover:text-primary-foreground sm:inline-flex">
 						<Bell className="size-5" aria-hidden="true" />
@@ -146,6 +152,11 @@ function DashboardNavbar({ navItems, profileTo, notificationsTo, logoTo = "/" })
 							{userName}
 						</NavLink>
 						<div className="flex items-center gap-1">
+							{cartTo ? (
+								<NavLink to={cartTo} aria-label="Cart" onClick={() => setShowMenu(false)} className="rounded-md p-2 text-primary-foreground/80 hover:bg-primary-foreground/10">
+									<ShoppingCart className="size-5" aria-hidden="true" />
+								</NavLink>
+							) : null}
 							<NavLink to={notificationsTo} aria-label="Notifications" onClick={() => setShowMenu(false)} className="rounded-md p-2 text-primary-foreground/80 hover:bg-primary-foreground/10">
 								<Bell className="size-5" aria-hidden="true" />
 							</NavLink>

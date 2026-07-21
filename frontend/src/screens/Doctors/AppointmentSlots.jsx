@@ -1,10 +1,16 @@
-import React, { useState, useEffect, useContext } from "react";
+import { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
+import { Clock, Calendar, ChevronLeft, ChevronRight, ChevronDown } from "lucide-react";
+
 import { AuthContext } from "../../context/AuthContext";
-import "./AppointmentSlots.css"; // We copied CurrentRequests.css logic here
 import SlotManagement from "../../components/SlotManagement";
 import { authFetch } from "../../utils/authFetch";
-import { BACKEND_URL } from '../../config';
+import { BACKEND_URL } from "../../config";
+import { DashboardShell, DashboardPageHeader } from "@/components/layout/DashboardShell";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 function AppointmentSlots() {
 	const [appointments, setAppointments] = useState([]);
@@ -15,7 +21,7 @@ function AppointmentSlots() {
 	const [galleryImages, setGalleryImages] = useState([]);
 	const [currentImageIndex, setCurrentImageIndex] = useState(0);
 	const [selectedIllness, setSelectedIllness] = useState(null);
-	const [expandedProofs, setExpandedProofs] = useState({}); // To track which booking's proofs are visible
+	const [expandedProofs, setExpandedProofs] = useState({});
 
 	const { auth } = useContext(AuthContext);
 	const doctorId = auth.user?.id;
@@ -23,23 +29,23 @@ function AppointmentSlots() {
 	const navigate = useNavigate();
 
 	const toggleProofs = (id) => {
-		setExpandedProofs(prev => ({ ...prev, [id]: !prev[id] }));
+		setExpandedProofs((prev) => ({ ...prev, [id]: !prev[id] }));
 	};
 
 	const format12HourTime = (timeStr) => {
-		if (!timeStr) return '';
-		if (timeStr.toLowerCase().includes('am') || timeStr.toLowerCase().includes('pm')) return timeStr;
-		let [hours, minutes] = timeStr.split(':');
+		if (!timeStr) return "";
+		if (timeStr.toLowerCase().includes("am") || timeStr.toLowerCase().includes("pm")) return timeStr;
+		let [hours, minutes] = timeStr.split(":");
 		hours = parseInt(hours, 10);
-		const ampm = hours >= 12 ? 'PM' : 'AM';
+		const ampm = hours >= 12 ? "PM" : "AM";
 		hours = hours % 12;
 		hours = hours ? hours : 12;
-		hours = hours < 10 ? '0' + hours : hours;
+		hours = hours < 10 ? "0" + hours : hours;
 		return `${hours}:${minutes} ${ampm}`;
 	};
 
 	const timeElapsed = (dateStr) => {
-		if (!dateStr) return 'Recently';
+		if (!dateStr) return "Recently";
 		const diff = Date.now() - new Date(dateStr).getTime();
 		const minutes = Math.floor(diff / 60000);
 		if (minutes < 60) return `${minutes}m ago`;
@@ -51,8 +57,6 @@ function AppointmentSlots() {
 
 	const parseAppointmentDateTime = (dateString, timeSlot) => {
 		const appointmentDate = new Date(dateString);
-		// Guard: a booking whose slot no longer resolves has no timeSlot — fall back to
-		// the date itself rather than crashing the whole screen.
 		if (!timeSlot || typeof timeSlot !== "string") return appointmentDate;
 		const startTimePart = timeSlot.split(" - ")[0].trim();
 		const [time, period] = startTimePart.split(" ");
@@ -74,14 +78,11 @@ function AppointmentSlots() {
 					return;
 				}
 
-				const response = await authFetch(
-					`${BACKEND_URL}/api/bookings/doctor/${doctorId}`,
-					{
-						headers: {
-							Authorization: `Bearer ${localStorage.getItem("token")}`
-						}
-					}
-				);
+				const response = await authFetch(`${BACKEND_URL}/api/bookings/doctor/${doctorId}`, {
+					headers: {
+						Authorization: `Bearer ${localStorage.getItem("token")}`,
+					},
+				});
 
 				if (!response.ok) throw new Error("Failed to fetch appointments");
 
@@ -97,10 +98,7 @@ function AppointmentSlots() {
 						if (appointment.requestAccept !== "accepted") return false;
 						if (appointment.doctorEmail !== email) return false;
 
-						const appointmentDateTime = parseAppointmentDateTime(
-							appointment.dateOfAppointment,
-							appointment.timeSlot
-						);
+						const appointmentDateTime = parseAppointmentDateTime(appointment.dateOfAppointment, appointment.timeSlot);
 
 						return appointmentDateTime >= cutoffTime;
 					})
@@ -139,207 +137,236 @@ function AppointmentSlots() {
 		return now >= startTime && now <= endTime;
 	};
 
-	if (loading) return <p style={{ marginTop: "150px", padding: "15px", background: "white", width: "max-content", borderRadius: "15px", marginLeft: "50px" }}>Loading...</p>;
-	if (error) return <p style={{ marginTop: "150px", padding: "15px", background: "white", width: "max-content", borderRadius: "15px", marginLeft: "50px" }}>Error: {error}</p>;
+	if (loading) {
+		return (
+			<DashboardShell>
+				<p className="text-muted-foreground">Loading...</p>
+			</DashboardShell>
+		);
+	}
+
+	if (error) {
+		return (
+			<DashboardShell>
+				<p className="text-destructive">Error: {error}</p>
+			</DashboardShell>
+		);
+	}
 
 	return (
-		<div className="appointments-container">
-			<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', padding: '0 10px' }}>
-				<h1 style={{ margin: 0, fontSize: '28px', fontWeight: '800', color: '#1e293b' }}>My Appointment Slots</h1>
-				<button 
-					onClick={() => setShowManageSlots(!showManageSlots)}
-					style={{ padding: '10px 20px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
-				>
-					{showManageSlots ? 'Close Manage Slots' : 'Manage Slots'}
-				</button>
-			</div>
+		<DashboardShell>
+			<DashboardPageHeader
+				title="My Appointment Slots"
+				description="Showing upcoming appointments and those from the past 30 minutes."
+				actions={
+					<Button onClick={() => setShowManageSlots(!showManageSlots)}>
+						{showManageSlots ? "Close Manage Slots" : "Manage Slots"}
+					</Button>
+				}
+			/>
 
-			{showManageSlots && (
-				<div style={{ marginBottom: '30px' }}>
+			{showManageSlots ? (
+				<div className="mb-8">
 					<SlotManagement doctorId={doctorId} token={auth.token} defaultPrice={auth.user?.price || 500} />
 				</div>
-			)}
+			) : null}
 
-			<p style={{ padding: '0 10px', color: '#64748b', marginBottom: '20px' }}>Showing upcoming appointments and those from the past 30 minutes.</p>
-			
 			{appointments.length === 0 ? (
-				<p className="noRequest" style={{ marginLeft: '10px' }}>No upcoming appointments found.</p>
+				<p className="text-center text-muted-foreground">No upcoming appointments found.</p>
 			) : (
-				appointments.map((request) => {
-					const isActive = isAppointmentActive(request);
-					const hasMeetLink = request.meetLink && request.meetLink !== "no";
+				<div className="flex flex-col gap-5">
+					{appointments.map((request) => {
+						const isActive = isAppointmentActive(request);
+						const hasMeetLink = request.meetLink && request.meetLink !== "no";
 
-					return (
-						<div key={request._id} className="req-card" style={{ borderColor: isActive ? '#3b82f6' : '#e2e8f0', boxShadow: isActive ? '0 0 0 2px rgba(59, 130, 246, 0.2)' : undefined }}>
-							<div className="req-card-grid">
-								{/* Left Column: Patient Profile */}
-								<div className="req-col req-patient">
-									<div className="req-patient-header">
-										<h3 title="Patient Name">{request.patientName}</h3>
-										{isActive && (
-											<span className="req-badge" style={{ background: '#3b82f6', color: 'white', border: 'none' }} title="Appointment is currently ongoing">Active Now</span>
-										)}
-										{!isActive && request.isReturningPatient ? (
-											<span className="req-badge returning" title="Has previously booked appointments with you">Returning</span>
-										) : !isActive ? (
-											<span className="req-badge new" title="First-time booking with you">New</span>
-										) : null}
-									</div>
-									<p className="req-subtext" title={`Age: ${request.patientAge} yrs | Gender: ${request.patientGender} | Email: ${request.patientEmail}`}>
-										{request.patientAge || 'N/A'} yrs • {request.patientGender || 'N/A'} • {request.patientEmail || 'N/A'}
-									</p>
-									<div className="req-illness">
-										<strong>Illness:</strong>{" "}
-										{request.patientIllness && request.patientIllness.length > 80 ? (
-											<>
-												{request.patientIllness.substring(0, 80)}...
-												<button className="req-btn-link" onClick={() => setSelectedIllness(request.patientIllness)}>More</button>
-											</>
-										) : (
-											request.patientIllness || "No illness information"
-										)}
-									</div>
-									<div className="req-time" title="Time since the appointment was requested">
-										⏱ Requested {timeElapsed(request.createdAt)}
-									</div>
-								</div>
-
-								{/* Middle Column: Appointment & Payment */}
-								<div className="req-col req-appointment">
-									<div className="req-schedule">
-										<div className="req-date-time-col">
-											<div className="req-date" title="Date of Appointment">
-												📅 {new Date(request.dateOfAppointment).toLocaleDateString("en-GB", { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
-											</div>
-											<div className="req-time-slot" title="Time of Appointment">
-												⏰ {format12HourTime(request.timeSlot)}
-											</div>
-										</div>
-										<div className="req-price-wrapper">
-											<div className="req-price-badge" title="Consultation Fee">
-												{request.amountPaid === 0 ? (
-													<span className="req-badge free">Free</span>
-												) : (
-													<span className="req-badge paid">₹{request.amountPaid}</span>
-												)}
-											</div>
-										</div>
-									</div>
-									{request.amountPaid > 0 && request.paymentScreenshots && request.paymentScreenshots.length > 0 && (
-										<div className="req-gallery">
-											<div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }} onClick={() => toggleProofs(request._id)}>
-												<p className="req-gallery-title" style={{ margin: 0, color: '#4f46e5', fontWeight: '600' }}>
-													View Payment Proofs ({request.paymentScreenshots.length})
-												</p>
-												<span style={{ fontSize: '12px', color: '#4f46e5', transition: 'transform 0.2s', transform: expandedProofs[request._id] ? 'rotate(180deg)' : 'rotate(0deg)' }}>
-													▼
-												</span>
-											</div>
-											{expandedProofs[request._id] && (
-												<div className="req-gallery-grid" style={{ marginTop: '12px' }}>
-													{request.paymentScreenshots.map((proof, idx) => {
-														const imgUrl = proof.startsWith("http") ? proof : `${BACKEND_URL || 'http://localhost:8080'}/${proof}`;
-														return (
-															<img 
-																key={idx}
-																src={imgUrl} 
-																alt={`Proof ${idx + 1}`} 
-																className="req-thumb"
-																onClick={() => {
-																	setGalleryImages(request.paymentScreenshots);
-																	setCurrentImageIndex(idx);
-																}}
-															/>
-														);
-													})}
-												</div>
+						return (
+							<Card key={request._id} className={isActive ? "ring-2 ring-primary p-6" : "p-6"}>
+								<div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+									<div>
+										<div className="flex flex-wrap items-center gap-2">
+											<h3 className="text-lg font-semibold text-foreground">{request.patientName}</h3>
+											{isActive ? (
+												<Badge title="Appointment is currently ongoing">Active Now</Badge>
+											) : request.isReturningPatient ? (
+												<Badge variant="secondary" title="Has previously booked appointments with you">
+													Returning
+												</Badge>
+											) : (
+												<Badge title="First-time booking with you">New</Badge>
 											)}
 										</div>
-									)}
-								</div>
+										<p
+											className="mt-1 text-sm text-muted-foreground"
+											title={`Age: ${request.patientAge} yrs | Gender: ${request.patientGender} | Email: ${request.patientEmail}`}
+										>
+											{request.patientAge || "N/A"} yrs &bull; {request.patientGender || "N/A"} &bull;{" "}
+											{request.patientEmail || "N/A"}
+										</p>
+										<div className="mt-3 text-sm text-foreground/80">
+											<strong className="text-foreground">Illness:</strong>{" "}
+											{request.patientIllness && request.patientIllness.length > 80 ? (
+												<>
+													{request.patientIllness.substring(0, 80)}...
+													<button
+														className="ml-1 text-primary underline hover:no-underline"
+														onClick={() => setSelectedIllness(request.patientIllness)}
+													>
+														More
+													</button>
+												</>
+											) : (
+												request.patientIllness || "No illness information"
+											)}
+										</div>
+										<div
+											className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground"
+											title="Time since the appointment was requested"
+										>
+											<Clock className="size-3.5" /> Requested {timeElapsed(request.createdAt)}
+										</div>
+									</div>
 
-								{/* Right Column: Actions */}
-								<div className="req-col req-actions">
-									{hasMeetLink ? (
-										<button className="req-btn accept" style={{ background: '#10b981', border: 'none' }} onClick={() => handleJoinMeet(request.meetLink)}>
-											Join Meet
-										</button>
-									) : (
-										<button className="req-btn" style={{ background: '#94a3b8', color: 'white', border: 'none', cursor: 'not-allowed' }} disabled>
-											Meeting Link Pending
-										</button>
-									)}
-									
-									<button 
-										className="req-btn" 
-										style={{ background: '#3b82f6', color: 'white', border: 'none' }} 
-										onClick={() => navigate(`/doctorsprescribe/${request._id}`)}
-									>
-										Prescribe Medicine & Diet - Yoga Plan
-									</button>
+									<div>
+										<div className="flex flex-wrap items-center justify-between gap-3">
+											<div className="flex flex-col gap-1 text-sm text-foreground/80">
+												<span className="flex items-center gap-1.5" title="Date of Appointment">
+													<Calendar className="size-4 text-muted-foreground" />
+													{new Date(request.dateOfAppointment).toLocaleDateString("en-GB", {
+														weekday: "short",
+														day: "numeric",
+														month: "short",
+														year: "numeric",
+													})}
+												</span>
+												<span className="flex items-center gap-1.5" title="Time of Appointment">
+													<Clock className="size-4 text-muted-foreground" />
+													{format12HourTime(request.timeSlot)}
+												</span>
+											</div>
+											<Badge variant={request.amountPaid === 0 ? "secondary" : "default"} title="Consultation Fee">
+												{request.amountPaid === 0 ? "Free" : `₹${request.amountPaid}`}
+											</Badge>
+										</div>
+										{request.amountPaid > 0 && request.paymentScreenshots && request.paymentScreenshots.length > 0 ? (
+											<div className="mt-4">
+												<button
+													type="button"
+													className="flex items-center gap-2 font-semibold text-primary"
+													onClick={() => toggleProofs(request._id)}
+												>
+													View Payment Proofs ({request.paymentScreenshots.length})
+													<ChevronDown
+														className={
+															expandedProofs[request._id] ? "size-4 rotate-180 transition-transform" : "size-4 transition-transform"
+														}
+													/>
+												</button>
+												{expandedProofs[request._id] ? (
+													<div className="mt-3 flex flex-wrap gap-2">
+														{request.paymentScreenshots.map((proof, idx) => {
+															const imgUrl = proof.startsWith("http")
+																? proof
+																: `${BACKEND_URL || "http://localhost:8080"}/${proof}`;
+															return (
+																<img
+																	key={idx}
+																	src={imgUrl}
+																	alt={`Proof ${idx + 1}`}
+																	className="size-16 cursor-pointer rounded-md border border-border object-cover"
+																	onClick={() => {
+																		setGalleryImages(request.paymentScreenshots);
+																		setCurrentImageIndex(idx);
+																	}}
+																/>
+															);
+														})}
+													</div>
+												) : null}
+											</div>
+										) : null}
+									</div>
+
+									<div className="flex flex-col gap-2">
+										{hasMeetLink ? (
+											<Button onClick={() => handleJoinMeet(request.meetLink)}>Join Meet</Button>
+										) : (
+											<Button variant="secondary" disabled>
+												Meeting Link Pending
+											</Button>
+										)}
+
+										<Button variant="outline" onClick={() => navigate(`/doctorsprescribe/${request._id}`)}>
+											Prescribe Medicine & Diet - Yoga Plan
+										</Button>
+									</div>
 								</div>
-							</div>
-						</div>
-					);
-				})
+							</Card>
+						);
+					})}
+				</div>
 			)}
 
 			{/* Image Gallery Modal */}
-			{galleryImages.length > 0 && (
-				<div className="gallery-overlay" onClick={() => setGalleryImages([])}>
-					<div className="gallery-modal" onClick={e => e.stopPropagation()}>
-						<button className="gallery-close" onClick={() => setGalleryImages([])}>×</button>
-						
-						{galleryImages.length > 1 && (
-							<button 
-								className="gallery-nav prev" 
+			<Dialog open={galleryImages.length > 0} onOpenChange={(open) => !open && setGalleryImages([])}>
+				<DialogContent className="max-w-2xl">
+					<div className="relative flex items-center justify-center">
+						{galleryImages.length > 1 ? (
+							<button
+								className="absolute left-0 z-10 rounded-full bg-muted p-2 text-foreground"
 								onClick={() => setCurrentImageIndex((prev) => (prev === 0 ? galleryImages.length - 1 : prev - 1))}
 							>
-								&#10094;
+								<ChevronLeft className="size-5" />
 							</button>
-						)}
+						) : null}
 
-						<img 
-							src={galleryImages[currentImageIndex]?.startsWith("http") ? galleryImages[currentImageIndex] : `${BACKEND_URL || 'http://localhost:8080'}/${galleryImages[currentImageIndex]}`} 
-							alt="Enlarged Proof" 
-							className="gallery-image-large" 
+						<img
+							src={
+								galleryImages[currentImageIndex]?.startsWith("http")
+									? galleryImages[currentImageIndex]
+									: `${BACKEND_URL || "http://localhost:8080"}/${galleryImages[currentImageIndex]}`
+							}
+							alt="Enlarged Proof"
+							className="max-h-[70vh] w-full rounded-lg object-contain"
 						/>
 
-						{galleryImages.length > 1 && (
-							<button 
-								className="gallery-nav next" 
+						{galleryImages.length > 1 ? (
+							<button
+								className="absolute right-0 z-10 rounded-full bg-muted p-2 text-foreground"
 								onClick={() => setCurrentImageIndex((prev) => (prev === galleryImages.length - 1 ? 0 : prev + 1))}
 							>
-								&#10095;
+								<ChevronRight className="size-5" />
 							</button>
-						)}
-
-						{galleryImages.length > 1 && (
-							<div className="gallery-dots">
-								{galleryImages.map((_, idx) => (
-									<span 
-										key={idx} 
-										className={`gallery-dot ${idx === currentImageIndex ? 'active' : ''}`}
-										onClick={() => setCurrentImageIndex(idx)}
-									></span>
-								))}
-							</div>
-						)}
+						) : null}
 					</div>
-				</div>
-			)}
+
+					{galleryImages.length > 1 ? (
+						<div className="flex justify-center gap-2">
+							{galleryImages.map((_, idx) => (
+								<span
+									key={idx}
+									onClick={() => setCurrentImageIndex(idx)}
+									className={
+										idx === currentImageIndex
+											? "size-2 cursor-pointer rounded-full bg-primary"
+											: "size-2 cursor-pointer rounded-full bg-muted-foreground/30"
+									}
+								/>
+							))}
+						</div>
+					) : null}
+				</DialogContent>
+			</Dialog>
 
 			{/* Illness Modal */}
-			{selectedIllness && (
-				<div className="gallery-overlay" onClick={() => setSelectedIllness(null)}>
-					<div className="gallery-modal" style={{ padding: '32px', maxWidth: '600px', backgroundColor: '#fff', borderRadius: '16px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', textAlign: 'left' }} onClick={e => e.stopPropagation()}>
-						<button className="gallery-close" style={{ color: '#1e293b', background: '#f1f5f9' }} onClick={() => setSelectedIllness(null)}>×</button>
-						<h3 style={{ marginTop: 0, fontSize: '20px', fontWeight: '700', color: '#0f172a', marginBottom: '16px' }}>Patient's Illness Details</h3>
-						<p style={{ lineHeight: '1.6', color: '#334155', fontSize: '15px', margin: 0, whiteSpace: 'pre-wrap' }}>{selectedIllness}</p>
-					</div>
-				</div>
-			)}
-		</div>
+			<Dialog open={!!selectedIllness} onOpenChange={(open) => !open && setSelectedIllness(null)}>
+				<DialogContent className="max-w-lg">
+					<DialogHeader>
+						<DialogTitle>Patient's Illness Details</DialogTitle>
+					</DialogHeader>
+					<p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/80">{selectedIllness}</p>
+				</DialogContent>
+			</Dialog>
+		</DashboardShell>
 	);
 }
 

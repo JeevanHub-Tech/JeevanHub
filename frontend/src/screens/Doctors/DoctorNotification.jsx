@@ -1,8 +1,10 @@
 import { useState, useEffect, useContext } from "react";
-import "../Patients/Notification.css";
+
 import { AuthContext } from "../../context/AuthContext";
 import { authFetch } from "../../utils/authFetch";
-import { BACKEND_URL } from '../../config';
+import { BACKEND_URL } from "../../config";
+import { DashboardShell, DashboardPageHeader } from "@/components/layout/DashboardShell";
+import { Card } from "@/components/ui/card";
 
 const DoctorNotification = () => {
 	const { auth } = useContext(AuthContext);
@@ -14,7 +16,6 @@ const DoctorNotification = () => {
 
 	useEffect(() => {
 		const fetchNotifications = async () => {
-			// 1. Check if user is authenticated
 			if (!auth?.token) {
 				setLoading(false);
 				return;
@@ -22,28 +23,26 @@ const DoctorNotification = () => {
 
 			const queryParams = new URLSearchParams({
 				userId: doctorId,
-				role: 'doctor'
+				role: "doctor",
 			}).toString();
 
 			try {
-				// 2. Fetch from your backend
 				const response = await authFetch(`${BACKEND_URL}/api/notifications?${queryParams}`, {
-					method: 'GET',
+					method: "GET",
 					headers: {
-						'Content-Type': 'application/json'
-					}
+						"Content-Type": "application/json",
+					},
 				});
 
 				if (!response.ok) {
-					throw new Error('Failed to fetch notifications');
+					throw new Error("Failed to fetch notifications");
 				}
 
 				const data = await response.json();
 
-				const unreadNotifications = data.filter(n => n.isRead === false);
+				const unreadNotifications = data.filter((n) => n.isRead === false);
 
 				setNotifications(unreadNotifications);
-
 			} catch (err) {
 				console.error("Error fetching notifications:", err);
 				setError("Could not load notifications.");
@@ -53,38 +52,49 @@ const DoctorNotification = () => {
 		};
 
 		fetchNotifications();
-	}, [auth]); 
+	}, [auth, doctorId]);
 
 	if (loading) {
-		return <div className="notification-container"><p>Loading notifications...</p></div>;
+		return (
+			<DashboardShell>
+				<p className="text-center text-muted-foreground">Loading notifications...</p>
+			</DashboardShell>
+		);
 	}
 
 	if (error) {
-		return <div className="notification-container"><p className="error-text">{error}</p></div>;
+		return (
+			<DashboardShell>
+				<p className="text-center text-destructive">{error}</p>
+			</DashboardShell>
+		);
 	}
 
 	return (
-		<div className="notification-container">
-			<h2>Doctor Notifications</h2>
-			{notifications.length === 0 ? (
-				<p>No new notifications.</p>
-			) : (
-				<ul>
-					{notifications.map((notification) => (
-						<li key={notification._id}> 
-							<p>{notification.message}</p>
-							<span>
-								{new Date(notification.createdAt).toLocaleDateString("en-US", {
-									year: 'numeric',
-									month: 'long',
-									day: 'numeric'
-								})}
-							</span>
-						</li>
-					))}
-				</ul>
-			)}
-		</div>
+		<DashboardShell>
+			<DashboardPageHeader title="Doctor Notifications" />
+
+			<div className="mx-auto max-w-2xl">
+				{notifications.length === 0 ? (
+					<p className="text-center text-muted-foreground">No new notifications.</p>
+				) : (
+					<div className="flex flex-col gap-3">
+						{notifications.map((notification) => (
+							<Card key={notification._id} className="p-4">
+								<p className="text-sm text-foreground/80">{notification.message}</p>
+								<span className="mt-1 block text-xs text-muted-foreground">
+									{new Date(notification.createdAt).toLocaleDateString("en-US", {
+										year: "numeric",
+										month: "long",
+										day: "numeric",
+									})}
+								</span>
+							</Card>
+						))}
+					</div>
+				)}
+			</div>
+		</DashboardShell>
 	);
 };
 

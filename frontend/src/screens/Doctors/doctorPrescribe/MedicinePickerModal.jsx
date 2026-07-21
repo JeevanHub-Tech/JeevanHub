@@ -1,15 +1,18 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { Search, X, ChevronLeft, ChevronRight, ArrowLeft, Check, Loader2, Pill } from 'lucide-react';
-import './MedicinePickerModal.css';
-import { BACKEND_URL } from '../../../config';
+import { useState, useEffect, useMemo } from "react";
+import { Search, X, ChevronLeft, ChevronRight, ArrowLeft, Check, Loader2, Pill } from "lucide-react";
 
-const BACKEND = BACKEND_URL || 'http://localhost:8080';
-const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1587854692152-cbe660dbde88?q=80&w=600&auto=format&fit=crop';
+import { BACKEND_URL } from "../../../config";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+
+const BACKEND = BACKEND_URL || "http://localhost:8080";
+const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1587854692152-cbe660dbde88?q=80&w=600&auto=format&fit=crop";
 
 const resolveImages = (medicine) => {
-	const imgs = (medicine.images || [])
-		.filter(Boolean)
-		.map(img => (img.startsWith('http') ? img : `${BACKEND}/${img}`));
+	const imgs = (medicine.images || []).filter(Boolean).map((img) => (img.startsWith("http") ? img : `${BACKEND}/${img}`));
 	return imgs.length > 0 ? imgs : [FALLBACK_IMAGE];
 };
 
@@ -19,9 +22,8 @@ export function MedicinePickerModal({ onSelect, onClose }) {
 	const [medicines, setMedicines] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
-	const [searchTerm, setSearchTerm] = useState('');
+	const [searchTerm, setSearchTerm] = useState("");
 
-	// When a medicine is opened for a closer look
 	const [detailMedicine, setDetailMedicine] = useState(null);
 	const [imageIndex, setImageIndex] = useState(0);
 
@@ -29,11 +31,11 @@ export function MedicinePickerModal({ onSelect, onClose }) {
 		const fetchMedicines = async () => {
 			try {
 				const response = await fetch(`${BACKEND}/api/medicines`);
-				if (!response.ok) throw new Error('Failed to load medicines');
+				if (!response.ok) throw new Error("Failed to load medicines");
 				const data = await response.json();
 				setMedicines(Array.isArray(data) ? data : []);
 			} catch (err) {
-				console.error('Error loading medicines:', err);
+				console.error("Error loading medicines:", err);
 				setError(err.message);
 			} finally {
 				setLoading(false);
@@ -45,10 +47,8 @@ export function MedicinePickerModal({ onSelect, onClose }) {
 	const filtered = useMemo(() => {
 		if (!searchTerm.trim()) return medicines;
 		const q = searchTerm.toLowerCase();
-		return medicines.filter(m =>
-			m.name?.toLowerCase().includes(q) ||
-			m.category?.toLowerCase().includes(q) ||
-			m.description?.toLowerCase().includes(q)
+		return medicines.filter(
+			(m) => m.name?.toLowerCase().includes(q) || m.category?.toLowerCase().includes(q) || m.description?.toLowerCase().includes(q)
 		);
 	}, [medicines, searchTerm]);
 
@@ -65,133 +65,175 @@ export function MedicinePickerModal({ onSelect, onClose }) {
 	const detailImages = detailMedicine ? resolveImages(detailMedicine) : [];
 
 	return (
-		<div className="mp-overlay" onClick={onClose}>
-			<div className="mp-modal" onClick={(e) => e.stopPropagation()}>
-
-				{/* Header */}
-				<div className="mp-header">
+		<Dialog open onOpenChange={(open) => !open && onClose()}>
+			<DialogContent className="flex h-[88vh] max-w-[1100px] flex-col gap-0 p-0">
+				<DialogHeader className="flex-row items-center justify-between border-b border-border px-6 py-4">
 					{detailMedicine ? (
-						<button className="mp-back" onClick={() => setDetailMedicine(null)}>
+						<button
+							className="inline-flex items-center gap-2 text-sm font-semibold text-primary"
+							onClick={() => setDetailMedicine(null)}
+						>
 							<ArrowLeft size={18} /> Back to all medicines
 						</button>
 					) : (
-						<h2 className="mp-title"><Pill size={20} /> Select a medicine from inventory</h2>
+						<DialogTitle className="flex items-center gap-2.5">
+							<Pill size={20} /> Select a medicine from inventory
+						</DialogTitle>
 					)}
-					<button className="mp-close" onClick={onClose} aria-label="Close"><X size={22} /></button>
-				</div>
+				</DialogHeader>
 
-				{/* Body */}
 				{detailMedicine ? (
-					/* ---------- DETAIL VIEW ---------- */
-					<div className="mp-detail">
-						<div className="mp-detail-image-col">
-							<div className="mp-carousel">
-								{detailImages.length > 1 && (
-									<button className="mp-carousel-btn prev" onClick={() => setImageIndex(i => i === 0 ? detailImages.length - 1 : i - 1)}>
-										<ChevronLeft size={22} />
+					<div className="grid flex-1 grid-cols-1 gap-7 overflow-y-auto p-6 sm:grid-cols-2">
+						<div>
+							<div className="relative flex aspect-square items-center justify-center overflow-hidden rounded-xl bg-muted/40">
+								{detailImages.length > 1 ? (
+									<button
+										className="absolute top-1/2 left-2.5 flex size-10 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-card/85 text-foreground"
+										onClick={() => setImageIndex((i) => (i === 0 ? detailImages.length - 1 : i - 1))}
+									>
+										<ChevronLeft size={20} />
 									</button>
-								)}
+								) : null}
 								<img
 									src={detailImages[imageIndex]}
 									alt={detailMedicine.name}
-									className="mp-carousel-img"
-									onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = FALLBACK_IMAGE; }}
+									className="size-full object-contain"
+									onError={(e) => {
+										e.currentTarget.onerror = null;
+										e.currentTarget.src = FALLBACK_IMAGE;
+									}}
 								/>
-								{detailImages.length > 1 && (
-									<button className="mp-carousel-btn next" onClick={() => setImageIndex(i => i === detailImages.length - 1 ? 0 : i + 1)}>
-										<ChevronRight size={22} />
+								{detailImages.length > 1 ? (
+									<button
+										className="absolute top-1/2 right-2.5 flex size-10 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-card/85 text-foreground"
+										onClick={() => setImageIndex((i) => (i === detailImages.length - 1 ? 0 : i + 1))}
+									>
+										<ChevronRight size={20} />
 									</button>
-								)}
+								) : null}
 							</div>
-							{detailImages.length > 1 && (
-								<div className="mp-dots">
+							{detailImages.length > 1 ? (
+								<div className="mt-3 flex justify-center gap-1.5">
 									{detailImages.map((_, idx) => (
-										<span key={idx} className={`mp-dot ${idx === imageIndex ? 'active' : ''}`} onClick={() => setImageIndex(idx)} />
+										<span
+											key={idx}
+											onClick={() => setImageIndex(idx)}
+											className={
+												idx === imageIndex
+													? "size-2 scale-125 cursor-pointer rounded-full bg-primary"
+													: "size-2 cursor-pointer rounded-full bg-muted-foreground/30"
+											}
+										/>
 									))}
 								</div>
-							)}
+							) : null}
 						</div>
 
-						<div className="mp-detail-info">
-							<h3 className="mp-detail-name">{detailMedicine.name}</h3>
-							<div className="mp-detail-meta">
-								{detailMedicine.category && <span className="mp-chip">{detailMedicine.category}</span>}
+						<div>
+							<h3 className="mb-3 text-2xl font-extrabold text-foreground">{detailMedicine.name}</h3>
+							<div className="mb-4 flex flex-wrap gap-2">
+								{detailMedicine.category ? <Badge variant="secondary">{detailMedicine.category}</Badge> : null}
 								{detailMedicine.prescription ? (
-									<span className="mp-chip rx">Rx Required</span>
+									<Badge variant="destructive">Rx Required</Badge>
 								) : (
-									<span className="mp-chip otc">No Prescription</span>
+									<Badge className="bg-primary/15 text-primary hover:bg-primary/15">No Prescription</Badge>
 								)}
 							</div>
-							<div className="mp-detail-price">₹{detailMedicine.price}</div>
-							{detailMedicine.retailerId && (
-								<p className="mp-detail-seller">
-									Sold by {detailMedicine.retailerId.firstName || ''} {detailMedicine.retailerId.lastName || ''}
+							<div className="mb-1 text-2xl font-extrabold text-primary">₹{detailMedicine.price}</div>
+							{detailMedicine.retailerId ? (
+								<p className="mb-5 text-sm text-muted-foreground">
+									Sold by {detailMedicine.retailerId.firstName || ""} {detailMedicine.retailerId.lastName || ""}
 								</p>
-							)}
-							<div className="mp-detail-desc">
-								<h4>Description</h4>
-								<p>{detailMedicine.description || 'No description provided.'}</p>
+							) : null}
+							<div className="mb-5">
+								<h4 className="mb-1.5 text-sm font-bold text-foreground">Description</h4>
+								<p className="text-sm leading-relaxed text-foreground/80">
+									{detailMedicine.description || "No description provided."}
+								</p>
 							</div>
-							<div className="mp-detail-stock">
-								{detailMedicine.quantity > 0
-									? <span className="mp-in-stock">In stock ({detailMedicine.quantity} available)</span>
-									: <span className="mp-out-stock">Out of stock</span>}
+							<div>
+								{detailMedicine.quantity > 0 ? (
+									<span className="text-sm font-semibold text-primary">In stock ({detailMedicine.quantity} available)</span>
+								) : (
+									<span className="text-sm font-semibold text-destructive">Out of stock</span>
+								)}
 							</div>
 						</div>
 					</div>
 				) : (
-					/* ---------- GRID VIEW ---------- */
 					<>
-						<div className="mp-search">
-							<Search size={18} className="mp-search-icon" />
-							<input
+						<div className="mx-6 mt-4.5 flex items-center gap-2.5 rounded-lg border border-input px-3.5 py-2.5">
+							<Search size={18} className="shrink-0 text-muted-foreground" />
+							<Input
 								type="text"
 								placeholder="Search by name, category, or description..."
 								value={searchTerm}
 								onChange={(e) => setSearchTerm(e.target.value)}
 								autoFocus
+								className="h-auto border-0 p-0 shadow-none focus-visible:ring-0"
 							/>
-							{searchTerm && (
-								<button className="mp-search-clear" onClick={() => setSearchTerm('')}><X size={16} /></button>
-							)}
+							{searchTerm ? (
+								<button onClick={() => setSearchTerm("")} className="shrink-0 text-muted-foreground">
+									<X size={16} />
+								</button>
+							) : null}
 						</div>
 
-						<div className="mp-grid-scroll">
+						<div className="flex-1 overflow-y-auto p-6">
 							{loading ? (
-								<div className="mp-status"><Loader2 className="mp-spin" size={28} /> Loading medicines...</div>
+								<div className="flex items-center justify-center gap-2.5 py-16 text-muted-foreground">
+									<Loader2 className="size-7 animate-spin" /> Loading medicines...
+								</div>
 							) : error ? (
-								<div className="mp-status">{error}</div>
+								<div className="flex items-center justify-center py-16 text-muted-foreground">{error}</div>
 							) : filtered.length === 0 ? (
-								<div className="mp-status">No medicines match your search.</div>
+								<div className="flex items-center justify-center py-16 text-muted-foreground">No medicines match your search.</div>
 							) : (
-								<div className="mp-grid">
+								<div className="grid grid-cols-1 gap-4.5 [grid-template-columns:repeat(auto-fill,minmax(200px,1fr))]">
 									{filtered.map((medicine) => {
 										const img = resolveImages(medicine)[0];
 										return (
-											<div key={medicine._id} className="mp-card" onClick={() => openDetail(medicine)}>
-												<div className="mp-card-img-wrap">
+											<Card
+												key={medicine._id}
+												className="cursor-pointer gap-3 overflow-hidden py-0 transition-all hover:-translate-y-0.5 hover:border-primary hover:shadow-md"
+												onClick={() => openDetail(medicine)}
+											>
+												<div className="flex h-[150px] items-center justify-center overflow-hidden bg-muted/40">
 													<img
 														src={img}
 														alt={medicine.name}
-														className="mp-card-img"
+														className="size-full object-cover"
 														loading="lazy"
-														onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = FALLBACK_IMAGE; }}
+														onError={(e) => {
+															e.currentTarget.onerror = null;
+															e.currentTarget.src = FALLBACK_IMAGE;
+														}}
 													/>
 												</div>
-												<div className="mp-card-body">
-													<h4 className="mp-card-name" title={medicine.name}>{medicine.name}</h4>
-													<div className="mp-card-row">
-														<span className="mp-card-price">₹{medicine.price}</span>
-														{medicine.category && <span className="mp-card-cat">{medicine.category}</span>}
+												<div className="flex flex-1 flex-col gap-2 p-3">
+													<h4 className="truncate text-sm font-bold text-foreground" title={medicine.name}>
+														{medicine.name}
+													</h4>
+													<div className="mt-auto flex items-center justify-between gap-2">
+														<span className="text-base font-bold text-primary">₹{medicine.price}</span>
+														{medicine.category ? (
+															<Badge variant="secondary" className="text-[11px]">
+																{medicine.category}
+															</Badge>
+														) : null}
 													</div>
-													<button
-														className="mp-card-select"
-														onClick={(e) => { e.stopPropagation(); confirmSelect(medicine); }}
+													<Button
+														variant="outline"
+														size="sm"
+														onClick={(e) => {
+															e.stopPropagation();
+															confirmSelect(medicine);
+														}}
 													>
-														<Check size={15} /> Select
-													</button>
+														<Check data-icon="inline-start" /> Select
+													</Button>
 												</div>
-											</div>
+											</Card>
 										);
 									})}
 								</div>
@@ -200,16 +242,15 @@ export function MedicinePickerModal({ onSelect, onClose }) {
 					</>
 				)}
 
-				{/* Sticky select bar in detail view */}
-				{detailMedicine && (
-					<div className="mp-footer">
-						<button className="mp-select-btn" onClick={() => confirmSelect(detailMedicine)}>
-							<Check size={18} /> Select this medicine
-						</button>
+				{detailMedicine ? (
+					<div className="flex justify-end border-t border-border p-4">
+						<Button size="lg" onClick={() => confirmSelect(detailMedicine)}>
+							<Check data-icon="inline-start" /> Select this medicine
+						</Button>
 					</div>
-				)}
-			</div>
-		</div>
+				) : null}
+			</DialogContent>
+		</Dialog>
 	);
 }
 

@@ -1,14 +1,19 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
-import { Stethoscope, Send, Loader2, Activity } from 'lucide-react';
-import { PatientHeader } from './PatientHeader';
-import { PrescriptionHistory } from './PrescriptionHistory';
-import { PrescriptionTabs } from './PrescriptionTabs';
-import './PrescribeIndex.css';
-import { authFetch } from '../../../utils/authFetch';
-import { BACKEND_URL } from '../../../config';
+import { useState, useEffect, useCallback } from "react";
+import { useParams } from "react-router-dom";
+import { Stethoscope, Send, Loader2, Activity } from "lucide-react";
 
-const BACKEND = BACKEND_URL || 'http://localhost:8080';
+import { PatientHeader } from "./PatientHeader";
+import { PrescriptionHistory } from "./PrescriptionHistory";
+import { PrescriptionTabs } from "./PrescriptionTabs";
+import { authFetch } from "../../../utils/authFetch";
+import { BACKEND_URL } from "../../../config";
+import { DashboardShell } from "@/components/layout/DashboardShell";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { FieldLabel } from "@/components/ui/field";
+
+const BACKEND = BACKEND_URL || "http://localhost:8080";
 
 const PrescribeIndex = () => {
 	const { bookingId } = useParams();
@@ -21,17 +26,16 @@ const PrescribeIndex = () => {
 	const [history, setHistory] = useState([]);
 	const [loadingHistory, setLoadingHistory] = useState(true);
 
-	const [diagnosis, setDiagnosis] = useState('');
+	const [diagnosis, setDiagnosis] = useState("");
 	const [submitting, setSubmitting] = useState(false);
 
 	const patientId = booking?.patientId?._id;
 
-	// 1. The booking is the single source of truth for patient / doctor / illness.
 	useEffect(() => {
 		const fetchBooking = async () => {
 			if (!bookingId) {
 				setLoading(false);
-				setError('No appointment was selected.');
+				setError("No appointment was selected.");
 				return;
 			}
 			setLoading(true);
@@ -40,13 +44,13 @@ const PrescribeIndex = () => {
 				const response = await authFetch(`${BACKEND}/api/bookings/${bookingId}`);
 				if (!response.ok) {
 					const errData = await response.json().catch(() => ({}));
-					throw new Error(errData.error || 'Failed to load this appointment.');
+					throw new Error(errData.error || "Failed to load this appointment.");
 				}
 				const data = await response.json();
 				setBooking(data.booking);
-				setDiagnosis(data.booking.diagnosis || '');
+				setDiagnosis(data.booking.diagnosis || "");
 			} catch (err) {
-				console.error('Error fetching booking:', err);
+				console.error("Error fetching booking:", err);
 				setError(err.message);
 			} finally {
 				setLoading(false);
@@ -55,7 +59,6 @@ const PrescribeIndex = () => {
 		fetchBooking();
 	}, [bookingId]);
 
-	// 2. This doctor's own prescription history with this patient (re-fetchable).
 	const refetchHistory = useCallback(async () => {
 		if (!patientId) return;
 		setLoadingHistory(true);
@@ -66,15 +69,16 @@ const PrescribeIndex = () => {
 				setHistory(data.bookings || []);
 			}
 		} catch (err) {
-			console.error('Error fetching prescription history:', err);
+			console.error("Error fetching prescription history:", err);
 		} finally {
 			setLoadingHistory(false);
 		}
 	}, [patientId]);
 
-	useEffect(() => { refetchHistory(); }, [refetchHistory]);
+	useEffect(() => {
+		refetchHistory();
+	}, [refetchHistory]);
 
-	// 3. Patient's Prakriti (dosha), if assessed.
 	useEffect(() => {
 		const fetchPrakriti = async () => {
 			if (!patientId) return;
@@ -85,7 +89,7 @@ const PrescribeIndex = () => {
 					setPrakritiDosha(data?.dominantDosha || null);
 				}
 			} catch (err) {
-				console.error('Error fetching Prakriti assessment:', err);
+				console.error("Error fetching Prakriti assessment:", err);
 			}
 		};
 		fetchPrakriti();
@@ -94,12 +98,12 @@ const PrescribeIndex = () => {
 	const saveDiagnosis = async () => {
 		try {
 			await authFetch(`${BACKEND}/api/bookings/${bookingId}/diagnosis`, {
-				method: 'PUT',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ diagnosis })
+				method: "PUT",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ diagnosis }),
 			});
 		} catch (err) {
-			console.error('Failed to save diagnosis:', err);
+			console.error("Failed to save diagnosis:", err);
 		}
 	};
 
@@ -110,12 +114,12 @@ const PrescribeIndex = () => {
 		setSubmitting(true);
 		try {
 			const response = await authFetch(`${BACKEND}/api/bookings/${bookingId}/notify-prescription`, {
-				method: 'POST'
+				method: "POST",
 			});
-			if (!response.ok) throw new Error('Failed to submit');
-			alert('The prescription has been submitted — the patient has been notified.');
+			if (!response.ok) throw new Error("Failed to submit");
+			alert("The prescription has been submitted — the patient has been notified.");
 		} catch (err) {
-			alert('Could not submit the prescription. Please try again.');
+			alert("Could not submit the prescription. Please try again.");
 		} finally {
 			setSubmitting(false);
 		}
@@ -123,55 +127,57 @@ const PrescribeIndex = () => {
 
 	if (loading) {
 		return (
-			<div className="pi-container">
-				<main className="pi-main-status"><p className="pi-loading-overlay">Loading patient details...</p></main>
-			</div>
+			<DashboardShell>
+				<p className="text-center text-lg font-bold text-primary">Loading patient details...</p>
+			</DashboardShell>
 		);
 	}
 
 	if (error || !booking) {
 		return (
-			<div className="pi-container">
-				<main className="pi-main-status">
-					<div className="pi-error-state">
-						<p>{error || 'This appointment could not be found.'}</p>
-						<p className="pi-error-hint">Please go back to your appointment list and try again.</p>
-					</div>
-				</main>
-			</div>
+			<DashboardShell>
+				<Card className="mx-auto max-w-2xl p-8 text-center">
+					<p className="text-foreground">{error || "This appointment could not be found."}</p>
+					<p className="mt-2 text-sm text-muted-foreground">Please go back to your appointment list and try again.</p>
+				</Card>
+			</DashboardShell>
 		);
 	}
 
 	return (
-		<div className="pi-container">
-			<main className="pi-main">
-				<div className="pi-row-full">
+		<DashboardShell>
+			<div className="mx-auto grid max-w-[1320px] grid-cols-1 items-start gap-6 lg:grid-cols-[340px_1fr]">
+				<div className="col-span-full">
 					<PatientHeader patient={booking.patientId} prakritiDosha={prakritiDosha} />
 				</div>
 
-				{/* Consultation bar: complaint · diagnosis */}
-				<div className="pi-row-full">
-					<div className="pi-consult-bar">
-						<div className="pi-consult-complaint">
-							<span className="pi-consult-label"><Activity size={14} /> Patient's complaint</span>
-							<p className="pi-consult-illness">{booking.patientIllness || 'Not specified'}</p>
+				<div className="col-span-full">
+					<Card className="grid grid-cols-1 gap-6 p-4.5 sm:grid-cols-[1fr_1.2fr]">
+						<div>
+							<span className="mb-1.5 inline-flex items-center gap-1.5 text-xs font-bold text-muted-foreground uppercase tracking-wide">
+								<Activity size={14} /> Patient's complaint
+							</span>
+							<p className="text-sm leading-relaxed text-foreground/80">{booking.patientIllness || "Not specified"}</p>
 						</div>
-						<div className="pi-consult-diagnosis">
-							<label className="pi-consult-label" htmlFor="pi-diagnosis"><Stethoscope size={14} /> Diagnosis for this visit</label>
-							<input
+						<div className="flex flex-col">
+							<FieldLabel
+								htmlFor="pi-diagnosis"
+								className="mb-1.5 inline-flex items-center gap-1.5 text-xs font-bold text-muted-foreground uppercase tracking-wide"
+							>
+								<Stethoscope size={14} /> Diagnosis for this visit
+							</FieldLabel>
+							<Input
 								id="pi-diagnosis"
-								className="pi-diagnosis-input"
 								placeholder="e.g., Amavata (rheumatoid-type joint inflammation)"
 								value={diagnosis}
 								onChange={(e) => setDiagnosis(e.target.value)}
 								onBlur={saveDiagnosis}
 							/>
 						</div>
-					</div>
+					</Card>
 				</div>
 
-				{/* Previous prescriptions — narrower left column */}
-				<div className="pi-col-history">
+				<div>
 					<PrescriptionHistory
 						prescriptions={history}
 						loading={loadingHistory}
@@ -180,8 +186,7 @@ const PrescribeIndex = () => {
 					/>
 				</div>
 
-				{/* Medicine / Diet / Yoga / History tabs + Submit — wider right column */}
-				<div className="pi-col-main">
+				<div className="flex flex-col gap-5">
 					<PrescriptionTabs
 						bookingId={booking._id}
 						patientId={patientId}
@@ -189,16 +194,18 @@ const PrescribeIndex = () => {
 						onPrescribed={refetchHistory}
 					/>
 
-					<div className="pi-submit-bar">
-						<p className="pi-submit-hint">Medicines, diet, and yoga plans save automatically as you go. Submit once everything for this visit is ready.</p>
-						<button className="pi-submit-btn" onClick={submitPrescription} disabled={submitting}>
-							{submitting ? <Loader2 className="pi-spin" size={18} /> : <Send size={18} />}
+					<Card className="flex flex-wrap items-center justify-between gap-4 p-4.5">
+						<p className="max-w-[480px] text-sm leading-relaxed text-muted-foreground">
+							Medicines, diet, and yoga plans save automatically as you go. Submit once everything for this visit is ready.
+						</p>
+						<Button onClick={submitPrescription} disabled={submitting}>
+							{submitting ? <Loader2 className="animate-spin" data-icon="inline-start" /> : <Send data-icon="inline-start" />}
 							Submit Prescription
-						</button>
-					</div>
+						</Button>
+					</Card>
 				</div>
-			</main>
-		</div>
+			</div>
+		</DashboardShell>
 	);
 };
 

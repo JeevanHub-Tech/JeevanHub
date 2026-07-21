@@ -1,52 +1,52 @@
-import React, { useState } from 'react';
-import {
-	FileText,
-	Link as LinkIcon,
-	Pill,
-	X,
-	CalendarDays,
-	Stethoscope,
-	ClipboardList,
-	ChevronRight
-} from 'lucide-react';
-import { BACKEND_URL } from '../../../config';
-import './PrescriptionHistory.css';
+import { useState } from "react";
+import { FileText, Link as LinkIcon, Pill, CalendarDays, Stethoscope, ClipboardList, ChevronRight } from "lucide-react";
 
-const BACKEND = BACKEND_URL || 'http://localhost:8080';
+import { BACKEND_URL } from "../../../config";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+
+const BACKEND = BACKEND_URL || "http://localhost:8080";
 
 const formatDate = (dateString) => {
-	if (!dateString) return 'N/A';
-	return new Date(dateString).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+	if (!dateString) return "N/A";
+	return new Date(dateString).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
 };
 
-// A single record the patient attached to this consultation (unverified, patient-submitted).
 const SharedRecordCard = ({ record }) => {
-	const isFile = record.type === 'external_file';
+	const isFile = record.type === "external_file";
 	const ref = record.referencedBookingId;
-	const fileUrl = record.fileUrl?.startsWith('http') ? record.fileUrl : `${BACKEND}/${record.fileUrl}`;
+	const fileUrl = record.fileUrl?.startsWith("http") ? record.fileUrl : `${BACKEND}/${record.fileUrl}`;
 
 	return (
-		<div className="shared-record-card">
-			<span className="shared-record-badge">Shared by patient — unverified</span>
+		<div className="flex flex-col gap-1.5 rounded-lg border border-accent bg-accent/40 p-3.5">
+			<Badge variant="outline" className="w-fit border-accent-foreground/30 text-accent-foreground uppercase">
+				Shared by patient — unverified
+			</Badge>
 			{isFile ? (
-				<a href={fileUrl} target="_blank" rel="noopener noreferrer" className="shared-record-link">
-					<FileText size={16} /> View uploaded document
+				<a
+					href={fileUrl}
+					target="_blank"
+					rel="noopener noreferrer"
+					className="flex items-start gap-1.5 text-sm font-medium text-accent-foreground hover:underline"
+				>
+					<FileText size={16} className="mt-0.5 shrink-0" /> View uploaded document
 				</a>
 			) : ref ? (
-				<div className="shared-record-reference">
-					<LinkIcon size={16} />
+				<div className="flex items-start gap-1.5 text-sm font-medium text-accent-foreground">
+					<LinkIcon size={16} className="mt-0.5 shrink-0" />
 					<span>
 						Prescription from Dr. {ref.doctorName} on {formatDate(ref.dateOfAppointment)}
-						{ref.recommendedSupplements?.length > 0 && (
-							<> — {ref.recommendedSupplements.map(s => s.medicineName).join(', ')}</>
-						)}
+						{ref.recommendedSupplements?.length > 0 ? (
+							<> — {ref.recommendedSupplements.map((s) => s.medicineName).join(", ")}</>
+						) : null}
 					</span>
 				</div>
 			) : (
-				<span className="shared-record-reference">This reference is no longer available.</span>
+				<span className="text-sm font-medium text-accent-foreground">This reference is no longer available.</span>
 			)}
-			{record.note && <p className="shared-record-note">"{record.note}"</p>}
-			<span className="shared-record-time">Shared {formatDate(record.uploadedAt)}</span>
+			{record.note ? <p className="text-sm text-muted-foreground italic">&quot;{record.note}&quot;</p> : null}
+			<span className="text-xs font-semibold text-accent-foreground">Shared {formatDate(record.uploadedAt)}</span>
 		</div>
 	);
 };
@@ -54,61 +54,66 @@ const SharedRecordCard = ({ record }) => {
 export function PrescriptionHistory({ prescriptions, loading, sharedRecords = [], currentBookingId }) {
 	const [selected, setSelected] = useState(null);
 
-	// Previous consultations by this doctor with this patient that actually carry a
-	// prescription — excluding the visit currently being prescribed.
 	const past = (Array.isArray(prescriptions) ? prescriptions : [])
-		.filter(b => b._id !== currentBookingId)
-		.filter(b => (b.recommendedSupplements || []).length > 0 || b.diagnosis)
+		.filter((b) => b._id !== currentBookingId)
+		.filter((b) => (b.recommendedSupplements || []).length > 0 || b.diagnosis)
 		.sort((a, b) => new Date(b.dateOfAppointment) - new Date(a.dateOfAppointment));
 
 	return (
-		<div className="prescription-history-container">
-
-			{/* Patient-attached records for THIS consultation */}
-			<div className="history-section">
-				<div className="section-header">
-					<h3 className="section-title">
-						<FileText className="section-icon shared-icon" />
-						Records the Patient Attached ({sharedRecords.length})
-					</h3>
-				</div>
+		<Card className="flex flex-col gap-6 p-4.5">
+			<div>
+				<h3 className="mb-3.5 flex items-center gap-2 border-b-2 border-border pb-2.5 text-base font-bold text-foreground">
+					<FileText className="size-[1.15rem] text-primary" />
+					Records the Patient Attached ({sharedRecords.length})
+				</h3>
 				{sharedRecords.length > 0 ? (
-					<div className="record-list">
-						{sharedRecords.map((record, idx) => <SharedRecordCard key={idx} record={record} />)}
+					<div className="grid gap-2.5">
+						{sharedRecords.map((record, idx) => (
+							<SharedRecordCard key={idx} record={record} />
+						))}
 					</div>
 				) : (
-					<p className="empty-state">The patient hasn't attached any external records to this visit.</p>
+					<p className="rounded-lg border border-dashed border-border bg-muted/40 p-5 text-center text-sm text-muted-foreground">
+						The patient hasn't attached any external records to this visit.
+					</p>
 				)}
 			</div>
 
-			{/* This doctor's own past prescriptions for this patient */}
-			<div className="history-section">
-				<div className="section-header">
-					<h3 className="section-title">
-						<Stethoscope className="section-icon own-icon" />
-						Your Previous Prescriptions ({past.length})
-					</h3>
-				</div>
+			<div>
+				<h3 className="mb-3.5 flex items-center gap-2 border-b-2 border-border pb-2.5 text-base font-bold text-foreground">
+					<Stethoscope className="size-[1.15rem] text-primary" />
+					Your Previous Prescriptions ({past.length})
+				</h3>
 
 				{loading ? (
-					<p className="empty-state">Loading prescription history...</p>
+					<p className="rounded-lg border border-dashed border-border bg-muted/40 p-5 text-center text-sm text-muted-foreground">
+						Loading prescription history...
+					</p>
 				) : past.length === 0 ? (
-					<p className="empty-state">No previous prescriptions for this patient yet.</p>
+					<p className="rounded-lg border border-dashed border-border bg-muted/40 p-5 text-center text-sm text-muted-foreground">
+						No previous prescriptions for this patient yet.
+					</p>
 				) : (
-					<div className="rx-ref-list">
+					<div className="flex flex-col gap-2">
 						{past.map((booking) => (
-							<button key={booking._id} className="rx-ref-card" onClick={() => setSelected(booking)}>
-								<div className="rx-ref-main">
-									<div className="rx-ref-date">
+							<button
+								key={booking._id}
+								className="flex w-full flex-col gap-1.5 rounded-lg border border-border bg-muted/40 p-3 text-left transition-all hover:border-primary hover:bg-card"
+								onClick={() => setSelected(booking)}
+							>
+								<div className="flex items-center justify-between">
+									<span className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
 										<CalendarDays size={16} /> {formatDate(booking.dateOfAppointment)}
-									</div>
-									<div className="rx-ref-diagnosis">
-										{booking.diagnosis || <span className="rx-ref-nodiag">No diagnosis recorded</span>}
-									</div>
+									</span>
 								</div>
-								<div className="rx-ref-meta">
-									<span className="rx-ref-count"><Pill size={13} /> {booking.recommendedSupplements.length}</span>
-									<ChevronRight size={18} className="rx-ref-chevron" />
+								<div className="line-clamp-2 text-sm font-bold text-foreground">
+									{booking.diagnosis || <span className="font-medium text-muted-foreground italic">No diagnosis recorded</span>}
+								</div>
+								<div className="mt-0.5 flex items-center justify-between">
+									<Badge variant="secondary" className="gap-1">
+										<Pill size={13} /> {booking.recommendedSupplements.length}
+									</Badge>
+									<ChevronRight size={18} className="shrink-0 text-muted-foreground" />
 								</div>
 							</button>
 						))}
@@ -116,42 +121,47 @@ export function PrescriptionHistory({ prescriptions, loading, sharedRecords = []
 				)}
 			</div>
 
-			{/* Full-detail modal for a selected past prescription */}
-			{selected && (
-				<div className="rx-modal-overlay" onClick={() => setSelected(null)}>
-					<div className="rx-modal" onClick={(e) => e.stopPropagation()}>
-						<button className="rx-modal-close" onClick={() => setSelected(null)} aria-label="Close"><X size={20} /></button>
-
-						<div className="rx-modal-head">
-							<h3>Prescription — {formatDate(selected.dateOfAppointment)}</h3>
-							<p className="rx-modal-diagnosis">
-								<Stethoscope size={15} />
-								<strong>Diagnosis:</strong> {selected.diagnosis || 'Not recorded'}
+			<Dialog open={!!selected} onOpenChange={(open) => !open && setSelected(null)}>
+				<DialogContent className="max-w-lg">
+					{selected ? (
+						<>
+							<DialogHeader>
+								<DialogTitle>Prescription — {formatDate(selected.dateOfAppointment)}</DialogTitle>
+							</DialogHeader>
+							<p className="flex items-center gap-2 text-sm text-foreground/80">
+								<Stethoscope size={15} className="shrink-0 text-primary" />
+								<strong className="text-foreground">Diagnosis:</strong> {selected.diagnosis || "Not recorded"}
 							</p>
-						</div>
 
-						<div className="rx-modal-body">
-							{selected.recommendedSupplements.length === 0 ? (
-								<p className="empty-state">No medicines were prescribed on this visit.</p>
-							) : (
-								selected.recommendedSupplements.map((s, idx) => (
-									<div key={s._id || idx} className="rx-modal-med">
-										<div className="rx-modal-med-name"><Pill size={16} /> {s.medicineName}</div>
-										<div className="rx-modal-med-detail">
-											<ClipboardList size={14} />
-											<span><strong>Dosage:</strong> {s.dosage || '—'}</span>
+							<div className="flex flex-col gap-3.5">
+								{selected.recommendedSupplements.length === 0 ? (
+									<p className="text-sm text-muted-foreground">No medicines were prescribed on this visit.</p>
+								) : (
+									selected.recommendedSupplements.map((s, idx) => (
+										<div key={s._id || idx} className="flex flex-col gap-2 rounded-lg border border-border bg-muted/40 p-4">
+											<div className="flex items-center gap-2 text-base font-bold text-primary">
+												<Pill size={16} /> {s.medicineName}
+											</div>
+											<div className="flex items-start gap-2 text-sm text-muted-foreground">
+												<ClipboardList size={14} className="mt-0.5 shrink-0" />
+												<span>
+													<strong className="text-foreground">Dosage:</strong> {s.dosage || "—"}
+												</span>
+											</div>
+											<div className="flex items-start gap-2 text-sm text-muted-foreground">
+												<ClipboardList size={14} className="mt-0.5 shrink-0" />
+												<span>
+													<strong className="text-foreground">Instructions:</strong> {s.instructions || "—"}
+												</span>
+											</div>
 										</div>
-										<div className="rx-modal-med-detail">
-											<ClipboardList size={14} />
-											<span><strong>Instructions:</strong> {s.instructions || '—'}</span>
-										</div>
-									</div>
-								))
-							)}
-						</div>
-					</div>
-				</div>
-			)}
-		</div>
+									))
+								)}
+							</div>
+						</>
+					) : null}
+				</DialogContent>
+			</Dialog>
+		</Card>
 	);
 }

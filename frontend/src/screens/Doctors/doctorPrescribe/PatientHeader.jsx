@@ -1,6 +1,10 @@
-import React, { useState } from 'react';
-import { Leaf, Mail, Phone, X } from 'lucide-react';
-import './PatientHeader.css';
+import { Fragment, useState } from "react";
+import { Leaf, Mail, Phone } from "lucide-react";
+
+import { Card } from "@/components/ui/card";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 const DOSHA_LABELS = {
 	VATA: "Vata",
@@ -12,10 +16,9 @@ const DOSHA_LABELS = {
 	"KAPHA-VATA": "Kapha-Vata",
 	"PITTA-KAPHA": "Pitta-Kapha",
 	"KAPHA-PITTA": "Kapha-Pitta",
-	"TRIDOSHIC (VATA-PITTA-KAPHA)": "Tridoshic"
+	"TRIDOSHIC (VATA-PITTA-KAPHA)": "Tridoshic",
 };
 
-// Helper function to calculate initials for the avatar fallback
 const getInitials = (name) => {
 	if (!name) return "";
 	return name
@@ -35,88 +38,105 @@ export function PatientHeader({ patient, prakritiDosha }) {
 	// Each part carries a title so hovering it reveals what the detail actually is.
 	const metaParts = [
 		patient.gender && patient.age
-			? { text: `${patient.gender}, ${patient.age} yrs`, title: 'Gender and age' }
-			: (patient.gender ? { text: patient.gender, title: 'Gender' } : (patient.age ? { text: `${patient.age} yrs`, title: 'Age' } : null)),
-		(patient.address || patient.zipCode) ? { text: patient.address || patient.zipCode, title: 'Address' } : null
+			? { text: `${patient.gender}, ${patient.age} yrs`, title: "Gender and age" }
+			: patient.gender
+				? { text: patient.gender, title: "Gender" }
+				: patient.age
+					? { text: `${patient.age} yrs`, title: "Age" }
+					: null,
+		patient.address || patient.zipCode ? { text: patient.address || patient.zipCode, title: "Address" } : null,
 	].filter(Boolean);
 
 	return (
 		<>
-		<div className="patient-header-cards">
-			<div className="patient-header-contents">
+			<Card className="p-4.5">
+				<div className="flex items-center gap-5">
+					{patient.profileImage ? (
+						<button
+							type="button"
+							title="Patient's profile picture — click to enlarge"
+							onClick={() => setShowPhoto(true)}
+							className="shrink-0 cursor-pointer transition-transform hover:scale-105"
+						>
+							<Avatar className="size-14 border-2 border-border">
+								<AvatarImage src={patient.profileImage} alt={patient.firstName} />
+								<AvatarFallback>{getInitials(patient.firstName)}</AvatarFallback>
+							</Avatar>
+						</button>
+					) : (
+						<Avatar className="size-14 shrink-0 border-2 border-border" title="Patient's profile picture (not uploaded yet)">
+							<AvatarFallback>{getInitials(patient.firstName)}</AvatarFallback>
+						</Avatar>
+					)}
 
-				{/* Avatar — clickable to view full-size when the patient has a real photo */}
-				{patient.profileImage ? (
-					<button
-						type="button"
-						className="patient-avatars patient-avatars-clickable"
-						title="Patient's profile picture — click to enlarge"
-						onClick={() => setShowPhoto(true)}
-					>
-						<img src={patient.profileImage} alt={patient.firstName} className="patient-avatar-image" />
-					</button>
-				) : (
-					<div className="patient-avatars" title="Patient's profile picture (not uploaded yet)">
-						<div className="patient-avatar-fallback">
-							{getInitials(patient.firstName)}
+					<div className="min-w-0 flex-1">
+						<div className="mb-1 flex flex-wrap items-center gap-2.5">
+							<h1 className="text-lg font-bold text-foreground">
+								{patient.firstName} {patient.lastName}
+							</h1>
+							{prakritiDosha ? (
+								<Badge
+									variant="secondary"
+									className="gap-1"
+									title={`Prakriti (body constitution): ${DOSHA_LABELS[prakritiDosha] || prakritiDosha} — the patient's dominant dosha from their Prakriti assessment`}
+								>
+									<Leaf size={13} /> {DOSHA_LABELS[prakritiDosha] || prakritiDosha}
+								</Badge>
+							) : (
+								<Badge
+									variant="outline"
+									className="gap-1 text-muted-foreground"
+									title="Prakriti (body constitution): the patient hasn't completed a Prakriti assessment yet"
+								>
+									<Leaf size={13} /> Not yet assessed
+								</Badge>
+							)}
+						</div>
+
+						<div className="flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
+							{metaParts.map((part, i) => (
+								<Fragment key={i}>
+									{i > 0 ? <span className="text-border">&middot;</span> : null}
+									<span title={part.title}>{part.text}</span>
+								</Fragment>
+							))}
+							{patient.email ? (
+								<>
+									<span className="text-border">&middot;</span>
+									<span className="inline-flex items-center gap-1" title="Email address">
+										<Mail size={12} className="shrink-0 text-muted-foreground" />
+										{patient.email}
+									</span>
+								</>
+							) : null}
+							{patient.phone ? (
+								<>
+									<span className="text-border">&middot;</span>
+									<span className="inline-flex items-center gap-1" title="Phone number">
+										<Phone size={12} className="shrink-0 text-muted-foreground" />
+										{patient.phone}
+									</span>
+								</>
+							) : null}
 						</div>
 					</div>
-				)}
-
-				{/* Info */}
-				<div className="patient-info-containers">
-					<div className="patient-name-id-section">
-						<h1 className="patient-name">{patient.firstName + " " + patient.lastName}</h1>
-						{prakritiDosha ? (
-							<span
-								className="patient-dosha-tag"
-								title={`Prakriti (body constitution): ${DOSHA_LABELS[prakritiDosha] || prakritiDosha} — the patient's dominant dosha from their Prakriti assessment`}
-							>
-								<Leaf size={13} /> {DOSHA_LABELS[prakritiDosha] || prakritiDosha}
-							</span>
-						) : (
-							<span className="patient-dosha-tag muted" title="Prakriti (body constitution): the patient hasn't completed a Prakriti assessment yet">
-								<Leaf size={13} /> Not yet assessed
-							</span>
-						)}
-					</div>
-
-					{/* Compact single-line meta strip */}
-					<div className="patient-meta-line">
-						{metaParts.map((part, i) => (
-							<React.Fragment key={i}>
-								{i > 0 && <span className="patient-meta-dot">·</span>}
-								<span title={part.title}>{part.text}</span>
-							</React.Fragment>
-						))}
-						{patient.email && (
-							<>
-								<span className="patient-meta-dot">·</span>
-								<span className="patient-meta-contact" title="Email address"><Mail size={12} />{patient.email}</span>
-							</>
-						)}
-						{patient.phone && (
-							<>
-								<span className="patient-meta-dot">·</span>
-								<span className="patient-meta-contact" title="Phone number"><Phone size={12} />{patient.phone}</span>
-							</>
-						)}
-					</div>
 				</div>
-			</div>
-		</div>
+			</Card>
 
-		{showPhoto && patient.profileImage && (
-			<div className="patient-photo-overlay" onClick={() => setShowPhoto(false)}>
-				<div className="patient-photo-modal" onClick={(e) => e.stopPropagation()}>
-					<button type="button" className="patient-photo-close" onClick={() => setShowPhoto(false)} aria-label="Close">
-						<X size={20} />
-					</button>
-					<img src={patient.profileImage} alt={patient.firstName} className="patient-photo-full" />
-					<p className="patient-photo-caption">{patient.firstName} {patient.lastName}</p>
-				</div>
-			</div>
-		)}
+			<Dialog open={showPhoto && !!patient.profileImage} onOpenChange={setShowPhoto}>
+				<DialogContent className="max-w-md">
+					<div className="flex flex-col items-center gap-3">
+						<img
+							src={patient.profileImage}
+							alt={patient.firstName}
+							className="max-h-[65vh] max-w-full rounded-lg object-contain"
+						/>
+						<p className="font-bold text-foreground">
+							{patient.firstName} {patient.lastName}
+						</p>
+					</div>
+				</DialogContent>
+			</Dialog>
 		</>
 	);
 }

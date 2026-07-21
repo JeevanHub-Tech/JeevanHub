@@ -1,4 +1,4 @@
-import React, { useContext, useState } from 'react';
+import { useContext, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import { TextField, SelectField, PasswordPairField, PhoneField, FileField } from '../../components/registration/FormFields';
@@ -16,7 +16,10 @@ import {
   ACCEPTED_DOCUMENT_TYPES,
 } from '../../components/registration/validation';
 import { BACKEND_URL } from '../../config';
-import '../../components/registration/RegistrationForm.css';
+import { DashboardShell } from '@/components/layout/DashboardShell';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const GENDER_OPTIONS = ['Male', 'Female', 'Others'];
 
@@ -124,14 +127,18 @@ function SignUpDoctorScreen() {
   };
 
   return (
-    <div className="rf-page">
-      <div className="rf-card">
-        <h1 className="rf-heading">Sign Up — Doctor</h1>
-        <p className="rf-subheading">Expand your practice. Reach new patients seeking Ayurvedic care.</p>
+    <DashboardShell>
+      <Card className="mx-auto max-w-4xl p-7 sm:p-11">
+        <h1 className="font-display text-3xl text-foreground">Sign Up — Doctor</h1>
+        <p className="mb-8 text-muted-foreground">Expand your practice. Reach new patients seeking Ayurvedic care.</p>
 
-        {serverError && <div className="rf-banner rf-banner-error">{serverError}</div>}
+        {serverError ? (
+          <Alert variant="destructive" className="mb-6">
+            <AlertDescription>{serverError}</AlertDescription>
+          </Alert>
+        ) : null}
 
-        <form className="rf-form" onSubmit={handleSubmit} noValidate autoComplete="off">
+        <form className="grid grid-cols-1 gap-x-7 sm:grid-cols-2" onSubmit={handleSubmit} noValidate autoComplete="off">
           <TextField label="First Name" name="firstName" value={formData.firstName} onChange={handleChange} onBlur={handleBlur} error={showError('firstName')} placeholder="Ram" />
           <TextField label="Last Name" name="lastName" value={formData.lastName} onChange={handleChange} onBlur={handleBlur} error={showError('lastName')} placeholder="Singh" />
           <TextField label="Registration Number" name="registrationNumber" value={formData.registrationNumber} onChange={handleChange} onBlur={handleBlur} error={showError('registrationNumber')} placeholder="AYU123456" />
@@ -149,7 +156,9 @@ function SignUpDoctorScreen() {
           <SelectField label="Gender" name="gender" value={formData.gender} onChange={handleChange} onBlur={handleBlur} error={showError('gender')} options={GENDER_OPTIONS} />
           <TextField label="PIN / Zip Code" name="zipCode" value={formData.zipCode} onChange={handleChange} onBlur={handleBlur} error={showError('zipCode')} placeholder={formData.countryCode === '+91' ? '560001' : 'Postal code'} />
 
-          <div className="rf-section-title">Professional details</div>
+          <div className="col-span-full mt-1 border-t border-border pt-3 font-display text-base text-foreground first:mt-0 first:border-0 first:pt-0">
+            Professional details
+          </div>
           <TextField label="Education (College)" name="education" value={formData.education} onChange={handleChange} onBlur={handleBlur} error={showError('education')} placeholder="Ayurvedic College" />
           <TextField label="Designation" name="designation" value={formData.designation} onChange={handleChange} onBlur={handleBlur} error={showError('designation')} placeholder="Vaidya" />
           <TextField label="Specialization" name="specialization" value={formData.specialization} onChange={handleChange} onBlur={handleBlur} error={showError('specialization')} placeholder="Dermatology, Cardiology" />
@@ -168,7 +177,7 @@ function SignUpDoctorScreen() {
             layout="row"
           />
 
-          <div className="rf-field-full">
+          <div className="col-span-full">
             <FileField
               label="Ayurvedic Degree Certificate"
               name="certificate"
@@ -181,17 +190,17 @@ function SignUpDoctorScreen() {
             />
           </div>
 
-          <div className="rf-submit-row">
-            <button type="submit" className="rf-submit-btn" disabled={isSubmitting}>
+          <div className="col-span-full mt-6 flex justify-center">
+            <Button type="submit" size="lg" className="rounded-full px-12" disabled={isSubmitting}>
               {isSubmitting ? 'Registering...' : 'Sign Up →'}
-            </button>
+            </Button>
           </div>
-          <p className="rf-footer-note">
-            Already have an account? <a href="/signin">Log in</a>
+          <p className="col-span-full mt-3.5 text-center text-sm text-muted-foreground">
+            Already have an account? <a href="/signin" className="font-semibold text-primary hover:underline">Log in</a>
           </p>
         </form>
-      </div>
-    </div>
+      </Card>
+    </DashboardShell>
   );
 }
 

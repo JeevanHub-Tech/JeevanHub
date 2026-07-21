@@ -1,15 +1,23 @@
-import React, { useState, useEffect } from 'react';
-import { HeartPulse, Sun, Moon, Plus, X, ListTodo, Send, ExternalLink, Loader2 } from 'lucide-react';
-import './YogaPlanForm.css';
-import { authFetch } from '../../../utils/authFetch';
-import { BACKEND_URL } from '../../../config';
+import { useState, useEffect } from "react";
+import { HeartPulse, Sun, Moon, Plus, X, ListTodo, Send, ExternalLink, Loader2 } from "lucide-react";
+
+import { authFetch } from "../../../utils/authFetch";
+import { BACKEND_URL } from "../../../config";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 const COMMON_ASANAS = [
-	"Surya Namaskara (Sun Salutation)", "Vrikshasana (Tree Pose)",
-	"Trikonasana (Triangle Pose)", "Bhujangasana (Cobra Pose)",
-	"Adho Mukha Svanasana (Downward Dog)", "Balasana (Child's Pose)",
-	"Shavasana (Corpse Pose)", "Pranayama (Breathing Exercise)",
-	"Paschimottanasana (Seated Forward Bend)", "Ustrasana (Camel Pose)"
+	"Surya Namaskara (Sun Salutation)",
+	"Vrikshasana (Tree Pose)",
+	"Trikonasana (Triangle Pose)",
+	"Bhujangasana (Cobra Pose)",
+	"Adho Mukha Svanasana (Downward Dog)",
+	"Balasana (Child's Pose)",
+	"Shavasana (Corpse Pose)",
+	"Pranayama (Breathing Exercise)",
+	"Paschimottanasana (Seated Forward Bend)",
+	"Ustrasana (Camel Pose)",
 ];
 
 const AsanaPlanCard = ({ title, Icon, planType, planData, addAsana, removeAsana }) => {
@@ -18,11 +26,11 @@ const AsanaPlanCard = ({ title, Icon, planType, planData, addAsana, removeAsana 
 	const datalistId = `asana-options-${planType}`;
 
 	const isYouTubeUrl = (url) => {
-		if (!url) return true; // optional
+		if (!url) return true;
 		try {
 			const u = new URL(url);
-			const host = u.hostname.replace(/^www\./, '');
-			return host === 'youtube.com' || host === 'youtu.be' || host === 'm.youtube.com';
+			const host = u.hostname.replace(/^www\./, "");
+			return host === "youtube.com" || host === "youtu.be" || host === "m.youtube.com";
 		} catch {
 			return false;
 		}
@@ -35,7 +43,7 @@ const AsanaPlanCard = ({ title, Icon, planType, planData, addAsana, removeAsana 
 		if (!name) return;
 
 		if (link && !isYouTubeUrl(link)) {
-			alert('Please enter a valid YouTube URL (youtube.com or youtu.be), or leave it blank.');
+			alert("Please enter a valid YouTube URL (youtube.com or youtu.be), or leave it blank.");
 			return;
 		}
 		addAsana(planType, { name, link });
@@ -44,71 +52,76 @@ const AsanaPlanCard = ({ title, Icon, planType, planData, addAsana, removeAsana 
 	};
 
 	const handleKeyPress = (e) => {
-		if (e.key === 'Enter') {
+		if (e.key === "Enter") {
 			e.preventDefault();
 			handleAdd();
 		}
 	};
 
 	return (
-		<div className="asana-plan-card">
-			<div className="asana-plan-header">
-				<h4 className="asana-plan-title"><Icon className="plan-icon" size={20} />{title}</h4>
+		<Card className="gap-0 overflow-hidden py-0">
+			<div className="rounded-t-xl border-b border-border bg-muted/40 px-4 py-3">
+				<h4 className="flex items-center gap-2.5 text-base font-bold text-foreground">
+					<Icon className="size-5 text-primary" />
+					{title}
+				</h4>
 			</div>
 
-			<div className="asana-plan-content">
-				<div className="asana-input-group">
-					<input
-						type="text"
-						className="asana-input"
+			<div className="flex flex-1 flex-col gap-4 p-4">
+				<div className="flex flex-wrap gap-2">
+					<Input
 						list={datalistId}
 						value={input}
 						onChange={(e) => setInput(e.target.value)}
 						placeholder="Type or choose an asana..."
-						onKeyPress={handleKeyPress}
+						onKeyDown={handleKeyPress}
+						className="min-w-[140px] flex-1"
 					/>
 					<datalist id={datalistId}>
 						{COMMON_ASANAS.map((asana) => (
 							<option key={asana} value={asana} />
 						))}
 					</datalist>
-					<input
+					<Input
 						type="url"
-						className="asana-input asana-link-input"
 						value={youtubeUrl}
 						onChange={(e) => setYoutubeUrl(e.target.value)}
 						placeholder="YouTube link (optional)"
-						onKeyPress={handleKeyPress}
+						onKeyDown={handleKeyPress}
+						className="min-w-[140px] flex-1"
 					/>
-					<button type="button" onClick={handleAdd} className="add-asana-btn">
-						<Plus size={20} />
-					</button>
+					<Button type="button" size="icon" onClick={handleAdd}>
+						<Plus />
+					</Button>
 				</div>
 
-				<div className="selected-asanas-container">
-					<label className="selected-asanas-label">Selected Asanas ({planData.length}):</label>
-					<div className="selected-asanas-scroll">
+				<div className="flex flex-col gap-2">
+					<label className="text-xs font-semibold text-muted-foreground">Selected Asanas ({planData.length}):</label>
+					<div className="max-h-40 overflow-y-auto rounded-lg border border-border bg-muted/40 p-2">
 						{planData.length > 0 ? (
-							<div className="selected-asanas-list">
+							<div className="flex flex-col gap-2">
 								{planData.map(({ name, link }) => (
-									<div key={name} className="selected-asana-item">
+									<div
+										key={name}
+										className="flex items-center justify-between gap-2 rounded-lg border border-primary/25 bg-primary/10 px-3 py-2 text-sm"
+									>
 										{link ? (
 											<a
 												href={link}
 												target="_blank"
 												rel="noopener noreferrer"
-												className="selected-asana-text asana-link"
+												className="flex min-w-0 items-center gap-1.5 truncate font-medium text-primary hover:underline"
 												title="Open video"
 											>
-												{name} <ExternalLink size={14} style={{ marginLeft: 6 }} />
+												{name} <ExternalLink size={14} className="shrink-0" />
 											</a>
 										) : (
-											<span className="selected-asana-text">{name}</span>
+											<span className="min-w-0 truncate text-foreground">{name}</span>
 										)}
 										<button
 											type="button"
 											onClick={() => removeAsana(planType, name)}
-											className="remove-asana-btn"
+											className="flex size-6 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-destructive hover:text-destructive-foreground"
 										>
 											<X size={14} />
 										</button>
@@ -116,28 +129,25 @@ const AsanaPlanCard = ({ title, Icon, planType, planData, addAsana, removeAsana 
 								))}
 							</div>
 						) : (
-							<p className="empty-state">No asanas added yet.</p>
+							<p className="py-6 text-center text-sm text-muted-foreground italic">No asanas added yet.</p>
 						)}
 					</div>
 				</div>
 			</div>
-		</div>
+		</Card>
 	);
 };
 
-// 1. Receive IDs from props
 export function YogaPlanForm({ bookingId, patientId, doctorId, onPrescribed }) {
 	const [yogaPlan, setYogaPlan] = useState({
 		morning: [],
-		evening: []
+		evening: [],
 	});
 
-	// 2. Setup Loading and Error states
 	const [loading, setLoading] = useState(false);
 	const [loadingExisting, setLoadingExisting] = useState(true);
 	const [error, setError] = useState(null);
 
-	// Pre-fill from an existing plan for this booking, if one has already been prescribed.
 	useEffect(() => {
 		const fetchExisting = async () => {
 			if (!bookingId) {
@@ -145,20 +155,17 @@ export function YogaPlanForm({ bookingId, patientId, doctorId, onPrescribed }) {
 				return;
 			}
 			try {
-				const response = await authFetch(
-					`${BACKEND_URL}/api/diet-yoga/booking/${bookingId}`
-				);
+				const response = await authFetch(`${BACKEND_URL}/api/diet-yoga/booking/${bookingId}`);
 				if (response.ok) {
 					const data = await response.json();
 					const existingYoga = data?.dietYoga?.yoga;
 					if (existingYoga) {
 						setYogaPlan({
 							morning: existingYoga.morning || [],
-							evening: existingYoga.evening || []
+							evening: existingYoga.evening || [],
 						});
 					}
 				}
-				// A 404 here just means no plan exists yet — start blank, which is already the default state.
 			} catch (err) {
 				console.error("Error fetching existing yoga plan:", err);
 			} finally {
@@ -170,35 +177,32 @@ export function YogaPlanForm({ bookingId, patientId, doctorId, onPrescribed }) {
 	}, [bookingId]);
 
 	const addAsana = (planType, asana) => {
-		const item = typeof asana === 'string'
-			? { name: asana.trim(), link: "" }
-			: { name: (asana.name || '').trim(), link: (asana.link || '').trim() };
+		const item =
+			typeof asana === "string" ? { name: asana.trim(), link: "" } : { name: (asana.name || "").trim(), link: (asana.link || "").trim() };
 
 		if (!item.name) return;
 
-		setYogaPlan(prev => {
-			if (prev[planType].some(a => a.name.toLowerCase() === item.name.toLowerCase())) {
+		setYogaPlan((prev) => {
+			if (prev[planType].some((a) => a.name.toLowerCase() === item.name.toLowerCase())) {
 				return prev;
 			}
 			return {
 				...prev,
-				[planType]: [...prev[planType], item]
+				[planType]: [...prev[planType], item],
 			};
 		});
 	};
 
 	const removeAsana = (planType, asanaName) => {
-		setYogaPlan(prev => ({
+		setYogaPlan((prev) => ({
 			...prev,
-			[planType]: prev[planType].filter(a => a.name !== asanaName)
+			[planType]: prev[planType].filter((a) => a.name !== asanaName),
 		}));
 	};
 
-	// 3. The New Submit Function
 	const handleSubmit = async (e) => {
 		e.preventDefault();
 
-		// Basic Validation
 		if (yogaPlan.morning.length === 0 && yogaPlan.evening.length === 0) {
 			alert("Please add at least one asana to a plan.");
 			return;
@@ -208,21 +212,18 @@ export function YogaPlanForm({ bookingId, patientId, doctorId, onPrescribed }) {
 		setError(null);
 
 		try {
-			const response = await authFetch(
-				`${BACKEND_URL}/api/diet-yoga/yoga`,
-				{
-					method: 'POST',
-					headers: {
-						'Content-Type': 'application/json'
-					},
-					body: JSON.stringify({
-						bookingId: bookingId,
-						patientId: patientId,
-						doctorId: doctorId,
-						yogaPlan: yogaPlan
-					})
-				}
-			);
+			const response = await authFetch(`${BACKEND_URL}/api/diet-yoga/yoga`, {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({
+					bookingId: bookingId,
+					patientId: patientId,
+					doctorId: doctorId,
+					yogaPlan: yogaPlan,
+				}),
+			});
 
 			if (!response.ok) {
 				const errData = await response.json().catch(() => ({}));
@@ -232,7 +233,6 @@ export function YogaPlanForm({ bookingId, patientId, doctorId, onPrescribed }) {
 			await response.json();
 			alert("The yoga plan has been successfully prescribed.");
 			onPrescribed?.();
-
 		} catch (err) {
 			console.error("Submission Error:", err);
 			setError(err.message);
@@ -243,38 +243,38 @@ export function YogaPlanForm({ bookingId, patientId, doctorId, onPrescribed }) {
 	};
 
 	const planDetails = [
-		{ id: 'morning', title: 'Morning Plan', Icon: Sun },
-		{ id: 'evening', title: 'Evening Plan', Icon: Moon }
+		{ id: "morning", title: "Morning Plan", Icon: Sun },
+		{ id: "evening", title: "Evening Plan", Icon: Moon },
 	];
 
 	if (loadingExisting) {
 		return (
-			<div className="form-card">
-				<div className="form-header">
-					<h3 className="form-title">
-						<HeartPulse className="form-icon" size={24} />
+			<Card className="overflow-hidden p-0">
+				<div className="border-b border-border bg-muted/40 px-6 py-4">
+					<h3 className="flex items-center gap-3 text-lg font-bold text-foreground">
+						<HeartPulse className="size-6 text-primary" />
 						Prescribe Yoga & Wellness Plan
 					</h3>
 				</div>
-				<div className="form-content">
-					<p className="yoga-loading">Checking for an existing plan...</p>
+				<div className="p-6">
+					<p className="py-6 text-center text-muted-foreground">Checking for an existing plan...</p>
 				</div>
-			</div>
+			</Card>
 		);
 	}
 
 	return (
-		<div className="form-card">
-			<div className="form-header">
-				<h3 className="form-title">
-					<HeartPulse className="form-icon" size={24} />
+		<Card className="overflow-hidden p-0">
+			<div className="border-b border-border bg-muted/40 px-6 py-4">
+				<h3 className="flex items-center gap-3 text-lg font-bold text-foreground">
+					<HeartPulse className="size-6 text-primary" />
 					Prescribe Yoga & Wellness Plan
 				</h3>
 			</div>
-			<div className="form-content">
-				<form onSubmit={handleSubmit} className="yoga-form">
-					<div className="yoga-plan-grid">
-						{planDetails.map(plan => (
+			<div className="p-6">
+				<form onSubmit={handleSubmit} className="flex flex-col gap-6">
+					<div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+						{planDetails.map((plan) => (
 							<AsanaPlanCard
 								key={plan.id}
 								title={plan.title}
@@ -287,33 +287,38 @@ export function YogaPlanForm({ bookingId, patientId, doctorId, onPrescribed }) {
 						))}
 					</div>
 
-					<div className="plan-summary">
-						<h4 className="summary-title"><ListTodo size={18} />Plan Summary</h4>
-						<div className="summary-details">
-							<div><strong>Morning:</strong> {yogaPlan.morning.length} asanas</div>
-							<div><strong>Evening:</strong> {yogaPlan.evening.length} asanas</div>
+					<div className="rounded-lg border border-border bg-muted/40 p-5">
+						<h4 className="mb-3 flex items-center gap-2 font-bold text-foreground">
+							<ListTodo size={18} className="text-primary" />
+							Plan Summary
+						</h4>
+						<div className="grid grid-cols-1 gap-2 text-sm text-foreground/80 sm:grid-cols-2">
+							<div>
+								<strong className="text-foreground">Morning:</strong> {yogaPlan.morning.length} asanas
+							</div>
+							<div>
+								<strong className="text-foreground">Evening:</strong> {yogaPlan.evening.length} asanas
+							</div>
 						</div>
 					</div>
 
-					{/* Error Message Display */}
-					{error && <div style={{ color: 'red', marginTop: '10px' }}>Error: {error}</div>}
+					{error ? <p className="text-sm text-destructive">Error: {error}</p> : null}
 
-					{/* 4. Updated Button with Loader */}
-					<button type="submit" className="submit-button" disabled={loading}>
+					<Button type="submit" disabled={loading} className="self-end">
 						{loading ? (
 							<>
-								<Loader2 className="animate-spin" size={18} style={{ marginRight: '8px' }} />
+								<Loader2 className="animate-spin" data-icon="inline-start" size={18} />
 								Prescribing...
 							</>
 						) : (
 							<>
-								<Send size={18} style={{ marginRight: '8px' }} />
+								<Send data-icon="inline-start" size={18} />
 								Prescribe Yoga Plan
 							</>
 						)}
-					</button>
+					</Button>
 				</form>
 			</div>
-		</div>
+		</Card>
 	);
 }

@@ -1,18 +1,23 @@
-import React, { useState, useEffect, useContext } from "react";
+import { useState, useEffect, useContext } from "react";
 import axios from "axios";
-import "./HealthBlogs.css";
+import { ChevronDown } from "lucide-react";
+
 import { AuthContext } from "../../context/AuthContext";
-import downArrow from "../../media/downArrow.png";
 import RichTextEditor from "../../components/RichTextEditor";
-import { BACKEND_URL } from '../../config';
+import { BACKEND_URL } from "../../config";
+import { DashboardShell, DashboardPageHeader } from "@/components/layout/DashboardShell";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { FieldGroup, Field, FieldLabel } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
 
 function HealthBlogs() {
 	const { auth } = useContext(AuthContext);
 	const doctorId = auth.user ? auth.user.id : null;
-	const [showBlog, setShowBlog] = useState(false);
-	const handleShowBlog = () => {
-		setShowBlog(!showBlog);
-	};
+	const [expandedBlogId, setExpandedBlogId] = useState(null);
 
 	const [activeTab, setActiveTab] = useState("recent");
 	const [blogs, setBlogs] = useState([]);
@@ -25,17 +30,12 @@ function HealthBlogs() {
 		image: "",
 	});
 
-
-	// Fetch blogs that belong to the specific doctor
 	useEffect(() => {
 		if (doctorId) {
 			const fetchBlogs = async () => {
 				setIsLoading(true);
 				try {
-					// Use the new endpoint format
-					const response = await axios.get(
-						`${BACKEND_URL}/api/blogs/author/doctor/${doctorId}`
-					);
+					const response = await axios.get(`${BACKEND_URL}/api/blogs/author/doctor/${doctorId}`);
 					setBlogs(response.data);
 					setError(null);
 				} catch (error) {
@@ -61,26 +61,19 @@ function HealthBlogs() {
 			return;
 		}
 
-		// Create data object with the new authorType field
 		const dataToSubmit = {
 			...formData,
-			authorType: "doctor", // Specify author type as doctor
-			authorId: doctorId, // Use authorId instead of doctorId
-			date: new Date(), // Use current date
+			authorType: "doctor",
+			authorId: doctorId,
+			date: new Date(),
 		};
-
-		console.log("Submitting blog data:", formData);
 
 		setIsLoading(true);
 		try {
-			const response = await axios.post(
-				`${BACKEND_URL}/api/blogs`,
-				dataToSubmit
-			);
-			setBlogs([response.data, ...blogs]); // Add the new blog to the current list
-			setActiveTab("recent"); // Switch to recent blogs tab
+			const response = await axios.post(`${BACKEND_URL}/api/blogs`, dataToSubmit);
+			setBlogs([response.data, ...blogs]);
+			setActiveTab("recent");
 
-			// Reset form
 			setFormData({
 				title: "",
 				description: "",
@@ -98,151 +91,127 @@ function HealthBlogs() {
 	};
 
 	return (
-		<div className="health-blogs-container">
-			<div className="header">
-				<h1>My Health Blogs</h1>
-				<div className="button-group">
-					<button
-						className={`action-button ${activeTab === "write" ? "active" : ""}`}
-						onClick={() => setActiveTab("write")}
-					>
-						Write a Blog
-					</button>
-					<button
-						className={`action-button ${activeTab === "recent" ? "active" : ""
-							}`}
-						onClick={() => setActiveTab("recent")}
-					>
-						Recent Blogs
-					</button>
-				</div>
-			</div>
+		<DashboardShell>
+			<DashboardPageHeader title="My Health Blogs" />
 
-			{error && <div className="error-message">{error}</div>}
+			{error ? (
+				<Alert variant="destructive" className="mb-6">
+					<AlertDescription>{error}</AlertDescription>
+				</Alert>
+			) : null}
 
-			{activeTab === "recent" && (
-				<div
-					className="blogs-grid"
-					style={{
-						display: "grid",
-					}}
-				>
-					{isLoading && (
-						<p className="loading-message">Loading your blogs...</p>
-					)}
-					{!isLoading && blogs.length === 0 && (
-						<p className="empty-message">
-							You haven't published any blogs yet.
-						</p>
-					)}
-					{blogs.map((blog, index) => (
-						<div
-							key={blog._id || index}
-							className="blog-card"
-							style={{ position: "relative" }}
-						>
-							<h2>{blog.title}</h2>
-							{blog.category && (
-								<div className="blog-category">{blog.category}</div>
-							)}
-							<img
-								src={downArrow}
-								alt="arrow"
-								className="blog-card-arrow"
-								onClick={handleShowBlog}
-								style={{
-									height: "20px",
-									width: "20px",
-									position: "absolute",
-									top: "10px",
-									right: "10px",
-								}}
-							/>
-							{showBlog && (
-								<div className="blog-card-hidden">
-									<div
-										className="blog-description"
-										dangerouslySetInnerHTML={{ __html: blog.description }}
-									/>
-									{blog.image && (
-										<div className="blog-image">
-											<img src={blog.image} alt={blog.title} />
+			<Tabs value={activeTab} onValueChange={setActiveTab}>
+				<TabsList className="mb-6">
+					<TabsTrigger value="write">Write a Blog</TabsTrigger>
+					<TabsTrigger value="recent">Recent Blogs</TabsTrigger>
+				</TabsList>
+
+				<TabsContent value="recent">
+					{isLoading ? <p className="text-center text-muted-foreground">Loading your blogs...</p> : null}
+					{!isLoading && blogs.length === 0 ? (
+						<p className="text-center text-muted-foreground">You haven't published any blogs yet.</p>
+					) : null}
+					<div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+						{blogs.map((blog, index) => {
+							const blogId = blog._id || index;
+							const isExpanded = expandedBlogId === blogId;
+							return (
+								<Card key={blogId} className="relative p-5">
+									<button
+										type="button"
+										onClick={() => setExpandedBlogId(isExpanded ? null : blogId)}
+										className="absolute top-4 right-4 text-muted-foreground"
+										aria-label="Toggle blog details"
+									>
+										<ChevronDown className={isExpanded ? "size-5 rotate-180 transition-transform" : "size-5 transition-transform"} />
+									</button>
+									<h2 className="pr-6 text-lg font-semibold text-foreground">{blog.title}</h2>
+									{blog.category ? (
+										<Badge variant="secondary" className="mt-2">
+											{blog.category}
+										</Badge>
+									) : null}
+									{isExpanded ? (
+										<div className="mt-4 flex flex-col gap-3">
+											<div
+												className="text-sm leading-relaxed text-foreground/80"
+												dangerouslySetInnerHTML={{ __html: blog.description }}
+											/>
+											{blog.image ? (
+												<img src={blog.image} alt={blog.title} className="w-full rounded-lg" />
+											) : null}
 										</div>
-									)}
-								</div>
-							)}
-							<p className="blog-date">
-								<strong>
-									Published: {new Date(blog.date).toLocaleDateString()}
-								</strong>
-							</p>
-						</div>
-					))}
-				</div>
-			)}
+									) : null}
+									<p className="mt-3 text-xs font-semibold text-muted-foreground">
+										Published: {new Date(blog.date).toLocaleDateString()}
+									</p>
+								</Card>
+							);
+						})}
+					</div>
+				</TabsContent>
 
-			{activeTab === "write" && (
-				<div className="write-blog-form">
-					<h2>Write a New Blog</h2>
-					<form onSubmit={handleSubmit}>
-						<div className="form-group">
-							<label>
-								Title: <span className="required">*</span>
-							</label>
-							<input
-								type="text"
-								name="title"
-								placeholder="Enter blog title"
-								value={formData.title}
-								onChange={handleInputChange}
-								required
-							/>
-						</div>
+				<TabsContent value="write">
+					<Card className="mx-auto max-w-2xl p-6">
+						<h2 className="mb-5 text-lg font-semibold text-foreground">Write a New Blog</h2>
+						<form onSubmit={handleSubmit}>
+							<FieldGroup>
+								<Field>
+									<FieldLabel htmlFor="title">
+										Title <span className="text-destructive">*</span>
+									</FieldLabel>
+									<Input
+										id="title"
+										name="title"
+										placeholder="Enter blog title"
+										value={formData.title}
+										onChange={handleInputChange}
+										required
+									/>
+								</Field>
 
-						<div className="form-group">
-							<label>
-								Description: <span className="required">*</span>
-							</label>
-							<RichTextEditor
-								content={formData.description}
-								onChange={(html) =>
-									setFormData((prev) => ({ ...prev, description: html }))
-								}
-							/>
-						</div>
+								<Field>
+									<FieldLabel htmlFor="description">
+										Description <span className="text-destructive">*</span>
+									</FieldLabel>
+									<RichTextEditor
+										content={formData.description}
+										onChange={(html) => setFormData((prev) => ({ ...prev, description: html }))}
+									/>
+								</Field>
 
-						<div className="form-group">
-							<label>Category:</label>
-							<input
-								type="text"
-								name="category"
-								placeholder="E.g., Nutrition, Mental Health, Fitness"
-								value={formData.category}
-								onChange={handleInputChange}
-								required
-							/>
-						</div>
-						<div className="form-group">
-							<label>Image URL:</label>
-							<input
-								type="text"
-								name="image"
-								placeholder="Enter image URL (optional)"
-								value={formData.image}
-								onChange={handleInputChange}
-							/>
-						</div>
-						<button
-							type="submit"
-							className="submit-button"
-							disabled={isLoading}
-						>
-							{isLoading ? "Publishing..." : "Publish Blog"}
-						</button>
-					</form>
-				</div>
-			)}
-		</div>
+								<Field>
+									<FieldLabel htmlFor="category">Category</FieldLabel>
+									<Input
+										id="category"
+										name="category"
+										placeholder="E.g., Nutrition, Mental Health, Fitness"
+										value={formData.category}
+										onChange={handleInputChange}
+										required
+									/>
+								</Field>
+
+								<Field>
+									<FieldLabel htmlFor="image">Image URL</FieldLabel>
+									<Input
+										id="image"
+										name="image"
+										placeholder="Enter image URL (optional)"
+										value={formData.image}
+										onChange={handleInputChange}
+									/>
+								</Field>
+
+								<Button type="submit" disabled={isLoading} className="w-fit">
+									{isLoading ? "Publishing..." : "Publish Blog"}
+								</Button>
+							</FieldGroup>
+						</form>
+					</Card>
+				</TabsContent>
+			</Tabs>
+		</DashboardShell>
 	);
 }
 

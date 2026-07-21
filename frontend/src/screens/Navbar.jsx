@@ -1,218 +1,105 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
+import { Menu, MapPin, Search, X } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
-import "./NavBar.css";
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { exploreOptions, publicNavigation } from "./publicNavigation";
+import { useUserLocation } from "../hooks/useUserLocation";
+import defaultProfilePic from "../media/default-profile.png";
 import logo from "../media/logo2.png";
-import menu_close from "../media/menu-close.svg";
-import menu from "../media/menu.svg";
-import locationIcon from "../media/location.png";
-import defaultProfilePic from "../media/default-profile.png"; // Default profile picture
-import { OPENCAGE_API_KEY } from '../config';
 
-const API_KEY = OPENCAGE_API_KEY;
+function NavigationLink({ item, onNavigate }) {
+  return (
+    <NavLink
+      to={item.to}
+      onClick={onNavigate}
+      className={({ isActive }) =>
+        `relative rounded-md px-3 py-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50 ${
+          isActive
+            ? "bg-accent text-accent-foreground"
+            : "text-primary-foreground/75 hover:bg-primary-foreground/10 hover:text-primary-foreground"
+        }`
+      }
+    >
+      {item.label}
+    </NavLink>
+  );
+}
 
-function NavBar() {
+function Navbar() {
   const [showMenu, setShowMenu] = useState(false);
+  const userLocation = useUserLocation();
   const navigate = useNavigate();
-  const handleMenuClose = () => {
-    setShowMenu(!showMenu);
-  };
 
-  const [userLocation, setUserLocation] = useState("Fetching location...");
-
-  const profilePic = ""; // Logic to fetch the user's profile picture URL
-
-  useEffect(() => {
-    // Function to get the user's location
-    const fetchLocation = () => {
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            const { latitude, longitude } = position.coords;
-            fetchCityName(latitude, longitude);
-          },
-          () => {
-            setUserLocation("Location access denied");
-          },
-        );
-      } else {
-        setUserLocation("Geolocation not supported");
-      }
-    };
-
-    fetchLocation();
-  }, []);
-
-  // Function to fetch city name from OpenCage API
-  const fetchCityName = async (latitude, longitude) => {
-    try {
-      const response = await fetch(
-        `https://api.opencagedata.com/geocode/v1/json?q=${latitude}+${longitude}&key=${API_KEY}`,
-      );
-      const data = await response.json();
-      if (data.results.length > 0) {
-        const city =
-          data.results[0].components.city ||
-          data.results[0].components.town ||
-          "Unknown location";
-        setUserLocation(city); // Update location text
-      } else {
-        setUserLocation("City not found");
-      }
-    } catch (error) {
-      setUserLocation("Error fetching city name");
-      console.error("Error fetching city name:", error);
-    }
+  const handleExplore = (value) => {
+    const option = exploreOptions.find((item) => item.value === value);
+    if (option) navigate(option.to);
   };
 
   return (
-    <header className="navbar-header">
-      <div className="top-navbar">
-        <NavLink to="/" className="logo-container">
-          <img src={logo} alt="Ayurvedic Logo" className="nav-logo" />
-          <div className="text-container">
-            <div className="logo-text">Jeevan</div>
-            <div className="consultations-text">Hub</div>
-          </div>
+    <header className="fixed inset-x-0 top-0 z-50 border-b border-primary-foreground/10 bg-primary text-primary-foreground shadow-[var(--jh-shadow-rest)]">
+      <div className="mx-auto flex min-h-20 max-w-7xl items-center gap-4 px-4 py-3 sm:px-6 lg:px-8">
+        <NavLink to="/" className="flex shrink-0 items-center gap-2 rounded-md focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
+          <img src={logo} alt="JeevanHub" className="size-11 rounded-xl bg-primary-foreground/10 object-contain p-1" />
+          <span className="hidden font-display text-xl font-semibold tracking-tight sm:inline">JeevanHub</span>
         </NavLink>
 
-        <div className="search-signin">
-          <div className="search-bar">
-            <div className="dropdown">
-              <select defaultValue="" onChange={(e) => {
-                const value = e.target.value;
-                switch(value) {
-                  case "doctor": navigate("/doctors"); break;
-                  case "disease": navigate("/treatments"); break;
-                  case "medicine": navigate("/medicines"); break;
-                  case "diet-yoga": navigate("/diet-yoga"); break;
-                  case "blogs-videos": navigate("/blogs-videos"); break;
-                  default: break;
-                }
-              }}>
-                <option value="" disabled hidden>Explore...</option>
-                <option value="doctor">Doctor</option>
-                <option value="disease">Diseases</option>
-                <option value="medicine">Medicines</option>
-                {/* <option value="diet-yoga">Diet And Yoga</option> */}
-                <option value="blogs-videos">Blogs</option>
-              </select>
-            </div>
-
-            <input
-              type="text"
-              id="search-box"
-              name="search"
-              placeholder="Search"
-              className="search-input"
-            />
+        <div className="hidden min-w-0 flex-1 items-center justify-center lg:flex">
+          <div className="flex h-11 w-full max-w-xl items-center gap-2 rounded-lg bg-primary-foreground/10 pl-3 pr-1 text-primary-foreground/70 ring-1 ring-inset ring-primary-foreground/15 focus-within:ring-2 focus-within:ring-primary-foreground/60">
+            <Search className="size-4 shrink-0" aria-hidden="true" />
+            <Select onValueChange={handleExplore}>
+              <SelectTrigger
+                aria-label="Explore JeevanHub"
+                className="h-8 w-28 shrink-0 gap-1.5 border-0 bg-transparent px-2 text-sm font-semibold text-primary-foreground hover:bg-primary-foreground/10 focus-visible:ring-0 [&_svg]:text-primary-foreground/70"
+              >
+                <SelectValue placeholder="Explore" />
+              </SelectTrigger>
+              <SelectContent>
+                {exploreOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <span className="h-5 w-px shrink-0 bg-primary-foreground/20" aria-hidden="true" />
+            <Input aria-label="Search JeevanHub" placeholder="Search care, doctors, or medicines" className="h-9 border-0 bg-transparent px-1 text-primary-foreground shadow-none placeholder:text-primary-foreground/55 focus-visible:ring-0" />
           </div>
         </div>
 
-        <div className="auth">
-          <NavLink to="/signin" className="signin-btn-text">
-            Login
+        <div className="ml-auto flex items-center gap-2">
+          <span className="hidden items-center gap-1.5 text-xs font-medium text-primary-foreground/70 xl:flex"><MapPin className="size-3.5" aria-hidden="true" />{userLocation}</span>
+          <NavLink to="/signin" className="hidden h-9 items-center justify-center rounded-md bg-primary-foreground px-4 text-sm font-semibold text-primary transition-colors hover:bg-primary-foreground/90 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50 sm:inline-flex">Sign in</NavLink>
+          <NavLink to="/signin" aria-label="Sign in" className="sm:hidden">
+            <img src={defaultProfilePic} alt="" className="size-9 rounded-full border border-primary-foreground/40 object-cover" />
           </NavLink>
-          <NavLink to="/signin" className="signin-btn">
-            <img
-              src={profilePic || defaultProfilePic}
-              alt="Profile"
-              className="profile-pic"
-            />
-          </NavLink>
+          <Button variant="ghost" size="icon" aria-label={showMenu ? "Close navigation menu" : "Open navigation menu"} aria-expanded={showMenu} onClick={() => setShowMenu((open) => !open)} className="text-primary-foreground hover:bg-primary-foreground/10 lg:hidden">
+            {showMenu ? <X /> : <Menu />}
+          </Button>
         </div>
       </div>
 
-      <nav className="navbar">
-        <div className="left-item">
-          <img
-            src={locationIcon}
-            alt="Location Icon"
-            className="location-icon"
-          />
-          <span className="location-text">{userLocation}</span>{" "}
-          {/* Display user location */}
-        </div>
-        <div className="center-items">
-          {showMenu && (
-            <div className="nav-menu">
-              <ul className="nav-sidebar" style={{ width: "60%" }}>
-                <img
-                  src={menu_close}
-                  alt="menu_close"
-                  onClick={handleMenuClose}
-                />
-                <li>
-                  <NavLink to="/" exact="true">
-                    Home
-                  </NavLink>
-                </li>
-                <li>
-                  <NavLink to="/treatments">
-                    Treatments
-                  </NavLink>
-                </li>
-                <li>
-                  <NavLink to="/doctors">
-                    Doctors
-                  </NavLink>
-                </li>
-                <li>
-                  <NavLink to="/medicines">
-                    Medicines
-                  </NavLink>
-                </li>
-                {/* <li>
-									<NavLink to="/diet-yoga">
-										Diet And Yoga
-									</NavLink>
-								</li> */}
-                <li>
-                  <NavLink to="/blogs-videos">
-                    Blogs and Videos
-                  </NavLink>
-                </li>
-              </ul>
-            </div>
-          )}
-          <div className="nav-menu-button">
-            <img src={menu} alt="menu" onClick={handleMenuClose} />
-          </div>
-          <ul className="nav-center-menu">
-            <li>
-              <NavLink to="/" exact="true">
-                Home
-              </NavLink>
-            </li>
-            <li>
-              <NavLink to="/treatments">
-                Treatments
-              </NavLink>
-            </li>
-            <li>
-              <NavLink to="/doctors">
-                Doctors
-              </NavLink>
-            </li>
-            <li>
-              <NavLink to="/medicines">
-                Medicines
-              </NavLink>
-            </li>
-            {/* <li>
-							<NavLink to="/diet-yoga">
-								Diet And Yoga
-							</NavLink>
-						</li> */}
-            <li>
-              <NavLink to="/blogs-videos">
-                Blogs and Videos
-              </NavLink>
-            </li>
-          </ul>
+      <nav className="hidden border-t border-primary-foreground/10 lg:block" aria-label="Primary navigation">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-2 sm:px-6 lg:px-8">
+          <span className="flex items-center gap-1.5 text-xs font-medium text-primary-foreground/70"><MapPin className="size-3.5" aria-hidden="true" />{userLocation}</span>
+          <div className="flex items-center gap-1">{publicNavigation.map((item) => <NavigationLink key={item.to} item={item} />)}</div>
+          <span className="w-28" aria-hidden="true" />
         </div>
       </nav>
+
+      {showMenu ? (
+        <div className="border-t border-primary-foreground/10 bg-primary px-4 pb-5 pt-3 lg:hidden">
+          <div className="mb-3 flex items-center gap-2 rounded-lg bg-primary-foreground/10 px-3 py-2">
+            <Search className="size-4 shrink-0 text-primary-foreground/70" aria-hidden="true" />
+            <Input aria-label="Search JeevanHub" placeholder="Search JeevanHub" className="h-9 border-0 bg-transparent text-primary-foreground placeholder:text-primary-foreground/55 focus-visible:ring-0" />
+          </div>
+          <nav className="grid gap-1" aria-label="Mobile navigation">{publicNavigation.map((item) => <NavigationLink key={item.to} item={item} onNavigate={() => setShowMenu(false)} />)}</nav>
+        </div>
+      ) : null}
     </header>
   );
 }
 
-export default NavBar;
+export default Navbar;

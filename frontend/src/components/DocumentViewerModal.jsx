@@ -1,31 +1,26 @@
-import React from 'react';
-import { X } from 'lucide-react';
-import './DocumentViewerModal.css';
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
 // Renders a medical-history document (image or PDF) inline in an overlay so
 // patients/doctors never have to leave the site to view it.
 export function DocumentViewerModal({ doc, onClose }) {
 	if (!doc) return null;
 
-	const isImage = doc.mimeType?.startsWith('image/');
+	const isImage = doc.mimeType?.startsWith("image/");
 
 	return (
-		<div className="doc-viewer-overlay" onClick={onClose}>
-			<div className="doc-viewer-panel" onClick={(e) => e.stopPropagation()}>
-				<div className="doc-viewer-header">
-					<span className="doc-viewer-title">{doc.fileName}</span>
-					<button type="button" className="doc-viewer-close" onClick={onClose} aria-label="Close">
-						<X size={20} />
-					</button>
+		<Dialog open onOpenChange={(open) => !open && onClose()}>
+			<DialogContent className="flex h-[85vh] max-h-[85vh] w-[calc(100%-2rem)] max-w-3xl flex-col gap-0 overflow-hidden p-0">
+				<div className="flex items-center justify-between border-b border-border px-5 py-3">
+					<DialogTitle className="truncate pr-6 text-base">{doc.fileName}</DialogTitle>
 				</div>
-				<div className="doc-viewer-body">
+				<div className="flex flex-1 items-center justify-center overflow-auto bg-secondary/60">
 					{isImage ? (
-						<img src={doc.url} alt={doc.fileName} className="doc-viewer-image" />
+						<img src={doc.url} alt={doc.fileName} className="max-h-full max-w-full object-contain" />
 					) : (
-						<iframe src={doc.url} title={doc.fileName} className="doc-viewer-iframe" />
+						<iframe src={doc.url} title={doc.fileName} className="size-full border-0" />
 					)}
 				</div>
-			</div>
-		</div>
+			</DialogContent>
+		</Dialog>
 	);
 }

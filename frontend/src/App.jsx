@@ -1,5 +1,5 @@
 import React, { useContext, Suspense, lazy } from 'react';
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
 import ProtectedRoute from './components/ProtectedRoute';
 import NavBar from './screens/Navbar';
 import PatientNavBar from './screens/Patients/PatientNavBar';  // Patient specific navbar
@@ -29,11 +29,12 @@ const DoctorsScreen = lazy(() => import('./screens/DoctorsScreen'));
 const DoctorDetailPage = lazy(() => import('./screens/Patients/DoctorDetailPage'));
 const DoctorReviewsPage = lazy(() => import('./screens/Doctors/DoctorReviewsPage'));
 const SignInScreen = lazy(() => import('./screens/SignInScreen'));
+const AdminSignInScreen = lazy(() => import('./screens/AdminSignInScreen'));
 const SignUpScreen = lazy(() => import('./screens/SignUpScreen'));
 const SignUpPatientScreen = lazy(() => import('./screens/Patients/SignUpPatientScreen'));
 const SignUpDoctorScreen = lazy(() => import('./screens/Doctors/SignUpDoctorScreen'));
 const SignUpRetailerScreen = lazy(() => import('./screens/Retailers/SignUpRetailerScreen'));
-const PrakritiDetermination = lazy(() => import('./screens/Patients/PrakritiDetermination'));
+const PrakritiDetermination = lazy(() => import('./screens/Patients/Prakriti/PrakritiDetermination'));
 const TreatmentsScreen = lazy(() => import('./screens/Treatments'));
 const AppointedDoctor = lazy(() => import('./screens/Patients/Appointments/AppointedDoctor'));
 const PaymentPage = lazy(() => import('./screens/Patients/Appointments/PaymentPage'));
@@ -80,10 +81,39 @@ const RetailerProfileNew = lazy(() => import('./screens/Retailers/RetailerProfil
 const DoctorList = lazy(() => import('./screens/admin/doctors/DoctorList'));
 const RetailerFullDetails = lazy(() => import('./screens/admin/Retailer/RetailerFullDetails'));
 const PrescribeIndex = lazy(() => import('./screens/Doctors/doctorPrescribe/PrescribeIndex'));
-const PatientFeedback = lazy(() => import('./screens/Patients/PatientFeedback'));
-const BuyerFeedback = lazy(() => import('./screens/Patients/BuyerFeedback'));
+const PatientFeedback = lazy(() => import('./screens/Patients/Feedback/PatientFeedback'));
+const BuyerFeedback = lazy(() => import('./screens/Patients/Feedback/BuyerFeedback'));
 const MedicineIdDetails = lazy(() => import('./screens/MedicineIdDetails'));
-const PrakritiAssessment = lazy(() => import('./screens/Patients/PrakritiAssessment'));
+const PrakritiAssessment = lazy(() => import('./screens/Patients/Prakriti/PrakritiAssessment'));
+
+// Auth entry screens own their full-page layout (branding panel + form) —
+// the global navbar/footer chrome would duplicate branding and eat vertical
+// space the login/sign-up card design relies on.
+const AUTH_ONLY_ROUTES = new Set([
+  '/signin',
+  '/signup',
+  '/admin/login',
+  '/signup-patient',
+  '/signup-doctor',
+  '/signup-retailer',
+]);
+
+function AppChrome({ renderNavBar, children }) {
+  const location = useLocation();
+  const isAuthRoute = AUTH_ONLY_ROUTES.has(location.pathname);
+
+  if (isAuthRoute) {
+    return children;
+  }
+
+  return (
+    <>
+      {renderNavBar()}
+      <RoutePageShell>{children}</RoutePageShell>
+      <Footer />
+    </>
+  );
+}
 
 function App() {
   const { auth } = useContext(AuthContext);
@@ -122,12 +152,12 @@ function App() {
 
   return (
     <Router>
-      {renderNavBar()}
-      <RoutePageShell>
+      <AppChrome renderNavBar={renderNavBar}>
       <Suspense fallback={<AppLoadingState />}>
         <Routes>
           <Route path="/" element={<HomeScreen />} />
           <Route path="/signin" element={<SignInScreen />} />
+          <Route path="/admin/login" element={<AdminSignInScreen />} />
           <Route path="/signup" element={<SignUpScreen />} />
           <Route path="/treatments" element={<TreatmentsScreen />} />
           <Route path="/treatment/:category" element={<TreatmentDetailsScreen />} />
@@ -201,8 +231,7 @@ function App() {
           </Route>
         </Routes>
       </Suspense>
-      </RoutePageShell>
-      <Footer />
+      </AppChrome>
       <SanjeevaniChatbot />
       <BackToChatFab />
     </Router>

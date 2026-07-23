@@ -212,6 +212,12 @@ exports.aiMatchDoctors = async (req, res) => {
 		if (error.code === 'DISABLED' || error.code === 'NO_KEY' || error.code === 'PROVIDER_UNIMPLEMENTED') {
 			return res.status(503).json({ message: "AI matching is unavailable right now. Please use the filters instead." });
 		}
+		if (error.code === 'RATE_LIMIT') {
+			return res.status(429).json({ message: "We're experiencing high traffic. Please wait a moment and try again." });
+		}
+		if (error.code === 'JSON_PARSE_ERROR') {
+			return res.status(500).json({ message: "AI response was hard to read. Please try rephrasing your concern." });
+		}
 		console.error("AI doctor match failed:", error.message);
 		return res.status(500).json({ message: "Couldn't complete AI matching. Please try again or use the filters." });
 	}

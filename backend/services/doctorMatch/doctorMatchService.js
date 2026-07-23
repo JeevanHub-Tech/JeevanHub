@@ -95,16 +95,34 @@ async function rankWithGemini({ query, candidates }) {
   if (!apiKey) { const e = new Error('GEMINI_API_KEY is not set'); e.code = 'NO_KEY'; throw e; }
 
   const ai = new GoogleGenAI({ apiKey });
-  const resp = await ai.models.generateContent({
-    model: DOCTOR_MATCH_MODEL,
-    contents: buildPrompt(query, candidates),
-    config: { responseMimeType: 'application/json', responseJsonSchema: RANK_SCHEMA, temperature: 0.3 },
-  });
+  let resp;
+  try {
+    resp = await ai.models.generateContent({
+      model: DOCTOR_MATCH_MODEL,
+      contents: buildPrompt(query, candidates),
+      config: { responseMimeType: 'application/json', responseJsonSchema: RANK_SCHEMA, temperature: 0.3 },
+    });
+  } catch (error) {
+    if (error.status === 429 || (error.message && (error.message.includes('429') || error.message.includes('quota')))) {
+      const e = new Error('Gemini API rate limit exceeded');
+      e.code = 'RATE_LIMIT';
+      throw e;
+    }
+    throw error;
+  }
+
   let parsed;
-  try { parsed = JSON.parse(resp.text); }
-  catch (_) {
-    const m = String(resp.text || '').match(/\{[\s\S]*\}/);
-    parsed = m ? JSON.parse(m[0]) : {};
+  try { 
+    parsed = JSON.parse(resp.text); 
+  } catch (_) {
+    try {
+      const m = String(resp.text || '').match(/\{[\s\S]*\}/);
+      parsed = m ? JSON.parse(m[0]) : {};
+    } catch (parseError) {
+      const e = new Error('Failed to parse AI response: ' + parseError.message);
+      e.code = 'JSON_PARSE_ERROR';
+      throw e;
+    }
   }
   return parsed && typeof parsed === 'object' ? parsed : {};
 }

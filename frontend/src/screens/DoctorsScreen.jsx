@@ -133,10 +133,12 @@ function DoctorsScreen() {
 
   // AI illness-match state.
   const [aiQuery, setAiQuery] = useState("");
-  const [aiStatus, setAiStatus] = useState("idle"); // idle | loading | ready | error
+  const [aiStatus, setAiStatus] = useState("idle"); // idle | loading | ready | clarify | error
   const [aiError, setAiError] = useState("");
   const [aiRanking, setAiRanking] = useState(null); // Map(id -> { score, reason }) | null
   const [aiQueryUsed, setAiQueryUsed] = useState("");
+  const [aiMessage, setAiMessage] = useState("");
+  const [aiSuggestions, setAiSuggestions] = useState([]);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -243,9 +245,21 @@ function DoctorsScreen() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "AI matching failed.");
+
+      if (data.status === "clarify") {
+        setAiRanking(null);
+        setAiQueryUsed("");
+        setAiMessage(data.message || "Could you share a bit more about what you're experiencing?");
+        setAiSuggestions(Array.isArray(data.suggestions) ? data.suggestions : []);
+        setAiStatus("clarify");
+        return;
+      }
+
       const map = new Map((data.ranked || []).map((r) => [r.id, { score: r.score, reason: r.reason }]));
       setAiRanking(map);
       setAiQueryUsed(query);
+      setAiMessage("");
+      setAiSuggestions([]);
       setAiStatus("ready");
     } catch (e) {
       setAiError(e.message || "Something went wrong. Please try again.");
@@ -256,6 +270,8 @@ function DoctorsScreen() {
   const clearAiMatch = () => {
     setAiRanking(null);
     setAiQueryUsed("");
+    setAiMessage("");
+    setAiSuggestions([]);
     setAiStatus("idle");
     setAiError("");
   };
@@ -317,6 +333,21 @@ function DoctorsScreen() {
           </div>
 
           {aiStatus === "error" && <p className="text-sm font-medium text-destructive">{aiError}</p>}
+
+          {aiStatus === "clarify" && (
+            <div className="flex flex-col gap-2 rounded-lg border border-primary/20 bg-card p-3.5">
+              <p className="text-sm leading-relaxed text-foreground">{aiMessage}</p>
+              {aiSuggestions.length > 0 && (
+                <ul className="flex flex-col gap-1">
+                  {aiSuggestions.map((suggestion, i) => (
+                    <li key={i} className="flex items-start gap-1.5 text-sm leading-relaxed text-muted-foreground">
+                      <span aria-hidden="true">•</span> {suggestion}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
 
           {aiActive && (
             <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3 text-sm">

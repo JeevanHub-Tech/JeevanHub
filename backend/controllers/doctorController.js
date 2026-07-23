@@ -177,7 +177,7 @@ exports.aiMatchDoctors = async (req, res) => {
 			.select('firstName lastName gender designation specialization experience price education languages introduction');
 
 		if (doctors.length === 0) {
-			return res.status(200).json({ ranked: [] });
+			return res.status(200).json({ status: "matched", ranked: [] });
 		}
 
 		// Attach real ratings so the model can weigh them.
@@ -202,8 +202,8 @@ exports.aiMatchDoctors = async (req, res) => {
 		}));
 
 		const { rankDoctors } = require("../services/doctorMatch/doctorMatchService");
-		const ranked = await rankDoctors({ query, doctors: candidates });
-		return res.status(200).json({ ranked });
+		const result = await rankDoctors({ query, doctors: candidates });
+		return res.status(200).json(result);
 	} catch (error) {
 		// Friendly, specific messages for the config/availability cases; generic 500 otherwise.
 		if (error.code === 'EMPTY_QUERY') {

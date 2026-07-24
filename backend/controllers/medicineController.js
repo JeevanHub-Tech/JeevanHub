@@ -4,6 +4,13 @@ const fs = require('fs');
 const path = require('path');
 const xlsx = require('xlsx');
 const AdmZip = require('adm-zip');
+const { fuzzySearch } = require('../utils/fuzzySearch');
+
+const splitDiseasesTreated = (value) => {
+  if (Array.isArray(value)) return value.map((v) => String(v).trim()).filter(Boolean);
+  if (typeof value === 'string') return value.split(/[,;]/).map((v) => v.trim()).filter(Boolean);
+  return [];
+};
 
 // Add Medicines from Zip File (Excel + Images)
 exports.addMedicinesFromZip = async (req, res) => {
@@ -58,11 +65,12 @@ exports.addMedicinesFromZip = async (req, res) => {
 
       // Create a medicine entry according to the schema
       medicines.push({
-        name: item.name, 
+        name: item.name,
         price: item.price,
         quantity: item.quantity,
         category: item.category,
         prescription: item.prescription === 'yes' || item.prescription === true,
+        diseasesTreated: splitDiseasesTreated(item.diseasesTreated),
         images: imagePath ? [imagePath] : [], // Save image path in array
         retailerId: retailerId, // Reference to the retailer
       });
@@ -104,7 +112,8 @@ exports.addBulkMedicines = async (req, res) => {
         category: item.category,
         description: item.description || 'No description provided',
         prescription: item.prescription,
-        images: item.images || [], 
+        diseasesTreated: splitDiseasesTreated(item.diseasesTreated),
+        images: item.images || [],
         retailerId: req.user._id,
     }));
 
@@ -121,7 +130,7 @@ exports.addMedicine = async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ message: 'Medicine image is required' });
   }
-  const { name, price, quantity ,category, prescription} = req.body;
+  const { name, price, quantity ,category, prescription, diseasesTreated} = req.body;
   const image = req.file.path;
   if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
   if (req.user.role !== 'retailer') {
@@ -130,7 +139,7 @@ exports.addMedicine = async (req, res) => {
   const retailerId = req.user._id; // Get retailer ID from authenticated user
 
   try {
-    const newMedicine = new Medicine({ name, price, quantity ,category, prescription, images: [image], retailerId });
+    const newMedicine = new Medicine({ name, price, quantity ,category, prescription, diseasesTreated: splitDiseasesTreated(diseasesTreated), images: [image], retailerId });
     await newMedicine.save();
     res.status(201).json({ message: 'Medicine added successfully', medicine: newMedicine });
   } catch (error) {
@@ -143,7 +152,22 @@ exports.addMedicine = async (req, res) => {
 exports.getAllMedicines = async (req, res) => {
   try {
     const medicines = await Medicine.find().populate('retailerId', 'firstName lastName');
-    res.status(200).json(medicines);
+    const { q } = req.query;
+    if (!q) {
+      return res.status(200).json(medicines);
+    }
+
+    const matches = fuzzySearch(
+      medicines,
+      [
+        { name: 'name', weight: 0.4 },
+        { name: 'category', weight: 0.2 },
+        { name: 'diseasesTreated', weight: 0.25 },
+        { name: 'description', weight: 0.15 },
+      ],
+      q
+    );
+    res.status(200).json(matches.map((m) => m.item));
   } catch (error) {
     res.status(500).json({ message: 'Failed to fetch medicines', error: error.message });
   }
@@ -279,14 +303,14 @@ exports.updateMedicine = async (req, res) => {
     }
 
     // C5-8: Whitelist allowed fields to prevent mass assignment (e.g., hijacking retailerId)
-    const allowedUpdates = ["name", "price", "quantity", "category", "prescription", "description", "isActive", "images"];
+    const allowedUpdates = ["name", "price", "quantity", "category", "prescription", "description", "diseasesTreated", "isActive", "images"];
     const updates = {};
     for (const key of allowedUpdates) {
       if (req.body[key] !== undefined) {
-        updates[key] = req.body[key];
+        updates[key] = key === 'diseasesTreated' ? splitDiseasesTreated(req.body[key]) : req.body[key];
       }
     }
-    
+
     if (req.file) {
       updates.images = [req.file.path];
     }

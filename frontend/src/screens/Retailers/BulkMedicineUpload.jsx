@@ -18,6 +18,7 @@ const createEmptyRow = (id) => ({
 	category: "",
 	description: "",
 	prescription: false,
+	diseasesTreated: "",
 	images: [],
 	isValid: true,
 	isArchived: false,
@@ -405,9 +406,16 @@ const BulkMedicineUpload = () => {
 		setSaveStatus("Submitting to database...");
 		try {
 			const token = localStorage.getItem("token");
+			const payloadRows = validRows.map((r) => ({
+				...r,
+				diseasesTreated: (r.diseasesTreated || "")
+					.split(",")
+					.map((entry) => entry.trim())
+					.filter(Boolean),
+			}));
 			await axios.post(
 				`${BACKEND_URL || "http://localhost:8080"}/api/medicines/add-bulk`,
-				{ medicines: validRows },
+				{ medicines: payloadRows },
 				{
 					headers: { Authorization: `Bearer ${token}` },
 				}
@@ -615,6 +623,17 @@ const BulkMedicineUpload = () => {
 					/>
 				</td>
 				<td className="border-r border-border align-middle">
+					<input
+						type="text"
+						value={row.diseasesTreated || ""}
+						onChange={(e) => handleCellChange(originalIndex, "diseasesTreated", e.target.value)}
+						onKeyDown={(e) => handleKeyDown(e, originalIndex)}
+						placeholder="e.g. Diabetes, Arthritis"
+						className={cellBase}
+						disabled={isDisabled}
+					/>
+				</td>
+				<td className="border-r border-border align-middle">
 					<div className="flex items-center gap-2 p-3">
 						<input
 							type="checkbox"
@@ -787,7 +806,7 @@ const BulkMedicineUpload = () => {
 				<table className="bulk-table min-w-225 w-full border-collapse">
 					<thead>
 						<tr>
-							{["#", "Medicine Name *", "Description *", "Price (₹) *", "Quantity *", "Category *", "Prescription", "Images", "Actions"].map(
+							{["#", "Medicine Name *", "Description *", "Price (₹) *", "Quantity *", "Category *", "Diseases Treated", "Prescription", "Images", "Actions"].map(
 								(label) => (
 									<th
 										key={label}
@@ -866,7 +885,7 @@ const BulkMedicineUpload = () => {
 							<table className="bulk-table min-w-225 w-full border-collapse opacity-80">
 								<thead>
 									<tr>
-										{["#", "Medicine Name *", "Description *", "Price (₹) *", "Quantity *", "Category *", "Prescription", "Images", "Actions"].map(
+										{["#", "Medicine Name *", "Description *", "Price (₹) *", "Quantity *", "Category *", "Diseases Treated", "Prescription", "Images", "Actions"].map(
 											(label) => (
 												<th
 													key={label}

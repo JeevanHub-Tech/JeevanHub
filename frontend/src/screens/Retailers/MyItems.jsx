@@ -66,6 +66,7 @@ function MyItems() {
 		description: "",
 		prescription: false,
 		isActive: true,
+		diseasesTreated: "",
 	});
 
 	const [inlineEditField, setInlineEditField] = useState({ id: null, field: null, value: "" });
@@ -202,6 +203,7 @@ function MyItems() {
 			description: item.description || "",
 			prescription: item.prescription,
 			isActive: item.isActive !== false,
+			diseasesTreated: (item.diseasesTreated || []).join(", "),
 		});
 		setIsDrawerOpen(true);
 	};
@@ -209,7 +211,14 @@ function MyItems() {
 	const handleEditSubmit = async (e) => {
 		e.preventDefault();
 		try {
-			const payload = { ...editForm, quantity: Math.floor(Number(editForm.quantity)) };
+			const payload = {
+				...editForm,
+				quantity: Math.floor(Number(editForm.quantity)),
+				diseasesTreated: editForm.diseasesTreated
+					.split(",")
+					.map((entry) => entry.trim())
+					.filter(Boolean),
+			};
 			const response = await authFetch(`${BACKEND_URL}/api/medicines/${editingItem._id}`, {
 				method: "PUT",
 				headers: {
@@ -696,6 +705,15 @@ function MyItems() {
 									rows={3}
 									value={editForm.description}
 									onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+								/>
+							</Field>
+							<Field>
+								<FieldLabel htmlFor="diseasesTreated">Diseases/Conditions Treated</FieldLabel>
+								<Input
+									id="diseasesTreated"
+									placeholder="e.g. Diabetes, Arthritis, Cold & Cough"
+									value={editForm.diseasesTreated}
+									onChange={(e) => setEditForm({ ...editForm, diseasesTreated: e.target.value })}
 								/>
 							</Field>
 							<Field orientation="horizontal">

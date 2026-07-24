@@ -1,12 +1,11 @@
 import { useContext, useState } from "react";
-import { Menu, MapPin, Search, X, Bell, LogOut, ShoppingCart } from "lucide-react";
+import { Menu, MapPin, X, Bell, LogOut, ShoppingCart } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import GlobalSearchBox from "@/components/layout/GlobalSearchBox";
 import { exploreOptions as defaultExploreOptions } from "@/screens/publicNavigation";
 import { useUserLocation } from "@/hooks/useUserLocation";
 import { AuthContext } from "@/context/AuthContext";
@@ -42,28 +41,12 @@ function NavigationLink({ item, onNavigate }) {
 // data fetching (SSE badge counts, path-aware sublinks) and pass the result in.
 function DashboardNavbar({ navItems, profileTo, notificationsTo, cartTo, logoTo = "/", exploreOptions = defaultExploreOptions }) {
 	const [showMenu, setShowMenu] = useState(false);
-	const [exploreTarget, setExploreTarget] = useState(() => exploreOptions.find((o) => o.value === "doctor") || exploreOptions[0]);
-	const [searchQuery, setSearchQuery] = useState("");
 	const { auth, logout } = useContext(AuthContext);
 	const userLocation = useUserLocation("Your location", auth.user?.address || auth.user?.zipCode);
 	const navigate = useNavigate();
 
 	const userName = auth.user ? `${auth.user.firstName || ""} ${auth.user.lastName || ""}`.trim() : "Guest";
 	const profileImage = auth.user?.profileImage || defaultProfilePic;
-
-	const handleExplore = (value) => {
-		const option = exploreOptions.find((item) => item.value === value);
-		if (option) {
-			setExploreTarget(option);
-			navigate(option.to);
-		}
-	};
-
-	const runSearch = () => {
-		const query = searchQuery.trim();
-		if (!query || !exploreTarget) return;
-		navigate(`${exploreTarget.to}?q=${encodeURIComponent(query)}`);
-	};
 
 	const handleSignOut = () => {
 		logout();
@@ -79,33 +62,7 @@ function DashboardNavbar({ navItems, profileTo, notificationsTo, cartTo, logoTo 
 				</NavLink>
 
 				<div className="hidden min-w-0 flex-1 items-center justify-center lg:flex">
-					<div className="flex h-11 w-full max-w-xl items-center gap-2 rounded-lg bg-primary-foreground/10 pl-3 pr-1 text-primary-foreground/70 ring-1 ring-inset ring-primary-foreground/15 focus-within:ring-2 focus-within:ring-primary-foreground/60">
-						<Search className="size-4 shrink-0" aria-hidden="true" />
-						<Select onValueChange={handleExplore} items={exploreOptions}>
-							<SelectTrigger
-								aria-label="Explore JeevanHub"
-								className="h-8 w-28 shrink-0 gap-1.5 border-0 bg-transparent px-2 text-sm font-semibold text-primary-foreground hover:bg-primary-foreground/10 focus-visible:ring-0 [&_svg]:text-primary-foreground/70"
-							>
-								<SelectValue placeholder="Explore" />
-							</SelectTrigger>
-							<SelectContent>
-								{exploreOptions.map((option) => (
-									<SelectItem key={option.value} value={option.value}>
-										{option.label}
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
-						<span className="h-5 w-px shrink-0 bg-primary-foreground/20" aria-hidden="true" />
-						<Input
-							aria-label="Search JeevanHub"
-							placeholder="Search care, doctors, or medicines"
-							value={searchQuery}
-							onChange={(e) => setSearchQuery(e.target.value)}
-							onKeyDown={(e) => { if (e.key === "Enter") runSearch(); }}
-							className="h-9 border-0 bg-transparent px-1 text-primary-foreground shadow-none placeholder:text-primary-foreground/55 focus-visible:ring-0"
-						/>
-					</div>
+					<GlobalSearchBox exploreOptions={exploreOptions} className="w-full max-w-xl" />
 				</div>
 
 				<div className="ml-auto flex items-center gap-2">

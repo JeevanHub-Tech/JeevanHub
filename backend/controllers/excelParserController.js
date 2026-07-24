@@ -121,6 +121,7 @@ exports.parseBulkUpload = async (req, res) => {
                 quantity: rowData.quantity !== undefined ? String(rowData.quantity) : '',
                 category: rowData.category ? String(rowData.category) : '',
                 description: rowData.description ? String(rowData.description) : '',
+                diseasesTreated: rowData.diseasestreated ? String(rowData.diseasestreated) : '',
                 prescription: rowData.prescription ? (String(rowData.prescription).toLowerCase() === 'yes' || String(rowData.prescription).toLowerCase() === 'true' || String(rowData.prescription) === '1') : false,
                 images: images,
                 errors: rowErrors

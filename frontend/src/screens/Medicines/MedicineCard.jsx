@@ -55,6 +55,16 @@ const MedicineCard = ({ medicine, cart, addToCart, handleQuantityChange }) => {
 					<h3 className="m-0 line-clamp-2 text-lg leading-snug font-semibold text-foreground">{medicine.name}</h3>
 					<p className="m-0 text-xl font-bold text-primary">₹{medicine.price}</p>
 
+					{medicine.diseasesTreated?.length > 0 ? (
+						<div className="flex flex-wrap gap-1.5">
+							{medicine.diseasesTreated.slice(0, 3).map((disease) => (
+								<Badge key={disease} variant="secondary" className="font-normal">
+									{disease}
+								</Badge>
+							))}
+						</div>
+					) : null}
+
 					<div className="text-sm">
 						{medicine.prescription ? (
 							<Badge variant="destructive" className="uppercase" aria-label="Prescription required">

@@ -1,6 +1,7 @@
-import { useState, useEffect, useContext } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useContext, useMemo } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import axios from "axios";
+import Fuse from "fuse.js";
 import { Search, X, RefreshCw, AlertCircle, Loader2, ShoppingCart, Frown } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -39,6 +40,7 @@ const Medicines = () => {
 	const patientId = auth?.user?.id;
 	const token = localStorage.getItem("token");
 	const navigate = useNavigate();
+	const [searchParams] = useSearchParams();
 
 	const [medicines, setMedicines] = useState([]);
 	const [filteredMedicines, setFilteredMedicines] = useState([]);
@@ -47,7 +49,7 @@ const Medicines = () => {
 
 	const [cart, setCart] = useState([]);
 
-	const [searchTerm, setSearchTerm] = useState("");
+	const [searchTerm, setSearchTerm] = useState(searchParams.get("q") || "");
 	const [selectedCategory, setSelectedCategory] = useState("all");
 	const [priceRange, setPriceRange] = useState("all");
 	const [sortBy, setSortBy] = useState("name");
@@ -101,17 +103,24 @@ const Medicines = () => {
 		fetchData();
 	}, [patientId, token]);
 
-	useEffect(() => {
-		let result = [...medicines];
+	const fuse = useMemo(
+		() =>
+			new Fuse(medicines, {
+				keys: [
+					{ name: "name", weight: 0.5 },
+					{ name: "diseasesTreated", weight: 0.3 },
+					{ name: "description", weight: 0.15 },
+					{ name: "category", weight: 0.05 },
+				],
+				threshold: 0.35,
+				ignoreLocation: true,
+				minMatchCharLength: 2,
+			}),
+		[medicines],
+	);
 
-		if (searchTerm) {
-			result = result.filter(
-				(medicine) =>
-					medicine.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-					medicine.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-					medicine.ingredients?.toLowerCase().includes(searchTerm.toLowerCase()),
-			);
-		}
+	useEffect(() => {
+		let result = searchTerm.trim() ? fuse.search(searchTerm.trim()).map((match) => match.item) : [...medicines];
 
 		if (selectedCategory !== "all") {
 			result = result.filter((medicine) => medicine.category === selectedCategory);
@@ -152,7 +161,7 @@ const Medicines = () => {
 
 		setFilteredMedicines(result);
 		setCurrentPage(1);
-	}, [searchTerm, selectedCategory, priceRange, sortBy, medicines]);
+	}, [searchTerm, selectedCategory, priceRange, sortBy, medicines, fuse]);
 
 	const totalPages = Math.max(1, Math.ceil(filteredMedicines.length / PAGE_SIZE));
 	const paginatedMedicines = filteredMedicines.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
@@ -290,7 +299,7 @@ const Medicines = () => {
 						<Search className="pointer-events-none absolute top-1/2 left-3 size-5 -translate-y-1/2 text-muted-foreground" />
 						<Input
 							type="text"
-							placeholder="Search medicines by name, ingredients, or description..."
+							placeholder="Search medicines by name, condition/disease, or description..."
 							value={searchTerm}
 							onChange={(e) => setSearchTerm(e.target.value)}
 							className="h-11 pl-10 pr-10"
@@ -429,7 +438,7 @@ const Medicines = () => {
 					<EmptyState
 						icon={Frown}
 						title="No medicines found"
-						description="Try adjusting your filters or search terms"
+						description="Try adjusting your filters, or search by the condition/disease it treats"
 						action={
 							<Button onClick={resetFilters} className="w-full">
 								Clear All Filters

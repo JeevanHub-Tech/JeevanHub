@@ -58,6 +58,7 @@ function MedicineIdDetails({ addToCart }) {
               : FALLBACK_IMAGE,
           description: data.description || "No description provided.",
           prescription: data.prescription || false,
+          diseasesTreated: data.diseasesTreated || [],
           // Fill placeholders for fields not in backend schema yet
           ingredients: ["Information not provided"],
           usesBenefits: ["Information not provided"],
@@ -251,6 +252,16 @@ function MedicineIdDetails({ addToCart }) {
               <Badge variant="destructive" className="mb-3 self-start uppercase">
                 Rx Prescription Required
               </Badge>
+            )}
+
+            {medicine.diseasesTreated.length > 0 && (
+              <div className="mb-3 flex flex-wrap gap-1.5">
+                {medicine.diseasesTreated.map((disease) => (
+                  <Badge key={disease} variant="secondary" className="font-normal">
+                    {disease}
+                  </Badge>
+                ))}
+              </div>
             )}
 
             <div className="mb-6 flex items-baseline gap-2">

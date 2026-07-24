@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { addMedicine, updateMedicine, getAllMedicines, getMyMedicines, deleteMedicine, getMedicineById, bulkUpdateStatus, bulkDeleteMedicines, exportMyMedicines } = require('../controllers/medicineController');
+const { addMedicine, updateMedicine, getAllMedicines, getMedicineCategories, getMyMedicines, deleteMedicine, getMedicineById, bulkUpdateStatus, bulkDeleteMedicines, exportMyMedicines } = require('../controllers/medicineController');
 const auth = require('../middleware/auth');
 const multer = require('multer');
 const { addMedicinesFromZip, addBulkMedicines } = require('../controllers/medicineController');
@@ -33,7 +33,8 @@ const cloudStorage = new CloudinaryStorage({
 const cloudUpload = multer({ storage: cloudStorage });
 
 // Public Routes
-router.get('/', getAllMedicines); // Public route to view all medicines
+router.get('/', getAllMedicines); // Public route to view paginated medicines
+router.get('/categories', getMedicineCategories); // Public route to view distinct categories
 
 // Generic Image Upload for Bulk Table
 router.post('/upload-image', auth, (req, res, next) => {

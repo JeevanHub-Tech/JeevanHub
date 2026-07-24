@@ -22,4 +22,9 @@ const MedicineSchema = new mongoose.Schema({
   isActive: { type: Boolean, default: true },
 }, { timestamps: true });
 
-module.exports = mongoose.model('Medicine', MedicineSchema); 
+MedicineSchema.index({ category: 1 });
+MedicineSchema.index({ price: 1 });
+MedicineSchema.index({ name: 1 });
+MedicineSchema.index({ rating: -1 });
+
+module.exports = mongoose.model('Medicine', MedicineSchema);

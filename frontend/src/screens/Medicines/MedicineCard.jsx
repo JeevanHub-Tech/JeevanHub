@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 import { Badge } from "@/components/ui/badge";
@@ -7,10 +8,9 @@ import { Card } from "@/components/ui/card";
 const FALLBACK_IMAGE =
 	"https://images.unsplash.com/photo-1587854692152-cbe660dbde88?q=80&w=1169&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D";
 
-const MedicineCard = ({ medicine, cart, addToCart, handleQuantityChange }) => {
+const MedicineCard = ({ medicine, cartQuantity, addToCart, handleQuantityChange }) => {
 	const navigate = useNavigate();
 	const medicineId = medicine._id || medicine.id;
-	const cartItem = cart.find((item) => item._id === medicine._id);
 
 	const stopPropagation = (e) => {
 		e.stopPropagation();
@@ -78,7 +78,7 @@ const MedicineCard = ({ medicine, cart, addToCart, handleQuantityChange }) => {
 					</div>
 
 					<div className="mt-auto flex justify-center">
-						{cartItem ? (
+						{cartQuantity > 0 ? (
 							<div className="flex w-full items-center justify-center gap-3 rounded-lg border border-border bg-(--jh-cream-tint) p-1.5">
 								<button
 									onClick={(e) => handleQuantity(e, -1)}
@@ -88,7 +88,7 @@ const MedicineCard = ({ medicine, cart, addToCart, handleQuantityChange }) => {
 								>
 									−
 								</button>
-								<span className="min-w-8 text-center text-lg font-semibold">{cartItem.quantity}</span>
+								<span className="min-w-8 text-center text-lg font-semibold">{cartQuantity}</span>
 								<button
 									onClick={(e) => handleQuantity(e, 1)}
 									className="flex size-9 items-center justify-center rounded-lg border border-input bg-card text-xl font-bold text-foreground transition-colors hover:border-primary hover:bg-(--jh-sage-pale)"
@@ -110,4 +110,4 @@ const MedicineCard = ({ medicine, cart, addToCart, handleQuantityChange }) => {
 	);
 };
 
-export default MedicineCard;
+export default memo(MedicineCard);

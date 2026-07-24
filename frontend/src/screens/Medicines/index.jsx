@@ -187,6 +187,9 @@ const Medicines = () => {
 		setCart(formattedCart);
 	}, []);
 
+	// Both handlers update `cart` synchronously first (optimistic) so the +/- buttons
+	// feel instant, then reconcile with the server response or roll back on failure --
+	// without this the UI sat frozen for the full round-trip on every click.
 	const addToCart = useCallback(
 		async (medicine) => {
 			if (!patientId) {
@@ -194,9 +197,16 @@ const Medicines = () => {
 				return;
 			}
 
-			try {
-				const existingQuantity = cartQuantityById.get(medicine._id);
+			const existingQuantity = cartQuantityById.get(medicine._id);
+			const previousCart = cart;
 
+			if (existingQuantity) {
+				setCart((prev) => prev.map((item) => (item._id === medicine._id ? { ...item, quantity: item.quantity + 1 } : item)));
+			} else {
+				setCart((prev) => [...prev, { ...medicine, quantity: 1 }]);
+			}
+
+			try {
 				if (existingQuantity) {
 					const response = await axios.put(
 						`${BACKEND_URL}/api/cart/update-quantity`,
@@ -218,10 +228,11 @@ const Medicines = () => {
 				}
 			} catch (err) {
 				console.error("Add to cart failed:", err);
+				setCart(previousCart);
 				alert("Failed to add item to cart");
 			}
 		},
-		[patientId, token, cartQuantityById, updateLocalCartFromBackend],
+		[patientId, token, cart, cartQuantityById, updateLocalCartFromBackend],
 	);
 
 	const handleQuantityChange = useCallback(
@@ -232,6 +243,13 @@ const Medicines = () => {
 			if (currentQuantity === undefined) return;
 
 			const newQuantity = currentQuantity + delta;
+			const previousCart = cart;
+
+			if (newQuantity <= 0) {
+				setCart((prev) => prev.filter((item) => item._id !== id));
+			} else {
+				setCart((prev) => prev.map((item) => (item._id === id ? { ...item, quantity: newQuantity } : item)));
+			}
 
 			try {
 				if (newQuantity <= 0) {
@@ -257,9 +275,10 @@ const Medicines = () => {
 				}
 			} catch (err) {
 				console.error("Update quantity failed:", err);
+				setCart(previousCart);
 			}
 		},
-		[patientId, token, cartQuantityById, updateLocalCartFromBackend],
+		[patientId, token, cart, cartQuantityById, updateLocalCartFromBackend],
 	);
 
 	const resetFilters = () => {

@@ -374,7 +374,7 @@ const CartScreen = () => {
 	// The "My Cart" items + summary block, reused as-is in both layouts below.
 	const myCartItemsAndSummary = (
 		<>
-			<ul className="@container m-0 flex w-full list-none flex-col gap-5 p-0">
+			<ul className="m-0 flex w-full list-none flex-col gap-5 p-0">
 				{defaultCart.items.map((item) => (
 					<CartItemRow
 						key={item._id}
@@ -405,7 +405,7 @@ const CartScreen = () => {
 	);
 
 	return (
-		<div className={`mx-auto min-h-screen bg-background px-4 pb-32.5 font-body text-foreground transition-[max-width] duration-200 ease-out sm:px-5 sm:pb-15 ${hasDoctorCarts ? 'max-w-none' : 'max-w-275'}`}>
+		<div className={`mx-auto w-full min-h-screen bg-background px-4 pb-32.5 font-body text-foreground transition-[max-width] duration-200 ease-out sm:px-5 sm:pb-15 ${hasDoctorCarts ? 'max-w-none' : 'max-w-275'}`}>
 			<header className="mb-10 flex flex-col items-center text-center">
 				<h1 className="m-0 font-display text-3xl leading-tight font-normal tracking-tight text-(--jh-ink-strong) sm:text-4xl">Your Cart</h1>
 				<span
@@ -494,7 +494,7 @@ const CartScreen = () => {
 
 									{isExpanded && (
 										<div className="p-5">
-											<ul className="@container m-0 mb-5 flex list-none flex-col gap-5 p-0">
+											<ul className="m-0 mb-5 flex list-none flex-col gap-5 p-0">
 												{dc.items.map((item) => (
 													<CartItemRow
 														key={item._id}

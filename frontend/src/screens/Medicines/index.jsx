@@ -273,34 +273,6 @@ const Medicines = () => {
 	const cartCount = useMemo(() => cart.reduce((acc, item) => acc + item.quantity, 0), [cart]);
 	const pageList = useMemo(() => buildPageList(page, totalPages), [page, totalPages]);
 
-	if (loading && medicines.length === 0) {
-		return (
-			<div className="flex min-h-screen items-center justify-center bg-background">
-				<div className="flex flex-col items-center gap-3 text-muted-foreground">
-					<Loader2 className="size-8 animate-spin text-primary" />
-					<p>Loading medicines...</p>
-				</div>
-			</div>
-		);
-	}
-
-	if (error) {
-		return (
-			<div className="flex min-h-screen items-center justify-center bg-background">
-				<EmptyState
-					icon={AlertCircle}
-					title="Oops! Something went wrong"
-					description={error}
-					action={
-						<Button variant="outline" onClick={() => window.location.reload()}>
-							Try Again
-						</Button>
-					}
-				/>
-			</div>
-		);
-	}
-
 	return (
 		<div className="min-h-screen bg-background pb-16">
 			<div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
@@ -390,8 +362,14 @@ const Medicines = () => {
 
 				<div className="mb-5 flex flex-wrap items-center justify-between gap-3">
 					<p className="text-sm text-muted-foreground">
-						Showing <strong className="text-foreground">{medicines.length}</strong> of{" "}
-						<strong className="text-foreground">{total}</strong> medicines
+						{loading ? (
+							"Updating results…"
+						) : (
+							<>
+								Showing <strong className="text-foreground">{medicines.length}</strong> of{" "}
+								<strong className="text-foreground">{total}</strong> medicines
+							</>
+						)}
 					</p>
 					{cartLoaded && cartCount > 0 && (
 						<Button type="button" variant="secondary" onClick={() => navigate("/cart")}>
@@ -401,83 +379,105 @@ const Medicines = () => {
 					)}
 				</div>
 
-				{medicines.length > 0 ? (
-					<>
-						<div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-5">
-							{medicines.map((medicine) => (
-								<MedicineCard
-									key={medicine._id}
-									medicine={medicine}
-									cartQuantity={cartQuantityById.get(medicine._id) || 0}
-									addToCart={addToCart}
-									handleQuantityChange={handleQuantityChange}
-								/>
-							))}
+				{/* Only this results container reacts to loading/error/empty — the
+				    header, search box, and filters above stay mounted and focused
+				    the whole time so typing a search term doesn't feel like a
+				    page reload. */}
+				<div className={`relative transition-opacity duration-150 ${loading ? "opacity-60" : ""}`} aria-busy={loading}>
+					{loading && medicines.length === 0 ? (
+						<div className="flex min-h-72 flex-col items-center justify-center gap-3 text-muted-foreground">
+							<Loader2 className="size-8 animate-spin text-primary" />
+							<p>Loading medicines...</p>
 						</div>
+					) : error ? (
+						<EmptyState
+							icon={AlertCircle}
+							title="Oops! Something went wrong"
+							description={error}
+							action={
+								<Button variant="outline" onClick={() => window.location.reload()}>
+									Try Again
+								</Button>
+							}
+						/>
+					) : medicines.length > 0 ? (
+						<>
+							<div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-5">
+								{medicines.map((medicine) => (
+									<MedicineCard
+										key={medicine._id}
+										medicine={medicine}
+										cartQuantity={cartQuantityById.get(medicine._id) || 0}
+										addToCart={addToCart}
+										handleQuantityChange={handleQuantityChange}
+									/>
+								))}
+							</div>
 
-						{totalPages > 1 && (
-							<Pagination className="mt-10">
-								<PaginationContent>
-									<PaginationItem>
-										<PaginationPrevious
-											href="#"
-											aria-disabled={page === 1}
-											className={page === 1 ? "pointer-events-none opacity-50" : ""}
-											onClick={(e) => {
-												e.preventDefault();
-												if (page > 1) setPage(page - 1);
-											}}
-										/>
-									</PaginationItem>
+							{totalPages > 1 && (
+								<Pagination className="mt-10">
+									<PaginationContent>
+										<PaginationItem>
+											<PaginationPrevious
+												href="#"
+												aria-disabled={page === 1}
+												className={page === 1 ? "pointer-events-none opacity-50" : ""}
+												onClick={(e) => {
+													e.preventDefault();
+													if (page > 1) setPage(page - 1);
+												}}
+											/>
+										</PaginationItem>
 
-									{pageList.map((p) =>
-										typeof p === "number" ? (
-											<PaginationItem key={p}>
-												<PaginationLink
-													href="#"
-													isActive={p === page}
-													onClick={(e) => {
-														e.preventDefault();
-														setPage(p);
-													}}
-												>
-													{p}
-												</PaginationLink>
-											</PaginationItem>
-										) : (
-											<PaginationItem key={p}>
-												<PaginationEllipsis />
-											</PaginationItem>
-										),
-									)}
+										{pageList.map((p) =>
+											typeof p === "number" ? (
+												<PaginationItem key={p}>
+													<PaginationLink
+														href="#"
+														isActive={p === page}
+														onClick={(e) => {
+															e.preventDefault();
+															setPage(p);
+														}}
+													>
+														{p}
+													</PaginationLink>
+												</PaginationItem>
+											) : (
+												<PaginationItem key={p}>
+													<PaginationEllipsis />
+												</PaginationItem>
+											),
+										)}
 
-									<PaginationItem>
-										<PaginationNext
-											href="#"
-											aria-disabled={page === totalPages}
-											className={page === totalPages ? "pointer-events-none opacity-50" : ""}
-											onClick={(e) => {
-												e.preventDefault();
-												if (page < totalPages) setPage(page + 1);
-											}}
-										/>
-									</PaginationItem>
-								</PaginationContent>
-							</Pagination>
-						)}
-					</>
-				) : (
-					<EmptyState
-						icon={Frown}
-						title="No medicines found"
-						description="Try adjusting your filters or search terms"
-						action={
-							<Button onClick={resetFilters} className="w-full">
-								Clear All Filters
-							</Button>
-						}
-					/>
-				)}
+										<PaginationItem>
+											<PaginationNext
+												href="#"
+												aria-disabled={page === totalPages}
+												className={page === totalPages ? "pointer-events-none opacity-50" : ""}
+												onClick={(e) => {
+													e.preventDefault();
+													if (page < totalPages) setPage(page + 1);
+												}}
+											/>
+										</PaginationItem>
+									</PaginationContent>
+								</Pagination>
+							)}
+						</>
+					) : (
+						<EmptyState
+							icon={Frown}
+							title="No medicines found"
+							description="Try adjusting your filters or search terms"
+							action={
+								<Button onClick={resetFilters} className="w-full">
+									Clear All Filters
+								</Button>
+							}
+						/>
+					)}
+				</div>
 			</div>
 		</div>
 	);

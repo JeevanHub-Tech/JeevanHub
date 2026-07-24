@@ -210,6 +210,35 @@ exports.createBooking = async (req, res) => {
 		// Save the booking to the database
 		await newBooking.save();
 
+		// Two requests can pass the capacity check above concurrently before either
+		// inserts. Close that race by re-running the identical query post-insert:
+		// only the first `maxCapacity` bookings for this slot (by creation order)
+		// survive, so a loser here is cleanly rejected and its doc removed.
+		const confirmBookings = await Booking.find({
+			doctorId: doctor._id,
+			slotId,
+			dateOfAppointment: { $gte: startOfDay, $lte: endOfDay },
+			$or: [
+				{ requestAccept: 'accepted' },
+				{ requestAccept: 'pending', amountPaid: 0 },
+				{
+					requestAccept: 'pending',
+					amountPaid: { $gt: 0 },
+					$or: [
+						{ 'paymentScreenshots.0': { $exists: true } },
+						{ createdAt: { $gte: tenMinutesAgo } }
+					]
+				}
+			]
+		}).sort({ createdAt: 1 });
+
+		const slotConfirmBookings = confirmBookings.filter(b => b.slotId.toString() === slotId.toString());
+		const rank = slotConfirmBookings.findIndex(b => b._id.equals(newBooking._id));
+		if (rank === -1 || rank >= (foundSlot.maxCapacity || 1)) {
+			await Booking.deleteOne({ _id: newBooking._id });
+			return res.status(409).json({ error: "This time slot was just booked by someone else. Please choose a different slot." });
+		}
+
 		// Notify doctor of new pending booking
 		notifyDoctor(doctor._id);
 

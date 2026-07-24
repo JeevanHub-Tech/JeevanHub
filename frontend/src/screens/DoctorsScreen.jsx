@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { ChevronDown, Loader2, Sparkles, Stethoscope, X } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -124,6 +124,8 @@ function FilterSelect({ id, label, placeholder, options, value, onValueChange, d
 
 function DoctorsScreen() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const keyword = (searchParams.get("q") || "").trim().toLowerCase();
   const [showFilter, setShowFilter] = useState(
     () => typeof window === "undefined" || window.innerWidth > 860,
   );
@@ -162,7 +164,7 @@ function DoctorsScreen() {
           pricepoint: `${doctor.price || "0"}`,
           priceRange:
             doctor.price < 500 ? "Low" : doctor.price >= 500 && doctor.price <= 1000 ? "Medium" : "High",
-          location: doctor.zipCode || "N/A",
+          location: doctor.address || doctor.zipCode || "Not specified",
           language: doctor.languages?.join(", ") || "English",
           rating: 4.0,
           gender: doctor.gender ? doctor.gender.charAt(0).toUpperCase() + doctor.gender.slice(1) : "N/A",
@@ -179,6 +181,9 @@ function DoctorsScreen() {
 
   const filteredDoctors = doctors.filter(
     (doctor) =>
+      (keyword
+        ? doctor.name.toLowerCase().includes(keyword) || doctor.specialization.toLowerCase().includes(keyword)
+        : true) &&
       (filters.specialization ? doctor.specialization === filters.specialization : true) &&
       (filters.experience
         ? (filters.experience === "1" && parseInt(doctor.experience) <= 1) ||
@@ -493,8 +498,19 @@ function DoctorsScreen() {
                 : " "}
             </span>
 
-            {activeChips.length > 0 && (
+            {(keyword || activeChips.length > 0) && (
               <div className="flex flex-wrap gap-2">
+                {keyword && (
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-1.5 rounded-full border border-border bg-(--jh-sage-pale) py-1.5 pr-2.5 pl-3.5 text-sm font-semibold text-(--jh-olive-deep) transition-colors hover:bg-(--jh-sage-pale-2)"
+                    onClick={() => setSearchParams({})}
+                  >
+                    &ldquo;{searchParams.get("q")}&rdquo;
+                    <X className="size-3.5" aria-hidden="true" />
+                    <span className="sr-only">Clear search</span>
+                  </button>
+                )}
                 {activeChips.map((chip) => (
                   <button
                     type="button"

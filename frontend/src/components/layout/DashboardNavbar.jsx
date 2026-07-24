@@ -42,8 +42,10 @@ function NavigationLink({ item, onNavigate }) {
 // data fetching (SSE badge counts, path-aware sublinks) and pass the result in.
 function DashboardNavbar({ navItems, profileTo, notificationsTo, cartTo, logoTo = "/", exploreOptions = defaultExploreOptions }) {
 	const [showMenu, setShowMenu] = useState(false);
+	const [exploreTarget, setExploreTarget] = useState(() => exploreOptions.find((o) => o.value === "doctor") || exploreOptions[0]);
+	const [searchQuery, setSearchQuery] = useState("");
 	const { auth, logout } = useContext(AuthContext);
-	const userLocation = useUserLocation();
+	const userLocation = useUserLocation("Your location", auth.user?.address || auth.user?.zipCode);
 	const navigate = useNavigate();
 
 	const userName = auth.user ? `${auth.user.firstName || ""} ${auth.user.lastName || ""}`.trim() : "Guest";
@@ -51,7 +53,16 @@ function DashboardNavbar({ navItems, profileTo, notificationsTo, cartTo, logoTo 
 
 	const handleExplore = (value) => {
 		const option = exploreOptions.find((item) => item.value === value);
-		if (option) navigate(option.to);
+		if (option) {
+			setExploreTarget(option);
+			navigate(option.to);
+		}
+	};
+
+	const runSearch = () => {
+		const query = searchQuery.trim();
+		if (!query || !exploreTarget) return;
+		navigate(`${exploreTarget.to}?q=${encodeURIComponent(query)}`);
 	};
 
 	const handleSignOut = () => {
@@ -86,7 +97,14 @@ function DashboardNavbar({ navItems, profileTo, notificationsTo, cartTo, logoTo 
 							</SelectContent>
 						</Select>
 						<span className="h-5 w-px shrink-0 bg-primary-foreground/20" aria-hidden="true" />
-						<Input aria-label="Search JeevanHub" placeholder="Search care, doctors, or medicines" className="h-9 border-0 bg-transparent px-1 text-primary-foreground shadow-none placeholder:text-primary-foreground/55 focus-visible:ring-0" />
+						<Input
+							aria-label="Search JeevanHub"
+							placeholder="Search care, doctors, or medicines"
+							value={searchQuery}
+							onChange={(e) => setSearchQuery(e.target.value)}
+							onKeyDown={(e) => { if (e.key === "Enter") runSearch(); }}
+							className="h-9 border-0 bg-transparent px-1 text-primary-foreground shadow-none placeholder:text-primary-foreground/55 focus-visible:ring-0"
+						/>
 					</div>
 				</div>
 

@@ -27,6 +27,7 @@ const chatRoutes = require("./routes/chatRoutes");
 const { startScheduler } = require("./scheduler");
 const paymentRoutes = require("./routes/paymentRoutes");
 const medicineDraftRoutes = require("./routes/medicineDraftRoutes");
+const callbackRequestRoutes = require("./routes/callbackRequestRoutes");
 
 if (process.env.NODE_ENV !== 'production') {
     mongoose.set('debug', true);
@@ -90,6 +91,7 @@ app.use("/api/chat", chatRoutes);
 app.use("/api/knowledge", knowledgeBaseRoutes);
 
 app.use("/api/payment", paymentRoutes);
+app.use("/api/callback-requests", callbackRequestRoutes);
 
 
 // Start the scheduler

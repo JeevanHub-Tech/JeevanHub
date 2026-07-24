@@ -8,6 +8,14 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+	Pagination,
+	PaginationContent,
+	PaginationItem,
+	PaginationLink,
+	PaginationNext,
+	PaginationPrevious,
+} from "@/components/ui/pagination";
 import { AuthContext } from "../../context/AuthContext";
 import { BACKEND_URL } from "../../config";
 import MedicineCard from "./MedicineCard";
@@ -44,6 +52,8 @@ const Medicines = () => {
 	const [priceRange, setPriceRange] = useState("all");
 	const [sortBy, setSortBy] = useState("name");
 	const [categories, setCategories] = useState([]);
+	const [currentPage, setCurrentPage] = useState(1);
+	const PAGE_SIZE = 12;
 
 	useEffect(() => {
 		const fetchData = async () => {
@@ -141,7 +151,17 @@ const Medicines = () => {
 		});
 
 		setFilteredMedicines(result);
+		setCurrentPage(1);
 	}, [searchTerm, selectedCategory, priceRange, sortBy, medicines]);
+
+	const totalPages = Math.max(1, Math.ceil(filteredMedicines.length / PAGE_SIZE));
+	const paginatedMedicines = filteredMedicines.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+	const goToPage = (page) => {
+		if (page < 1 || page > totalPages) return;
+		setCurrentPage(page);
+		window.scrollTo({ top: 0, behavior: "smooth" });
+	};
 
 	const updateLocalCartFromBackend = (backendCartData) => {
 		const backendItems = backendCartData.items || [];
@@ -358,17 +378,53 @@ const Medicines = () => {
 				</div>
 
 				{filteredMedicines.length > 0 ? (
-					<div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-5">
-						{filteredMedicines.map((medicine) => (
-							<MedicineCard
-								key={medicine._id}
-								medicine={medicine}
-								cart={cart}
-								addToCart={addToCart}
-								handleQuantityChange={handleQuantityChange}
-							/>
-						))}
-					</div>
+					<>
+						<div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-5">
+							{paginatedMedicines.map((medicine) => (
+								<MedicineCard
+									key={medicine._id}
+									medicine={medicine}
+									cart={cart}
+									addToCart={addToCart}
+									handleQuantityChange={handleQuantityChange}
+								/>
+							))}
+						</div>
+
+						{totalPages > 1 && (
+							<Pagination className="mt-8">
+								<PaginationContent>
+									<PaginationItem>
+										<PaginationPrevious
+											href="#"
+											onClick={(e) => { e.preventDefault(); goToPage(currentPage - 1); }}
+											aria-disabled={currentPage === 1}
+											className={currentPage === 1 ? "pointer-events-none opacity-50" : undefined}
+										/>
+									</PaginationItem>
+									{Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+										<PaginationItem key={page}>
+											<PaginationLink
+												href="#"
+												isActive={page === currentPage}
+												onClick={(e) => { e.preventDefault(); goToPage(page); }}
+											>
+												{page}
+											</PaginationLink>
+										</PaginationItem>
+									))}
+									<PaginationItem>
+										<PaginationNext
+											href="#"
+											onClick={(e) => { e.preventDefault(); goToPage(currentPage + 1); }}
+											aria-disabled={currentPage === totalPages}
+											className={currentPage === totalPages ? "pointer-events-none opacity-50" : undefined}
+										/>
+									</PaginationItem>
+								</PaginationContent>
+							</Pagination>
+						)}
+					</>
 				) : (
 					<EmptyState
 						icon={Frown}

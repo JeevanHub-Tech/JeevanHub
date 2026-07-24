@@ -146,7 +146,7 @@ function BlogsVideosScreen() {
 							const previewText = rawHtmlContent
 								? rawHtmlContent.replace(/<[^>]*>/g, "").slice(0, 120)
 								: "No content available...";
-							const imageUrl = item.url || item.content?.images?.[0]?.url || "/images/blog_img.jpg";
+							const imageUrl = item.image || "/images/blog_img.jpg";
 							const itemTags = item.type === "normal" ? (item.category ? [item.category] : []) : item.tags || [];
 							const itemAuthor = item.authorName || (item.user ? item.user.name : "Anonymous");
 

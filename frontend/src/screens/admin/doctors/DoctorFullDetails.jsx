@@ -51,6 +51,13 @@ const tabs = [
 	{ name: "Feedback", icon: MessageCircleMore },
 ];
 
+// Title-cases free text so admin edits ("skin, lifestyle disorder" ->
+// "Skin, Lifestyle Disorder") land consistently formatted regardless of how
+// the doctor or an Excel bulk-import entered it.
+function titleCase(str) {
+	return str.replace(/\w\S*/g, (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase());
+}
+
 function statusBadgeVariant(status) {
 	if (status === "Approved") return "default";
 	if (status === "Rejected") return "destructive";
@@ -58,7 +65,12 @@ function statusBadgeVariant(status) {
 }
 
 function EditModal({ isOpen, onClose, currentProfile, onUpdate }) {
-	const [formData, setFormData] = useState(currentProfile);
+	const [formData, setFormData] = useState({
+		...currentProfile,
+		specialization: Array.isArray(currentProfile.specialization)
+			? currentProfile.specialization.join(", ")
+			: currentProfile.specialization || "",
+	});
 	const [previewImage, setPreviewImage] = useState(currentProfile.profileImage || null);
 	const fileInputRef = useRef(null);
 
@@ -82,7 +94,16 @@ function EditModal({ isOpen, onClose, currentProfile, onUpdate }) {
 
 	const handleSubmit = async (e) => {
 		e.preventDefault();
-		const success = await onUpdate(formData);
+		const normalized = {
+			...formData,
+			firstName: titleCase(formData.firstName || ""),
+			lastName: titleCase(formData.lastName || ""),
+			specialization: (formData.specialization || "")
+				.split(",")
+				.map((s) => titleCase(s.trim()))
+				.filter(Boolean),
+		};
+		const success = await onUpdate(normalized);
 		if (success) onClose();
 	};
 
@@ -150,12 +171,12 @@ function EditModal({ isOpen, onClose, currentProfile, onUpdate }) {
 						</Field>
 
 						<Field>
-							<FieldLabel htmlFor="yearsOfExperience">Years of Experience *</FieldLabel>
+							<FieldLabel htmlFor="experience">Years of Experience *</FieldLabel>
 							<Input
-								id="yearsOfExperience"
+								id="experience"
 								type="number"
-								name="yearsOfExperience"
-								value={formData.yearsOfExperience}
+								name="experience"
+								value={formData.experience}
 								onChange={handleInputChange}
 								min="0"
 								required
@@ -183,10 +204,9 @@ function EditModal({ isOpen, onClose, currentProfile, onUpdate }) {
 									<SelectValue placeholder="Select Gender" />
 								</SelectTrigger>
 								<SelectContent>
-									<SelectItem value="male">Male</SelectItem>
-									<SelectItem value="female">Female</SelectItem>
-									<SelectItem value="other">Other</SelectItem>
-									<SelectItem value="prefer-not-to-say">Prefer not to say</SelectItem>
+									<SelectItem value="Male">Male</SelectItem>
+									<SelectItem value="Female">Female</SelectItem>
+									<SelectItem value="Others">Others</SelectItem>
 								</SelectContent>
 							</Select>
 						</Field>
@@ -204,11 +224,11 @@ function EditModal({ isOpen, onClose, currentProfile, onUpdate }) {
 						</Field>
 
 						<Field>
-							<FieldLabel htmlFor="pincode">Pincode *</FieldLabel>
+							<FieldLabel htmlFor="zipCode">Pincode *</FieldLabel>
 							<Input
-								id="pincode"
-								name="pincode"
-								value={formData.pincode}
+								id="zipCode"
+								name="zipCode"
+								value={formData.zipCode}
 								onChange={handleInputChange}
 								pattern="[0-9]{6}"
 								maxLength={6}
@@ -270,10 +290,12 @@ const DoctorFullDetails = () => {
 
 	const handleUpdateProfile = async (updatedData) => {
 		try {
+			const token = localStorage.getItem("token") || "";
 			const res = await fetch(`${BACKEND_URL}/api/doctors/updateDoctor/${doctorId}`, {
 				method: "PUT",
 				headers: {
 					"Content-Type": "application/json",
+					Authorization: `Bearer ${token}`,
 				},
 				body: JSON.stringify(updatedData),
 			});
@@ -355,11 +377,11 @@ const DoctorFullDetails = () => {
 						lastName: doctor.lastName,
 						email: doctor.email,
 						dateOfBirth: doctor.dateOfBirth,
-						yearsOfExperience: doctor.experience,
+						experience: doctor.experience,
 						gender: doctor.gender,
 						specialization: doctor.specialization,
 						address: doctor.address,
-						pincode:
+						zipCode:
 							typeof doctor.zipCode === "object" && doctor.zipCode !== null
 								? doctor.zipCode.specific || doctor.zipCode.pincode || ""
 								: doctor.zipCode || "",

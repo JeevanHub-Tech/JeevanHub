@@ -30,12 +30,23 @@ function NavigationLink({ item, onNavigate }) {
 
 function Navbar() {
   const [showMenu, setShowMenu] = useState(false);
+  const [exploreTarget, setExploreTarget] = useState(() => exploreOptions.find((o) => o.value === "doctor") || exploreOptions[0]);
+  const [searchQuery, setSearchQuery] = useState("");
   const userLocation = useUserLocation();
   const navigate = useNavigate();
 
   const handleExplore = (value) => {
     const option = exploreOptions.find((item) => item.value === value);
-    if (option) navigate(option.to);
+    if (option) {
+      setExploreTarget(option);
+      navigate(option.to);
+    }
+  };
+
+  const runSearch = () => {
+    const query = searchQuery.trim();
+    if (!query || !exploreTarget) return;
+    navigate(`${exploreTarget.to}?q=${encodeURIComponent(query)}`);
   };
 
   return (
@@ -65,7 +76,14 @@ function Navbar() {
               </SelectContent>
             </Select>
             <span className="h-5 w-px shrink-0 bg-primary-foreground/20" aria-hidden="true" />
-            <Input aria-label="Search JeevanHub" placeholder="Search care, doctors, or medicines" className="h-9 border-0 bg-transparent px-1 text-primary-foreground shadow-none placeholder:text-primary-foreground/55 focus-visible:ring-0" />
+            <Input
+              aria-label="Search JeevanHub"
+              placeholder="Search care, doctors, or medicines"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") runSearch(); }}
+              className="h-9 border-0 bg-transparent px-1 text-primary-foreground shadow-none placeholder:text-primary-foreground/55 focus-visible:ring-0"
+            />
           </div>
         </div>
 
@@ -93,7 +111,14 @@ function Navbar() {
         <div className="border-t border-primary-foreground/10 bg-primary px-4 pb-5 pt-3 lg:hidden">
           <div className="mb-3 flex items-center gap-2 rounded-lg bg-primary-foreground/10 px-3 py-2">
             <Search className="size-4 shrink-0 text-primary-foreground/70" aria-hidden="true" />
-            <Input aria-label="Search JeevanHub" placeholder="Search JeevanHub" className="h-9 border-0 bg-transparent text-primary-foreground placeholder:text-primary-foreground/55 focus-visible:ring-0" />
+            <Input
+              aria-label="Search JeevanHub"
+              placeholder="Search JeevanHub"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") runSearch(); }}
+              className="h-9 border-0 bg-transparent text-primary-foreground placeholder:text-primary-foreground/55 focus-visible:ring-0"
+            />
           </div>
           <nav className="grid gap-1" aria-label="Mobile navigation">{publicNavigation.map((item) => <NavigationLink key={item.to} item={item} onNavigate={() => setShowMenu(false)} />)}</nav>
         </div>

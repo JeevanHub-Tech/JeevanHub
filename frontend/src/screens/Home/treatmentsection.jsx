@@ -1,13 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import capsuleImage from '../../media/capsule.jpg';
+import { AuthContext } from '../../context/AuthContext';
 import { BACKEND_URL } from '../../config';
 
 const Medicines = () => {
+  const { auth } = useContext(AuthContext);
   const [medicines, setMedicines] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -117,8 +119,8 @@ const Medicines = () => {
                   size="sm"
                   className="rounded-full bg-gradient-to-br from-(--jh-olive-light) to-(--jh-olive-deep) px-4.5 whitespace-nowrap shadow-[0_6px_14px_rgba(85,107,47,0.26)] hover:-translate-y-0.5 hover:shadow-[0_10px_20px_rgba(85,107,47,0.4)]"
                   onClick={() => {
-                    const patientId = localStorage.getItem("userId");
-                    const token = localStorage.getItem("token");
+                    const patientId = auth?.user?.id;
+                    const token = auth?.token;
                     if (!patientId) {
                       alert("Please login first to add items to cart");
                       navigate('/signin');

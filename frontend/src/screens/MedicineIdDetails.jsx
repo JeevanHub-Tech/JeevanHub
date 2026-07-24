@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import axios from "axios";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { AuthContext } from "../context/AuthContext";
 import { BACKEND_URL } from "../config";
 
 // Fallback image (real generic pharmacy photo)
@@ -14,6 +15,7 @@ const FALLBACK_IMAGE =
   "https://images.unsplash.com/photo-1559757148-5c350d0d3c56?auto=format&fit=crop&w=900&q=80";
 
 function MedicineIdDetails({ addToCart }) {
+  const { auth } = useContext(AuthContext);
   const { id, medicineId } = useParams();
   const paramId = decodeURIComponent(medicineId ?? id ?? "");
   const navigate = useNavigate();
@@ -111,11 +113,12 @@ function MedicineIdDetails({ addToCart }) {
   const formattedPrice = isNaN(priceNumber) ? `₹${medicine.price}` : `₹${priceNumber.toFixed(2)}`;
 
   const handleAddToCart = async () => {
-    const patientId = localStorage.getItem("userId");
-    const token = localStorage.getItem("token");
+    const patientId = auth?.user?.id;
+    const token = auth?.token;
 
     if (!patientId) {
       alert("Please login to add items to cart");
+      navigate("/signin");
       return;
     }
 

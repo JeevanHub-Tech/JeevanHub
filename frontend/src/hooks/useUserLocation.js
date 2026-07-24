@@ -5,10 +5,17 @@ import { OPENCAGE_API_KEY } from "../config";
 // Shared by every navbar (public + dashboard): resolves the visitor's city via
 // browser geolocation + OpenCage reverse-geocoding, falling back to a static
 // label whenever permission is denied, the API key is missing, or the lookup fails.
-function useUserLocation(fallback = "Your location") {
-	const [location, setLocation] = useState(fallback);
+// `savedLocation` (e.g. the signed-in patient's own saved address/PIN code) is
+// preferred over geolocation when present, since it needs no browser
+// permission prompt and is already known to be accurate for that user.
+function useUserLocation(fallback = "Your location", savedLocation = null) {
+	const [location, setLocation] = useState(savedLocation || fallback);
 
 	useEffect(() => {
+		if (savedLocation) {
+			setLocation(savedLocation);
+			return;
+		}
 		if (!navigator.geolocation || !OPENCAGE_API_KEY) return;
 
 		navigator.geolocation.getCurrentPosition(
@@ -28,7 +35,7 @@ function useUserLocation(fallback = "Your location") {
 			{ maximumAge: 300000, timeout: 5000 },
 		);
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, []);
+	}, [savedLocation]);
 
 	return location;
 }

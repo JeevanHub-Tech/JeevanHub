@@ -106,7 +106,7 @@ function FilterSelect({ id, label, placeholder, options, value, onValueChange, d
   return (
     <Field>
       <FieldLabel htmlFor={id}>{label}</FieldLabel>
-      <Select value={value} onValueChange={onValueChange} disabled={disabled}>
+      <Select value={value} onValueChange={onValueChange} disabled={disabled} items={options}>
         <SelectTrigger id={id}>
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>

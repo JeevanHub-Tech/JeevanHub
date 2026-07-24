@@ -77,6 +77,14 @@ const Medicines = () => {
 	const [sortBy, setSortBy] = useState("name");
 	const [categories, setCategories] = useState([]);
 
+	// Base UI's Select needs an `items` list to resolve the trigger's display
+	// label before the popup (where the matching SelectItem lives) has ever
+	// been mounted — without it the trigger shows the raw value instead.
+	const categoryItems = useMemo(
+		() => [{ value: "all", label: "All Categories" }, ...categories.map((cat) => ({ value: cat, label: cat }))],
+		[categories],
+	);
+
 	// Debounce free-text search so we don't re-fetch on every keystroke.
 	useEffect(() => {
 		const id = setTimeout(() => setSearchTerm(searchInput), SEARCH_DEBOUNCE_MS);
@@ -326,7 +334,7 @@ const Medicines = () => {
 					<div className="flex flex-wrap items-end gap-3">
 						<Field className="w-44">
 							<FieldLabel htmlFor="category">Category</FieldLabel>
-							<Select value={selectedCategory} onValueChange={setSelectedCategory}>
+							<Select value={selectedCategory} onValueChange={setSelectedCategory} items={categoryItems}>
 								<SelectTrigger id="category">
 									<SelectValue />
 								</SelectTrigger>
@@ -343,7 +351,7 @@ const Medicines = () => {
 
 						<Field className="w-44">
 							<FieldLabel htmlFor="price">Price Range</FieldLabel>
-							<Select value={priceRange} onValueChange={setPriceRange}>
+							<Select value={priceRange} onValueChange={setPriceRange} items={PRICE_RANGE_OPTIONS}>
 								<SelectTrigger id="price">
 									<SelectValue />
 								</SelectTrigger>
@@ -359,7 +367,7 @@ const Medicines = () => {
 
 						<Field className="w-44">
 							<FieldLabel htmlFor="sort">Sort By</FieldLabel>
-							<Select value={sortBy} onValueChange={setSortBy}>
+							<Select value={sortBy} onValueChange={setSortBy} items={SORT_OPTIONS}>
 								<SelectTrigger id="sort">
 									<SelectValue />
 								</SelectTrigger>

@@ -103,7 +103,7 @@ function BlogsVideosScreen() {
 
 					<div className="flex items-center gap-2 sm:min-w-52">
 						<Filter className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-						<Select value={category} onValueChange={setCategory}>
+						<Select value={category} onValueChange={setCategory} items={categoryOptions}>
 							<SelectTrigger>
 								<SelectValue />
 							</SelectTrigger>

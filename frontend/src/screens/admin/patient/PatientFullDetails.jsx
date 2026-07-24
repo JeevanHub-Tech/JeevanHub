@@ -227,7 +227,11 @@ const EditModal = ({ isOpen, onClose, patient, onSave }) => {
 						</Field>
 						<Field>
 							<FieldLabel htmlFor="gender">Gender</FieldLabel>
-							<Select value={formData.gender || ""} onValueChange={(value) => setFormData((prev) => ({ ...prev, gender: value }))}>
+							<Select
+								value={formData.gender || ""}
+								onValueChange={(value) => setFormData((prev) => ({ ...prev, gender: value }))}
+								items={[{ value: "Male", label: "Male" }, { value: "Female", label: "Female" }, { value: "Other", label: "Other" }]}
+							>
 								<SelectTrigger id="gender">
 									<SelectValue placeholder="Select Gender" />
 								</SelectTrigger>

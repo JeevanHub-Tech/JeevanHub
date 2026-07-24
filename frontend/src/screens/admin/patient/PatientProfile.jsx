@@ -158,7 +158,7 @@ function EditProfileDialog({ open, onOpenChange, currentProfile, onUpdate }) {
 
 						<Field>
 							<FieldLabel htmlFor="gender">Gender *</FieldLabel>
-							<Select value={formData.gender} onValueChange={(value) => setFormData((prev) => ({ ...prev, gender: value }))}>
+							<Select value={formData.gender} onValueChange={(value) => setFormData((prev) => ({ ...prev, gender: value }))} items={GENDER_OPTIONS}>
 								<SelectTrigger id="gender">
 									<SelectValue placeholder="Select gender" />
 								</SelectTrigger>

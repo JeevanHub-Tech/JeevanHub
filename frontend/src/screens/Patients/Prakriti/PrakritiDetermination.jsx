@@ -23,7 +23,11 @@ function SelectField({ label, value, onChange, options }) {
 	const id = `field-${label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
 	return (
 		<Field label={label} htmlFor={id}>
-			<Select value={value} onValueChange={(next) => onChange({ target: { value: next } })}>
+			<Select
+				value={value}
+				onValueChange={(next) => onChange({ target: { value: next } })}
+				items={options.map((option) => ({ value: option, label: option }))}
+			>
 				<SelectTrigger id={id}>
 					<SelectValue placeholder="Select..." />
 				</SelectTrigger>

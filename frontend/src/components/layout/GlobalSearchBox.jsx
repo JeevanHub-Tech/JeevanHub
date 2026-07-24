@@ -55,7 +55,7 @@ function GlobalSearchBox({
 
         {showTypeSelect ? (
           <>
-            <Select value={selectedType} onValueChange={handleTypeChange}>
+            <Select value={selectedType} onValueChange={handleTypeChange} items={exploreOptions}>
               <SelectTrigger
                 aria-label="Explore JeevanHub"
                 className="h-8 w-28 shrink-0 gap-1.5 border-0 bg-transparent px-2 text-sm font-semibold text-primary-foreground hover:bg-primary-foreground/10 focus-visible:ring-0 [&_svg]:text-primary-foreground/70"

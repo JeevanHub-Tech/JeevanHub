@@ -287,7 +287,18 @@ const AdminManagement = () => {
 					<div className="flex flex-wrap gap-8">
 						<div className="flex flex-col gap-2">
 							<span className="text-sm font-semibold text-foreground">Sort By:</span>
-							<Select value={sortBy} onValueChange={setSortBy}>
+							<Select
+								value={sortBy}
+								onValueChange={setSortBy}
+								items={[
+									{ value: "date_desc", label: "Date Added (Newest)" },
+									{ value: "date_asc", label: "Date Added (Oldest)" },
+									{ value: "login_desc", label: "Last Login (Recent)" },
+									{ value: "login_asc", label: "Last Login (Oldest)" },
+									{ value: "name_asc", label: "Name (A-Z)" },
+									{ value: "name_desc", label: "Name (Z-A)" },
+								]}
+							>
 								<SelectTrigger className="w-56">
 									<SelectValue />
 								</SelectTrigger>
@@ -304,7 +315,15 @@ const AdminManagement = () => {
 
 						<div className="flex flex-col gap-2">
 							<span className="text-sm font-semibold text-foreground">Account Status:</span>
-							<Select value={filterStatus} onValueChange={setFilterStatus}>
+							<Select
+								value={filterStatus}
+								onValueChange={setFilterStatus}
+								items={[
+									{ value: "all", label: "All" },
+									{ value: "active", label: "Active Only" },
+									{ value: "inactive", label: "Inactive Only" },
+								]}
+							>
 								<SelectTrigger className="w-44">
 									<SelectValue />
 								</SelectTrigger>
@@ -318,7 +337,15 @@ const AdminManagement = () => {
 
 						<div className="flex flex-col gap-2">
 							<span className="text-sm font-semibold text-foreground">Reset Requests:</span>
-							<Select value={filterReset} onValueChange={setFilterReset}>
+							<Select
+								value={filterReset}
+								onValueChange={setFilterReset}
+								items={[
+									{ value: "all", label: "All" },
+									{ value: "requested", label: "Reset Requested" },
+									{ value: "not_requested", label: "No Reset Pending" },
+								]}
+							>
 								<SelectTrigger className="w-52">
 									<SelectValue />
 								</SelectTrigger>

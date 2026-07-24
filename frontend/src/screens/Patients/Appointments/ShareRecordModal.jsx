@@ -136,7 +136,18 @@ const ShareRecordModal = ({ bookingId, onClose, onShared, initialMode = "upload"
 						) : ownBookings.length === 0 ? (
 							<p className="text-sm text-muted-foreground">You don't have any prescriptions on this platform yet.</p>
 						) : (
-							<Select value={selectedBookingId} onValueChange={setSelectedBookingId}>
+							<Select
+								value={selectedBookingId}
+								onValueChange={setSelectedBookingId}
+								items={ownBookings.map((b) => ({
+									value: b._id,
+									label: `Dr. ${b.doctorName} — ${new Date(b.dateOfAppointment).toLocaleDateString()}${
+										b.recommendedSupplements?.length > 0
+											? ` (${b.recommendedSupplements.map((s) => s.medicineName).join(", ")})`
+											: ""
+									}`,
+								}))}
+							>
 								<SelectTrigger id="share-record-reference">
 									<SelectValue placeholder="Select one..." />
 								</SelectTrigger>

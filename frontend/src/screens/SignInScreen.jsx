@@ -290,7 +290,7 @@ function SignInScreen() {
 					</div>
 					<div className="flex flex-col gap-1.5">
 						<Label htmlFor="reset-role">Role</Label>
-						<Select value={passwordResetRole} onValueChange={setPasswordResetRole}>
+						<Select value={passwordResetRole} onValueChange={setPasswordResetRole} items={ROLE_OPTIONS}>
 							<SelectTrigger id="reset-role" className="h-11">
 								<SelectValue placeholder="Select role" />
 							</SelectTrigger>
@@ -415,7 +415,7 @@ function SignInScreen() {
 
 								<div className="flex flex-col gap-1.5">
 									<Label htmlFor="signin-role">I am a</Label>
-									<Select value={formData.role} onValueChange={(value) => setFormData((prev) => ({ ...prev, role: value }))}>
+									<Select value={formData.role} onValueChange={(value) => setFormData((prev) => ({ ...prev, role: value }))} items={ROLE_OPTIONS}>
 										<SelectTrigger id="signin-role" className="h-11">
 											<SelectValue placeholder="Select role" />
 										</SelectTrigger>

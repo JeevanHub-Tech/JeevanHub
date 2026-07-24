@@ -232,7 +232,11 @@ const EditModal = ({ isOpen, onClose, retailer, onSave }) => {
 						</Field>
 						<Field>
 							<FieldLabel htmlFor="status">Status</FieldLabel>
-							<Select value={formData.status} onValueChange={(value) => setFormData((prev) => ({ ...prev, status: value }))}>
+							<Select
+								value={formData.status}
+								onValueChange={(value) => setFormData((prev) => ({ ...prev, status: value }))}
+								items={[{ value: "active", label: "Active" }, { value: "inactive", label: "Inactive" }]}
+							>
 								<SelectTrigger id="status">
 									<SelectValue />
 								</SelectTrigger>

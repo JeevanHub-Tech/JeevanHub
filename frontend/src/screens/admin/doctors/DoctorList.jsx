@@ -397,7 +397,17 @@ const DoctorManagement = () => {
 						/>
 					</div>
 
-					<Select value={statusFilter} onValueChange={setStatusFilter}>
+					<Select
+						value={statusFilter}
+						onValueChange={setStatusFilter}
+						items={[
+							{ value: "All", label: "All Statuses" },
+							{ value: "Pending", label: "Pending" },
+							{ value: "Approved", label: "Approved" },
+							{ value: "Rejected", label: "Rejected" },
+							{ value: "ActiveToday", label: "Active Today" },
+						]}
+					>
 						<SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
 						<SelectContent>
 							<SelectItem value="All">All Statuses</SelectItem>
@@ -408,7 +418,11 @@ const DoctorManagement = () => {
 						</SelectContent>
 					</Select>
 
-					<Select value={specializationFilter} onValueChange={setSpecializationFilter}>
+					<Select
+						value={specializationFilter}
+						onValueChange={setSpecializationFilter}
+						items={uniqueSpecializations.map((spec) => ({ value: spec, label: spec }))}
+					>
 						<SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
 						<SelectContent>
 							{uniqueSpecializations.map((spec) => (
@@ -417,7 +431,16 @@ const DoctorManagement = () => {
 						</SelectContent>
 					</Select>
 
-					<Select value={genderFilter} onValueChange={setGenderFilter}>
+					<Select
+						value={genderFilter}
+						onValueChange={setGenderFilter}
+						items={[
+							{ value: "All", label: "All Genders" },
+							{ value: "Male", label: "Male" },
+							{ value: "Female", label: "Female" },
+							{ value: "Other", label: "Other" },
+						]}
+					>
 						<SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
 						<SelectContent>
 							<SelectItem value="All">All Genders</SelectItem>
@@ -427,7 +450,16 @@ const DoctorManagement = () => {
 						</SelectContent>
 					</Select>
 
-					<Select value={priceFilter} onValueChange={setPriceFilter}>
+					<Select
+						value={priceFilter}
+						onValueChange={setPriceFilter}
+						items={[
+							{ value: "All", label: "All Prices" },
+							{ value: "<500", label: "Under ₹500" },
+							{ value: "500-1000", label: "₹500 - ₹1000" },
+							{ value: ">1000", label: "Above ₹1000" },
+						]}
+					>
 						<SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
 						<SelectContent>
 							<SelectItem value="All">All Prices</SelectItem>
@@ -437,7 +469,22 @@ const DoctorManagement = () => {
 						</SelectContent>
 					</Select>
 
-					<Select value={sortBy} onValueChange={setSortBy}>
+					<Select
+						value={sortBy}
+						onValueChange={setSortBy}
+						items={[
+							{ value: "date_desc", label: "Newest First" },
+							{ value: "name_asc", label: "Name (A-Z)" },
+							{ value: "name_desc", label: "Name (Z-A)" },
+							{ value: "exp_desc", label: "Experience (High to Low)" },
+							{ value: "exp_asc", label: "Experience (Low to High)" },
+							{ value: "activity_desc", label: "Highest Activity" },
+							{ value: "activity_asc", label: "Lowest Activity" },
+							{ value: "rating_desc", label: "Highest Rated" },
+							{ value: "price_asc", label: "Price (Low to High)" },
+							{ value: "price_desc", label: "Price (High to Low)" },
+						]}
+					>
 						<SelectTrigger className="w-52"><SelectValue /></SelectTrigger>
 						<SelectContent>
 							<SelectItem value="date_desc">Newest First</SelectItem>

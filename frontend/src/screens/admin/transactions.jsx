@@ -123,7 +123,16 @@ const Transactions = () => {
 					<label htmlFor="transaction-filter" className="text-xs font-semibold uppercase tracking-wide text-foreground">
 						Category
 					</label>
-					<Select value={filter} onValueChange={setFilter}>
+					<Select
+						value={filter}
+						onValueChange={setFilter}
+						items={[
+							{ value: "all", label: "All Transactions" },
+							{ value: "patient-doctor", label: "Patient-Doctor" },
+							{ value: "patient-retailer", label: "Patient-Retailer" },
+							{ value: "doctor-retailer", label: "Doctor-Retailer" },
+						]}
+					>
 						<SelectTrigger id="transaction-filter">
 							<SelectValue />
 						</SelectTrigger>

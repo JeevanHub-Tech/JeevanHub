@@ -253,7 +253,11 @@ const AdminBlogs = () => {
 
 							<Field>
 								<FieldLabel htmlFor="type">Type</FieldLabel>
-								<Select value={newBlog.type} onValueChange={(value) => setNewBlog((prev) => ({ ...prev, type: value }))}>
+								<Select
+									value={newBlog.type}
+									onValueChange={(value) => setNewBlog((prev) => ({ ...prev, type: value }))}
+									items={[{ value: "Blog", label: "Blog" }, { value: "Video", label: "Video" }]}
+								>
 									<SelectTrigger id="type">
 										<SelectValue />
 									</SelectTrigger>

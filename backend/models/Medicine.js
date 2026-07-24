@@ -13,6 +13,7 @@ const MedicineSchema = new mongoose.Schema({
   },
   category: { type: String, required: true },
   description: { type: String, required: true },
+  diseasesTreated: [{ type: String, trim: true }],
   prescription: { type: Boolean, required: true },
   rating: { type: Number, default: 0 },
   numReviews: { type: Number, default: 0 },

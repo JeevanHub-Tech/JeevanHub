@@ -4,6 +4,7 @@ const Doctor = require("../models/Doctor");
 const Medicine = require("../models/Medicine");
 const Blog = require("../models/Blog");
 const DietYoga = require("../models/DietYoga");
+const { fuzzySearch } = require("../utils/fuzzySearch");
 
 router.get("/", async (req, res) => {
   const { s, type } = req.query;
@@ -11,28 +12,56 @@ router.get("/", async (req, res) => {
 
   try {
     let results = [];
-    const escapeRegex = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const regex = new RegExp(escapeRegex(s), "i");
 
     switch (type) {
-      case "doctor":
-        results = await Doctor.find({ $or: [{ firstName: regex }, { lastName: regex }] }).select("firstName lastName _id");
-        results = results.map(doc => ({ id: doc._id, name: `${doc.firstName} ${doc.lastName}` }));
+      case "doctor": {
+        const doctors = await Doctor.find().select("firstName lastName _id");
+        const docs = doctors.map((d) => ({ id: d._id, name: `${d.firstName} ${d.lastName}`, firstName: d.firstName, lastName: d.lastName }));
+        const matches = fuzzySearch(docs, ["firstName", "lastName"], s);
+        results = matches.map((m) => ({ id: m.item.id, name: m.item.name }));
         break;
-      case "medicine":
-        results = await Medicine.find({ name: regex }).select("name");
+      }
+      case "medicine": {
+        const medicines = await Medicine.find().select("name");
+        const matches = fuzzySearch(medicines, ["name"], s);
+        results = matches.map((m) => ({ _id: m.item._id, name: m.item.name }));
         break;
-      case "blogs-videos":
-        results = await Blog.find({ title: regex }).select("title _id");
+      }
+      case "blogs-videos": {
+        const blogs = await Blog.find().select("title _id");
+        const matches = fuzzySearch(blogs, ["title"], s);
+        results = matches.map((m) => ({ id: m.item._id, title: m.item.title }));
         break;
-      case "diet-yoga":
-        results = await DietYoga.find({ $or: [{ diet: regex }, { yoga: regex }] }).select("diet yoga _id");
-        results = results.map(entry => ({ name: entry.diet || entry.yoga }));
+      }
+      case "diet-yoga": {
+        const entries = await DietYoga.find().select("diet yoga _id");
+        const matches = fuzzySearch(entries, ["diet", "yoga"], s);
+        results = matches.map((m) => ({ name: m.item.diet || m.item.yoga }));
         break;
-      case "disease":
-        // Treatment model does not exist. Returning empty array to prevent crash.
-        results = [];
+      }
+      case "disease": {
+        // No separate Treatment/Disease model exists; fuzzy-match against
+        // Medicine.diseasesTreated and Medicine.description instead.
+        const medicines = await Medicine.find().select("name description diseasesTreated");
+        const matches = fuzzySearch(
+          medicines,
+          [
+            { name: "diseasesTreated", weight: 0.7 },
+            { name: "description", weight: 0.3 },
+          ],
+          s
+        );
+        results = matches.map((m) => {
+          const lowerQuery = s.toLowerCase();
+          const diseaseMatch = (m.item.diseasesTreated || []).find((d) => d.toLowerCase().includes(lowerQuery));
+          return {
+            id: m.item._id,
+            name: m.item.name,
+            matched: diseaseMatch || m.item.description,
+          };
+        });
         break;
+      }
     }
 
     res.json(results);
@@ -43,4 +72,3 @@ router.get("/", async (req, res) => {
 });
 
 module.exports = router;
-

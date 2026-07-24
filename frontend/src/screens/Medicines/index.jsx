@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext } from "react";
+import { useState, useEffect, useContext, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { Search, X, RefreshCw, AlertCircle, Loader2, ShoppingCart, Frown } from "lucide-react";
@@ -8,6 +8,15 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+	Pagination,
+	PaginationContent,
+	PaginationEllipsis,
+	PaginationItem,
+	PaginationLink,
+	PaginationNext,
+	PaginationPrevious,
+} from "@/components/ui/pagination";
 import { AuthContext } from "../../context/AuthContext";
 import { BACKEND_URL } from "../../config";
 import MedicineCard from "./MedicineCard";
@@ -26,6 +35,22 @@ const SORT_OPTIONS = [
 	{ value: "popularity", label: "Popularity" },
 ];
 
+const PAGE_SIZE = 24;
+const SEARCH_DEBOUNCE_MS = 400;
+
+// Builds the compact page-number sequence with ellipses, e.g. [1, "...", 4, 5, 6, "...", 20]
+const buildPageList = (current, total) => {
+	if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+	const pages = new Set([1, total, current, current - 1, current + 1]);
+	const sorted = [...pages].filter((p) => p >= 1 && p <= total).sort((a, b) => a - b);
+	const result = [];
+	sorted.forEach((p, i) => {
+		if (i > 0 && p - sorted[i - 1] > 1) result.push("ellipsis-" + p);
+		result.push(p);
+	});
+	return result;
+};
+
 const Medicines = () => {
 	const { auth } = useContext(AuthContext);
 	const patientId = auth?.user?.id;
@@ -33,36 +58,50 @@ const Medicines = () => {
 	const navigate = useNavigate();
 
 	const [medicines, setMedicines] = useState([]);
-	const [filteredMedicines, setFilteredMedicines] = useState([]);
+	const [total, setTotal] = useState(0);
+	const [totalPages, setTotalPages] = useState(1);
+	const [page, setPage] = useState(1);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
 
 	const [cart, setCart] = useState([]);
+	const [cartLoaded, setCartLoaded] = useState(false);
 
+	const [searchInput, setSearchInput] = useState("");
 	const [searchTerm, setSearchTerm] = useState("");
 	const [selectedCategory, setSelectedCategory] = useState("all");
 	const [priceRange, setPriceRange] = useState("all");
 	const [sortBy, setSortBy] = useState("name");
 	const [categories, setCategories] = useState([]);
 
+	// Debounce free-text search so we don't re-fetch on every keystroke.
 	useEffect(() => {
-		const fetchData = async () => {
-			setLoading(true);
-			try {
-				const medPromise = axios.get(`${BACKEND_URL}/api/medicines`);
+		const id = setTimeout(() => setSearchTerm(searchInput), SEARCH_DEBOUNCE_MS);
+		return () => clearTimeout(id);
+	}, [searchInput]);
 
-				const cartPromise = patientId
-					? axios.get(`${BACKEND_URL}/api/cart/${patientId}`, {
+	// Reset to page 1 whenever a filter changes.
+	useEffect(() => {
+		setPage(1);
+	}, [searchTerm, selectedCategory, priceRange, sortBy]);
+
+	// Categories are fetched once, independent of pagination.
+	useEffect(() => {
+		axios
+			.get(`${BACKEND_URL}/api/medicines/categories`)
+			.then((res) => setCategories(res.data || []))
+			.catch((err) => console.error("Failed to fetch categories:", err));
+	}, []);
+
+	// Cart is fetched once (independent of the medicine page/filters).
+	useEffect(() => {
+		const fetchCart = async () => {
+			try {
+				const cartResponse = patientId
+					? await axios.get(`${BACKEND_URL}/api/cart/${patientId}`, {
 							headers: { Authorization: `Bearer ${token}` },
 						})
-					: Promise.resolve({ data: { cartItems: { items: [] } } });
-
-				const [medResponse, cartResponse] = await Promise.all([medPromise, cartPromise]);
-
-				setMedicines(medResponse.data);
-				setFilteredMedicines(medResponse.data);
-				const uniqueCategories = [...new Set(medResponse.data.map((med) => med.category).filter(Boolean))];
-				setCategories(uniqueCategories);
+					: { data: { defaultCart: { items: [] } } };
 
 				// GET /api/cart/:patientId returns { defaultCart, doctorCarts } (see Cart.js),
 				// NOT { cartItems } -- that shape is only returned by the add/update/remove
@@ -80,70 +119,54 @@ const Medicines = () => {
 				}, []);
 
 				setCart(formattedCart);
-				setLoading(false);
 			} catch (err) {
-				console.error("Initialization Error:", err);
+				console.error("Failed to fetch cart:", err);
+			} finally {
+				setCartLoaded(true);
+			}
+		};
+
+		fetchCart();
+	}, [patientId, token]);
+
+	// Medicines are fetched per page/filter combo from the server.
+	useEffect(() => {
+		const fetchMedicines = async () => {
+			setLoading(true);
+			try {
+				const response = await axios.get(`${BACKEND_URL}/api/medicines`, {
+					params: {
+						page,
+						limit: PAGE_SIZE,
+						search: searchTerm || undefined,
+						category: selectedCategory !== "all" ? selectedCategory : undefined,
+						priceRange: priceRange !== "all" ? priceRange : undefined,
+						sortBy,
+					},
+				});
+
+				setMedicines(response.data.medicines || []);
+				setTotal(response.data.total || 0);
+				setTotalPages(response.data.totalPages || 1);
+				setError(null);
+			} catch (err) {
+				console.error("Failed to fetch medicines:", err);
 				setError(err.message);
+			} finally {
 				setLoading(false);
 			}
 		};
 
-		fetchData();
-	}, [patientId, token]);
+		fetchMedicines();
+	}, [page, searchTerm, selectedCategory, priceRange, sortBy]);
 
-	useEffect(() => {
-		let result = [...medicines];
+	const cartQuantityById = useMemo(() => {
+		const map = new Map();
+		cart.forEach((item) => map.set(item._id, item.quantity));
+		return map;
+	}, [cart]);
 
-		if (searchTerm) {
-			result = result.filter(
-				(medicine) =>
-					medicine.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-					medicine.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-					medicine.ingredients?.toLowerCase().includes(searchTerm.toLowerCase()),
-			);
-		}
-
-		if (selectedCategory !== "all") {
-			result = result.filter((medicine) => medicine.category === selectedCategory);
-		}
-
-		if (priceRange !== "all") {
-			result = result.filter((medicine) => {
-				const price = medicine.price;
-				switch (priceRange) {
-					case "under-500":
-						return price < 500;
-					case "500-1000":
-						return price >= 500 && price <= 1000;
-					case "1000-2000":
-						return price > 1000 && price <= 2000;
-					case "above-2000":
-						return price > 2000;
-					default:
-						return true;
-				}
-			});
-		}
-
-		result.sort((a, b) => {
-			switch (sortBy) {
-				case "name":
-					return a.name?.localeCompare(b.name);
-				case "price-low":
-					return a.price - b.price;
-				case "price-high":
-					return b.price - a.price;
-				case "popularity":
-					return (b.rating || 0) - (a.rating || 0);
-				default:
-					return 0;
-			}
-		});
-
-		setFilteredMedicines(result);
-	}, [searchTerm, selectedCategory, priceRange, sortBy, medicines]);
-
-	const updateLocalCartFromBackend = (backendCartData) => {
+	const updateLocalCartFromBackend = useCallback((backendCartData) => {
 		const backendItems = backendCartData.items || [];
 		const formattedCart = backendItems.map((item) => ({
 			...item.medicineId,
@@ -151,85 +174,95 @@ const Medicines = () => {
 			_id: item.medicineId._id,
 		}));
 		setCart(formattedCart);
-	};
+	}, []);
 
-	const addToCart = async (medicine) => {
-		if (!patientId) {
-			alert("Please login to add items to cart");
-			return;
-		}
-
-		try {
-			const existingItem = cart.find((item) => item._id === medicine._id);
-
-			if (existingItem) {
-				const response = await axios.put(
-					`${BACKEND_URL}/api/cart/update-quantity`,
-					{ patientId, medicineId: medicine._id, action: "increment" },
-					{ headers: { Authorization: `Bearer ${token}` } },
-				);
-				if (response.data.cartItems) {
-					updateLocalCartFromBackend(response.data.cartItems);
-				}
-			} else {
-				const response = await axios.post(
-					`${BACKEND_URL}/api/cart/add`,
-					{ patientId, medicineId: medicine._id, quantity: 1 },
-					{ headers: { Authorization: `Bearer ${token}` } },
-				);
-				if (response.data.cartItems) {
-					updateLocalCartFromBackend(response.data.cartItems);
-				}
+	const addToCart = useCallback(
+		async (medicine) => {
+			if (!patientId) {
+				alert("Please login to add items to cart");
+				return;
 			}
-		} catch (err) {
-			console.error("Add to cart failed:", err);
-			alert("Failed to add item to cart");
-		}
-	};
 
-	const handleQuantityChange = async (id, delta) => {
-		if (!patientId) return;
+			try {
+				const existingQuantity = cartQuantityById.get(medicine._id);
 
-		const currentItem = cart.find((item) => item._id === id);
-		if (!currentItem) return;
-
-		const newQuantity = currentItem.quantity + delta;
-
-		try {
-			if (newQuantity <= 0) {
-				const response = await axios.delete(`${BACKEND_URL}/api/cart/remove`, {
-					headers: { Authorization: `Bearer ${token}` },
-					data: { patientId, medicineId: id },
-				});
-				if (response.data.cartItems) {
-					updateLocalCartFromBackend(response.data.cartItems);
+				if (existingQuantity) {
+					const response = await axios.put(
+						`${BACKEND_URL}/api/cart/update-quantity`,
+						{ patientId, medicineId: medicine._id, action: "increment" },
+						{ headers: { Authorization: `Bearer ${token}` } },
+					);
+					if (response.data.cartItems) {
+						updateLocalCartFromBackend(response.data.cartItems);
+					}
 				} else {
-					setCart([]);
+					const response = await axios.post(
+						`${BACKEND_URL}/api/cart/add`,
+						{ patientId, medicineId: medicine._id, quantity: 1 },
+						{ headers: { Authorization: `Bearer ${token}` } },
+					);
+					if (response.data.cartItems) {
+						updateLocalCartFromBackend(response.data.cartItems);
+					}
 				}
-			} else {
-				const action = delta > 0 ? "increment" : "decrement";
-				const response = await axios.put(
-					`${BACKEND_URL}/api/cart/update-quantity`,
-					{ patientId, medicineId: id, action },
-					{ headers: { Authorization: `Bearer ${token}` } },
-				);
-				if (response.data.cartItems) {
-					updateLocalCartFromBackend(response.data.cartItems);
-				}
+			} catch (err) {
+				console.error("Add to cart failed:", err);
+				alert("Failed to add item to cart");
 			}
-		} catch (err) {
-			console.error("Update quantity failed:", err);
-		}
-	};
+		},
+		[patientId, token, cartQuantityById, updateLocalCartFromBackend],
+	);
+
+	const handleQuantityChange = useCallback(
+		async (id, delta) => {
+			if (!patientId) return;
+
+			const currentQuantity = cartQuantityById.get(id);
+			if (currentQuantity === undefined) return;
+
+			const newQuantity = currentQuantity + delta;
+
+			try {
+				if (newQuantity <= 0) {
+					const response = await axios.delete(`${BACKEND_URL}/api/cart/remove`, {
+						headers: { Authorization: `Bearer ${token}` },
+						data: { patientId, medicineId: id },
+					});
+					if (response.data.cartItems) {
+						updateLocalCartFromBackend(response.data.cartItems);
+					} else {
+						setCart([]);
+					}
+				} else {
+					const action = delta > 0 ? "increment" : "decrement";
+					const response = await axios.put(
+						`${BACKEND_URL}/api/cart/update-quantity`,
+						{ patientId, medicineId: id, action },
+						{ headers: { Authorization: `Bearer ${token}` } },
+					);
+					if (response.data.cartItems) {
+						updateLocalCartFromBackend(response.data.cartItems);
+					}
+				}
+			} catch (err) {
+				console.error("Update quantity failed:", err);
+			}
+		},
+		[patientId, token, cartQuantityById, updateLocalCartFromBackend],
+	);
 
 	const resetFilters = () => {
+		setSearchInput("");
 		setSearchTerm("");
 		setSelectedCategory("all");
 		setPriceRange("all");
 		setSortBy("name");
 	};
 
-	if (loading) {
+	const cartCount = useMemo(() => cart.reduce((acc, item) => acc + item.quantity, 0), [cart]);
+	const pageList = useMemo(() => buildPageList(page, totalPages), [page, totalPages]);
+
+	if (loading && medicines.length === 0) {
 		return (
 			<div className="flex min-h-screen items-center justify-center bg-background">
 				<div className="flex flex-col items-center gap-3 text-muted-foreground">
@@ -271,15 +304,15 @@ const Medicines = () => {
 						<Input
 							type="text"
 							placeholder="Search medicines by name, ingredients, or description..."
-							value={searchTerm}
-							onChange={(e) => setSearchTerm(e.target.value)}
+							value={searchInput}
+							onChange={(e) => setSearchInput(e.target.value)}
 							className="h-11 pl-10 pr-10"
 						/>
-						{searchTerm && (
+						{searchInput && (
 							<button
 								type="button"
 								className="absolute top-1/2 right-3 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-								onClick={() => setSearchTerm("")}
+								onClick={() => setSearchInput("")}
 								aria-label="Clear search"
 							>
 								<X className="size-5" />
@@ -346,29 +379,82 @@ const Medicines = () => {
 
 				<div className="mb-5 flex flex-wrap items-center justify-between gap-3">
 					<p className="text-sm text-muted-foreground">
-						Showing <strong className="text-foreground">{filteredMedicines.length}</strong> of{" "}
-						<strong className="text-foreground">{medicines.length}</strong> medicines
+						Showing <strong className="text-foreground">{medicines.length}</strong> of{" "}
+						<strong className="text-foreground">{total}</strong> medicines
 					</p>
-					{cart.length > 0 && (
+					{cartLoaded && cartCount > 0 && (
 						<Button type="button" variant="secondary" onClick={() => navigate("/cart")}>
 							<ShoppingCart className="size-4" />
-							{cart.reduce((acc, item) => acc + item.quantity, 0)} items in cart
+							{cartCount} items in cart
 						</Button>
 					)}
 				</div>
 
-				{filteredMedicines.length > 0 ? (
-					<div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-5">
-						{filteredMedicines.map((medicine) => (
-							<MedicineCard
-								key={medicine._id}
-								medicine={medicine}
-								cart={cart}
-								addToCart={addToCart}
-								handleQuantityChange={handleQuantityChange}
-							/>
-						))}
-					</div>
+				{medicines.length > 0 ? (
+					<>
+						<div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-5">
+							{medicines.map((medicine) => (
+								<MedicineCard
+									key={medicine._id}
+									medicine={medicine}
+									cartQuantity={cartQuantityById.get(medicine._id) || 0}
+									addToCart={addToCart}
+									handleQuantityChange={handleQuantityChange}
+								/>
+							))}
+						</div>
+
+						{totalPages > 1 && (
+							<Pagination className="mt-10">
+								<PaginationContent>
+									<PaginationItem>
+										<PaginationPrevious
+											href="#"
+											aria-disabled={page === 1}
+											className={page === 1 ? "pointer-events-none opacity-50" : ""}
+											onClick={(e) => {
+												e.preventDefault();
+												if (page > 1) setPage(page - 1);
+											}}
+										/>
+									</PaginationItem>
+
+									{pageList.map((p) =>
+										typeof p === "number" ? (
+											<PaginationItem key={p}>
+												<PaginationLink
+													href="#"
+													isActive={p === page}
+													onClick={(e) => {
+														e.preventDefault();
+														setPage(p);
+													}}
+												>
+													{p}
+												</PaginationLink>
+											</PaginationItem>
+										) : (
+											<PaginationItem key={p}>
+												<PaginationEllipsis />
+											</PaginationItem>
+										),
+									)}
+
+									<PaginationItem>
+										<PaginationNext
+											href="#"
+											aria-disabled={page === totalPages}
+											className={page === totalPages ? "pointer-events-none opacity-50" : ""}
+											onClick={(e) => {
+												e.preventDefault();
+												if (page < totalPages) setPage(page + 1);
+											}}
+										/>
+									</PaginationItem>
+								</PaginationContent>
+							</Pagination>
+						)}
+					</>
 				) : (
 					<EmptyState
 						icon={Frown}

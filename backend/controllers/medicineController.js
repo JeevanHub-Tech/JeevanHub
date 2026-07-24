@@ -142,10 +142,75 @@ exports.addMedicine = async (req, res) => {
 // Get All Medicines (Public)
 exports.getAllMedicines = async (req, res) => {
   try {
-    const medicines = await Medicine.find().populate('retailerId', 'firstName lastName');
-    res.status(200).json(medicines);
+    const { page = 1, limit = 24, search, category, priceRange, sortBy = 'name', all } = req.query;
+
+    const query = {};
+
+    if (search) {
+      const regex = { $regex: search, $options: 'i' };
+      query.$or = [{ name: regex }, { description: regex }, { ingredients: regex }];
+    }
+    if (category && category !== 'all') {
+      query.category = category;
+    }
+    if (priceRange && priceRange !== 'all') {
+      switch (priceRange) {
+        case 'under-500':
+          query.price = { $lt: 500 };
+          break;
+        case '500-1000':
+          query.price = { $gte: 500, $lte: 1000 };
+          break;
+        case '1000-2000':
+          query.price = { $gt: 1000, $lte: 2000 };
+          break;
+        case 'above-2000':
+          query.price = { $gt: 2000 };
+          break;
+      }
+    }
+
+    const sortMap = {
+      name: { name: 1 },
+      'price-low': { price: 1 },
+      'price-high': { price: -1 },
+      popularity: { rating: -1 },
+    };
+    const sort = sortMap[sortBy] || sortMap.name;
+
+    if (all === 'true') {
+      const medicines = await Medicine.find(query).sort(sort).select('-__v').lean();
+      return res.status(200).json(medicines);
+    }
+
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 24));
+    const skip = (pageNum - 1) * limitNum;
+
+    const [medicines, total] = await Promise.all([
+      Medicine.find(query).sort(sort).skip(skip).limit(limitNum).select('-__v').lean(),
+      Medicine.countDocuments(query),
+    ]);
+
+    res.status(200).json({
+      medicines,
+      total,
+      page: pageNum,
+      totalPages: Math.max(1, Math.ceil(total / limitNum)),
+      limit: limitNum,
+    });
   } catch (error) {
     res.status(500).json({ message: 'Failed to fetch medicines', error: error.message });
+  }
+};
+
+// Get distinct medicine categories (Public)
+exports.getMedicineCategories = async (req, res) => {
+  try {
+    const categories = await Medicine.distinct('category');
+    res.status(200).json(categories.filter(Boolean).sort());
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to fetch categories', error: error.message });
   }
 };
 

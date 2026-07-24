@@ -27,7 +27,7 @@ export function MedicineForm({ bookingId, patientId, doctorId, onPrescribed }) {
 		const load = async () => {
 			try {
 				const [medsRes, suppRes] = await Promise.all([
-					fetch(`${BACKEND}/api/medicines`),
+					fetch(`${BACKEND}/api/medicines?all=true`),
 					authFetch(`${BACKEND}/api/bookings/supplements/${bookingId}`),
 				]);
 				const meds = medsRes.ok ? await medsRes.json() : [];

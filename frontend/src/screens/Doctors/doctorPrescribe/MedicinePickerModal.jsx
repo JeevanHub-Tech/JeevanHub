@@ -30,7 +30,7 @@ export function MedicinePickerModal({ onSelect, onClose }) {
 	useEffect(() => {
 		const fetchMedicines = async () => {
 			try {
-				const response = await fetch(`${BACKEND}/api/medicines`);
+				const response = await fetch(`${BACKEND}/api/medicines?all=true`);
 				if (!response.ok) throw new Error("Failed to load medicines");
 				const data = await response.json();
 				setMedicines(Array.isArray(data) ? data : []);

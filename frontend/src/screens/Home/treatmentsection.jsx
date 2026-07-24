@@ -16,7 +16,7 @@ const Medicines = () => {
   useEffect(() => {
     const fetchMedicines = async () => {
       try {
-        const response = await axios.get(`${BACKEND_URL || 'http://localhost:8080'}/api/medicines`);
+        const response = await axios.get(`${BACKEND_URL || 'http://localhost:8080'}/api/medicines?all=true`);
         if (Array.isArray(response.data)) {
           setMedicines(response.data);
         } else if (response.data && Array.isArray(response.data.medicines)) {

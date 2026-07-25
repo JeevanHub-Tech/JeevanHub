@@ -1,8 +1,9 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Search, Plus, Edit2, Trash2, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Download, ChevronsUpDown } from "lucide-react";
 
 import { authFetch } from "../../utils/authFetch";
 import { BACKEND_URL } from "../../config";
+import { useUrlFilters } from "@/hooks/useUrlFilters";
 import { DashboardShell, DashboardPageHeader } from "@/components/layout/DashboardShell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -43,14 +44,32 @@ function MyItems() {
 	const [error, setError] = useState(null);
 	const [loading, setLoading] = useState(true);
 
-	const [searchQuery, setSearchQuery] = useState("");
-	const [categoryFilter, setCategoryFilter] = useState("all");
-	const [statusFilter, setStatusFilter] = useState("all");
+	// Filters + pagination + sort live in the URL so leaving this section
+	// (lazy route swap unmounts it) and coming back restores them.
+	const { values: urlFilters, setFilter } = useUrlFilters({
+		q: "",
+		category: "all",
+		status: "all",
+		page: "1",
+		limit: "10",
+		sort: "createdAt",
+		order: "desc",
+	});
+	const searchQuery = urlFilters.q;
+	const setSearchQuery = useCallback((v) => setFilter("q", v), [setFilter]);
+	const categoryFilter = urlFilters.category;
+	const setCategoryFilter = useCallback((v) => setFilter("category", v), [setFilter]);
+	const statusFilter = urlFilters.status;
+	const setStatusFilter = useCallback((v) => setFilter("status", v), [setFilter]);
 
-	const [page, setPage] = useState(1);
-	const [limit, setLimit] = useState(10);
-	const [sortBy, setSortBy] = useState("createdAt");
-	const [sortOrder, setSortOrder] = useState("desc");
+	const page = Number(urlFilters.page) || 1;
+	const setPage = useCallback((p) => setFilter("page", String(typeof p === "function" ? p(page) : p)), [setFilter, page]);
+	const limit = Number(urlFilters.limit) || 10;
+	const setLimit = useCallback((v) => setFilter("limit", String(v)), [setFilter]);
+	const sortBy = urlFilters.sort;
+	const setSortBy = useCallback((v) => setFilter("sort", v), [setFilter]);
+	const sortOrder = urlFilters.order;
+	const setSortOrder = useCallback((v) => setFilter("order", v), [setFilter]);
 	const [totalPages, setTotalPages] = useState(1);
 	const [totalItems, setTotalItems] = useState(0);
 

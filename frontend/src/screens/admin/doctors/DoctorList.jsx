@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
 	Trash2,
@@ -28,6 +28,7 @@ import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { cn } from "@/lib/utils";
 import { BACKEND_URL } from "@/config";
 import { authFetch } from "@/utils/authFetch";
+import { useUrlFilters } from "@/hooks/useUrlFilters";
 
 const statusBadgeVariant = (status) => {
 	if (status === "Approved") return "default";
@@ -37,13 +38,32 @@ const statusBadgeVariant = (status) => {
 
 const DoctorManagement = () => {
 	const [doctors, setDoctors] = useState([]);
-	const [search, setSearch] = useState("");
-	const [statusFilter, setStatusFilter] = useState("All");
-	const [specializationFilter, setSpecializationFilter] = useState("All");
-	const [genderFilter, setGenderFilter] = useState("All");
-	const [priceFilter, setPriceFilter] = useState("All");
-	const [sortBy, setSortBy] = useState("date_desc");
-	const [currentPage, setCurrentPage] = useState(1);
+
+	// Filters + page live in the URL so navigating to a doctor's detail page
+	// (handleRowClick below) and coming back restores them instead of resetting.
+	const { values: urlFilters, setFilter } = useUrlFilters({
+		q: "",
+		status: "All",
+		specialization: "All",
+		gender: "All",
+		price: "All",
+		sort: "date_desc",
+		page: "1",
+	});
+	const search = urlFilters.q;
+	const setSearch = useCallback((v) => setFilter("q", v), [setFilter]);
+	const statusFilter = urlFilters.status;
+	const setStatusFilter = useCallback((v) => setFilter("status", v), [setFilter]);
+	const specializationFilter = urlFilters.specialization;
+	const setSpecializationFilter = useCallback((v) => setFilter("specialization", v), [setFilter]);
+	const genderFilter = urlFilters.gender;
+	const setGenderFilter = useCallback((v) => setFilter("gender", v), [setFilter]);
+	const priceFilter = urlFilters.price;
+	const setPriceFilter = useCallback((v) => setFilter("price", v), [setFilter]);
+	const sortBy = urlFilters.sort;
+	const setSortBy = useCallback((v) => setFilter("sort", v), [setFilter]);
+	const currentPage = Number(urlFilters.page) || 1;
+	const setCurrentPage = useCallback((p) => setFilter("page", String(p)), [setFilter]);
 	const itemsPerPage = 10;
 	const [selectedDoctors, setSelectedDoctors] = useState([]);
 	const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -144,8 +164,16 @@ const DoctorManagement = () => {
 	const totalPages = Math.ceil(processedDoctors.length / itemsPerPage);
 	const paginatedDoctors = processedDoctors.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
+	// Skip the initial mount so a page number restored from the URL isn't
+	// immediately stomped back to 1.
+	const isFirstFilterRun = useRef(true);
 	useEffect(() => {
+		if (isFirstFilterRun.current) {
+			isFirstFilterRun.current = false;
+			return;
+		}
 		setCurrentPage(1);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [search, statusFilter, specializationFilter, genderFilter, priceFilter, sortBy]);
 
 	const handleRowClick = (id) => navigate(`/admin/consultations/${id}`);

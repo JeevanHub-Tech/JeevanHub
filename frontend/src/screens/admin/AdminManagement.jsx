@@ -1,9 +1,10 @@
-import { useState, useEffect, useContext } from "react";
+import { useState, useEffect, useContext, useCallback } from "react";
 import { ListFilter, Plus, Trash2, Eye, EyeOff, Copy } from "lucide-react";
 
 import { AuthContext } from "../../context/AuthContext";
 import { authFetch } from "../../utils/authFetch";
 import { BACKEND_URL } from "../../config";
+import { useUrlFilters } from "@/hooks/useUrlFilters";
 import { DashboardShell, DashboardPageHeader } from "@/components/layout/DashboardShell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -28,13 +29,27 @@ const permissionLabel = (key) => key.replace(/([A-Z])/g, " $1").replace(/^./, (s
 const AdminManagement = () => {
 	useContext(AuthContext);
 	const [admins, setAdmins] = useState([]);
-	const [searchQuery, setSearchQuery] = useState("");
 	const [loading, setLoading] = useState(true);
 
+	// Search/status/reset/sort live in the URL so leaving this admin section
+	// (lazy route swap unmounts it) and coming back restores the filters
+	// instead of resetting.
+	const { values: urlFilters, setFilter } = useUrlFilters({
+		q: "",
+		status: "all",
+		reset: "all",
+		sort: "date_desc",
+	});
+	const searchQuery = urlFilters.q;
+	const setSearchQuery = useCallback((v) => setFilter("q", v), [setFilter]);
+	const filterStatus = urlFilters.status;
+	const setFilterStatus = useCallback((v) => setFilter("status", v), [setFilter]);
+	const filterReset = urlFilters.reset;
+	const setFilterReset = useCallback((v) => setFilter("reset", v), [setFilter]);
+	const sortBy = urlFilters.sort;
+	const setSortBy = useCallback((v) => setFilter("sort", v), [setFilter]);
+
 	const [showFilters, setShowFilters] = useState(false);
-	const [filterStatus, setFilterStatus] = useState("all");
-	const [filterReset, setFilterReset] = useState("all");
-	const [sortBy, setSortBy] = useState("date_desc");
 	const [filterPermissions, setFilterPermissions] = useState({ ...defaultPermissions });
 
 	const [showRegisterModal, setShowRegisterModal] = useState(false);

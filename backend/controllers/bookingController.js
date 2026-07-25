@@ -897,6 +897,7 @@ exports.getBookingsByPatientId = async (req, res) => {
 				const baseSlot = baseSlots.find(s => s._id.toString() === booking.slotId.toString());
 				if (baseSlot) {
 					bookingObj.timeSlot = baseSlot.startTime;
+					bookingObj.timeSlotDuration = baseSlot.duration;
 				}
 			}
 
@@ -917,6 +918,7 @@ exports.getBookingsByPatientId = async (req, res) => {
 						bookingObj.rescheduledTimeSlot = override.newStartTime;
 						bookingObj.originalTimeSlot = bookingObj.timeSlot;
 						bookingObj.timeSlot = override.newStartTime; // Dynamically show new time
+						if (override.newDuration) bookingObj.timeSlotDuration = override.newDuration;
 					}
 				}
 			}

@@ -89,8 +89,17 @@ function AppointedDoctor() {
 				// Sort bookings into upcoming, past, pending, and denied
 				const sortedBookings = patientBookings.reduce(
 					(acc, booking) => {
-						const appointmentDate = new Date(booking.dateOfAppointment);
-						const isPastAppointment = appointmentDate < currentDate;
+						// The meeting window runs from the slot's start time through
+						// start + duration -- comparing against the raw (midnight)
+						// dateOfAppointment would mark same-day appointments "past"
+						// from 00:00 onward, well before the patient could join.
+						const appointmentEnd = new Date(booking.dateOfAppointment);
+						if (booking.timeSlot && booking.timeSlot.includes(":")) {
+							const [hours, minutes] = booking.timeSlot.split(":").map(Number);
+							appointmentEnd.setHours(hours, minutes || 0, 0, 0);
+							appointmentEnd.setMinutes(appointmentEnd.getMinutes() + (booking.timeSlotDuration || 30));
+						}
+						const isPastAppointment = appointmentEnd < currentDate;
 						// const isWithinOneDayAfterAppointment =
 						// 	appointmentDate < currentDate &&
 						// 	currentDate - appointmentDate <= 24 * 60 * 60 * 1000;

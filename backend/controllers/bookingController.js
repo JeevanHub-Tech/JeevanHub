@@ -110,13 +110,12 @@ exports.createBooking = async (req, res) => {
 		amountPaid,
 	} = req.body; // Destructure the request body
 	const patientId = req.user._id; // Enforce ownership
+	const patientEmail = email || req.user.email;
 
 	if (!doctorName) {
 		return res.status(400).json({ error: "Doctor name are required" });
 	} else if (!slotId) {
 		return res.status(400).json({ error: "Slot ID is required" });
-	} else if (!email) {
-		return res.status(400).json({ error: "Patient email is required" });
 	}
 
 	try {
@@ -198,7 +197,7 @@ exports.createBooking = async (req, res) => {
 			slotId,
 			patientId,
 			dateOfAppointment,
-			patientEmail: email,
+			patientEmail,
 			patientName,
 			patientGender,
 			patientAge,

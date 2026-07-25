@@ -1,5 +1,6 @@
 import { memo } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { CircleCheck, ShieldAlert, Star } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -34,15 +35,21 @@ const MedicineCard = ({ medicine, cartQuantity, addToCart, handleQuantityChange 
 		}
 	};
 
+	const hasReviews = medicine.numReviews > 0;
+
 	return (
-		<Link to={`/medicines/${medicineId}`} className="block w-full max-w-70 no-underline" aria-label={`View details of ${medicine.name}`}>
+		<Link
+			to={`/medicines/${medicineId}`}
+			className="block h-full w-full max-w-70 no-underline"
+			aria-label={`View details of ${medicine.name}`}
+		>
 			<Card
-				className="gap-0 py-0 transition-all duration-250 ease-out hover:-translate-y-1 hover:shadow-(--jh-shadow-hover) focus:-translate-y-1 focus:shadow-(--jh-shadow-hover)"
+				className="h-full gap-0 py-0 transition-all duration-250 ease-out hover:-translate-y-1 hover:shadow-(--jh-shadow-hover) focus:-translate-y-1 focus:shadow-(--jh-shadow-hover)"
 				onKeyDown={handleKeyDown}
 				tabIndex={0}
 				role="link"
 			>
-				<div className="relative w-full overflow-hidden bg-(--jh-cream-tint) pt-[75%]">
+				<div className="relative w-full overflow-hidden rounded-t-[inherit] bg-white pt-[100%]">
 					<img
 						src={medicine.images?.[0] || FALLBACK_IMAGE}
 						alt={medicine.name}
@@ -51,37 +58,52 @@ const MedicineCard = ({ medicine, cartQuantity, addToCart, handleQuantityChange 
 							e.currentTarget.onerror = null;
 							e.currentTarget.src = FALLBACK_IMAGE;
 						}}
-						className="absolute inset-0 size-full object-cover transition-transform duration-300 ease-out hover:scale-106"
+						className="absolute inset-0 size-full object-contain p-4 transition-transform duration-300 ease-out hover:scale-106"
 					/>
 				</div>
 
-				<div className="flex flex-1 flex-col gap-2.5 p-4">
-					<h3 className="m-0 line-clamp-2 text-lg leading-snug font-semibold text-foreground">{medicine.name}</h3>
-					<p className="m-0 text-xl font-bold text-primary">₹{medicine.price}</p>
+				<div className="flex flex-1 flex-col gap-2 p-4">
+					<h3 className="m-0 line-clamp-2 h-11 text-base leading-[1.375rem] font-semibold text-foreground">
+						{medicine.name}
+					</h3>
 
-					{medicine.diseasesTreated?.length > 0 ? (
-						<div className="flex flex-wrap gap-1.5">
-							{medicine.diseasesTreated.slice(0, 3).map((disease) => (
-								<Badge key={disease} variant="secondary" className="font-normal">
-									{disease}
-								</Badge>
-							))}
-						</div>
-					) : null}
-
-					<div className="text-sm">
-						{medicine.prescription ? (
-							<Badge variant="destructive" className="uppercase" aria-label="Prescription required">
-								Prescription Required
-							</Badge>
+					<div className="flex items-center gap-1.5 text-sm">
+						{hasReviews ? (
+							<>
+								<Star className="size-3.5 fill-chart-2 text-chart-2" aria-hidden="true" />
+								<span className="font-semibold text-foreground">{medicine.rating?.toFixed(1) ?? "0.0"}</span>
+								<span className="text-muted-foreground">({medicine.numReviews})</span>
+							</>
 						) : (
-							<Badge className="bg-(--jh-sage-pale) text-(--jh-olive-deep) uppercase" aria-label="No prescription required">
-								No Prescription
-							</Badge>
+							<span className="text-muted-foreground">No ratings yet</span>
 						)}
 					</div>
 
-					<div className="mt-auto flex justify-center">
+					<p className="m-0 text-xl font-bold text-primary">₹{medicine.price}</p>
+
+					<div className="flex min-h-6.5 flex-wrap items-start gap-1.5 overflow-hidden">
+						{medicine.diseasesTreated?.slice(0, 2).map((disease) => (
+							<Badge key={disease} variant="secondary" className="font-normal">
+								{disease}
+							</Badge>
+						))}
+					</div>
+
+					<div className="flex items-center gap-1.5 text-sm">
+						{medicine.prescription ? (
+							<>
+								<ShieldAlert className="size-4 shrink-0 text-destructive" aria-hidden="true" />
+								<span className="font-medium text-destructive">Prescription required</span>
+							</>
+						) : (
+							<>
+								<CircleCheck className="size-4 shrink-0 text-(--jh-olive-deep)" aria-hidden="true" />
+								<span className="font-medium text-(--jh-olive-deep)">No prescription required</span>
+							</>
+						)}
+					</div>
+
+					<div className="mt-auto flex justify-center pt-1">
 						{cartQuantity > 0 ? (
 							<div className="flex w-full items-center justify-center gap-3 rounded-lg border border-border bg-(--jh-cream-tint) p-1.5">
 								<button

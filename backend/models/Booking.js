@@ -136,6 +136,11 @@ const bookingSchema = new mongoose.Schema({
 		]
 	});
 
+bookingSchema.index({ doctorId: 1 });
+bookingSchema.index({ patientId: 1 });
+bookingSchema.index({ patientEmail: 1 });
+bookingSchema.index({ createdAt: -1 });
+
 const Booking = mongoose.model("Booking", bookingSchema);
 
 module.exports = Booking;

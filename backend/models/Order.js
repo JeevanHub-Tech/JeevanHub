@@ -72,4 +72,8 @@ const orderSchema = new mongoose.Schema({
   }
 });
 
+orderSchema.index({ 'buyer.buyerId': 1 });
+orderSchema.index({ 'items.medicineId': 1 });
+orderSchema.index({ createdAt: -1 });
+
 module.exports = mongoose.model('Order', orderSchema);

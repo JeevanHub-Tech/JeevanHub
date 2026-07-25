@@ -3,6 +3,7 @@ require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
+const compression = require("compression");
 const cookieParser = require("cookie-parser");
 const bodyParser = require("body-parser");
 const authRoutes = require("./routes/authRoutes");
@@ -59,6 +60,7 @@ app.use(cors({
   credentials: true // required so the httpOnly refresh-token cookie is sent/received
 }));
 
+app.use(compression());
 app.use(cookieParser());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));

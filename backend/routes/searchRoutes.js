@@ -5,6 +5,7 @@ const Medicine = require("../models/Medicine");
 const Blog = require("../models/Blog");
 const DietYoga = require("../models/DietYoga");
 const { fuzzySearch } = require("../utils/fuzzySearch");
+const { getCached } = require("../utils/searchCache");
 
 router.get("/", async (req, res) => {
   const { s, type } = req.query;
@@ -15,26 +16,26 @@ router.get("/", async (req, res) => {
 
     switch (type) {
       case "doctor": {
-        const doctors = await Doctor.find().select("firstName lastName _id");
+        const doctors = await getCached("doctor", () => Doctor.find().select("firstName lastName _id"));
         const docs = doctors.map((d) => ({ id: d._id, name: `${d.firstName} ${d.lastName}`, firstName: d.firstName, lastName: d.lastName }));
         const matches = fuzzySearch(docs, ["firstName", "lastName"], s);
         results = matches.map((m) => ({ id: m.item.id, name: m.item.name }));
         break;
       }
       case "medicine": {
-        const medicines = await Medicine.find().select("name");
+        const medicines = await getCached("medicine", () => Medicine.find().select("name"));
         const matches = fuzzySearch(medicines, ["name"], s);
         results = matches.map((m) => ({ _id: m.item._id, name: m.item.name }));
         break;
       }
       case "blogs-videos": {
-        const blogs = await Blog.find().select("title _id");
+        const blogs = await getCached("blogs-videos", () => Blog.find().select("title _id"));
         const matches = fuzzySearch(blogs, ["title"], s);
         results = matches.map((m) => ({ id: m.item._id, title: m.item.title }));
         break;
       }
       case "diet-yoga": {
-        const entries = await DietYoga.find().select("diet yoga _id");
+        const entries = await getCached("diet-yoga", () => DietYoga.find().select("diet yoga _id"));
         const matches = fuzzySearch(entries, ["diet", "yoga"], s);
         results = matches.map((m) => ({ name: m.item.diet || m.item.yoga }));
         break;
@@ -42,7 +43,9 @@ router.get("/", async (req, res) => {
       case "disease": {
         // No separate Treatment/Disease model exists; fuzzy-match against
         // Medicine.diseasesTreated and Medicine.description instead.
-        const medicines = await Medicine.find().select("name description diseasesTreated");
+        const medicines = await getCached("disease-medicine", () =>
+          Medicine.find().select("name description diseasesTreated")
+        );
         const matches = fuzzySearch(
           medicines,
           [

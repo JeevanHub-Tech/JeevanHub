@@ -121,11 +121,23 @@ function AppointmentSlots() {
 		return () => clearInterval(intervalId);
 	}, [doctorId, email]);
 
-	const handleJoinMeet = (link) => {
-		if (link && link !== "no") {
-			window.open(link, "_blank");
-		} else {
-			alert("Meeting link is not available for this appointment.");
+	// Daily.co replaces the old meet.jit.si join flow (public Jitsi rooms left
+	// both sides stuck on "waiting for moderator"). Old code, left for reference:
+	// const handleJoinMeet = (link) => {
+	// 	if (link && link !== "no") {
+	// 		window.open(link, "_blank");
+	// 	} else {
+	// 		alert("Meeting link is not available for this appointment.");
+	// 	}
+	// };
+	const handleJoinMeet = async (bookingId) => {
+		try {
+			const response = await authFetch(`${BACKEND_URL}/api/bookings/${bookingId}/daily-join`);
+			const data = await response.json();
+			if (!response.ok) throw new Error(data.error || "Failed to join meeting");
+			window.open(data.url, "_blank");
+		} catch (err) {
+			alert(err.message || "Could not join the meeting. Please try again.");
 		}
 	};
 
@@ -288,7 +300,7 @@ function AppointmentSlots() {
 
 									<div className="flex flex-col gap-2">
 										{hasMeetLink ? (
-											<Button onClick={() => handleJoinMeet(request.meetLink)}>Join Meet</Button>
+											<Button onClick={() => handleJoinMeet(request._id)}>Join Meet</Button>
 										) : (
 											<Button variant="secondary" disabled>
 												Meeting Link Pending

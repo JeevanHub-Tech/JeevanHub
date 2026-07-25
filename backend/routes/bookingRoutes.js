@@ -45,6 +45,11 @@ router.put("/update/:id", auth, updateBookingStatus);
 
 router.put("/update/meet-link/:id", auth, updateMeetLink);
 
+// Daily.co join info (room url + per-user meeting token) -- replaces the
+// meet.jit.si flow on the frontend; kept LAST-before-catch-all so it doesn't
+// shadow anything, but needs to come before the generic "/:id" GET below.
+router.get("/:id/daily-join", auth, bookingController.getDailyJoinInfo);
+
 // DELETE route to delete a booking by ID
 router.delete("/delete/:id", auth, deleteBooking);
 

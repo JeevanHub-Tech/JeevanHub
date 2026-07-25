@@ -3,6 +3,7 @@ const Doctor = require("../models/Doctor");
 const Medicine = require("../models/Medicine");
 const Cart = require("../models/Cart");
 const Notification = require("../models/Notification");
+const { isDailyConfigured, createDailyRoom, createDailyMeetingToken } = require("../utils/dailyClient");
 const fs = require("fs");
 const multer = require("multer");
 const path = require("path");
@@ -587,6 +588,55 @@ exports.updateMeetLink = async (req, res) => {
 		});
 	} catch (error) {
 		console.error("Error updating meet link:", error);
+		return res.status(500).json({ error: "Server error" });
+	}
+};
+
+// Resolves (creating on first call) the Daily.co room for a booking and
+// mints a per-requester meeting token -- the doctor always joins as room
+// owner so the call actually starts, unlike the old public-Jitsi flow where
+// neither side could ever become moderator.
+exports.getDailyJoinInfo = async (req, res) => {
+	const { id } = req.params;
+
+	if (!isDailyConfigured()) {
+		return res.status(503).json({ error: "Video calling is not configured on this server." });
+	}
+
+	try {
+		const booking = await Booking.findById(id);
+		if (!booking) {
+			return res.status(404).json({ error: "Booking not found" });
+		}
+
+		const isDoctor = booking.doctorId.toString() === req.user._id.toString() && req.user.role === "doctor";
+		const isPatient = booking.patientId.toString() === req.user._id.toString() && req.user.role === "patient";
+		if (!isDoctor && !isPatient && req.user.role !== "admin") {
+			return res.status(403).json({ error: "Not authorized to join this meeting." });
+		}
+
+		if (booking.requestAccept !== "accepted") {
+			return res.status(400).json({ error: "This appointment hasn't been accepted yet." });
+		}
+
+		if (!booking.dailyRoomUrl) {
+			const roomName = `ayuhub-${booking._id}`;
+			const room = await createDailyRoom(roomName);
+			booking.dailyRoomName = room.name;
+			booking.dailyRoomUrl = room.url;
+			await booking.save();
+		}
+
+		const userName = isDoctor ? booking.doctorName : booking.patientName;
+		const token = await createDailyMeetingToken({
+			roomName: booking.dailyRoomName,
+			isOwner: isDoctor,
+			userName: userName || (isDoctor ? "Doctor" : "Patient"),
+		});
+
+		return res.status(200).json({ url: `${booking.dailyRoomUrl}?t=${token}` });
+	} catch (error) {
+		console.error("Error creating Daily join info:", error);
 		return res.status(500).json({ error: "Server error" });
 	}
 };

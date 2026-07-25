@@ -240,6 +240,21 @@ const AppointmentTab = ({
 		}
 	};
 
+	const [joiningId, setJoiningId] = useState(null);
+	const handleJoinDaily = async (bookingId) => {
+		setJoiningId(bookingId);
+		try {
+			const response = await authFetch(`${BACKEND}/api/bookings/${bookingId}/daily-join`);
+			const data = await response.json();
+			if (!response.ok) throw new Error(data.error || "Failed to join meeting");
+			window.open(data.url, "_blank");
+		} catch (err) {
+			alert(err.message || "Could not join the meeting. Please try again.");
+		} finally {
+			setJoiningId(null);
+		}
+	};
+
 	// Shared card shell used by all four tabs — variant controls which
 	// meta/action pieces are relevant for that appointment's state.
 	const AppointmentCard = ({ appointment, variant }) => {
@@ -311,8 +326,14 @@ const AppointmentTab = ({
 				<div className="mt-4 flex flex-wrap gap-2">
 					{variant === "upcoming" &&
 						(appointment.meetLink && appointment.meetLink !== "no" ? (
-							<Button size="sm" onClick={() => window.open(appointment.meetLink, "_blank")}>
-								<Video size={14} /> Join Meet
+							// Daily.co replaces the old meet.jit.si join flow (public Jitsi
+							// rooms left both sides stuck on "waiting for moderator").
+							// Old code, left for reference:
+							// <Button size="sm" onClick={() => window.open(appointment.meetLink, "_blank")}>
+							// 	<Video size={14} /> Join Meet
+							// </Button>
+							<Button size="sm" onClick={() => handleJoinDaily(appointment._id)} disabled={joiningId === appointment._id}>
+								<Video size={14} /> {joiningId === appointment._id ? "Joining…" : "Join Meet"}
 							</Button>
 						) : (
 							<Button size="sm" onClick={() => handlePayFees(doctorIdStr, appointment._id)}>

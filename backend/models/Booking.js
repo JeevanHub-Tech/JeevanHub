@@ -68,6 +68,17 @@ const bookingSchema = new mongoose.Schema({
 		required: true,
 		default: "no",
 	},
+	// Daily.co room backing this booking's video call (created lazily on first
+	// join). Kept separate from meetLink, which still stores the doctor's
+	// optional custom Jitsi link.
+	dailyRoomName: {
+		type: String,
+		default: "",
+	},
+	dailyRoomUrl: {
+		type: String,
+		default: "",
+	},
 	// The doctor's diagnosis for THIS consultation (one per visit). Shown as
 	// "disease diagnosed" on the previous-prescription reference cards.
 	diagnosis: {

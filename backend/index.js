@@ -57,7 +57,8 @@ app.use(cors({
   origin: allowedOrigins,
   methods: ["GET", "POST", "PUT", "DELETE"],
   allowedHeaders: ["Content-Type", "Authorization"],
-  credentials: true // required so the httpOnly refresh-token cookie is sent/received
+  credentials: true, // required so the httpOnly refresh-token cookie is sent/received
+  maxAge: 86400 // cache preflight so repeat requests skip the OPTIONS round-trip
 }));
 
 app.use(compression());

@@ -1,5 +1,5 @@
-import { useState, useEffect, useContext, useCallback, useMemo } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useState, useEffect, useContext, useCallback, useMemo, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { Search, X, RefreshCw, AlertCircle, Loader2, ShoppingCart, Frown } from "lucide-react";
 
@@ -19,6 +19,8 @@ import {
 } from "@/components/ui/pagination";
 import { AuthContext } from "../../context/AuthContext";
 import { BACKEND_URL } from "../../config";
+import { useGlobalSearch } from "@/hooks/useGlobalSearch";
+import { useUrlFilters } from "@/hooks/useUrlFilters";
 import MedicineCard from "./MedicineCard";
 
 const PRICE_RANGE_OPTIONS = [
@@ -56,25 +58,42 @@ const Medicines = () => {
 	const patientId = auth?.user?.id;
 	const token = localStorage.getItem("token");
 	const navigate = useNavigate();
-	const [searchParams] = useSearchParams();
+
+	// Filters live in the URL (not just useState) so navigating to a medicine's
+	// detail page and hitting back restores the exact same search/category/
+	// price/sort/page instead of resetting — the list screen fully unmounts
+	// when you go to /medicines/:id, which would otherwise wipe local state.
+	const { values: filters, setFilter, resetFilters: resetUrlFilters } = useUrlFilters({
+		q: "",
+		category: "all",
+		price: "all",
+		sort: "name",
+		page: "1",
+	});
 
 	const [medicines, setMedicines] = useState([]);
 	const [total, setTotal] = useState(0);
 	const [totalPages, setTotalPages] = useState(1);
-	const [page, setPage] = useState(1);
+	const page = Number(filters.page) || 1;
+	const setPage = useCallback((p) => setFilter("page", String(p)), [setFilter]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
 
 	const [cart, setCart] = useState([]);
 	const [cartLoaded, setCartLoaded] = useState(false);
 
-	// GlobalSearchBox navigates here with ?q=<term> when there's no direct
-	// match to jump straight to — prefill the search from it.
-	const [searchInput, setSearchInput] = useState(() => searchParams.get("q") || "");
-	const [searchTerm, setSearchTerm] = useState(() => searchParams.get("q") || "");
-	const [selectedCategory, setSelectedCategory] = useState("all");
-	const [priceRange, setPriceRange] = useState("all");
-	const [sortBy, setSortBy] = useState("name");
+	// searchInput is the raw typed value (updates every keystroke); searchTerm
+	// (and the URL's `q`) only follow after the debounce below settles.
+	const [searchInput, setSearchInput] = useState(filters.q);
+	const [searchTerm, setSearchTerm] = useState(filters.q);
+	const { setQuery: setSuggestQuery, results: suggestions, open: suggestOpen, setOpen: setSuggestOpen, clear: clearSuggest } =
+		useGlobalSearch("medicine");
+	const selectedCategory = filters.category;
+	const setSelectedCategory = useCallback((v) => setFilter("category", v), [setFilter]);
+	const priceRange = filters.price;
+	const setPriceRange = useCallback((v) => setFilter("price", v), [setFilter]);
+	const sortBy = filters.sort;
+	const setSortBy = useCallback((v) => setFilter("sort", v), [setFilter]);
 	const [categories, setCategories] = useState([]);
 
 	// Base UI's Select needs an `items` list to resolve the trigger's display
@@ -85,15 +104,27 @@ const Medicines = () => {
 		[categories],
 	);
 
-	// Debounce free-text search so we don't re-fetch on every keystroke.
+	// Debounce free-text search so we don't re-fetch on every keystroke, then
+	// push the settled term into the URL alongside the other filters.
 	useEffect(() => {
-		const id = setTimeout(() => setSearchTerm(searchInput), SEARCH_DEBOUNCE_MS);
+		const id = setTimeout(() => {
+			setSearchTerm(searchInput);
+			setFilter("q", searchInput);
+		}, SEARCH_DEBOUNCE_MS);
 		return () => clearTimeout(id);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [searchInput]);
 
-	// Reset to page 1 whenever a filter changes.
+	// Reset to page 1 whenever a filter changes — but not on the initial mount,
+	// which would otherwise stomp a page number restored from the URL.
+	const isFirstFilterRun = useRef(true);
 	useEffect(() => {
+		if (isFirstFilterRun.current) {
+			isFirstFilterRun.current = false;
+			return;
+		}
 		setPage(1);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [searchTerm, selectedCategory, priceRange, sortBy]);
 
 	// Categories are fetched once, independent of pagination.
@@ -284,9 +315,8 @@ const Medicines = () => {
 	const resetFilters = () => {
 		setSearchInput("");
 		setSearchTerm("");
-		setSelectedCategory("all");
-		setPriceRange("all");
-		setSortBy("name");
+		clearSuggest();
+		resetUrlFilters();
 	};
 
 	const cartCount = useMemo(() => cart.reduce((acc, item) => acc + item.quantity, 0), [cart]);
@@ -307,18 +337,45 @@ const Medicines = () => {
 							type="text"
 							placeholder="Search medicines by name, ingredients, or description..."
 							value={searchInput}
-							onChange={(e) => setSearchInput(e.target.value)}
+							onChange={(e) => {
+								setSearchInput(e.target.value);
+								setSuggestQuery(e.target.value);
+							}}
+							onFocus={() => suggestions.length > 0 && setSuggestOpen(true)}
+							onBlur={() => setTimeout(() => setSuggestOpen(false), 150)}
 							className="h-11 pl-10 pr-10"
 						/>
 						{searchInput && (
 							<button
 								type="button"
 								className="absolute top-1/2 right-3 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-								onClick={() => setSearchInput("")}
+								onClick={() => {
+									setSearchInput("");
+									clearSuggest();
+								}}
 								aria-label="Clear search"
 							>
 								<X className="size-5" />
 							</button>
+						)}
+
+						{suggestOpen && searchInput.trim() && suggestions.length > 0 && (
+							<div className="absolute top-full left-0 z-50 mt-1 w-full overflow-hidden rounded-lg border border-border bg-popover shadow-lg">
+								{suggestions.slice(0, 8).map((result) => (
+									<button
+										key={result.key}
+										type="button"
+										onMouseDown={(e) => e.preventDefault()}
+										onClick={() => {
+											navigate(result.to);
+											clearSuggest();
+										}}
+										className="block w-full px-3 py-2 text-left text-sm text-popover-foreground hover:bg-accent"
+									>
+										{result.label}
+									</button>
+								))}
+							</div>
 						)}
 					</div>
 

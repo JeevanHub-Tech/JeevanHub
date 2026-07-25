@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { authFetch } from "../utils/authFetch";
 import { BACKEND_URL } from "../config";
+import { useUrlFilters } from "@/hooks/useUrlFilters";
 
 function isValidImage(src) {
   return Boolean(src) && src !== "undefined" && src !== "null";
@@ -129,7 +130,9 @@ function DoctorsScreen() {
   const [showFilter, setShowFilter] = useState(
     () => typeof window === "undefined" || window.innerWidth > 860,
   );
-  const [filters, setFilters] = useState(DEFAULT_FILTERS);
+  // Filters live in the URL so navigating to /doctor-detail and back restores
+  // them instead of resetting — this screen fully unmounts on that navigation.
+  const { values: filters, setFilter, setFilters } = useUrlFilters(DEFAULT_FILTERS);
   const [doctors, setDoctors] = useState([]);
   const [status, setStatus] = useState("loading"); // loading | ready | error
 
@@ -226,8 +229,8 @@ function DoctorsScreen() {
     [filters],
   );
 
-  const setFilterValue = (key) => (value) => setFilters((prev) => ({ ...prev, [key]: value }));
-  const clearFilter = (key) => setFilters((prev) => ({ ...prev, [key]: "" }));
+  const setFilterValue = (key) => (value) => setFilter(key, value);
+  const clearFilter = (key) => setFilter(key, "");
 
   const handleDoctorClick = (doctor) => {
     navigate("/doctor-detail", { state: { doctor } });
@@ -504,7 +507,16 @@ function DoctorsScreen() {
                   <button
                     type="button"
                     className="inline-flex items-center gap-1.5 rounded-full border border-border bg-(--jh-sage-pale) py-1.5 pr-2.5 pl-3.5 text-sm font-semibold text-(--jh-olive-deep) transition-colors hover:bg-(--jh-sage-pale-2)"
-                    onClick={() => setSearchParams({})}
+                    onClick={() =>
+                      setSearchParams(
+                        (prev) => {
+                          const next = new URLSearchParams(prev);
+                          next.delete("q");
+                          return next;
+                        },
+                        { replace: true },
+                      )
+                    }
                   >
                     &ldquo;{searchParams.get("q")}&rdquo;
                     <X className="size-3.5" aria-hidden="true" />

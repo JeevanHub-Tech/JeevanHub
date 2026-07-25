@@ -44,9 +44,13 @@ const MedicineCard = ({ medicine, cartQuantity, addToCart, handleQuantityChange 
 			>
 				<div className="relative w-full overflow-hidden bg-(--jh-cream-tint) pt-[75%]">
 					<img
-						src={FALLBACK_IMAGE}
+						src={medicine.images?.[0] || FALLBACK_IMAGE}
 						alt={medicine.name}
 						loading="lazy"
+						onError={(e) => {
+							e.currentTarget.onerror = null;
+							e.currentTarget.src = FALLBACK_IMAGE;
+						}}
 						className="absolute inset-0 size-full object-cover transition-transform duration-300 ease-out hover:scale-106"
 					/>
 				</div>

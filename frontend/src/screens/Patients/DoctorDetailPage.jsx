@@ -162,15 +162,6 @@ function DoctorDetail() {
 			const [year, month, day] = dateOfAppointment.split("-");
 			const [hours, minutes] = time24.split(":");
 
-			const appointmentDateTime = new Date(year, month - 1, day, hours, minutes);
-			const now = new Date();
-			const oneHourLater = new Date(now.getTime() + 60 * 60 * 1000);
-
-			if (appointmentDateTime <= oneHourLater) {
-				setStatusMessage({ message: "Please select a time at least 1 hour from now.", type: "error" });
-				return;
-			}
-
 			if (!patientId) {
 				setStatusMessage({ message: "Authentication failed. Please log in again.", type: "error" });
 				return;

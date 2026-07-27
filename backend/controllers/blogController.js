@@ -78,6 +78,31 @@ exports.getOneBlog = async (req, res) => {
     }
 };
 
+// Update a blog (title/description/category/image)
+exports.updateBlog = async (req, res) => {
+    try {
+        const blog = await Blog.findById(req.params.id);
+        if (!blog) {
+            return res.status(404).json({ message: 'Blog not found' });
+        }
+
+        if (blog.authorId.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+            return res.status(403).json({ message: 'Not authorized to update this blog' });
+        }
+
+        const { title, description, category, image } = req.body;
+        if (title !== undefined) blog.title = title;
+        if (description !== undefined) blog.description = description;
+        if (category !== undefined) blog.category = category;
+        if (image !== undefined) blog.image = image;
+
+        const updatedBlog = await blog.save();
+        res.status(200).json(updatedBlog);
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+};
+
 // Delete a blog
 exports.deleteBlog = async (req, res) => {
     try {

@@ -4,12 +4,15 @@ import './index.css';
 
 import App from './App';
 import AuthProvider from './context/AuthContext';
+import { PromptDialogProvider } from './context/PromptDialogContext';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
     <AuthProvider>
-      <App />
+      <PromptDialogProvider>
+        <App />
+      </PromptDialogProvider>
     </AuthProvider>
   </React.StrictMode>
 );

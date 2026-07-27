@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
-import RichTextEditor from "../../components/RichTextEditor";
+import RichTextEditor from "../../components/LexicalEditor";
 import { BACKEND_URL } from "../../config";
 import { DashboardShell } from "@/components/layout/DashboardShell";
 import { Card } from "@/components/ui/card";

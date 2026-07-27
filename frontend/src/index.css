@@ -23,3 +23,25 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+/* Responsive iframe embeds (YouTube etc.) coming from rich-text blog content.
+   Must be global, not scoped to the editor, so the public blog detail page
+   (which never mounts the editor component) still gets it. */
+.jh-blog-content .iframe-container {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+}
+
+.jh-blog-content .iframe-container iframe,
+.jh-blog-content iframe {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 0.5rem;
+}
+
+.jh-blog-content .twitter-tweet {
+  margin-left: auto !important;
+  margin-right: auto !important;
+}

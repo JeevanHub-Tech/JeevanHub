@@ -140,11 +140,11 @@ function BlogsVideosScreen() {
 						))}
 					</div>
 				) : filteredData.length > 0 ? (
-					<div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+					<div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-4">
 						{filteredData.map((item, index) => {
 							const rawHtmlContent = item.description;
 							const previewText = rawHtmlContent
-								? rawHtmlContent.replace(/<[^>]*>/g, "").slice(0, 120)
+								? rawHtmlContent.replace(/<[^>]*>/g, "").slice(0, 90)
 								: "No content available...";
 							const imageUrl = item.image || "/images/blog_img.jpg";
 							const itemTags = item.type === "normal" ? (item.category ? [item.category] : []) : item.tags || [];
@@ -152,26 +152,32 @@ function BlogsVideosScreen() {
 
 							return (
 								<Card key={item._id || index} className="overflow-hidden py-0">
-									<div className="relative aspect-video">
-										<img src={imageUrl} alt={item.title} className="size-full object-cover" />
-										{item.type === "ai" ? (
-											<Badge className="absolute right-3 top-3 bg-black/60 text-white backdrop-blur-sm hover:bg-black/60">AI</Badge>
-										) : null}
+									<div className="relative h-32 sm:h-36">
+										<img
+											src={imageUrl}
+											alt={item.title}
+											className="size-full object-cover"
+											onError={(e) => {
+												e.currentTarget.onerror = null;
+												e.currentTarget.src = "/images/blog_img.jpg";
+											}}
+										/>
 									</div>
-									<div className="flex flex-1 flex-col gap-2 p-5 text-center">
+									<div className="flex flex-1 flex-col gap-1.5 p-3.5 text-center">
 										<p className="text-xs text-muted-foreground">{new Date(item.date).toLocaleDateString()}</p>
-										<h3 className="text-lg font-bold text-foreground">{item.title}</h3>
-										<p className="flex-1 text-sm text-muted-foreground">{previewText}...</p>
-										<p className="text-sm font-semibold text-foreground">👤 {itemAuthor}</p>
-										<div className="flex flex-wrap justify-center gap-2">
-											{itemTags.map((tag) => (
-												<Badge key={tag} variant="secondary">
+										<h3 className="line-clamp-1 text-sm font-bold text-foreground">{item.title}</h3>
+										<p className="line-clamp-2 flex-1 text-xs text-muted-foreground">{previewText}...</p>
+										<p className="text-xs font-semibold text-foreground">👤 {itemAuthor}</p>
+										<div className="flex flex-wrap justify-center gap-1.5">
+											{itemTags.slice(0, 2).map((tag) => (
+												<Badge key={tag} variant="secondary" className="text-xs">
 													#{tag}
 												</Badge>
 											))}
 										</div>
 										<Button
-											className="mt-2 self-center"
+											size="sm"
+											className="mt-1 self-center"
 											onClick={() => navigate(`/blog/${item._id}`, { state: { blog: item } })}
 										>
 											Read Article

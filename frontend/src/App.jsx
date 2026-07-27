@@ -46,6 +46,7 @@ const CurrentRequests = lazy(() => import('./screens/Doctors/CurrentRequests'));
 const AppointmentSlots = lazy(() => import('./screens/Doctors/AppointmentSlots'));
 const PatientList = lazy(() => import('./screens/Doctors/PatientList'));
 const HealthBlogs = lazy(() => import('./screens/Doctors/HealthBlogs'));
+const WriteBlog = lazy(() => import('./screens/Doctors/WriteBlog'));
 const TreatmentDetailsScreen = lazy(() => import('./screens/TreatmentDetailsScreen'));
 const CheckoutScreen = lazy(() => import('./screens/CheckoutScreen'));
 
@@ -86,21 +87,26 @@ const BuyerFeedback = lazy(() => import('./screens/Patients/Feedback/BuyerFeedba
 const MedicineIdDetails = lazy(() => import('./screens/MedicineIdDetails'));
 const PrakritiAssessment = lazy(() => import('./screens/Patients/Prakriti/PrakritiAssessment'));
 
-// Auth entry screens own their full-page layout (branding panel + form) —
-// the global navbar/footer chrome would duplicate branding and eat vertical
-// space the login/sign-up card design relies on.
-const AUTH_ONLY_ROUTES = new Set([
+// Routes that own their full-page layout and don't want the global
+// navbar/footer chrome: auth entry screens (branding panel + form would
+// duplicate branding and eat vertical space) and the distraction-free
+// full-page blog editor.
+const NO_CHROME_ROUTES = new Set([
   '/signin',
   '/signup',
   '/admin/login',
   '/signup-patient',
   '/signup-doctor',
   '/signup-retailer',
+  '/health-blogs/new',
 ]);
 
 function AppChrome({ renderNavBar, children }) {
   const location = useLocation();
-  const isAuthRoute = AUTH_ONLY_ROUTES.has(location.pathname);
+  const isAuthRoute =
+    NO_CHROME_ROUTES.has(location.pathname) ||
+    location.pathname.startsWith('/health-blogs/edit/') ||
+    location.pathname.startsWith('/blog/');
 
   if (isAuthRoute) {
     return children;
@@ -213,6 +219,8 @@ function App() {
             <Route path="/doctor-analytics" element={<DoctorAnalytics />} />
             <Route path="/patient-list" element={<PatientList />} />
             <Route path="/health-blogs" element={<HealthBlogs />} />
+            <Route path="/health-blogs/new" element={<WriteBlog />} />
+            <Route path="/health-blogs/edit/:id" element={<WriteBlog />} />
             <Route path="/notifications" element={<Notification />} />
 
             <Route path="/retailer-home" element={<RetailerDashboard />} />

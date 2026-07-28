@@ -15,6 +15,7 @@ const orderRoutes = require("./routes/orderRoutes")
 const blogRoutes = require("./routes/blogRoutes")
 const prakritiRoutes = require("./routes/prakritiRoutes");
 const dietYogaRoutes = require("./routes/dietYogaRoutes");
+const ayurvedaRoutes = require("./routes/ayurvedaRoutes");
 const searchRoutes = require("./routes/searchRoutes");
 
 const uploadRoutes = require("./routes/uploadRoutes");
@@ -45,6 +46,7 @@ mongoose
 const allowedOrigins = [
   process.env.FRONTEND_URL || "http://localhost:3000", // Dynamic frontend URL
   "http://localhost:3000", // For local development
+  "http://localhost:3002", // For local development (alt port)
   "https://ayurvedic-app-frontend.onrender.com",
   "https://agiagentworld.com",
   "https://jeevanhub.com",
@@ -81,6 +83,7 @@ app.use("/api/orders", orderRoutes)
 app.use("/api/blogs", blogRoutes)
 app.use("/api/prakriti", prakritiRoutes)
 app.use("/api/diet-yoga", dietYogaRoutes);
+app.use("/api/ayurveda", ayurvedaRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use("/api/search", searchRoutes);
 app.use("/api/cart", cartRoutes);

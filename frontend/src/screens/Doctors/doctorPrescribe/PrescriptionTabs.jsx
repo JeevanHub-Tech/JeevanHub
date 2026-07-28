@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { Pill, Salad, HeartPulse, FileText } from "lucide-react";
+import { Pill, Salad, HeartPulse, FileText, Leaf } from "lucide-react";
 
 import { MedicineForm } from "./MedicineForm";
 import { DietPlanForm } from "./DietPlanForm";
 import { YogaPlanForm } from "./YogaPlanForm";
 import { MedicalHistoryViewer } from "./MedicalHistoryViewer";
+import { PatientAyurvedaPanel } from "./PatientAyurvedaPanel";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
@@ -12,6 +13,7 @@ const tabs = [
 	{ id: "medicine", label: "Medicine", Icon: Pill },
 	{ id: "diet", label: "Diet Plan", Icon: Salad },
 	{ id: "yoga", label: "Yoga / Wellness", Icon: HeartPulse },
+	{ id: "ayurveda", label: "Ayurveda AI", Icon: Leaf },
 	{ id: "history", label: "Medical History", Icon: FileText },
 ];
 
@@ -26,6 +28,8 @@ export function PrescriptionTabs({ bookingId, patientId, doctorId, onPrescribed 
 				return <DietPlanForm bookingId={bookingId} patientId={patientId} doctorId={doctorId} onPrescribed={onPrescribed} />;
 			case "yoga":
 				return <YogaPlanForm bookingId={bookingId} patientId={patientId} doctorId={doctorId} onPrescribed={onPrescribed} />;
+			case "ayurveda":
+				return <PatientAyurvedaPanel patientId={patientId} />;
 			case "history":
 				return <MedicalHistoryViewer patientId={patientId} />;
 			default:
@@ -36,7 +40,7 @@ export function PrescriptionTabs({ bookingId, patientId, doctorId, onPrescribed 
 	return (
 		<Card className="mx-auto max-w-[1800px] p-6">
 			<Tabs value={activeTab} onValueChange={setActiveTab}>
-				<TabsList className="mb-6 grid h-auto grid-cols-2 sm:grid-cols-4">
+				<TabsList className="mb-6 grid h-auto grid-cols-2 sm:grid-cols-5">
 					{tabs.map(({ id, label, Icon }) => (
 						<TabsTrigger key={id} value={id}>
 							<Icon data-icon="inline-start" />

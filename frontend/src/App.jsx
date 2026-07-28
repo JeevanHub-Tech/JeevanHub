@@ -35,6 +35,9 @@ const SignUpPatientScreen = lazy(() => import('./screens/Patients/SignUpPatientS
 const SignUpDoctorScreen = lazy(() => import('./screens/Doctors/SignUpDoctorScreen'));
 const SignUpRetailerScreen = lazy(() => import('./screens/Retailers/SignUpRetailerScreen'));
 const PrakritiDetermination = lazy(() => import('./screens/Patients/Prakriti/PrakritiDetermination'));
+const AyurvedaDashboard = lazy(() => import('./screens/Patients/Ayurveda/AyurvedaDashboard'));
+const WellnessProfileForm = lazy(() => import('./screens/Patients/Ayurveda/WellnessProfileForm'));
+const DoshaAssessmentQuiz = lazy(() => import('./screens/Patients/Ayurveda/DoshaAssessmentQuiz'));
 const TreatmentsScreen = lazy(() => import('./screens/Treatments'));
 const AppointedDoctor = lazy(() => import('./screens/Patients/Appointments/AppointedDoctor'));
 const PaymentPage = lazy(() => import('./screens/Patients/Appointments/PaymentPage'));
@@ -210,6 +213,9 @@ function App() {
             <Route path="/profile/doctor" element={<DoctorProfileNew />} />
             <Route path="/profile/retailer" element={<RetailerProfileNew />} />
             <Route path="/current-requests" element={<CurrentRequests />} />
+            <Route path="/ayurveda-wellness" element={<AyurvedaDashboard />} />
+            <Route path="/ayurveda-wellness/profile" element={<WellnessProfileForm />} />
+            <Route path="/ayurveda-wellness/assessment" element={<DoshaAssessmentQuiz />} />
 
             <Route path="/PatientFeedback/:id" element={<PatientFeedback />} />
             <Route path="/BuyerFeedback/:id" element={<BuyerFeedback />} />

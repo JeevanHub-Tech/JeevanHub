@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const auth = require('../middleware/auth');
+const { aiRateLimit } = require('../middleware/aiRateLimit');
 const cloudinary = require('../config/cloudinary');
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const { getAllPatients,
@@ -46,10 +47,16 @@ router.get('/getPatient/:id', auth, getPatientById);
 router.get('/dietYoga/:patientId', auth, getPatientDietYoga);
 router.get('/orders/:buyerId', auth, getOrdersByBuyerId);
 router.post('/:id/profile-image', auth, profileImageUpload.single('image'), uploadProfileImage);
-router.post('/:id/medical-history', auth, medicalHistoryUpload.array('documents', 10), uploadMedicalHistory);
+// Both upload and retry trigger a Gemini OCR call, so both get the AI guardrail.
+const ocrAiLimit = aiRateLimit({
+    windowMs: 60 * 60 * 1000, // 1 hour
+    max: 15,
+    message: 'Too many document analysis requests. Please wait before uploading or retrying more.',
+});
+router.post('/:id/medical-history', auth, ocrAiLimit, medicalHistoryUpload.array('documents', 10), uploadMedicalHistory);
 router.get('/:id/medical-history', auth, getMedicalHistory);
 router.delete('/:id/medical-history/:docId', auth, deleteMedicalHistoryDoc);
-router.post('/:id/medical-history/:docId/ocr/retry', auth, retryMedicalHistoryOcr);
+router.post('/:id/medical-history/:docId/ocr/retry', auth, ocrAiLimit, retryMedicalHistoryOcr);
 router.put('/:id/medical-history/:docId/verification', auth, saveMedicalHistoryVerification);
 router.post('/:id/medical-history/:docId/verification/submit', auth, submitMedicalHistoryVerification);
 // router.post('/dietYoga', addDietYoga);

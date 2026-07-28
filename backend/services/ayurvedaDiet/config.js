@@ -12,6 +12,7 @@ module.exports = {
   // 'gemini' now (reuses the GEMINI_API_KEY already configured for the other agents).
   AYURVEDA_DIET_PROVIDER: process.env.AYURVEDA_DIET_PROVIDER || 'gemini',
 
-  // '-latest' alias avoids stale pinned model ids.
-  AYURVEDA_DIET_MODEL: process.env.AYURVEDA_DIET_MODEL || 'gemini-flash-latest',
+  // '-latest' alias avoids stale pinned model ids. Smallest/cheapest tier
+  // (flash-lite) -- keep AI usage conservative and low-cost.
+  AYURVEDA_DIET_MODEL: process.env.AYURVEDA_DIET_MODEL || 'gemini-flash-lite-latest',
 };

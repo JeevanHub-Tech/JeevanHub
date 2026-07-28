@@ -16,10 +16,12 @@ module.exports = {
   DOCTOR_MATCH_PROVIDER: process.env.DOCTOR_MATCH_PROVIDER || 'gemini',
 
   // Model per provider. '-latest' aliases don't go stale the way pinned
-  // gemini-2.5-* ids did (those now 404 for new keys).
+  // gemini-2.5-* ids did (those now 404 for new keys). Deliberately the
+  // smallest/cheapest tier available (flash-lite, not flash/pro) -- AI
+  // usage across this app is meant to stay conservative and low-cost.
   DOCTOR_MATCH_MODEL:
     process.env.DOCTOR_MATCH_MODEL ||
-    (process.env.DOCTOR_MATCH_PROVIDER === 'anthropic' ? 'claude-haiku-4-5' : 'gemini-flash-latest'),
+    (process.env.DOCTOR_MATCH_PROVIDER === 'anthropic' ? 'claude-haiku-4-5' : 'gemini-flash-lite-latest'),
 
   // Cap how many doctors are ranked in one call (keeps the prompt bounded).
   DOCTOR_MATCH_MAX_CANDIDATES: num(process.env.DOCTOR_MATCH_MAX_CANDIDATES, 60),

@@ -9,7 +9,8 @@ module.exports = {
   PRESCRIPTION_OCR_ENABLED: bool(process.env.PRESCRIPTION_OCR_ENABLED, true),
 
   // '-latest' aliases don't go stale the way pinned gemini-2.5-* ids did.
-  PRESCRIPTION_OCR_MODEL: process.env.PRESCRIPTION_OCR_MODEL || 'gemini-flash-latest',
+  // Smallest/cheapest tier (flash-lite) -- keep AI usage conservative and low-cost.
+  PRESCRIPTION_OCR_MODEL: process.env.PRESCRIPTION_OCR_MODEL || 'gemini-flash-lite-latest',
 
   // Defensive bound on the file fetched from Cloudinary before base64-encoding it.
   PRESCRIPTION_OCR_MAX_FILE_BYTES: num(process.env.PRESCRIPTION_OCR_MAX_FILE_BYTES, 10 * 1024 * 1024),

@@ -7,6 +7,7 @@ const QRCode = require("qrcode");
 const path = require("path"); 
 const fs = require("fs");
 const auth = require("../middleware/auth");
+const { aiRateLimit } = require("../middleware/aiRateLimit");
 const crypto = require("crypto");
 const bcrypt = require("bcryptjs");
 const { getAllDoctors, 
@@ -279,8 +280,14 @@ router.get("/allDoctors", auth, getAllDoctorsData);
 // New route to get all public doctors (Safe fields only, truly public)
 router.get("/publicDoctors", require("../controllers/doctorController").getPublicDoctorsData);
 
-// AI-assisted doctor matching from a patient's free-text concern (public).
-router.post("/ai-match", require("../controllers/doctorController").aiMatchDoctors);
+// AI-assisted doctor matching from a patient's free-text concern (public,
+// so this is the one AI guardrail keyed by IP rather than user id).
+const doctorMatchAiLimit = aiRateLimit({
+    windowMs: 60 * 60 * 1000, // 1 hour
+    max: 20,
+    message: "Too many AI search requests. Please wait before trying again, or use the filters instead.",
+});
+router.post("/ai-match", doctorMatchAiLimit, require("../controllers/doctorController").aiMatchDoctors);
 
 // New route to get doctor by ID from both collections
 router.get("/getDoctorById/:id", auth, getDoctorById);

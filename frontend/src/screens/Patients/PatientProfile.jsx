@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { Camera, FileText, Trash2, UploadCloud } from "lucide-react";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -15,6 +16,16 @@ import { BACKEND_URL } from "../../config";
 import defaultProfilePic from "../../media/default-profile.png";
 
 const API = BACKEND_URL || "http://localhost:8080";
+
+function PrescriptionStatusBadge({ doc }) {
+	const ocrStatus = doc.ocr?.status;
+	const verificationStatus = doc.patientVerification?.status;
+	if (verificationStatus === "submitted") return <Badge variant="success">Submitted to doctor</Badge>;
+	if (ocrStatus === "failed") return <Badge variant="destructive">OCR failed</Badge>;
+	if (ocrStatus === "processing" || !ocrStatus || ocrStatus === "pending") return <Badge>Transcribing…</Badge>;
+	if (ocrStatus === "done") return <Badge variant="warning">Needs your review</Badge>;
+	return null;
+}
 
 function Field({ label, htmlFor, children }) {
 	return (
@@ -438,6 +449,7 @@ const PatientProfile = () => {
 											>
 												<FileText size={18} className="shrink-0" />
 												<span className="truncate">{doc.fileName}</span>
+												<PrescriptionStatusBadge doc={doc} />
 											</button>
 											<button
 												type="button"
@@ -456,7 +468,18 @@ const PatientProfile = () => {
 				</div>
 			</div>
 
-			{viewingDoc ? <DocumentViewerModal doc={viewingDoc} onClose={() => setViewingDoc(null)} /> : null}
+			{viewingDoc ? (
+				<DocumentViewerModal
+					doc={viewingDoc}
+					patientId={auth.user?.id}
+					sidePanel="verify"
+					onDocUpdate={(updated) => {
+						setMedicalHistory((docs) => docs.map((d) => (d._id === updated._id ? updated : d)));
+						setViewingDoc(updated);
+					}}
+					onClose={() => setViewingDoc(null)}
+				/>
+			) : null}
 		</main>
 	);
 };

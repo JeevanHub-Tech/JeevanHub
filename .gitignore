@@ -43,6 +43,9 @@ pnpm-debug.log*
 **/.DS_Store
 Thumbs.db
 
+# Runtime-uploaded patient documents — not source, shouldn't be in git history
+backend/uploads/
+
 # Impeccable design context (PRODUCT.md, DESIGN.md, live config) — local only
 .impeccable/
 .claude/

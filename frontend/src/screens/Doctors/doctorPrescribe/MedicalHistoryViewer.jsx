@@ -6,6 +6,15 @@ import { AuthContext } from "../../../context/AuthContext";
 import { DocumentViewerModal } from "../../../components/DocumentViewerModal";
 import { BACKEND_URL } from "../../../config";
 import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+
+// The backend only ever returns patient-submitted prescriptions to a doctor
+// (see forDoctorView in patientController.js) -- every doc a doctor can see
+// here is already patient-verified, so the badge is just a confirmation, not
+// a status machine.
+function VerifiedBadge() {
+	return <Badge variant="success">Patient-verified</Badge>;
+}
 
 export function MedicalHistoryViewer({ patientId }) {
 	const { auth } = useContext(AuthContext);
@@ -57,18 +66,30 @@ export function MedicalHistoryViewer({ patientId }) {
 								className="flex w-full items-center gap-2.5 rounded-lg border border-border bg-card p-3 text-left text-sm text-foreground transition-all hover:border-primary hover:shadow-sm"
 							>
 								<FileText className="size-4 shrink-0 text-muted-foreground" />
-								<span>{doc.fileName}</span>
+								<span className="flex-1 truncate">{doc.fileName}</span>
+								<VerifiedBadge />
 							</button>
 						))
 					) : (
 						<p className="rounded-lg border border-dashed border-border bg-muted/40 p-5 text-center text-sm text-muted-foreground">
-							No medical history documents uploaded by this patient.
+							No patient-verified prescriptions yet. Documents the patient hasn't reviewed and submitted aren't shown here.
 						</p>
 					)}
 				</div>
 			</div>
 
-			{viewingDoc ? <DocumentViewerModal doc={viewingDoc} onClose={() => setViewingDoc(null)} /> : null}
+			{viewingDoc ? (
+				<DocumentViewerModal
+					doc={viewingDoc}
+					patientId={patientId}
+					sidePanel="final"
+					onDocUpdate={(updated) => {
+						setDocuments((docs) => docs.map((d) => (d._id === updated._id ? updated : d)));
+						setViewingDoc(updated);
+					}}
+					onClose={() => setViewingDoc(null)}
+				/>
+			) : null}
 		</Card>
 	);
 }

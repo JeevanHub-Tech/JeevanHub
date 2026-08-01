@@ -1,4 +1,5 @@
 import { useState, useEffect, useContext } from "react";
+import { useNavigate } from "react-router-dom";
 import {
 	Activity, Apple, ArrowRight, CalendarDays, CheckCircle2, ChevronLeft, ClipboardEdit,
 	Clock, GlassWater, HeartPulse, Leaf, Moon, Salad, ShieldAlert, Sun, User, Video,
@@ -11,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { BACKEND_URL } from "../../config";
 import { AuthContext } from "../../context/AuthContext";
 import { authFetch } from "../../utils/authFetch";
+import AyurvedaDashboard from "./Ayurveda/AyurvedaDashboard";
 
 const DAY_UI_META = {
 	monday: { label: "Light Detox", icon: Leaf },
@@ -27,6 +29,7 @@ function SectionCard({ children, className }) {
 }
 
 const DietYogaComponent = () => {
+	const navigate = useNavigate();
 	const { auth } = useContext(AuthContext);
 	const patientId = auth?.user?.id;
 	const role = auth?.role;
@@ -59,14 +62,15 @@ const DietYogaComponent = () => {
 		const fetchPrakritiData = async () => {
 			if (!patientId) return;
 			try {
-				const response = await authFetch(`${BACKEND_URL}/api/prakriti/assessment/getall`, {
+				const response = await authFetch(`${BACKEND_URL}/api/ayurveda/dosha-assessment`, {
 					headers: { Authorization: `Bearer ${token}` },
 				});
 				const data = await response.json();
 				// No fallback to a default dosha: a missing/empty result means
 				// the assessment genuinely hasn't been taken yet, and the UI
 				// must show that plainly instead of a fabricated "result".
-				setPrakriti(data && data.dominantDosha ? data.dominantDosha : null);
+				const dosha = data?.primaryDosha; // e.g. "VATA"
+				setPrakriti(dosha ? dosha.charAt(0) + dosha.slice(1).toLowerCase() : null);
 			} catch (err) {
 				console.error("Error fetching Prakriti:", err);
 			} finally {
@@ -305,7 +309,7 @@ const DietYogaComponent = () => {
 	return (
 		<main className="bg-background">
 			<div className="mx-auto max-w-3xl px-4 py-10 sm:px-6 lg:px-8">
-				<div className="grid gap-3 sm:grid-cols-2">
+				<div className="grid gap-3 sm:grid-cols-3">
 					<button
 						type="button"
 						onClick={() => setActiveTab("general")}
@@ -343,6 +347,25 @@ const DietYogaComponent = () => {
 							</p>
 						</div>
 					</button>
+
+					<button
+						type="button"
+						onClick={() => setActiveTab("ai")}
+						className={cn(
+							"flex items-center gap-3 rounded-(--jh-radius-lg) p-4 text-left shadow-(--jh-shadow-rest) transition-colors focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+							activeTab === "ai" ? "bg-primary text-primary-foreground" : "bg-card text-foreground hover:bg-secondary/60",
+						)}
+					>
+						<span className={cn("flex size-11 shrink-0 items-center justify-center rounded-full", activeTab === "ai" ? "bg-primary-foreground/15" : "bg-secondary text-primary")}>
+							<Leaf size={22} />
+						</span>
+						<div>
+							<h3 className="font-semibold">AI Ayurveda plan</h3>
+							<p className={cn("text-xs", activeTab === "ai" ? "text-primary-foreground/75" : "text-muted-foreground")}>
+								Prakriti-based 7-day planner
+							</p>
+						</div>
+					</button>
 				</div>
 
 				<div className="mt-6">
@@ -358,6 +381,7 @@ const DietYogaComponent = () => {
 							<EmptyState
 								title="No Prakriti result yet"
 								description="You haven't taken the Prakriti assessment yet. Complete it to see your personalized dosha type and general diet & yoga guidelines."
+								action={<Button onClick={() => navigate("/ayurveda-wellness/assessment")}>Take assessment</Button>}
 							/>
 						) : (
 							<div className="flex flex-col gap-4">
@@ -412,7 +436,7 @@ const DietYogaComponent = () => {
 								</div>
 							</div>
 						)
-					) : (
+					) : activeTab === "custom" ? (
 						<div className="flex flex-col gap-4">
 							<div className="flex items-center gap-2 text-sm text-muted-foreground">
 								<User size={16} /> Dr. managed personalized plan
@@ -432,6 +456,13 @@ const DietYogaComponent = () => {
 								renderWeeklyView()
 							)}
 						</div>
+					) : role && role !== "patient" ? (
+						<EmptyState
+							title="Patient-only feature"
+							description="The AI Ayurveda plan is a patient-only feature. There is no plan to show on this account."
+						/>
+					) : (
+						<AyurvedaDashboard embedded />
 					)}
 				</div>
 			</div>

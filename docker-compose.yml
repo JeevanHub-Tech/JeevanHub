@@ -1,0 +1,31 @@
+services:
+  mongo:
+    image: mongo:7
+    container_name: jeevanhub-mongo
+    restart: unless-stopped
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  backend:
+    build: ./backend
+    container_name: jeevanhub-backend
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    environment:
+      - PORT=5000
+      - MDB=mongodb://mongo:27017/ayurveda
+      - FRONTEND_URL=http://localhost:3000
+      - BASE_URL=http://localhost:5000
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    depends_on:
+      - mongo
+
+volumes:
+  mongo_data:

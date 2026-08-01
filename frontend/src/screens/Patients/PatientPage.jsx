@@ -60,17 +60,13 @@ function PatientPage() {
 		const token = localStorage.getItem("token");
 		const fetchPrakritiData = async () => {
 			try {
-				const response = await authFetch(`${BACKEND_URL}/api/prakriti/assessment/getall`, {
-					method: "POST",
-					headers: {
-						"Content-Type": "application/json",
-						Authorization: `Bearer ${token}`,
-					},
-					body: JSON.stringify({ patientEmail: auth.user?.email }),
+				const response = await authFetch(`${BACKEND_URL}/api/ayurveda/dosha-assessment`, {
+					headers: { Authorization: `Bearer ${token}` },
 				});
-				setIsPrakritiFilled(response.ok && Boolean(await response.json()));
+				const data = response.ok ? await response.json() : null;
+				setIsPrakritiFilled(Boolean(data?.isComplete));
 			} catch (error) {
-				console.error("Error fetching Prakriti Determination data:", error);
+				console.error("Error fetching Prakriti assessment data:", error);
 				setIsPrakritiFilled(false);
 			}
 		};
@@ -141,8 +137,8 @@ function PatientPage() {
 					<Button
 						onClick={() =>
 							isPrakritiFilled
-								? navigate("/PrakritiAssessment", { state: { viewResult: true } })
-								: navigate("/PrakritiAssessment")
+								? navigate("/ayurveda-wellness")
+								: navigate("/ayurveda-wellness/assessment")
 						}
 						className="w-full shrink-0 sm:w-auto"
 					>

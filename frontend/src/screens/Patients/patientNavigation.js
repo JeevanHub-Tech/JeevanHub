@@ -5,6 +5,7 @@ export const patientNavigation = [
   { label: "Doctors", to: "/doctors" },
   { label: "Medicines", to: "/medicines" },
   { label: "Diet & yoga", to: "/diet-yoga" },
+  { label: "Ayurveda wellness", to: "/ayurveda-wellness" },
   { label: "Blogs & videos", to: "/blogs-videos" },
   { label: "Orders", to: "/order-history" },
 ];

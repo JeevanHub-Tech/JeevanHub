@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const auth = require('../middleware/auth');
+const { aiRateLimit } = require('../middleware/aiRateLimit');
 const cloudinary = require('../config/cloudinary');
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const { getAllPatients,
@@ -15,7 +16,10 @@ const { getAllPatients,
     uploadProfileImage,
     uploadMedicalHistory,
     getMedicalHistory,
-    deleteMedicalHistoryDoc } = require('../controllers/patientController');
+    deleteMedicalHistoryDoc,
+    retryMedicalHistoryOcr,
+    saveMedicalHistoryVerification,
+    submitMedicalHistoryVerification } = require('../controllers/patientController');
 
 const profileImageStorage = new CloudinaryStorage({
     cloudinary: cloudinary,
@@ -34,28 +38,7 @@ const profileImageUpload = multer({
     }
 });
 
-const medicalHistoryStorage = new CloudinaryStorage({
-    cloudinary: cloudinary,
-    params: async (req, file) => ({
-        folder: 'jeevanhub/patients/medical-history',
-        resource_type: 'auto', // handles pdf, jpg, png, etc.
-        // Medical records are sensitive and Cloudinary blocks unsigned public
-        // delivery of PDFs by default -- store them as "authenticated" so
-        // access requires a freshly-signed URL (see buildSignedUrl below),
-        // rather than a permanently-public, guessable link.
-        type: 'authenticated',
-        public_id: Date.now() + '-' + file.originalname.split('.')[0]
-    }),
-});
-const medicalHistoryUpload = multer({
-    storage: medicalHistoryStorage,
-    limits: { fileSize: 10 * 1024 * 1024 },
-    fileFilter: (req, file, cb) => {
-        const allowed = /jpeg|jpg|png|pdf/;
-        if (allowed.test(file.mimetype)) return cb(null, true);
-        cb(new Error('Only jpeg, jpg, png, and pdf files are allowed'));
-    }
-});
+const { medicalHistoryUpload } = require('../config/medicalHistoryStorage');
 
 router.get('/getAllPatients', auth, getAllPatients);
 router.put('/updatePatient/:id', auth, updatePatient);
@@ -64,9 +47,18 @@ router.get('/getPatient/:id', auth, getPatientById);
 router.get('/dietYoga/:patientId', auth, getPatientDietYoga);
 router.get('/orders/:buyerId', auth, getOrdersByBuyerId);
 router.post('/:id/profile-image', auth, profileImageUpload.single('image'), uploadProfileImage);
-router.post('/:id/medical-history', auth, medicalHistoryUpload.array('documents', 10), uploadMedicalHistory);
+// Both upload and retry trigger a Gemini OCR call, so both get the AI guardrail.
+const ocrAiLimit = aiRateLimit({
+    windowMs: 60 * 60 * 1000, // 1 hour
+    max: 15,
+    message: 'Too many document analysis requests. Please wait before uploading or retrying more.',
+});
+router.post('/:id/medical-history', auth, ocrAiLimit, medicalHistoryUpload.array('documents', 10), uploadMedicalHistory);
 router.get('/:id/medical-history', auth, getMedicalHistory);
 router.delete('/:id/medical-history/:docId', auth, deleteMedicalHistoryDoc);
+router.post('/:id/medical-history/:docId/ocr/retry', auth, ocrAiLimit, retryMedicalHistoryOcr);
+router.put('/:id/medical-history/:docId/verification', auth, saveMedicalHistoryVerification);
+router.post('/:id/medical-history/:docId/verification/submit', auth, submitMedicalHistoryVerification);
 // router.post('/dietYoga', addDietYoga);
 // router.post('/createTempOrder', createTempOrder);
 

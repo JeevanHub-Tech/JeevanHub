@@ -108,10 +108,8 @@ function DashboardNavbar({ navItems, profileTo, notificationsTo, cartTo, logoTo 
 			</div>
 
 			<nav className="hidden border-t border-primary-foreground/10 lg:block" aria-label="Primary navigation">
-				<div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-2 sm:px-6 lg:px-8">
-					<span className="flex items-center gap-1.5 text-xs font-medium text-primary-foreground/70"><MapPin className="size-3.5" aria-hidden="true" />{userLocation}</span>
+				<div className="mx-auto flex max-w-7xl items-center justify-center px-4 py-2 sm:px-6 lg:px-8">
 					<div className="flex items-center gap-1">{navItems.map((item) => <NavigationLink key={item.to} item={item} />)}</div>
-					<span className="w-28" aria-hidden="true" />
 				</div>
 			</nav>
 

@@ -12,6 +12,7 @@ const {
     generateDietPlan,
     getDietPlan,
     getDietPlanForPatient,
+    deleteDietPlan,
 } = require("../controllers/ayurvedaController");
 
 router.post("/wellness-profile", verifyToken, upsertWellnessProfile);
@@ -33,5 +34,6 @@ const dietPlanAiLimit = aiRateLimit({
 router.post("/diet-plan/generate", verifyToken, dietPlanAiLimit, generateDietPlan);
 router.get("/diet-plan", verifyToken, getDietPlan);
 router.get("/diet-plan/patient/:patientId", verifyToken, getDietPlanForPatient);
+router.delete("/diet-plan", verifyToken, deleteDietPlan);
 
 module.exports = router;

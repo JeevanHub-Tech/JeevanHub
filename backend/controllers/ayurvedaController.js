@@ -13,6 +13,27 @@ async function assertDoctorRelationship(req, patientId) {
     return Booking.exists({ doctorId: req.user._id, patientId });
 }
 
+// Every field on AyurvedaWellnessProfile is optional, so a saved document can
+// exist (patientId only) without the patient having actually entered
+// anything. Treat that the same as "no profile" for gating purposes.
+function isProfileFilled(profile) {
+    if (!profile) return false;
+    const bd = profile.basicDetails || {};
+    const hi = profile.healthInfo || {};
+    const cond = hi.conditions || {};
+    const ls = profile.lifestyle || {};
+    const fh = profile.foodHabits || {};
+    return Boolean(
+        bd.heightCm || bd.weightKg || bd.bodyType ||
+        cond.diabetes || cond.highBP || cond.obesityFocus ||
+        cond.skinDisease || cond.jointPainArthritis || cond.digestiveIssues || cond.respiratoryIssues || cond.other?.length ||
+        hi.medications?.length || hi.allergies?.length ||
+        ls.activityLevel || ls.sleepHours || ls.sleepQuality || ls.stressLevel || ls.exerciseHabits || ls.workRoutine ||
+        fh.dietType || fh.preferredFoods?.length || fh.dislikedFoods?.length || fh.eatingTimings || fh.waterIntakeLiters ||
+        profile.season?.current
+    );
+}
+
 // ---------------------------------------------------------------- Wellness profile
 
 exports.upsertWellnessProfile = async (req, res) => {
@@ -190,9 +211,12 @@ exports.generateDietPlan = async (req, res) => {
         if (!dosha || !dosha.isComplete) {
             return res.status(400).json({ message: "Complete the Prakriti (dosha) assessment before generating a diet plan." });
         }
+        if (!isProfileFilled(profile)) {
+            return res.status(400).json({ message: "Complete your wellness profile before generating a diet plan." });
+        }
 
         const planFields = await generateDietPlan({
-            profile: profile || null,
+            profile,
             dosha,
             patient: { age: patient.age, gender: patient.gender },
         });
@@ -253,5 +277,18 @@ exports.getDietPlanForPatient = async (req, res) => {
     } catch (error) {
         console.error("Error fetching patient's diet plan:", error);
         return res.status(500).json({ error: "Server error" });
+    }
+};
+
+exports.deleteDietPlan = async (req, res) => {
+    if (req.user.role !== "patient") {
+        return res.status(403).json({ message: "Only patients can delete their diet plan." });
+    }
+    try {
+        await AyurvedaDietPlan.deleteOne({ patientId: req.user._id });
+        return res.status(200).json({ message: "Diet plan deleted" });
+    } catch (error) {
+        console.error("Error deleting diet plan:", error);
+        return res.status(500).json({ message: "Server error" });
     }
 };

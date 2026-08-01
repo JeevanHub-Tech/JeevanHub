@@ -2,8 +2,9 @@ import { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
+import { BackButton } from "@/components/ui/back-button";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -54,6 +55,10 @@ const emptyForm = {
 	diabetes: false,
 	highBP: false,
 	obesityFocus: false,
+	skinDisease: false,
+	jointPainArthritis: false,
+	digestiveIssues: false,
+	respiratoryIssues: false,
 	otherConditions: "",
 	medications: "",
 	allergies: "",
@@ -68,10 +73,9 @@ const emptyForm = {
 	dislikedFoods: "",
 	eatingTimings: "",
 	waterIntakeLiters: "",
-	season: "",
 };
 
-function WellnessProfileForm() {
+function WellnessProfileForm({ embedded = false, onSaved } = {}) {
 	const { auth, loading: authLoading } = useContext(AuthContext);
 	const navigate = useNavigate();
 	const [form, setForm] = useState(emptyForm);
@@ -81,7 +85,7 @@ function WellnessProfileForm() {
 	useEffect(() => {
 		if (authLoading) return;
 		if (!auth.token) {
-			navigate("/signin");
+			if (!embedded) navigate("/signin");
 			return;
 		}
 
@@ -100,6 +104,10 @@ function WellnessProfileForm() {
 						diabetes: Boolean(p.healthInfo?.conditions?.diabetes),
 						highBP: Boolean(p.healthInfo?.conditions?.highBP),
 						obesityFocus: Boolean(p.healthInfo?.conditions?.obesityFocus),
+						skinDisease: Boolean(p.healthInfo?.conditions?.skinDisease),
+						jointPainArthritis: Boolean(p.healthInfo?.conditions?.jointPainArthritis),
+						digestiveIssues: Boolean(p.healthInfo?.conditions?.digestiveIssues),
+						respiratoryIssues: Boolean(p.healthInfo?.conditions?.respiratoryIssues),
 						otherConditions: toStr(p.healthInfo?.conditions?.other),
 						medications: toStr(p.healthInfo?.medications),
 						allergies: toStr(p.healthInfo?.allergies),
@@ -114,7 +122,6 @@ function WellnessProfileForm() {
 						dislikedFoods: toStr(p.foodHabits?.dislikedFoods),
 						eatingTimings: p.foodHabits?.eatingTimings || "",
 						waterIntakeLiters: p.foodHabits?.waterIntakeLiters ?? "",
-						season: p.season?.current || "",
 					});
 				}
 			} catch (error) {
@@ -146,6 +153,10 @@ function WellnessProfileForm() {
 						diabetes: form.diabetes,
 						highBP: form.highBP,
 						obesityFocus: form.obesityFocus,
+						skinDisease: form.skinDisease,
+						jointPainArthritis: form.jointPainArthritis,
+						digestiveIssues: form.digestiveIssues,
+						respiratoryIssues: form.respiratoryIssues,
 						other: toList(form.otherConditions),
 					},
 					medications: toList(form.medications),
@@ -166,14 +177,17 @@ function WellnessProfileForm() {
 					eatingTimings: form.eatingTimings || undefined,
 					waterIntakeLiters: form.waterIntakeLiters === "" ? undefined : Number(form.waterIntakeLiters),
 				},
-				season: { current: form.season || undefined },
 			};
 
 			await axios.post(`${API}/api/ayurveda/wellness-profile`, payload, {
 				headers: { Authorization: `Bearer ${auth.token}` },
 			});
-			alert("Wellness profile saved.");
-			navigate("/ayurveda-wellness");
+			if (embedded) {
+				onSaved?.();
+			} else {
+				alert("Wellness profile saved.");
+				navigate("/ayurveda-wellness");
+			}
 		} catch (error) {
 			console.error("Error saving wellness profile:", error);
 			alert(error.response?.data?.error || "Failed to save wellness profile.");
@@ -182,18 +196,26 @@ function WellnessProfileForm() {
 		}
 	};
 
+	const Wrapper = embedded
+		? ({ children }) => <div className="flex flex-col gap-6">{children}</div>
+		: ({ children }) => (
+			<main className="bg-background">
+				<div className="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-10 sm:px-6 lg:px-8">{children}</div>
+			</main>
+		);
+
 	if (loading) {
-		return <main className="bg-background px-4 py-10 text-center text-muted-foreground">Loading…</main>;
+		return <Wrapper><p className="text-center text-muted-foreground">Loading…</p></Wrapper>;
 	}
 
 	return (
-		<main className="bg-background">
-			<div className="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-10 sm:px-6 lg:px-8">
-				<div>
-					<h1 className="font-display text-2xl text-foreground">Ayurveda wellness profile</h1>
-					<p className="text-sm text-muted-foreground">
-						Share as much or as little as you'd like — everything here is optional and only used to personalize your Ayurvedic diet plan.
-					</p>
+		<Wrapper>
+			{!embedded ? <BackButton to="/ayurveda-wellness" /> : null}
+			<div>
+				<h1 className="font-display text-2xl text-foreground">Ayurveda wellness profile</h1>
+				<p className="text-sm text-muted-foreground">
+					Share as much or as little as you'd like — everything here is optional and only used to personalize your Ayurvedic diet plan.
+				</p>
 				</div>
 
 				<Card>
@@ -239,6 +261,22 @@ function WellnessProfileForm() {
 							<label className="flex items-center gap-2 text-sm text-foreground">
 								<input type="checkbox" checked={form.obesityFocus} onChange={setCheckbox("obesityFocus")} />
 								Weight management focus
+							</label>
+							<label className="flex items-center gap-2 text-sm text-foreground">
+								<input type="checkbox" checked={form.skinDisease} onChange={setCheckbox("skinDisease")} />
+								Skin disease (eczema/psoriasis/chronic rashes)
+							</label>
+							<label className="flex items-center gap-2 text-sm text-foreground">
+								<input type="checkbox" checked={form.jointPainArthritis} onChange={setCheckbox("jointPainArthritis")} />
+								Joint pain / arthritis
+							</label>
+							<label className="flex items-center gap-2 text-sm text-foreground">
+								<input type="checkbox" checked={form.digestiveIssues} onChange={setCheckbox("digestiveIssues")} />
+								Digestive issues (GERD/gastritis)
+							</label>
+							<label className="flex items-center gap-2 text-sm text-foreground">
+								<input type="checkbox" checked={form.respiratoryIssues} onChange={setCheckbox("respiratoryIssues")} />
+								Respiratory issues
 							</label>
 						</div>
 						<Field label="Other conditions" htmlFor="otherConditions" hint="Comma-separated">
@@ -334,33 +372,16 @@ function WellnessProfileForm() {
 					</CardContent>
 				</Card>
 
-				<Card>
-					<CardHeader>
-						<CardTitle className="font-display text-lg">Seasonal context</CardTitle>
-						<CardDescription>Used to tailor recommendations to the current season, with special focus on monsoon guidance.</CardDescription>
-					</CardHeader>
-					<CardContent>
-						<Field label="Current season" htmlFor="season">
-							<Select value={form.season} onValueChange={set("season")}>
-								<SelectTrigger id="season"><SelectValue placeholder="Select" /></SelectTrigger>
-								<SelectContent>
-									<SelectItem value="spring">Spring</SelectItem>
-									<SelectItem value="summer">Summer</SelectItem>
-									<SelectItem value="monsoon">Monsoon</SelectItem>
-									<SelectItem value="autumn">Autumn</SelectItem>
-									<SelectItem value="winter">Winter</SelectItem>
-								</SelectContent>
-							</Select>
-						</Field>
-					</CardContent>
-				</Card>
-
-				<div className="flex justify-end gap-2">
-					<Button variant="outline" onClick={() => navigate("/ayurveda-wellness")}>Cancel</Button>
-					<Button onClick={handleSave} disabled={saving}>{saving ? "Saving…" : "Save profile"}</Button>
+				<div className="flex flex-wrap items-center justify-between gap-2">
+					{!embedded ? (
+						<Button variant="ghost" size="sm" onClick={() => navigate("/ayurveda-wellness/assessment")}>Retake Prakriti assessment</Button>
+					) : <div />}
+					<div className="flex gap-2">
+						<Button variant="outline" onClick={() => (embedded ? onSaved?.() : navigate("/ayurveda-wellness"))}>Cancel</Button>
+						<Button onClick={handleSave} disabled={saving}>{saving ? "Saving…" : "Save profile"}</Button>
+					</div>
 				</div>
-			</div>
-		</main>
+		</Wrapper>
 	);
 }
 

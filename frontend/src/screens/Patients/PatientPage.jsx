@@ -94,8 +94,8 @@ function PatientPage() {
 			onClick: () => navigate("/treatments"),
 		},
 		{
-			title: "Yoga & diet",
-			description: "Ayurvedic yoga practices and diet guidance.",
+			title: "Prescription",
+			description: "Your doctor's personalized diet & yoga plan.",
 			image: yogaImage,
 			onClick: () => navigate("/diet-yoga"),
 		},

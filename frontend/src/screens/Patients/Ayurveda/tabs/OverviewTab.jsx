@@ -1,17 +1,25 @@
-import { RefreshCw, Sparkles } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { RefreshCw, Sparkles, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 
-function OverviewTab({ plan, isStale, onGenerate, generating, readOnly }) {
+function OverviewTab({ plan, isStale, readOnly, onRegenerate, onDelete, onGenerate, generating, missingPrereqs }) {
 	if (!plan) {
 		return (
 			<EmptyState
 				icon={Sparkles}
 				title="No diet plan yet"
-				description="Generate a personalized Ayurvedic diet plan based on this patient's dosha, health, and lifestyle."
-				action={!readOnly ? <Button onClick={onGenerate} disabled={generating}>{generating ? "Generating…" : "Generate plan"}</Button> : null}
+				description={readOnly
+					? "This patient hasn't generated a diet plan yet."
+					: missingPrereqs?.length
+						? `Complete ${missingPrereqs.join(" and ")} first.`
+						: "Generate a personalized Ayurvedic diet plan based on your dosha, health, and lifestyle."}
+				action={!readOnly ? (
+					<Button onClick={onGenerate} disabled={generating}>
+						<Sparkles size={16} /> {generating ? "Generating…" : "Generate personalized diet plan"}
+					</Button>
+				) : null}
 			/>
 		);
 	}
@@ -19,15 +27,20 @@ function OverviewTab({ plan, isStale, onGenerate, generating, readOnly }) {
 	return (
 		<div className="flex flex-col gap-4">
 			{!readOnly ? (
-				<div className="flex items-center justify-between gap-3">
+				<div className="flex flex-wrap items-center justify-between gap-3">
 					{isStale ? (
 						<Badge variant="warning">Plan may be outdated -- profile or assessment changed since it was generated</Badge>
 					) : (
 						<span className="text-xs text-muted-foreground">Generated {new Date(plan.generatedAt).toLocaleDateString()}</span>
 					)}
-					<Button size="sm" variant="outline" onClick={onGenerate} disabled={generating}>
-						<RefreshCw size={14} /> {generating ? "Regenerating…" : "Regenerate plan"}
-					</Button>
+					<div className="flex gap-2">
+						<Button size="sm" variant="outline" onClick={onRegenerate} disabled={generating}>
+							<RefreshCw size={14} /> {generating ? "Regenerating…" : "Regenerate plan"}
+						</Button>
+						<Button size="sm" variant="outline" onClick={onDelete} disabled={generating}>
+							<Trash2 size={14} /> Delete plan
+						</Button>
+					</div>
 				</div>
 			) : null}
 

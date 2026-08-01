@@ -113,6 +113,16 @@ function bmiCategory(bmi) {
   return 'obese';
 }
 
+// India-calendar Ayurvedic season, derived from the server clock rather than
+// a patient-entered field -- the season is a fact of "now", not a form input.
+function getCurrentSeason(date = new Date()) {
+  const month = date.getMonth() + 1; // 1-12
+  if (month === 12 || month <= 2) return 'winter';
+  if (month <= 5) return 'summer';
+  if (month <= 9) return 'monsoon';
+  return 'autumn';
+}
+
 function buildPrompt({ profile, dosha, patient }) {
   const bd = profile?.basicDetails || {};
   const bmi = computeBmi(bd.heightCm, bd.weightKg);
@@ -121,9 +131,13 @@ function buildPrompt({ profile, dosha, patient }) {
     conditions.diabetes && 'diabetes',
     conditions.highBP && 'high blood pressure',
     conditions.obesityFocus && 'weight management focus',
+    conditions.skinDisease && 'skin disease (eczema/psoriasis/chronic rashes)',
+    conditions.jointPainArthritis && 'joint pain / arthritis',
+    conditions.digestiveIssues && 'digestive issues (GERD/gastritis)',
+    conditions.respiratoryIssues && 'respiratory issues (chronic cough/breathing difficulty)',
     ...(conditions.other || []),
   ].filter(Boolean);
-  const season = profile?.season?.current;
+  const season = getCurrentSeason();
 
   const patientBlock = {
     age: na(patient?.age),
@@ -283,7 +297,7 @@ function sanitizePlan(raw) {
 }
 
 /**
- * @param {object} args { profile: AyurvedaWellnessProfile|null, dosha: AyurvedaDoshaAssessment, patient: {age, gender} }
+ * @param {object} args { profile: AyurvedaWellnessProfile, dosha: AyurvedaDoshaAssessment, patient: {age, gender} }
  * @returns {Promise<object>} sanitized plan fields ready to persist on AyurvedaDietPlan (minus model/generatedAt/ids)
  */
 async function generateDietPlan({ profile, dosha, patient }) {

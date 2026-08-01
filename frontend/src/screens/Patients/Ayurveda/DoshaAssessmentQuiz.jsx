@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 
+import { BackButton } from "@/components/ui/back-button";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -75,17 +76,35 @@ const CATEGORIES = [
 	},
 ];
 
-function DoshaAssessmentQuiz() {
+function DoshaAssessmentQuiz({ embedded = false, onDone } = {}) {
 	const { auth, loading: authLoading } = useContext(AuthContext);
 	const navigate = useNavigate();
 	const [step, setStep] = useState(0);
 	const [answers, setAnswers] = useState({});
 	const [result, setResult] = useState(null);
 	const [submitting, setSubmitting] = useState(false);
+	const [loadingExisting, setLoadingExisting] = useState(!embedded);
 
 	useEffect(() => {
-		if (!authLoading && !auth.token) navigate("/signin");
-	}, [auth, authLoading, navigate]);
+		if (embedded) return;
+		if (authLoading) return;
+		if (!auth.token) {
+			navigate("/signin");
+			return;
+		}
+		(async () => {
+			try {
+				const res = await axios.get(`${API}/api/ayurveda/dosha-assessment`, {
+					headers: { Authorization: `Bearer ${auth.token}` },
+				});
+				if (res.data?.isComplete) setResult(res.data);
+			} catch (error) {
+				console.error("Error fetching existing assessment:", error);
+			} finally {
+				setLoadingExisting(false);
+			}
+		})();
+	}, [auth, authLoading, navigate, embedded]);
 
 	const category = CATEGORIES[step];
 	const isLastStep = step === CATEGORIES.length - 1;
@@ -120,12 +139,28 @@ function DoshaAssessmentQuiz() {
 		}
 	};
 
-	if (result) {
-		const scores = result.calculatedScores || {};
-		return (
+	const Wrapper = embedded
+		? ({ children }) => <div className="flex flex-col gap-6">{children}</div>
+		: ({ children }) => (
 			<main className="bg-background">
-				<div className="mx-auto flex max-w-2xl flex-col gap-6 px-4 py-10 sm:px-6 lg:px-8">
-					<Card>
+				<div className="mx-auto flex max-w-2xl flex-col gap-6 px-4 py-10 sm:px-6 lg:px-8">{children}</div>
+			</main>
+		);
+
+	if (loadingExisting) {
+		return <Wrapper><p className="text-center text-muted-foreground">Loading…</p></Wrapper>;
+	}
+
+	if (result) {
+		return (
+			<Wrapper>
+				<div className="flex items-center justify-between gap-3">
+					{!embedded ? <BackButton to="/ayurveda-wellness" /> : <div />}
+					<Button variant="outline" size="sm" onClick={() => { setResult(null); setStep(0); setAnswers({}); }}>
+						Retake assessment
+					</Button>
+				</div>
+				<Card>
 						<CardHeader>
 							<CardTitle className="font-display text-xl">Your Prakriti assessment result</CardTitle>
 							<CardDescription>This reflects your Ayurvedic body constitution.</CardDescription>
@@ -145,18 +180,6 @@ function DoshaAssessmentQuiz() {
 									<p className="font-display text-lg text-foreground">{result.thirdDoshaStatus}</p>
 								</div>
 							</div>
-							<div className="flex flex-col gap-2">
-								{["vata", "pitta", "kapha"].map((d) => (
-									<div key={d} className="flex items-center gap-3">
-										<span className="w-14 text-sm capitalize text-muted-foreground">{d}</span>
-										<div className="h-2 flex-1 overflow-hidden rounded-full bg-secondary">
-											<div className="h-full rounded-full bg-primary" style={{ width: `${scores[d] || 0}%` }} />
-										</div>
-										<span className="w-12 text-right text-sm text-foreground">{(scores[d] || 0).toFixed(0)}%</span>
-									</div>
-								))}
-							</div>
-
 							{result.doshaProfile?.primary ? (
 								<div className="flex flex-col gap-4 rounded-(--jh-radius-md) bg-secondary/60 p-4 text-sm">
 									<div>
@@ -188,26 +211,27 @@ function DoshaAssessmentQuiz() {
 							) : null}
 
 							<div className="flex gap-2">
-								<Button onClick={() => navigate("/ayurveda-wellness")}>Continue to dashboard</Button>
+								<Button onClick={() => (embedded ? onDone?.() : navigate("/ayurveda-wellness"))}>
+									{embedded ? "Done" : "Continue to dashboard"}
+								</Button>
 								<Button variant="outline" onClick={() => { setResult(null); setStep(0); setAnswers({}); }}>
 									Retake assessment
 								</Button>
 							</div>
 						</CardContent>
 					</Card>
-				</div>
-			</main>
+			</Wrapper>
 		);
 	}
 
 	return (
-		<main className="bg-background">
-			<div className="mx-auto flex max-w-2xl flex-col gap-6 px-4 py-10 sm:px-6 lg:px-8">
-				<div>
-					<h1 className="font-display text-2xl text-foreground">Prakriti (Dosha) assessment</h1>
-					<p className="text-sm text-muted-foreground">
-						Step {step + 1} of {CATEGORIES.length}: {category.title}
-					</p>
+		<Wrapper>
+			{!embedded ? <BackButton to="/ayurveda-wellness" /> : null}
+			<div>
+				<h1 className="font-display text-2xl text-foreground">Prakriti (Dosha) assessment</h1>
+				<p className="text-sm text-muted-foreground">
+					Step {step + 1} of {CATEGORIES.length}: {category.title}
+				</p>
 				</div>
 
 				<Card>
@@ -255,8 +279,7 @@ function DoshaAssessmentQuiz() {
 						</Button>
 					)}
 				</div>
-			</div>
-		</main>
+		</Wrapper>
 	);
 }
 

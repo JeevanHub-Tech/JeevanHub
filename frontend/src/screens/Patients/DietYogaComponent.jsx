@@ -1,8 +1,7 @@
 import { useState, useEffect, useContext } from "react";
-import { useNavigate } from "react-router-dom";
 import {
-	Activity, Apple, ArrowRight, CalendarDays, CheckCircle2, ChevronLeft, ClipboardEdit,
-	Clock, GlassWater, HeartPulse, Leaf, Moon, Salad, ShieldAlert, Sun, User, Video,
+	Activity, Apple, ArrowRight, CalendarDays, ChevronLeft,
+	Clock, GlassWater, HeartPulse, Leaf, Moon, Salad, Sun, User, Video,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -12,7 +11,6 @@ import { cn } from "@/lib/utils";
 import { BACKEND_URL } from "../../config";
 import { AuthContext } from "../../context/AuthContext";
 import { authFetch } from "../../utils/authFetch";
-import AyurvedaDashboard from "./Ayurveda/AyurvedaDashboard";
 
 const DAY_UI_META = {
 	monday: { label: "Light Detox", icon: Leaf },
@@ -29,56 +27,22 @@ function SectionCard({ children, className }) {
 }
 
 const DietYogaComponent = () => {
-	const navigate = useNavigate();
 	const { auth } = useContext(AuthContext);
 	const patientId = auth?.user?.id;
 	const role = auth?.role;
 
 	const token = localStorage.getItem("token");
 
-	const [activeTab, setActiveTab] = useState("general");
-
-	const [prakriti, setPrakriti] = useState(null);
 	const [dietYogaData, setDietYogaData] = useState(null);
 
 	// Initialize selectedDay as null to show the Weekly Grid first
 	const [selectedDay, setSelectedDay] = useState(null);
 	const [selectedMeal, setSelectedMeal] = useState(null);
 
-	const [loadingPrakriti, setLoadingPrakriti] = useState(true);
 	const [loadingDiet, setLoadingDiet] = useState(true);
 	const [error, setError] = useState(null);
 
 	const todayName = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"][new Date().getDay()];
-
-	useEffect(() => {
-		// This screen is a patient-only feature: Prakriti/dosha data is
-		// per-patient PHI-adjacent data. Doctors, admins, and retailers
-		// must never see a (real or fabricated) dosha result here.
-		if (role && role !== "patient") {
-			setLoadingPrakriti(false);
-			return;
-		}
-		const fetchPrakritiData = async () => {
-			if (!patientId) return;
-			try {
-				const response = await authFetch(`${BACKEND_URL}/api/ayurveda/dosha-assessment`, {
-					headers: { Authorization: `Bearer ${token}` },
-				});
-				const data = await response.json();
-				// No fallback to a default dosha: a missing/empty result means
-				// the assessment genuinely hasn't been taken yet, and the UI
-				// must show that plainly instead of a fabricated "result".
-				const dosha = data?.primaryDosha; // e.g. "VATA"
-				setPrakriti(dosha ? dosha.charAt(0) + dosha.slice(1).toLowerCase() : null);
-			} catch (err) {
-				console.error("Error fetching Prakriti:", err);
-			} finally {
-				setLoadingPrakriti(false);
-			}
-		};
-		fetchPrakritiData();
-	}, [patientId, token, role]);
 
 	useEffect(() => {
 		if (role && role !== "patient") {
@@ -111,30 +75,6 @@ const DietYogaComponent = () => {
 		fetchDietYoga();
 	}, [patientId, token, role]);
 
-	const getGeneralPlanByPrakriti = (type) => {
-		const plans = {
-			Vata: {
-				favor: ["Cooked Grains", "Root Vegetables", "Warm Milk", "Ghee", "Sweet Fruits"],
-				avoid: ["Raw Salads", "Iced Drinks", "Dried Fruits", "Beans", "Caffeine"],
-				description: "Focus on grounding, warming, and nourishing foods to balance airy qualities.",
-				yoga: "Slow Hatha, Sun Salutations (Slow), Grounding Poses.",
-			},
-			Pitta: {
-				favor: ["Cucumber", "Leafy Greens", "Coconut Oil", "Melons", "Basmati Rice"],
-				avoid: ["Hot Chili", "Garlic", "Fermented Foods", "Red Meat", "Alcohol"],
-				description: "Focus on cooling, refreshing, and moderately heavy foods to balance heat.",
-				yoga: "Moon Salutations, Cooling Pranayama, Relaxed Effort.",
-			},
-			Kapha: {
-				favor: ["Ginger Tea", "Spiced Lentils", "Light Fruits (Apples)", "Leafy Greens", "Bitter Veggies"],
-				avoid: ["Dairy", "Iced Sweets", "Heavy Fried Foods", "Excess Salt", "Wheat"],
-				description: "Focus on light, dry, and stimulating foods to balance heavy qualities.",
-				yoga: "Vigorous Flow, Power Yoga, Chest Opening Poses.",
-			},
-		};
-		return plans[type] || null;
-	};
-
 	const getRecipe = (mealType, mealName) => ({
 		name: mealName || "Consult your doctor",
 		prep: "10 mins",
@@ -146,8 +86,6 @@ const DietYogaComponent = () => {
 		],
 		steps: ["Wash and prepare ingredients.", "Cook gently to preserve nutrients.", "Consume warm."],
 	});
-
-	const activePlan = getGeneralPlanByPrakriti(prakriti);
 
 	const renderRecipeView = () => {
 		const dayData = dietYogaData.diet.weekly[selectedDay];
@@ -309,134 +247,18 @@ const DietYogaComponent = () => {
 	return (
 		<main className="bg-background">
 			<div className="mx-auto max-w-3xl px-4 py-10 sm:px-6 lg:px-8">
-				<div className="grid gap-3 sm:grid-cols-3">
-					<button
-						type="button"
-						onClick={() => setActiveTab("general")}
-						className={cn(
-							"flex items-center gap-3 rounded-(--jh-radius-lg) p-4 text-left shadow-(--jh-shadow-rest) transition-colors focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
-							activeTab === "general" ? "bg-primary text-primary-foreground" : "bg-card text-foreground hover:bg-secondary/60",
-						)}
-					>
-						<span className={cn("flex size-11 shrink-0 items-center justify-center rounded-full", activeTab === "general" ? "bg-primary-foreground/15" : "bg-secondary text-primary")}>
-							<Activity size={22} />
-						</span>
-						<div>
-							<h3 className="font-semibold">General protocol</h3>
-							<p className={cn("text-xs", activeTab === "general" ? "text-primary-foreground/75" : "text-muted-foreground")}>
-								Automated Prakriti guidelines
-							</p>
-						</div>
-					</button>
-
-					<button
-						type="button"
-						onClick={() => setActiveTab("custom")}
-						className={cn(
-							"flex items-center gap-3 rounded-(--jh-radius-lg) p-4 text-left shadow-(--jh-shadow-rest) transition-colors focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
-							activeTab === "custom" ? "bg-primary text-primary-foreground" : "bg-card text-foreground hover:bg-secondary/60",
-						)}
-					>
-						<span className={cn("flex size-11 shrink-0 items-center justify-center rounded-full", activeTab === "custom" ? "bg-primary-foreground/15" : "bg-secondary text-primary")}>
-							<ClipboardEdit size={22} />
-						</span>
-						<div>
-							<h3 className="font-semibold">Clinical prescription</h3>
-							<p className={cn("text-xs", activeTab === "custom" ? "text-primary-foreground/75" : "text-muted-foreground")}>
-								Personalized doctor's plan
-							</p>
-						</div>
-					</button>
-
-					<button
-						type="button"
-						onClick={() => setActiveTab("ai")}
-						className={cn(
-							"flex items-center gap-3 rounded-(--jh-radius-lg) p-4 text-left shadow-(--jh-shadow-rest) transition-colors focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
-							activeTab === "ai" ? "bg-primary text-primary-foreground" : "bg-card text-foreground hover:bg-secondary/60",
-						)}
-					>
-						<span className={cn("flex size-11 shrink-0 items-center justify-center rounded-full", activeTab === "ai" ? "bg-primary-foreground/15" : "bg-secondary text-primary")}>
-							<Leaf size={22} />
-						</span>
-						<div>
-							<h3 className="font-semibold">AI Ayurveda plan</h3>
-							<p className={cn("text-xs", activeTab === "ai" ? "text-primary-foreground/75" : "text-muted-foreground")}>
-								Prakriti-based 7-day planner
-							</p>
-						</div>
-					</button>
+				<div>
+					<h1 className="font-display text-2xl text-foreground">Prescription</h1>
+					<p className="text-sm text-muted-foreground">Your doctor's personalized diet & yoga plan.</p>
 				</div>
 
 				<div className="mt-6">
-					{activeTab === "general" ? (
-						role && role !== "patient" ? (
-							<EmptyState
-								title="Patient-only feature"
-								description="Prakriti/dosha assessments are a patient-only feature. There is no Prakriti result to show on this account."
-							/>
-						) : loadingPrakriti ? (
-							<p className="text-sm text-muted-foreground">Loading Prakriti...</p>
-						) : !prakriti || !activePlan ? (
-							<EmptyState
-								title="No Prakriti result yet"
-								description="You haven't taken the Prakriti assessment yet. Complete it to see your personalized dosha type and general diet & yoga guidelines."
-								action={<Button onClick={() => navigate("/ayurveda-wellness/assessment")}>Take assessment</Button>}
-							/>
-						) : (
-							<div className="flex flex-col gap-4">
-								<div className="flex flex-wrap items-center justify-between gap-2 rounded-(--jh-radius-md) bg-secondary/60 px-4 py-2.5">
-									<span className="text-sm text-foreground">
-										Patient type: <strong className="font-semibold text-primary">{prakriti}</strong>
-									</span>
-									<span className="flex items-center gap-1 text-xs text-muted-foreground">
-										<Clock size={14} /> System generated
-									</span>
-								</div>
-
-								<div className="grid gap-4 sm:grid-cols-2">
-									<SectionCard>
-										<div className="flex items-center gap-2">
-											<CheckCircle2 className="size-5 text-primary" />
-											<h4 className="font-semibold text-foreground">Dietary recommendations (favor)</h4>
-										</div>
-										<div className="mt-3 flex flex-wrap gap-2">
-											{activePlan.favor.map((item) => (
-												<Badge key={item} variant="success">
-													{item}
-												</Badge>
-											))}
-										</div>
-									</SectionCard>
-
-									<SectionCard>
-										<div className="flex items-center gap-2">
-											<ShieldAlert className="size-5 text-destructive" />
-											<h4 className="font-semibold text-foreground">Restricted items (avoid)</h4>
-										</div>
-										<div className="mt-3 flex flex-wrap gap-2">
-											{activePlan.avoid.map((item) => (
-												<Badge key={item} variant="destructive">
-													{item}
-												</Badge>
-											))}
-										</div>
-									</SectionCard>
-
-									<SectionCard className="sm:col-span-2">
-										<div className="flex items-center gap-2">
-											<Leaf className="size-5 text-primary" />
-											<h4 className="font-semibold text-foreground">Lifestyle & yoga protocol</h4>
-										</div>
-										<p className="mt-2 text-sm text-muted-foreground">{activePlan.description}</p>
-										<p className="mt-3 rounded-(--jh-radius-md) bg-secondary/60 px-3 py-2 text-sm text-foreground">
-											<strong className="font-semibold">Recommended flow:</strong> {activePlan.yoga}
-										</p>
-									</SectionCard>
-								</div>
-							</div>
-						)
-					) : activeTab === "custom" ? (
+					{role && role !== "patient" ? (
+						<EmptyState
+							title="Patient-only feature"
+							description="Prescriptions are a patient-only feature. There is no plan to show on this account."
+						/>
+					) : (
 						<div className="flex flex-col gap-4">
 							<div className="flex items-center gap-2 text-sm text-muted-foreground">
 								<User size={16} /> Dr. managed personalized plan
@@ -456,13 +278,6 @@ const DietYogaComponent = () => {
 								renderWeeklyView()
 							)}
 						</div>
-					) : role && role !== "patient" ? (
-						<EmptyState
-							title="Patient-only feature"
-							description="The AI Ayurveda plan is a patient-only feature. There is no plan to show on this account."
-						/>
-					) : (
-						<AyurvedaDashboard embedded />
 					)}
 				</div>
 			</div>

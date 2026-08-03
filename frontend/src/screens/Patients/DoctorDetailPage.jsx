@@ -424,7 +424,7 @@ function DoctorDetail() {
 								className="rounded-md border border-input bg-transparent px-2.5 py-1 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
 							/>
 						</div>
-						<div className="flex gap-2 overflow-x-auto pb-2">
+						<div className="grid grid-cols-[repeat(auto-fill,minmax(96px,1fr))] gap-2">
 							{dates.map((d) => {
 								const dateStr = getLocalDateString(d);
 								const isSelected = dateOfAppointment === dateStr;
@@ -437,7 +437,7 @@ function DoctorDetail() {
 											setShowAllSlots(false);
 										}}
 										className={cn(
-											"shrink-0 rounded-(--jh-radius-md) px-3.5 py-2 text-sm font-semibold whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+											"rounded-(--jh-radius-md) px-2.5 py-2 text-center text-sm font-semibold whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
 											isSelected ? "bg-primary text-primary-foreground" : "bg-secondary/60 text-foreground hover:bg-secondary",
 										)}
 									>

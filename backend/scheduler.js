@@ -5,6 +5,27 @@ const mongoose = require('mongoose');
 const Booking = require('./models/Booking');
 const DietYoga = require('./models/DietYoga');
 
+const { createNotification } = require('./controllers/notificationController');
+const { sendWhatsAppMessage } = require('./controllers/whatsappController');
+
+// Best-effort reminder dispatch: in-app notification always saved, WhatsApp
+// send is fire-and-forget since no verified WhatsApp Business templates exist yet.
+async function dispatchReminder({ userId, role, refId, type, message, phone, whatsappTemplate, whatsappComponents }) {
+	try {
+		await createNotification(userId, role, refId, message, type);
+	} catch (error) {
+		console.error(`   -> ❌ In-app notification failed:`, error.message);
+	}
+
+	if (phone) {
+		try {
+			await sendWhatsAppMessage(phone, whatsappTemplate, whatsappComponents);
+		} catch (error) {
+			console.error(`   -> ❌ WhatsApp send failed:`, error.message);
+		}
+	}
+}
+
 // ==========================================
 // ⚙️ CONFIGURATION
 // ==========================================
@@ -65,9 +86,23 @@ async function sendAppointmentReminders(start, end) {
 				? booking.meetLink
 				: "Link will be shared shortly";
 
-			// WhatsApp has been disabled on this branch. 
-			// In the future, send an email or in-app notification here.
-			console.log(`   -> [Notification Placeholder] Appointment Reminder scheduled for ${realPatientName}`);
+			await dispatchReminder({
+				userId: booking.patientId._id,
+				role: 'patient',
+				refId: booking._id.toString(),
+				type: 'appointment',
+				message: `Reminder: you have an appointment with ${realDoctorName} tomorrow. ${linkToSend}`,
+				phone: booking.patientId.phone,
+				whatsappTemplate: 'appointment_reminder',
+				whatsappComponents: [{
+					type: 'body',
+					parameters: [
+						{ type: 'text', text: realPatientName },
+						{ type: 'text', text: realDoctorName },
+						{ type: 'text', text: linkToSend }
+					]
+				}]
+			});
 		}
 	}
 }
@@ -96,9 +131,22 @@ async function sendDietPlans(tomorrowDate) {
 
 			console.log(`   -> Sending ${tomorrowDayName} diet to ${realPatientName}...`);
 
-			// WhatsApp has been disabled on this branch. 
-			// In the future, send an email or in-app notification here.
-			console.log(`   -> [Notification Placeholder] Diet plan sent to ${realPatientName}`);
+			await dispatchReminder({
+				userId: plan.patient._id,
+				role: 'patient',
+				refId: plan._id.toString(),
+				type: 'diet',
+				message: `Your ${tomorrowDayName} diet plan: ${dietSummary}`,
+				phone: plan.patient.phone,
+				whatsappTemplate: 'diet_plan_reminder',
+				whatsappComponents: [{
+					type: 'body',
+					parameters: [
+						{ type: 'text', text: realPatientName },
+						{ type: 'text', text: dietSummary }
+					]
+				}]
+			});
 		}
 	}
 }
@@ -140,9 +188,22 @@ async function sendYogaPlans() {
 			const realPatientName = `${plan.patient.firstName} ${plan.patient.lastName}`;
 			console.log(`   -> Sending Yoga routine to ${realPatientName}...`);
 
-			// WhatsApp has been disabled on this branch. 
-			// In the future, send an email or in-app notification here.
-			console.log(`   -> [Notification Placeholder] Yoga plan sent to ${realPatientName}`);
+			await dispatchReminder({
+				userId: plan.patient._id,
+				role: 'patient',
+				refId: plan._id.toString(),
+				type: 'yoga',
+				message: `Your yoga routine for tomorrow: ${yogaMessage}`,
+				phone: plan.patient.phone,
+				whatsappTemplate: 'yoga_plan_reminder',
+				whatsappComponents: [{
+					type: 'body',
+					parameters: [
+						{ type: 'text', text: realPatientName },
+						{ type: 'text', text: yogaMessage }
+					]
+				}]
+			});
 		}
 	}
 }

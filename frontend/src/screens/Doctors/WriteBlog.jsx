@@ -9,6 +9,7 @@ import { BACKEND_URL } from "../../config";
 import { DashboardShell } from "@/components/layout/DashboardShell";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useBlogDraft } from "@/hooks/useBlogDraft";
 
 function authHeaders() {
 	const token = localStorage.getItem("token");
@@ -22,13 +23,18 @@ export default function WriteBlog() {
 	const { id: blogId } = useParams();
 	const isEditMode = !!blogId;
 
-	const [title, setTitle] = useState("");
-	const [category, setCategory] = useState("");
-	const [description, setDescription] = useState("");
-	const [coverImage, setCoverImage] = useState("");
+	const draftKey = `jh_blog_draft:doctor:${isEditMode ? blogId : "new"}`;
+	const {
+		title, setTitle,
+		category, setCategory,
+		description, setDescription,
+		coverImage, setCoverImage,
+		clearDraft,
+		hadDraft,
+	} = useBlogDraft(draftKey);
 	const [corpusTexts, setCorpusTexts] = useState([]);
 	const [isSubmitting, setIsSubmitting] = useState(false);
-	const [isLoadingExisting, setIsLoadingExisting] = useState(isEditMode);
+	const [isLoadingExisting, setIsLoadingExisting] = useState(isEditMode && !hadDraft);
 	const [error, setError] = useState(null);
 
 	useEffect(() => {
@@ -39,8 +45,10 @@ export default function WriteBlog() {
 			.catch(() => {});
 	}, [doctorId]);
 
+	// A restored draft already has the content the user was editing -- skip
+	// the server fetch overwriting it with (possibly stale) saved content.
 	useEffect(() => {
-		if (!isEditMode) return;
+		if (!isEditMode || hadDraft) return;
 		axios
 			.get(`${BACKEND_URL}/api/blogs/${blogId}`)
 			.then((res) => {
@@ -54,7 +62,8 @@ export default function WriteBlog() {
 				setError("Failed to load this blog.");
 			})
 			.finally(() => setIsLoadingExisting(false));
-	}, [isEditMode, blogId]);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [isEditMode, blogId, hadDraft]);
 
 	const handlePublish = async () => {
 		if (!title.trim() || !description.trim()) {
@@ -80,6 +89,7 @@ export default function WriteBlog() {
 					date: new Date(),
 				});
 			}
+			clearDraft();
 			navigate("/health-blogs");
 		} catch (err) {
 			console.error("Error publishing blog:", err);

@@ -141,7 +141,9 @@ export default function SlashCommandPlugin() {
 			menuRenderFn={(anchorElementRef, { selectedIndex, selectOptionAndCleanUp, setHighlightedIndex }) =>
 				anchorElementRef.current && options.length > 0
 					? createPortal(
-							<div className="z-50 w-64 overflow-hidden rounded-lg border border-border bg-card py-1.5 shadow-lg">
+							<div
+							className="z-50 max-h-[min(320px,calc(100vh-2rem))] w-64 overflow-y-auto rounded-lg border border-border bg-card py-1.5 shadow-lg"
+						>
 								{options.map((option, index) => (
 									<button
 										key={option.key}

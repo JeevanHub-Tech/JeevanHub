@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { useBlogDraft } from "@/hooks/useBlogDraft";
 
 export default function AdminBlogsEditor() {
 	const location = useLocation();
@@ -17,13 +18,21 @@ export default function AdminBlogsEditor() {
 	const isEditMode = !!blogId;
 	const initialBlog = location.state?.initialBlog || {};
 
-	const [title, setTitle] = useState(initialBlog.title || "");
-	const [category, setCategory] = useState(
-		Array.isArray(initialBlog.category) ? initialBlog.category.join(", ") : initialBlog.category || "",
-	);
-	const [description, setDescription] = useState(initialBlog.description || "");
-	const [coverImage, setCoverImage] = useState(initialBlog.image || "");
-	const [url, setUrl] = useState(initialBlog.url || "");
+	const draftKey = `jh_blog_draft:admin:${isEditMode ? blogId : "new"}`;
+	const {
+		title, setTitle,
+		category, setCategory,
+		description, setDescription,
+		coverImage, setCoverImage,
+		url, setUrl,
+		clearDraft,
+	} = useBlogDraft(draftKey, {
+		title: initialBlog.title || "",
+		category: Array.isArray(initialBlog.category) ? initialBlog.category.join(", ") : initialBlog.category || "",
+		description: initialBlog.description || "",
+		coverImage: initialBlog.image || "",
+		url: initialBlog.url || "",
+	});
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [error, setError] = useState(null);
 
@@ -86,6 +95,7 @@ export default function AdminBlogsEditor() {
 				}
 			}
 
+			clearDraft();
 			navigate("/admin/blogs");
 		} catch (err) {
 			console.error("Error saving blog:", err);

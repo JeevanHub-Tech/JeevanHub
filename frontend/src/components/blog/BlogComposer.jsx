@@ -57,7 +57,7 @@ function BlogComposer({
 	};
 
 	return (
-		<div className="flex flex-col gap-6">
+		<div className="flex flex-col gap-6 pb-32">
 			<input ref={coverInputRef} type="file" accept="image/*" className="hidden" onChange={handleCoverPick} />
 			{coverImage ? (
 				<div className="group relative h-56 w-full overflow-hidden rounded-lg sm:h-72">

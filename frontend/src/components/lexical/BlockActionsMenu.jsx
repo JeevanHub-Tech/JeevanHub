@@ -20,8 +20,22 @@ const menuItemClass =
 // to held-and-dragged, which is handled by DraggableBlockPlugin_EXPERIMENTAL
 // itself). Mirrors Notion's block context menu: turn into / duplicate /
 // move / delete.
+// Roughly how tall the full menu gets (5 turn-into rows + 2 list rows +
+// divider + 4 action rows + padding) -- used to decide whether it fits below
+// the block or needs to flip above it, without waiting for a post-render
+// measurement pass.
+const ESTIMATED_MENU_HEIGHT = 460;
+const VIEWPORT_MARGIN = 8;
+
 export default function BlockActionsMenu({ editor, targetKey, rect, onClose }) {
 	if (!rect) return null;
+
+	const spaceBelow = window.innerHeight - rect.bottom - VIEWPORT_MARGIN;
+	const spaceAbove = rect.top - VIEWPORT_MARGIN;
+	const openUpward = spaceBelow < ESTIMATED_MENU_HEIGHT && spaceAbove > spaceBelow;
+	const menuStyle = openUpward
+		? { left: rect.left, bottom: window.innerHeight - rect.top + 4, maxHeight: spaceAbove, overflowY: "auto" }
+		: { left: rect.left, top: rect.bottom + 4, maxHeight: spaceBelow, overflowY: "auto" };
 
 	const withNode = (fn) => {
 		editor.update(() => {
@@ -71,8 +85,8 @@ export default function BlockActionsMenu({ editor, targetKey, rect, onClose }) {
 		<>
 			<div className="fixed inset-0 z-40" onClick={onClose} />
 			<div
-				className="fixed z-50 w-56 overflow-hidden rounded-lg border border-border bg-card p-1.5 shadow-lg"
-				style={{ left: rect.left, top: rect.bottom + 4 }}
+				className="fixed z-50 w-56 rounded-lg border border-border bg-card p-1.5 shadow-lg"
+				style={menuStyle}
 			>
 				<p className="px-2.5 pt-1 pb-1.5 text-xs font-semibold text-muted-foreground">Turn into</p>
 				{TURN_INTO_OPTIONS.map((option) => (

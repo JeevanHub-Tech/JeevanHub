@@ -1,13 +1,13 @@
 import { useContext, useState } from "react";
-import { Menu, MapPin, X, Bell, LogOut, ShoppingCart } from "lucide-react";
+import { Menu, X, Bell, LogOut, ShoppingCart } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import GlobalSearchBox from "@/components/layout/GlobalSearchBox";
+import LocationPicker from "@/components/layout/LocationPicker";
 import { exploreOptions as defaultExploreOptions } from "@/screens/publicNavigation";
-import { useUserLocation } from "@/hooks/useUserLocation";
 import { AuthContext } from "@/context/AuthContext";
 import defaultProfilePic from "@/media/default-profile.png";
 import logo from "@/media/logo2.png";
@@ -42,7 +42,7 @@ function NavigationLink({ item, onNavigate }) {
 function DashboardNavbar({ navItems, profileTo, notificationsTo, cartTo, logoTo = "/", exploreOptions = defaultExploreOptions }) {
 	const [showMenu, setShowMenu] = useState(false);
 	const { auth, logout } = useContext(AuthContext);
-	const userLocation = useUserLocation("Your location", auth.user?.address || auth.user?.zipCode);
+	const savedLocation = auth.user?.address || auth.user?.zipCode;
 	const navigate = useNavigate();
 
 	const userName = auth.user ? `${auth.user.firstName || ""} ${auth.user.lastName || ""}`.trim() : "Guest";
@@ -66,7 +66,7 @@ function DashboardNavbar({ navItems, profileTo, notificationsTo, cartTo, logoTo 
 				</div>
 
 				<div className="ml-auto flex items-center gap-2">
-					<span className="hidden items-center gap-1.5 text-xs font-medium text-primary-foreground/70 xl:flex"><MapPin className="size-3.5" aria-hidden="true" />{userLocation}</span>
+					<LocationPicker savedLocation={savedLocation} className="hidden xl:flex" />
 
 					{cartTo ? (
 						<NavLink to={cartTo} aria-label="Cart" className="hidden rounded-md p-2 text-primary-foreground/80 transition-colors hover:bg-primary-foreground/10 hover:text-primary-foreground sm:inline-flex">

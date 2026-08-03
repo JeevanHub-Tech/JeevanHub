@@ -119,6 +119,25 @@ exports.createBooking = async (req, res) => {
 		return res.status(400).json({ error: "Slot ID is required" });
 	}
 
+	const appointmentDate = new Date(dateOfAppointment);
+	if (isNaN(appointmentDate.getTime())) {
+		return res.status(400).json({ error: "Invalid appointment date." });
+	}
+	const todayStart = new Date();
+	todayStart.setHours(0, 0, 0, 0);
+	if (appointmentDate < todayStart) {
+		return res.status(400).json({ error: "Cannot book an appointment in the past." });
+	}
+	if (patientAge !== undefined && patientAge !== null && patientAge !== '') {
+		const ageNum = Number(patientAge);
+		if (!Number.isFinite(ageNum) || ageNum < 0 || ageNum > 120) {
+			return res.status(400).json({ error: "Please provide a valid patient age (0-120)." });
+		}
+	}
+	if (patientIllness && patientIllness.length > 1000) {
+		return res.status(400).json({ error: "Patient illness description is too long (max 1000 characters)." });
+	}
+
 	try {
 		const doctor = await Doctor.findOne({ email: doctorEmail });
 		if (!doctor) {
@@ -132,14 +151,17 @@ exports.createBooking = async (req, res) => {
 		endOfDay.setHours(23,59,59,999);
 
 		const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+		// Free (amountPaid: 0) bookings still need to expire eventually — without a
+		// bound, a patient who never gets a doctor decision holds the slot forever.
+		const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 		const activeBookings = await Booking.find({
 			doctorId: doctor._id,
 			dateOfAppointment: { $gte: startOfDay, $lte: endOfDay },
 			$or: [
 				{ requestAccept: 'accepted' },
-				{ requestAccept: 'pending', amountPaid: 0 },
-				{ 
-					requestAccept: 'pending', 
+				{ requestAccept: 'pending', amountPaid: 0, createdAt: { $gte: oneDayAgo } },
+				{
+					requestAccept: 'pending',
 					amountPaid: { $gt: 0 },
 					$or: [
 						{ 'paymentScreenshots.0': { $exists: true } },
@@ -220,7 +242,7 @@ exports.createBooking = async (req, res) => {
 			dateOfAppointment: { $gte: startOfDay, $lte: endOfDay },
 			$or: [
 				{ requestAccept: 'accepted' },
-				{ requestAccept: 'pending', amountPaid: 0 },
+				{ requestAccept: 'pending', amountPaid: 0, createdAt: { $gte: oneDayAgo } },
 				{
 					requestAccept: 'pending',
 					amountPaid: { $gt: 0 },

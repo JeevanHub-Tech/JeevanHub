@@ -150,29 +150,31 @@ exports.deleteBlog = async (req, res) => {
     const { id } = req.params;
 
     try {
-        let result = null;
+        let doc = null;
         let modelName = null;
 
-        // 1. Try deleting from the AIBlog model (using the one you had)
-        result = await AIBlog.findByIdAndDelete(id);
-        if (result) {
+        doc = await AIBlog.findById(id);
+        if (doc) {
             modelName = 'AIBlog';
-        }
-
-        // 2. If not found in AIBlog, try deleting from the Blog model
-        if (!result) {
-            result = await Blogs.findByIdAndDelete(id);
-            if (result) {
+        } else {
+            doc = await Blogs.findById(id);
+            if (doc) {
                 modelName = 'Blog';
             }
         }
 
-        // 3. Check final result and respond
-        if (!result) {
+        if (!doc) {
             return res.status(404).json({ message: "Blog not found in either collection." });
         }
 
-        res.status(200).json({ 
+        const ownerId = modelName === 'AIBlog' ? doc.user?.userId : doc.authorId;
+        if (String(ownerId) !== String(req.user._id) && req.user.role !== 'admin') {
+            return res.status(403).json({ message: 'Not authorized to delete this blog' });
+        }
+
+        await doc.deleteOne();
+
+        res.status(200).json({
             message: `Blog deleted successfully from the ${modelName} collection.`,
             deletedId: id
         });
@@ -195,30 +197,36 @@ exports.updateBlog = async (req, res) => {
     const updateData = req.body;
 
     try {
+        let existing = await AIBlog.findById(id);
+        let modelName = existing ? 'AIBlog' : null;
+        if (!existing) {
+            existing = await Blogs.findById(id);
+            modelName = existing ? 'Blog' : null;
+        }
+
+        if (!existing) {
+            return res.status(404).json({
+                success: false,
+                message: "Blog not found in either collection."
+            });
+        }
+
+        const ownerId = modelName === 'AIBlog' ? existing.user?.userId : existing.authorId;
+        if (String(ownerId) !== String(req.user._id) && req.user.role !== 'admin') {
+            return res.status(403).json({ success: false, message: 'Not authorized to update this blog' });
+        }
+
         if (updateData.content && updateData.content.text) {
             const cleanHtml = await convertMarkdownToHtml(updateData.content.text);
             updateData.content.html = cleanHtml;
             updateData.content.text = undefined;
         }
 
-        let updatedBlog = await AIBlog.findByIdAndUpdate(id, updateData, {
+        const Model = modelName === 'AIBlog' ? AIBlog : Blogs;
+        const updatedBlog = await Model.findByIdAndUpdate(id, updateData, {
             new: true,
             runValidators: true,
         });
-
-        if (!updatedBlog) {
-            updatedBlog = await Blogs.findByIdAndUpdate(id, updateData, {
-                new: true,
-                runValidators: true,
-            });
-        }
-
-        if (!updatedBlog) {
-            return res.status(404).json({
-                success: false,
-                message: "Blog not found in either collection."
-            });
-        }
 
         res.status(200).json({
             success: true,

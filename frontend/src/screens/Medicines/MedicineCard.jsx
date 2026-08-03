@@ -1,15 +1,16 @@
 import { memo } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { CircleCheck, ShieldAlert, Star } from "lucide-react";
+import { CircleCheck, Loader2, ShieldAlert, Star } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
 const FALLBACK_IMAGE =
 	"https://images.unsplash.com/photo-1587854692152-cbe660dbde88?q=80&w=1169&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D";
 
-const MedicineCard = ({ medicine, cartQuantity, addToCart, handleQuantityChange }) => {
+const MedicineCard = ({ medicine, cartQuantity, addToCart, handleQuantityChange, isPending = false }) => {
 	const navigate = useNavigate();
 	const medicineId = medicine._id || medicine.id;
 
@@ -105,28 +106,43 @@ const MedicineCard = ({ medicine, cartQuantity, addToCart, handleQuantityChange 
 
 					<div className="mt-auto flex justify-center pt-1">
 						{cartQuantity > 0 ? (
-							<div className="flex w-full items-center justify-center gap-3 rounded-lg border border-border bg-(--jh-cream-tint) p-1.5">
+							<div
+								className={cn(
+									"flex w-full items-center justify-center gap-3 rounded-lg border border-border bg-(--jh-cream-tint) p-1.5 transition-opacity",
+									isPending && "opacity-60",
+								)}
+							>
 								<button
 									onClick={(e) => handleQuantity(e, -1)}
-									className="flex size-9 items-center justify-center rounded-lg border border-input bg-card text-xl font-bold text-foreground transition-colors hover:border-primary hover:bg-(--jh-sage-pale)"
+									className="flex size-9 items-center justify-center rounded-lg border border-input bg-card text-xl font-bold text-foreground transition-colors hover:border-primary hover:bg-(--jh-sage-pale) disabled:pointer-events-none"
 									aria-label="Decrease quantity"
 									type="button"
+									disabled={isPending}
 								>
 									−
 								</button>
-								<span className="min-w-8 text-center text-lg font-semibold">{cartQuantity}</span>
+								<span className="min-w-8 text-center text-lg font-semibold">
+									{isPending ? <Loader2 className="mx-auto size-4 animate-spin" /> : cartQuantity}
+								</span>
 								<button
 									onClick={(e) => handleQuantity(e, 1)}
-									className="flex size-9 items-center justify-center rounded-lg border border-input bg-card text-xl font-bold text-foreground transition-colors hover:border-primary hover:bg-(--jh-sage-pale)"
+									className="flex size-9 items-center justify-center rounded-lg border border-input bg-card text-xl font-bold text-foreground transition-colors hover:border-primary hover:bg-(--jh-sage-pale) disabled:pointer-events-none"
 									aria-label="Increase quantity"
 									type="button"
+									disabled={isPending}
 								>
 									+
 								</button>
 							</div>
 						) : (
-							<Button onClick={handleAddToCart} className="w-full" aria-label={`Add ${medicine.name} to cart`} type="button">
-								Add to Cart
+							<Button
+								onClick={handleAddToCart}
+								className="w-full"
+								aria-label={`Add ${medicine.name} to cart`}
+								type="button"
+								disabled={isPending}
+							>
+								{isPending ? <Loader2 className="size-4 animate-spin" /> : "Add to Cart"}
 							</Button>
 						)}
 					</div>

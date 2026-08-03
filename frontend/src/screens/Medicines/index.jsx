@@ -81,6 +81,10 @@ const Medicines = () => {
 
 	const [cart, setCart] = useState([]);
 	const [cartLoaded, setCartLoaded] = useState(false);
+	// Medicine ids with an in-flight cart request. Blocks overlapping requests
+	// for the same item so a slow-network response can't race a newer click and
+	// stomp its optimistic update with a stale rollback.
+	const [pendingCartIds, setPendingCartIds] = useState(() => new Set());
 
 	// searchInput is the raw typed value (updates every keystroke); searchTerm
 	// (and the URL's `q`) only follow after the debounce below settles.
@@ -227,9 +231,11 @@ const Medicines = () => {
 				alert("Please login to add items to cart");
 				return;
 			}
+			if (pendingCartIds.has(medicine._id)) return;
 
 			const existingQuantity = cartQuantityById.get(medicine._id);
 			const previousCart = cart;
+			setPendingCartIds((prev) => new Set(prev).add(medicine._id));
 
 			if (existingQuantity) {
 				setCart((prev) => prev.map((item) => (item._id === medicine._id ? { ...item, quantity: item.quantity + 1 } : item)));
@@ -260,21 +266,29 @@ const Medicines = () => {
 			} catch (err) {
 				console.error("Add to cart failed:", err);
 				setCart(previousCart);
-				alert("Failed to add item to cart");
+				alert("Failed to add item to cart. Please try again.");
+			} finally {
+				setPendingCartIds((prev) => {
+					const next = new Set(prev);
+					next.delete(medicine._id);
+					return next;
+				});
 			}
 		},
-		[patientId, token, cart, cartQuantityById, updateLocalCartFromBackend],
+		[patientId, token, cart, cartQuantityById, pendingCartIds, updateLocalCartFromBackend],
 	);
 
 	const handleQuantityChange = useCallback(
 		async (id, delta) => {
 			if (!patientId) return;
+			if (pendingCartIds.has(id)) return;
 
 			const currentQuantity = cartQuantityById.get(id);
 			if (currentQuantity === undefined) return;
 
 			const newQuantity = currentQuantity + delta;
 			const previousCart = cart;
+			setPendingCartIds((prev) => new Set(prev).add(id));
 
 			if (newQuantity <= 0) {
 				setCart((prev) => prev.filter((item) => item._id !== id));
@@ -307,9 +321,16 @@ const Medicines = () => {
 			} catch (err) {
 				console.error("Update quantity failed:", err);
 				setCart(previousCart);
+				alert("Failed to update cart. Please try again.");
+			} finally {
+				setPendingCartIds((prev) => {
+					const next = new Set(prev);
+					next.delete(id);
+					return next;
+				});
 			}
 		},
-		[patientId, token, cart, cartQuantityById, updateLocalCartFromBackend],
+		[patientId, token, cart, cartQuantityById, pendingCartIds, updateLocalCartFromBackend],
 	);
 
 	const resetFilters = () => {
@@ -486,6 +507,7 @@ const Medicines = () => {
 										cartQuantity={cartQuantityById.get(medicine._id) || 0}
 										addToCart={addToCart}
 										handleQuantityChange={handleQuantityChange}
+										isPending={pendingCartIds.has(medicine._id)}
 									/>
 								))}
 							</div>

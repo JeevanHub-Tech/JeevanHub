@@ -17,7 +17,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 
-const formatDate = (isoString) => format(new Date(isoString), "dd MMM yyyy");
+const formatDate = (isoString) => {
+	const date = new Date(isoString);
+	return Number.isNaN(date.getTime()) ? "Unknown date" : format(date, "dd MMM yyyy");
+};
 
 const AdminBlogs = () => {
 	const { auth } = useContext(AuthContext);
@@ -45,7 +48,7 @@ const AdminBlogs = () => {
 		try {
 			const res = await axios.get(`${BACKEND_URL}/api/webhook/getAllBlogs/`);
 			const items = Array.isArray(res.data?.blogs) ? res.data.blogs : [];
-			const sorted = items.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+			const sorted = items.sort((a, b) => new Date(b.date) - new Date(a.date));
 			setBlogs(sorted);
 			setError(null);
 		} catch (err) {
@@ -181,7 +184,7 @@ const AdminBlogs = () => {
 											<h3 className="text-lg font-semibold text-foreground">{blog.title}</h3>
 											<div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
 												<span>
-													By: {blog.author || "Anonymous"} | {formatDate(blog.timestamp)}
+													By: {blog.authorName || "Anonymous"} | {formatDate(blog.date)}
 												</span>
 												{blog.type ? (
 													<Badge variant="secondary" className="ml-auto">

@@ -613,9 +613,11 @@ const CheckoutScreen = () => {
 		}
 	};
 
+	const showSidebar = currentStep !== 'confirmation';
+
 	return (
 		<div className="min-h-screen bg-background pb-16">
-			<div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
+			<div className={cn('mx-auto px-4 sm:px-6 lg:px-8', showSidebar ? 'max-w-5xl' : 'max-w-3xl')}>
 				<div className="relative mb-10">
 					<div className="absolute top-4 right-0 left-0 h-0.5 bg-border" />
 					<div className="relative flex justify-between">
@@ -644,9 +646,33 @@ const CheckoutScreen = () => {
 					</div>
 				</div>
 
-				<Card className="p-6">
-					{renderStepContent()}
-				</Card>
+				<div className={cn(showSidebar && 'grid gap-6 lg:grid-cols-[1fr_320px]')}>
+					<Card className="p-6">
+						{renderStepContent()}
+					</Card>
+
+					{showSidebar && (
+						<Card className="h-fit p-6 lg:sticky lg:top-6">
+							<h3 className="font-display mb-4 text-base font-semibold text-foreground">Order total</h3>
+							<div className="flex flex-col gap-3">
+								{cartItems.map((item) => (
+									<div key={item._id} className="flex items-center justify-between gap-3 text-sm">
+										<span className="truncate text-muted-foreground">
+											{item.medicineId?.name} × {item.quantity}
+										</span>
+										<span className="shrink-0 font-medium text-foreground">
+											₹{((item.medicineId?.price || 0) * item.quantity).toFixed(2)}
+										</span>
+									</div>
+								))}
+							</div>
+							<div className="mt-4 flex items-center justify-between border-t border-border pt-4">
+								<span className="font-semibold text-foreground">Total</span>
+								<span className="text-lg font-semibold text-foreground">₹{totalPrice.toFixed(2)}</span>
+							</div>
+						</Card>
+					)}
+				</div>
 			</div>
 		</div>
 	);

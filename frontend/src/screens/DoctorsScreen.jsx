@@ -64,11 +64,6 @@ const FILTER_CHIP_LABELS = {
   gender: (v) => v,
 };
 
-const SPECIALIZATION_OPTIONS = [
-  { value: "Skin Diseases", label: "Skin Diseases" },
-  { value: "Digestive and Metabolic", label: "Digestive and Metabolic" },
-  { value: "Respiratory Diseases", label: "Respiratory Diseases" },
-];
 const EXPERIENCE_OPTIONS = [
   { value: "1", label: "1 year or less" },
   { value: "2-5", label: "2 - 5 years" },
@@ -79,25 +74,31 @@ const PRICE_RANGE_OPTIONS = [
   { value: "Medium", label: "₹500 - ₹1000" },
   { value: "High", label: "More than ₹1000" },
 ];
-const LOCATION_OPTIONS = [
-  { value: "Jamshedpur, Jharkhand", label: "Jamshedpur, Jharkhand" },
-  { value: "Gurugram, Haryana", label: "Gurugram, Haryana" },
-];
-const LANGUAGE_OPTIONS = [
-  { value: "English", label: "English" },
-  { value: "Hindi", label: "Hindi" },
-];
 const GENDER_OPTIONS = [
   { value: "Male", label: "Male" },
   { value: "Female", label: "Female" },
 ];
 const RATING_OPTIONS = [
-  { value: "1.0", label: "1 star" },
-  { value: "2.0", label: "2 star" },
-  { value: "3.0", label: "3 star" },
-  { value: "4.0", label: "4 star" },
-  { value: "5.0", label: "5 star" },
+  { value: "1", label: "1 star & up" },
+  { value: "2", label: "2 star & up" },
+  { value: "3", label: "3 star & up" },
+  { value: "4", label: "4 star & up" },
+  { value: "5", label: "5 star" },
 ];
+
+// Options derived from the actually-loaded doctor list, so a filter can never
+// offer a value that matches zero doctors (or hide one whose value isn't hardcoded).
+function deriveOptions(doctors, key) {
+  const values = new Set();
+  doctors.forEach((d) => {
+    if (key === "specialization") {
+      d.specializations.forEach((s) => values.add(s));
+    } else if (d[key]) {
+      values.add(d[key]);
+    }
+  });
+  return [...values].sort().map((v) => ({ value: v, label: v }));
+}
 const SORT_OPTIONS = [
   { value: "lowToHigh", label: "Rating: Low to High" },
   { value: "highToLow", label: "Rating: High to Low" },
@@ -156,23 +157,29 @@ function DoctorsScreen() {
       .then((data) => {
         const approvedDoctors = data.filter((doc) => doc.approvalStatus === "Approved");
 
-        const mappedDoctors = approvedDoctors.map((doctor) => ({
-          id: doctor._id,
-          name: `${doctor.firstName} ${doctor.lastName}`,
-          specialization: Array.isArray(doctor.specialization)
-            ? doctor.specialization.join(", ") || "N/A"
-            : doctor.specialization || "N/A",
-          experience: doctor.experience ? `${doctor.experience} years` : "0 years",
-          email: `${doctor.email}`,
-          pricepoint: `${doctor.price || "0"}`,
-          priceRange:
-            doctor.price < 500 ? "Low" : doctor.price >= 500 && doctor.price <= 1000 ? "Medium" : "High",
-          location: doctor.address || doctor.zipCode || "Not specified",
-          language: doctor.languages?.join(", ") || "English",
-          rating: 4.0,
-          gender: doctor.gender ? doctor.gender.charAt(0).toUpperCase() + doctor.gender.slice(1) : "N/A",
-          profileImage: doctor.profileImage || null,
-        }));
+        const mappedDoctors = approvedDoctors.map((doctor) => {
+          const specializations = Array.isArray(doctor.specialization)
+            ? doctor.specialization.filter(Boolean)
+            : doctor.specialization
+              ? [doctor.specialization]
+              : [];
+          return {
+            id: doctor._id,
+            name: `${doctor.firstName} ${doctor.lastName}`,
+            specializations,
+            specialization: specializations.join(", ") || "N/A",
+            experience: doctor.experience ? `${doctor.experience} years` : "0 years",
+            email: `${doctor.email}`,
+            pricepoint: `${doctor.price || "0"}`,
+            priceRange:
+              doctor.price < 500 ? "Low" : doctor.price >= 500 && doctor.price <= 1000 ? "Medium" : "High",
+            location: doctor.address || doctor.zipCode || "Not specified",
+            language: doctor.languages?.join(", ") || "English",
+            rating: typeof doctor.rating === "number" ? doctor.rating : null,
+            gender: doctor.gender ? doctor.gender.charAt(0).toUpperCase() + doctor.gender.slice(1) : "N/A",
+            profileImage: doctor.profileImage || null,
+          };
+        });
         setDoctors(mappedDoctors);
         setStatus("ready");
       })
@@ -182,12 +189,16 @@ function DoctorsScreen() {
       });
   }, []);
 
+  const specializationOptions = useMemo(() => deriveOptions(doctors, "specialization"), [doctors]);
+  const locationOptions = useMemo(() => deriveOptions(doctors, "location"), [doctors]);
+  const languageOptions = useMemo(() => deriveOptions(doctors, "language"), [doctors]);
+
   const filteredDoctors = doctors.filter(
     (doctor) =>
       (keyword
         ? doctor.name.toLowerCase().includes(keyword) || doctor.specialization.toLowerCase().includes(keyword)
         : true) &&
-      (filters.specialization ? doctor.specialization === filters.specialization : true) &&
+      (filters.specialization ? doctor.specializations.includes(filters.specialization) : true) &&
       (filters.experience
         ? (filters.experience === "1" && parseInt(doctor.experience) <= 1) ||
           (filters.experience === "2-5" && parseInt(doctor.experience) >= 2 && parseInt(doctor.experience) <= 5) ||
@@ -196,7 +207,7 @@ function DoctorsScreen() {
       (filters.priceRange ? doctor.priceRange === filters.priceRange : true) &&
       (filters.location ? doctor.location === filters.location : true) &&
       (filters.language ? doctor.language.includes(filters.language) : true) &&
-      (filters.rating ? doctor.rating === parseFloat(filters.rating) : true) &&
+      (filters.rating ? (doctor.rating ?? 0) >= parseFloat(filters.rating) : true) &&
       (filters.gender ? doctor.gender === filters.gender : true),
   );
 
@@ -213,8 +224,8 @@ function DoctorsScreen() {
         .sort((a, b) => b.ai.score - a.ai.score);
     }
     return [...filteredDoctors].sort((a, b) => {
-      if (filters.sort === "lowToHigh") return a.rating - b.rating;
-      if (filters.sort === "highToLow") return b.rating - a.rating;
+      if (filters.sort === "lowToHigh") return (a.rating ?? 0) - (b.rating ?? 0);
+      if (filters.sort === "highToLow") return (b.rating ?? 0) - (a.rating ?? 0);
       return 0;
     });
   }, [filteredDoctors, aiActive, aiRanking, filters.sort]);
@@ -418,7 +429,7 @@ function DoctorsScreen() {
                   id="specialization"
                   label="Specialization"
                   placeholder="All specializations"
-                  options={SPECIALIZATION_OPTIONS}
+                  options={specializationOptions}
                   value={filters.specialization}
                   onValueChange={setFilterValue("specialization")}
                 />
@@ -444,7 +455,7 @@ function DoctorsScreen() {
                     id="location"
                     label="Location"
                     placeholder="All locations"
-                    options={LOCATION_OPTIONS}
+                    options={locationOptions}
                     value={filters.location}
                     onValueChange={setFilterValue("location")}
                   />
@@ -452,7 +463,7 @@ function DoctorsScreen() {
                     id="language"
                     label="Language"
                     placeholder="All languages"
-                    options={LANGUAGE_OPTIONS}
+                    options={languageOptions}
                     value={filters.language}
                     onValueChange={setFilterValue("language")}
                   />

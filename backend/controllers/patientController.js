@@ -142,7 +142,9 @@ exports.getPatientDietYoga = async (req, res) => {
 			}
 		}
 		console.log("fetching patinet diet yuoga >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
-		const dietYogaPlan = await DietYoga.findOne({ patient: patientId });
+		const dietYogaPlan = await DietYoga.findOne({ patient: patientId })
+			.sort({ updatedAt: -1 })
+			.populate('bookingId', 'recommendedSupplements diagnosis');
 
 		if (!dietYogaPlan) {
 			return res.status(404).json({

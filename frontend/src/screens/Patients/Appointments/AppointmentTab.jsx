@@ -17,7 +17,7 @@ import {
 	Video,
 	XCircle,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -78,7 +78,17 @@ const PrescriptionSummary = ({ diagnosis, supplements }) => {
 					) : null}
 					{supplements?.map((s, i) => (
 						<div key={s._id || i} className="flex flex-col gap-0.5 rounded-md bg-card px-2.5 py-2">
-							<span className="font-semibold text-foreground">{s.medicineName}</span>
+							<div className="flex items-center justify-between gap-2">
+								<span className="font-semibold text-foreground">{s.medicineName}</span>
+								{s.medicineId ? (
+									<Link
+										to={`/medicines/${s.medicineId}`}
+										className="shrink-0 text-xs font-semibold text-primary hover:underline"
+									>
+										View in store
+									</Link>
+								) : null}
+							</div>
 							{s.dosage ? <span className="text-xs text-muted-foreground"><strong>Dosage:</strong> {s.dosage}</span> : null}
 							{s.instructions ? <span className="text-xs text-muted-foreground"><strong>Instructions:</strong> {s.instructions}</span> : null}
 						</div>

@@ -20,16 +20,24 @@ function MealCard({ mealKey, meal }) {
 
 	return (
 		<div className="flex flex-col gap-3 rounded-(--jh-radius-lg) bg-card p-4 shadow-(--jh-shadow-rest)">
-			<div className="flex items-center justify-between gap-2">
+			<div className="flex flex-wrap items-center justify-between gap-2">
 				<div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-					<Icon size={16} className="text-primary" /> {label}
+					<Icon size={16} className="shrink-0 text-primary" /> {label}
 				</div>
-				{meal?.portion ? <Badge variant="secondary">{meal.portion}</Badge> : null}
+				{meal?.portion ? (
+					<Badge variant="secondary" className="max-w-full whitespace-normal text-left break-words">
+						{meal.portion}
+					</Badge>
+				) : null}
 			</div>
 
 			{hasItems ? (
 				<div className="flex flex-wrap gap-1.5">
-					{meal.items.map((item, i) => <Badge key={i} variant="success">{item}</Badge>)}
+					{meal.items.map((item, i) => (
+						<Badge key={i} variant="success" className="max-w-full whitespace-normal text-left break-words">
+							{item}
+						</Badge>
+					))}
 				</div>
 			) : (
 				<p className="text-sm text-muted-foreground">Not specified</p>

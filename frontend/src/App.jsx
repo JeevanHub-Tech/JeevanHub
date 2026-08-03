@@ -1,5 +1,5 @@
 import React, { useContext, Suspense, lazy } from 'react';
-import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import ProtectedRoute from './components/AppShell/ProtectedRoute';
 import NavBar from './screens/Navbar';
 import PatientNavBar from './screens/Patients/PatientNavBar';  // Patient specific navbar
@@ -11,6 +11,7 @@ import SanjeevaniChatbot from './components/Chatbot/SanjeevaniChatbot';
 import BackToChatFab from './components/Chatbot/BackToChatFab';
 import AppLoadingState from './components/AppShell/AppLoadingState';
 import RoutePageShell from './components/AppShell/RoutePageShell';
+import { NoChromeProvider, useNoChrome } from './components/AppShell/NoChromeProvider';
 import { AuthContext } from './context/AuthContext';
 
 // Every screen is route-level, so it's only ever needed once the user
@@ -60,7 +61,7 @@ const AdminManagement = lazy(() => import('./screens/admin/AdminManagement'));
 const AdminAuditLogs = lazy(() => import('./screens/admin/AdminAuditLogs'));
 const AdminRetailers = lazy(() => import('./screens/admin/Retailer/AdminRetailers'));
 const AdminBlogs = lazy(() => import('./screens/admin/AdminBlogs'));
-const AdminBlogsUpdate = lazy(() => import('./screens/admin/AdminBlogsUpdate'));
+const AdminBlogsEditor = lazy(() => import('./screens/admin/AdminBlogsEditor'));
 
 const RetailerDashboard = lazy(() => import('./screens/Retailers/RetailerDashboard'));
 const ManageProducts = lazy(() => import('./screens/Retailers/ManageProducts'));
@@ -92,26 +93,10 @@ const PrakritiAssessment = lazy(() => import('./screens/Patients/Prakriti/Prakri
 
 // Routes that own their full-page layout and don't want the global
 // navbar/footer chrome: auth entry screens (branding panel + form would
-// duplicate branding and eat vertical space) and the distraction-free
-// full-page blog editor.
-const NO_CHROME_ROUTES = new Set([
-  '/signin',
-  '/signup',
-  '/admin/login',
-  '/signup-patient',
-  '/signup-doctor',
-  '/signup-retailer',
-  '/health-blogs/new',
-]);
-
 function AppChrome({ renderNavBar, children }) {
-  const location = useLocation();
-  const isAuthRoute =
-    NO_CHROME_ROUTES.has(location.pathname) ||
-    location.pathname.startsWith('/health-blogs/edit/') ||
-    location.pathname.startsWith('/blog/');
+  const noChrome = useNoChrome();
 
-  if (isAuthRoute) {
+  if (noChrome) {
     return children;
   }
 
@@ -161,6 +146,7 @@ function App() {
 
   return (
     <Router>
+      <NoChromeProvider>
       <AppChrome renderNavBar={renderNavBar}>
       <Suspense fallback={<AppLoadingState />}>
         <Routes>
@@ -195,7 +181,8 @@ function App() {
           <Route path="/admin/audit-logs" element={<AdminAuditLogs />} />
           <Route path="/admin/consultations" element={<DoctorList />} />
           <Route path="/admin/blogs" element={<AdminBlogs />} />
-          <Route path="/admin/blogs/update/:id" element={<AdminBlogsUpdate />} />
+          <Route path="/admin/blogs/new" element={<AdminBlogsEditor />} />
+          <Route path="/admin/blogs/update/:id" element={<AdminBlogsEditor />} />
           <Route path="/patients/:id" element={<Patientprofile />} />
           <Route path="/admin/consultations/:id" element={<DoctorFullDetails />} />
           <Route path="/admin/transactions" element={<Transactions />} />
@@ -246,6 +233,7 @@ function App() {
         </Routes>
       </Suspense>
       </AppChrome>
+      </NoChromeProvider>
       <SanjeevaniChatbot />
       <BackToChatFab />
     </Router>

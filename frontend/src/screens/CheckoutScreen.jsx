@@ -15,6 +15,19 @@ import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { cn } from '@/lib/utils';
 
+// Olive-tinted botanical placeholder, used only when a medicine truly has no
+// uploaded image or the image URL fails to load (matches Cart.jsx's fallback).
+const FALLBACK_IMAGE =
+	'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="%23556b2f" stroke-width="1.5"><path d="M12 2C9 6 6 9 6 13a6 6 0 0 0 12 0c0-4-3-7-6-11Z"/><path d="M12 13v9"/></svg>';
+
+// Medicine.images is an array of paths/URLs, not a single `image` string --
+// take the first real one, resolving it against the backend if it's relative.
+const getMedicineThumb = (images) => {
+	const first = (images || []).filter(Boolean)[0];
+	if (!first) return FALLBACK_IMAGE;
+	return first.startsWith('http') ? first : `${BACKEND_URL}/${first}`;
+};
+
 const STEP_LABELS = {
 	summary: 'Order Summary',
 	shipping: 'Shipping',
@@ -358,9 +371,10 @@ const CheckoutScreen = () => {
 							{cartItems.map((item) => (
 								<div key={item._id} className="flex gap-4 border-b border-border pb-4 last:border-b-0 last:pb-0">
 									<img
-										src={item.medicineId?.image ? `${BACKEND_URL}/${item.medicineId.image}` : 'https://via.placeholder.com/80'}
+										src={getMedicineThumb(item.medicineId?.images)}
 										alt={item.medicineId?.name}
 										className="size-20 shrink-0 rounded-lg object-cover"
+										onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = FALLBACK_IMAGE; }}
 									/>
 									<div className="flex-1">
 										<h3 className="text-base font-medium text-foreground">{item.medicineId?.name}</h3>

@@ -187,7 +187,7 @@ const Transactions = () => {
 										</TableCell>
 										<TableCell>{t.date}</TableCell>
 										<TableCell className="font-semibold text-foreground">
-											${t.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+											₹{t.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
 										</TableCell>
 										<TableCell>{t.from}</TableCell>
 										<TableCell>{t.to}</TableCell>

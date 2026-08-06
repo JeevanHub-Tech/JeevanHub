@@ -207,6 +207,30 @@ const AppointmentTab = ({
 	const [shareModal, setShareModal] = useState(null);
 	const [cancellingId, setCancellingId] = useState(null);
 	const [rebookingId, setRebookingId] = useState(null);
+	const [reportingId, setReportingId] = useState(null);
+
+	// Fairness/escrow: the doctor's payout for a paid appointment is held for a
+	// window after the slot — this is the patient's chance to flag a problem
+	// (e.g. the doctor never joined) before it auto-releases.
+	const handleReportIssue = async (appointment) => {
+		const reason = window.prompt("What went wrong with this appointment? (e.g. the doctor never joined the call)");
+		if (!reason || !reason.trim()) return;
+		setReportingId(appointment._id);
+		try {
+			const response = await authFetch(`${BACKEND}/api/bookings/${appointment._id}/dispute`, {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ reason }),
+			});
+			const data = await response.json();
+			if (!response.ok) throw new Error(data.error || "Failed to report this issue");
+			alert("Thanks — we've flagged this and will review it before any payout goes out.");
+		} catch (err) {
+			alert(err.message || "Could not report this issue. Please try again.");
+		} finally {
+			setReportingId(null);
+		}
+	};
 
 	const handleCancelRequest = async (appointment) => {
 		if (!window.confirm(`Cancel your pending request with Dr. ${appointment.doctorName}?`)) return;
@@ -349,6 +373,18 @@ const AppointmentTab = ({
 							) : null}
 						</>
 					)}
+
+					{(variant === "upcoming" || variant === "previous") && appointment.payoutStatus === "held" ? (
+						<Button
+							size="sm"
+							variant="ghost"
+							title="Flag a problem with this appointment before payout to the doctor is released"
+							onClick={() => handleReportIssue(appointment)}
+							disabled={reportingId === appointment._id}
+						>
+							{reportingId === appointment._id ? "Reporting…" : "Report an Issue"}
+						</Button>
+					) : null}
 
 					{variant === "pending" ? (
 						<Button

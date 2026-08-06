@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { ReceiptText, Search } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { ReceiptText, Search, ShieldAlert } from "lucide-react";
 
 import { authFetch } from "../../utils/authFetch";
 import { BACKEND_URL } from "../../config";
@@ -64,9 +64,50 @@ const Transactions = () => {
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
 
+	const [disputedBookings, setDisputedBookings] = useState([]);
+	const [disputedOrders, setDisputedOrders] = useState([]);
+	const [resolvingId, setResolvingId] = useState(null);
+
+	const fetchDisputes = useCallback(async () => {
+		const token = localStorage.getItem("token");
+		try {
+			const [bookingsRes, ordersRes] = await Promise.all([
+				authFetch(`${BACKEND_URL}/api/bookings/payout/queue`, { headers: { Authorization: `Bearer ${token}` } }),
+				authFetch(`${BACKEND_URL}/api/orders/payout/queue`, { headers: { Authorization: `Bearer ${token}` } }),
+			]);
+			const bookingsData = await bookingsRes.json();
+			const ordersData = await ordersRes.json();
+			setDisputedBookings(bookingsData.disputed || []);
+			setDisputedOrders(ordersData.disputed || []);
+		} catch (err) {
+			console.error("Error fetching payout disputes:", err);
+		}
+	}, []);
+
 	useEffect(() => {
 		fetchTransactions(setTransactions, setLoading, setError);
-	}, []);
+		fetchDisputes();
+	}, [fetchDisputes]);
+
+	const resolveDispute = async (kind, id, resolution) => {
+		setResolvingId(id);
+		try {
+			const token = localStorage.getItem("token");
+			const path = kind === "booking" ? "bookings" : "orders";
+			const response = await authFetch(`${BACKEND_URL}/api/${path}/${id}/dispute/resolve`, {
+				method: "PUT",
+				headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+				body: JSON.stringify({ resolution }),
+			});
+			const data = await response.json();
+			if (!response.ok) throw new Error(data.error || data.message || "Failed to resolve dispute");
+			await fetchDisputes();
+		} catch (err) {
+			alert(err.message || "Failed to resolve dispute");
+		} finally {
+			setResolvingId(null);
+		}
+	};
 
 	const filteredTransactions = transactions.filter((t) => {
 		const matchesFilter = filter === "all" || t.type.toLowerCase().includes(filter);
@@ -117,6 +158,52 @@ const Transactions = () => {
 				}
 				description="View and manage all Ayurvedic commerce history"
 			/>
+
+			{disputedBookings.length > 0 || disputedOrders.length > 0 ? (
+				<Card className="mb-6 p-5">
+					<h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-foreground">
+						<ShieldAlert className="size-5 text-destructive" /> Payout Disputes Awaiting Review
+					</h2>
+					<div className="flex flex-col gap-3">
+						{disputedBookings.map((b) => (
+							<div key={b._id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border p-3">
+								<div>
+									<p className="text-sm font-medium text-foreground">
+										Consultation — {b.patientName} with Dr. {b.doctorName} · ₹{b.amountPaid}
+									</p>
+									<p className="text-xs text-muted-foreground">{b.dispute?.reason}</p>
+								</div>
+								<div className="flex gap-2">
+									<Button size="sm" variant="destructive" disabled={resolvingId === b._id} onClick={() => resolveDispute("booking", b._id, "refunded")}>
+										Refund Patient
+									</Button>
+									<Button size="sm" variant="outline" disabled={resolvingId === b._id} onClick={() => resolveDispute("booking", b._id, "released")}>
+										Release to Doctor
+									</Button>
+								</div>
+							</div>
+						))}
+						{disputedOrders.map((o) => (
+							<div key={o._id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border p-3">
+								<div>
+									<p className="text-sm font-medium text-foreground">
+										Order {o._id} — {o.buyer?.firstName} {o.buyer?.lastName} · ₹{o.totalPrice}
+									</p>
+									<p className="text-xs text-muted-foreground">{o.dispute?.reason}</p>
+								</div>
+								<div className="flex gap-2">
+									<Button size="sm" variant="destructive" disabled={resolvingId === o._id} onClick={() => resolveDispute("order", o._id, "refunded")}>
+										Refund Patient
+									</Button>
+									<Button size="sm" variant="outline" disabled={resolvingId === o._id} onClick={() => resolveDispute("order", o._id, "released")}>
+										Release to Retailer
+									</Button>
+								</div>
+							</div>
+						))}
+					</div>
+				</Card>
+			) : null}
 
 			<Card className="mb-6 flex flex-wrap items-end gap-5 p-5">
 				<div className="flex min-w-52 flex-1 flex-col gap-2">

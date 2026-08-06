@@ -34,6 +34,12 @@ router.get('/getOrdersByRetailerId/:retailerId', auth, orderController.getOrders
 router.get('/getFeedbackByRetailerId/:retailerId', auth, orderController.getFeedbackByRetailerId);
 router.get('/reviews/:buyerId', auth, orderController.getReviewedOrdersByBuyerId);
 
+// Fairness/escrow: patient disputes a held payout, admin resolves it or lists
+// what's queued for review.
+router.get('/payout/queue', auth, orderController.getOrderPayoutQueue);
+router.post('/:id/dispute', auth, orderController.raiseOrderDispute);
+router.put('/:id/dispute/resolve', auth, orderController.resolveOrderDispute);
+
 // ✅ This generic route should be last to avoid conflicts.
 router.get('/:id', auth, orderController.getOrderById);
 

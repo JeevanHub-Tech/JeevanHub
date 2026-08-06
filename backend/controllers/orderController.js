@@ -323,6 +323,21 @@ exports.updateRetailerStatus = async (req, res) => {
     }
 };
 
+// How long after delivery a paid order's payout to the retailer stays "held"
+// before the settlement cron auto-releases it -- the patient's dispute window.
+const PAYOUT_HOLD_GRACE_MS = 48 * 60 * 60 * 1000;
+
+// Fairness/escrow: starts the payout hold the first time an order reaches
+// 'delivered'. Only online payments are held -- COD cash goes straight to the
+// retailer at the door, there's nothing platform-side to hold.
+const startPayoutHoldIfDelivered = (order, newOrderStatus) => {
+    if (newOrderStatus === 'delivered' && order.paymentMethod === 'onlinePayment' && order.paymentStatus === 'paid' && !order.deliveredAt) {
+        order.deliveredAt = new Date();
+        order.payoutStatus = 'held';
+        order.payoutHoldUntil = new Date(Date.now() + PAYOUT_HOLD_GRACE_MS);
+    }
+};
+
 exports.updateOrderStatus = async (req, res) => {
     try {
         if (req.user.role !== 'admin' && req.user.role !== 'retailer') {
@@ -330,7 +345,7 @@ exports.updateOrderStatus = async (req, res) => {
         }
         console.log(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> update order status called");
         const { orderId, status } = req.body;
-        
+
         const order = await Order.findById(orderId).populate('items.medicineId');
         if (!order) {
             return res.status(404).json({ message: 'Order not found' });
@@ -341,6 +356,7 @@ exports.updateOrderStatus = async (req, res) => {
             order.orderStatus = status;
             // Also update all items to match
             order.items.forEach(item => item.itemStatus = status);
+            startPayoutHoldIfDelivered(order, status);
             await order.save();
             return res.status(200).json(order);
         }
@@ -382,11 +398,100 @@ exports.updateOrderStatus = async (req, res) => {
             order.orderStatus = 'pending';
         }
 
+        startPayoutHoldIfDelivered(order, order.orderStatus);
         await order.save();
 
         res.status(200).json(order);
     } catch (error) {
         res.status(500).json({ message: error.message });
+    }
+};
+
+// Patient-raised dispute over a held payout (e.g. "paid but never received the
+// order") -- freezes the settlement cron's auto-release so an admin has to look at it.
+exports.raiseOrderDispute = async (req, res) => {
+    const { id } = req.params;
+    const { reason } = req.body;
+
+    try {
+        if (req.user.role !== 'patient') {
+            return res.status(403).json({ message: "Only patients can raise a dispute" });
+        }
+        if (!reason || !reason.trim()) {
+            return res.status(400).json({ message: "A reason is required" });
+        }
+
+        const order = await Order.findById(id);
+        if (!order) {
+            return res.status(404).json({ message: "Order not found" });
+        }
+        if (order.buyer.buyerId.toString() !== req.user._id.toString()) {
+            return res.status(403).json({ message: "Not authorized" });
+        }
+        if (order.payoutStatus !== 'held') {
+            return res.status(400).json({ message: `Cannot dispute this order -- its payout is already ${order.payoutStatus}.` });
+        }
+
+        order.payoutStatus = 'disputed';
+        order.dispute = { reason: reason.trim(), raisedAt: new Date() };
+        await order.save();
+
+        return res.status(200).json({ message: "Dispute raised. Our team will review this before any payout goes out.", order });
+    } catch (error) {
+        console.error("Error raising order dispute:", error);
+        return res.status(500).json({ message: "Server error" });
+    }
+};
+
+// Admin resolves a disputed payout -- either releases it (dispute rejected) or
+// refunds the patient (dispute upheld). Actual money movement (payout to the
+// retailer's bank account, or refund via Razorpay) is a manual step for now;
+// this just records the decision and unblocks/settles the state.
+exports.resolveOrderDispute = async (req, res) => {
+    const { id } = req.params;
+    const { resolution } = req.body; // 'released' | 'refunded'
+
+    try {
+        if (req.user.role !== 'admin') {
+            return res.status(403).json({ message: "Admins only" });
+        }
+        if (!['released', 'refunded'].includes(resolution)) {
+            return res.status(400).json({ message: "resolution must be 'released' or 'refunded'" });
+        }
+
+        const order = await Order.findById(id);
+        if (!order) {
+            return res.status(404).json({ message: "Order not found" });
+        }
+        if (order.payoutStatus !== 'disputed') {
+            return res.status(400).json({ message: "This order has no open dispute." });
+        }
+
+        order.payoutStatus = resolution;
+        order.dispute.resolvedAt = new Date();
+        order.dispute.resolution = resolution;
+        order.dispute.resolvedBy = req.user._id;
+        await order.save();
+
+        return res.status(200).json({ message: `Dispute resolved as ${resolution}.`, order });
+    } catch (error) {
+        console.error("Error resolving order dispute:", error);
+        return res.status(500).json({ message: "Server error" });
+    }
+};
+
+// Lists all orders an admin currently needs to act on: open disputes.
+exports.getOrderPayoutQueue = async (req, res) => {
+    try {
+        if (req.user.role !== 'admin') {
+            return res.status(403).json({ message: "Admins only" });
+        }
+
+        const disputed = await Order.find({ payoutStatus: 'disputed' }).sort({ 'dispute.raisedAt': -1 });
+        return res.status(200).json({ disputed });
+    } catch (error) {
+        console.error("Error fetching order payout queue:", error);
+        return res.status(500).json({ message: "Server error" });
     }
 };
 

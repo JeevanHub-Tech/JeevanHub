@@ -118,6 +118,12 @@ router.post("/:id/shared-records", auth, addSharedRecord);
 // Patient's own past bookings that have a prescription, to pick from when sharing
 router.get("/sharing/own-bookings", auth, getOwnBookingsForSharing);
 
+// Fairness/escrow: patient disputes a held payout, admin resolves it or lists
+// what's queued for review.
+router.post("/:id/dispute", auth, bookingController.raiseBookingDispute);
+router.put("/:id/dispute/resolve", auth, bookingController.resolveBookingDispute);
+router.get("/payout/queue", auth, bookingController.getBookingPayoutQueue);
+
 // Get a single booking by ID — kept LAST so it doesn't shadow the more specific routes above
 router.get("/:id", auth, getBookingById);
 

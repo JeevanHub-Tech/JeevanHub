@@ -30,6 +30,7 @@ const { startScheduler } = require("./scheduler");
 const paymentRoutes = require("./routes/paymentRoutes");
 const medicineDraftRoutes = require("./routes/medicineDraftRoutes");
 const callbackRequestRoutes = require("./routes/callbackRequestRoutes");
+const cronRoutes = require("./routes/cronRoutes");
 
 if (process.env.NODE_ENV !== 'production') {
     mongoose.set('debug', true);
@@ -98,6 +99,7 @@ app.use("/api/knowledge", knowledgeBaseRoutes);
 
 app.use("/api/payment", paymentRoutes);
 app.use("/api/callback-requests", callbackRequestRoutes);
+app.use("/api/cron", cronRoutes);
 
 
 // Start the scheduler

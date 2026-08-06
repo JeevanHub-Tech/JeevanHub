@@ -91,12 +91,33 @@ const ShareRecordModal = ({ bookingId, onClose, onShared, initialMode = "upload"
 
 	// Fires once the patient hits "Submit to doctor" inside the OCR review panel
 	// (PatientVerificationPanel already handles the save/submit calls itself --
-	// we just watch for the resulting `submitted` status).
-	const handleReviewDocUpdate = (updatedDoc) => {
+	// once it reaches "submitted" we still need to attach the doc to *this*
+	// booking so it shows up on the doctor's booking view).
+	const handleReviewDocUpdate = async (updatedDoc) => {
 		setReviewDoc(updatedDoc);
-		if (updatedDoc?.patientVerification?.status === "submitted") {
+		if (updatedDoc?.patientVerification?.status !== "submitted") return;
+
+		setSubmitting(true);
+		try {
+			const formData = new FormData();
+			formData.append("medicalHistoryDocId", updatedDoc._id);
+			formData.append("note", note);
+
+			const response = await authFetch(`${BACKEND_URL}/api/bookings/${bookingId}/shared-records`, {
+				method: "POST",
+				body: formData,
+			});
+			if (!response.ok) {
+				const data = await response.json().catch(() => ({}));
+				throw new Error(data.error || "Failed to attach document to this booking");
+			}
 			onShared?.();
 			onClose();
+		} catch (err) {
+			console.error("Error attaching reviewed document to booking:", err);
+			setUploadError(err.message);
+		} finally {
+			setSubmitting(false);
 		}
 	};
 
@@ -172,15 +193,18 @@ const ShareRecordModal = ({ bookingId, onClose, onShared, initialMode = "upload"
 
 				{mode === "upload" ? (
 					inReview ? (
-						<div className="flex h-[70vh] max-h-[70vh] flex-col overflow-hidden rounded-lg border border-border md:flex-row">
-							<div className="flex flex-1 items-center justify-center overflow-auto bg-secondary/60">
-								{reviewDoc.mimeType?.startsWith("image/") ? (
-									<img src={reviewDoc.url} alt={reviewDoc.fileName} className="max-h-full max-w-full object-contain" />
-								) : (
-									<iframe src={reviewDoc.url} title={reviewDoc.fileName} className="size-full border-0" />
-								)}
+						<div className="flex flex-col gap-2">
+							{uploadError ? <p className="text-xs text-destructive">{uploadError}</p> : null}
+							<div className="flex h-[70vh] max-h-[70vh] flex-col overflow-hidden rounded-lg border border-border md:flex-row">
+								<div className="flex flex-1 items-center justify-center overflow-auto bg-secondary/60">
+									{reviewDoc.mimeType?.startsWith("image/") ? (
+										<img src={reviewDoc.url} alt={reviewDoc.fileName} className="max-h-full max-w-full object-contain" />
+									) : (
+										<iframe src={reviewDoc.url} title={reviewDoc.fileName} className="size-full border-0" />
+									)}
+								</div>
+								<PatientVerificationPanel doc={reviewDoc} patientId={auth.user.id} onDocUpdate={handleReviewDocUpdate} />
 							</div>
-							<PatientVerificationPanel doc={reviewDoc} patientId={auth.user.id} onDocUpdate={handleReviewDocUpdate} />
 						</div>
 					) : (
 						<div className="flex flex-col gap-3">

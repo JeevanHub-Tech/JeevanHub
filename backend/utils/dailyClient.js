@@ -15,24 +15,29 @@ const dailyClient = axios.create({
 
 const isDailyConfigured = () => Boolean(DAILY_API_KEY);
 
-const createDailyRoom = async (roomName) => {
+const createDailyRoom = async (roomName, expiresAt) => {
 	const { data } = await dailyClient.post("/rooms", {
 		name: roomName,
 		privacy: "private",
 		properties: {
-			exp: Math.floor(Date.now() / 1000) + 6 * 60 * 60, // room stays valid 6h
+			// Defaults to 6h out if no slot-derived expiry was given (e.g. an
+			// admin manually opening a room). Callers should normally pass the
+			// appointment's actual end time so a leaked link/token can't be
+			// replayed after the slot is over.
+			exp: expiresAt || Math.floor(Date.now() / 1000) + 6 * 60 * 60,
 			enable_chat: true,
 		},
 	});
 	return data; // { name, url, ... }
 };
 
-const createDailyMeetingToken = async ({ roomName, isOwner, userName }) => {
+const createDailyMeetingToken = async ({ roomName, isOwner, userName, expiresAt }) => {
 	const { data } = await dailyClient.post("/meeting-tokens", {
 		properties: {
 			room_name: roomName,
 			is_owner: isOwner,
 			user_name: userName,
+			...(expiresAt ? { exp: expiresAt } : {}),
 		},
 	});
 	return data.token;

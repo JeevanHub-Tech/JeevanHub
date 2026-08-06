@@ -25,6 +25,50 @@ const hasSlotTimePassed = (dateOfAppointment, timeSlot) => {
 	return new Date() > slotDateTime;
 };
 
+// Resolves a booking's actual startTime/duration from the doctor's slot
+// template + any same-day reschedule override -- the values are never
+// persisted on the Booking itself (see hasSlotTimePassed above).
+const resolveBookingSlotTime = (doctor, booking) => {
+	if (!doctor || !doctor.availableSlots || !booking.slotId) return null;
+
+	const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][new Date(booking.dateOfAppointment).getDay()];
+	const baseSlots = doctor.availableSlots[dayName] || [];
+	const baseSlot = baseSlots.find(s => s._id.toString() === booking.slotId.toString());
+	if (!baseSlot) return null;
+
+	let startTime = baseSlot.startTime;
+	let duration = baseSlot.duration || 30;
+
+	if (Array.isArray(doctor.scheduleOverrides)) {
+		const bookingDateStr = new Date(booking.dateOfAppointment).toDateString();
+		const override = doctor.scheduleOverrides.find(o =>
+			new Date(o.date).toDateString() === bookingDateStr &&
+			o.targetSlotId && o.targetSlotId.toString() === booking.slotId.toString() &&
+			o.type === 'rescheduled'
+		);
+		if (override) {
+			startTime = override.newStartTime || startTime;
+			duration = override.newDuration || duration;
+		}
+	}
+
+	return { startTime, duration };
+};
+
+// The video call room only opens in a window around the actual slot --
+// otherwise a patient (or a leaked join link) could join hours early/late.
+const JOIN_WINDOW_BEFORE_MS = 10 * 60 * 1000;
+const JOIN_WINDOW_AFTER_GRACE_MS = 15 * 60 * 1000;
+const getJoinWindow = (dateOfAppointment, slotTime) => {
+	if (!slotTime || !slotTime.startTime) return null;
+	const [hours, minutes] = slotTime.startTime.split(':').map(Number);
+	if (Number.isNaN(hours)) return null;
+	const start = new Date(dateOfAppointment);
+	start.setHours(hours, minutes || 0, 0, 0);
+	const end = new Date(start.getTime() + (slotTime.duration || 30) * 60 * 1000 + JOIN_WINDOW_AFTER_GRACE_MS);
+	return { opensAt: new Date(start.getTime() - JOIN_WINDOW_BEFORE_MS), closesAt: end };
+};
+
 // Global registry for SSE doctor connections
 const doctorConnections = new Map();
 
@@ -724,9 +768,30 @@ exports.getDailyJoinInfo = async (req, res) => {
 			return res.status(400).json({ error: "This appointment hasn't been accepted yet." });
 		}
 
+		const doctor = await Doctor.findById(booking.doctorId);
+		const slotTime = resolveBookingSlotTime(doctor, booking);
+		const joinWindow = getJoinWindow(booking.dateOfAppointment, slotTime);
+
+		// Admins can still open the room (support/troubleshooting); the actual
+		// patient/doctor are held to the window so a leaked link, or just an
+		// early click, can't sit in an idle room burning Daily.co minutes.
+		if (joinWindow && req.user.role !== "admin") {
+			const now = new Date();
+			if (now < joinWindow.opensAt) {
+				return res.status(403).json({ error: "This call opens 10 minutes before your slot. Please come back closer to the time." });
+			}
+			if (now > joinWindow.closesAt) {
+				return res.status(403).json({ error: "This appointment's time window has passed." });
+			}
+		}
+
 		if (!booking.dailyRoomUrl) {
 			const roomName = `ayuhub-${booking._id}`;
-			const room = await createDailyRoom(roomName);
+			// Room self-destructs shortly after the slot ends instead of sitting
+			// around for a flat 6h -- a leaked room URL/token stops working once
+			// the appointment is actually over.
+			const expiresAt = joinWindow ? Math.floor(joinWindow.closesAt.getTime() / 1000) : Math.floor(Date.now() / 1000) + 6 * 60 * 60;
+			const room = await createDailyRoom(roomName, expiresAt);
 			booking.dailyRoomName = room.name;
 			booking.dailyRoomUrl = room.url;
 			await booking.save();
@@ -737,6 +802,7 @@ exports.getDailyJoinInfo = async (req, res) => {
 			roomName: booking.dailyRoomName,
 			isOwner: isDoctor,
 			userName: userName || (isDoctor ? "Doctor" : "Patient"),
+			expiresAt: joinWindow ? Math.floor(joinWindow.closesAt.getTime() / 1000) : undefined,
 		});
 
 		return res.status(200).json({ url: `${booking.dailyRoomUrl}?t=${token}` });

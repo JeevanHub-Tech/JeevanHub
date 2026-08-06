@@ -46,9 +46,10 @@ const PatientPage = lazy(() => import('./screens/Patients/PatientPage'));
 const OrderHistory = lazy(() => import('./screens/Patients/OrderHistory'));
 const DoctorHomeScreen = lazy(() => import('./screens/Doctors/DoctorHomeScreen'));
 const DoctorAnalytics = lazy(() => import('./screens/Doctors/DoctorAnalytics'));
-const CurrentRequests = lazy(() => import('./screens/Doctors/CurrentRequests'));
 const AppointmentSlots = lazy(() => import('./screens/Doctors/AppointmentSlots'));
 const PatientList = lazy(() => import('./screens/Doctors/PatientList'));
+const PatientDetail = lazy(() => import('./screens/Doctors/PatientDetail'));
+const AppointmentHistory = lazy(() => import('./screens/Doctors/AppointmentHistory'));
 const HealthBlogs = lazy(() => import('./screens/Doctors/HealthBlogs'));
 const WriteBlog = lazy(() => import('./screens/Doctors/WriteBlog'));
 const TreatmentDetailsScreen = lazy(() => import('./screens/TreatmentDetailsScreen'));
@@ -199,7 +200,6 @@ function App() {
             <Route path="/profile/patient" element={<PatientProfileNew />} />
             <Route path="/profile/doctor" element={<DoctorProfileNew />} />
             <Route path="/profile/retailer" element={<RetailerProfileNew />} />
-            <Route path="/current-requests" element={<CurrentRequests />} />
             <Route path="/ayurveda-wellness" element={<AyurvedaDashboard />} />
             <Route path="/ayurveda-wellness/profile" element={<WellnessProfileForm />} />
             <Route path="/ayurveda-wellness/assessment" element={<DoshaAssessmentQuiz />} />
@@ -211,6 +211,8 @@ function App() {
             <Route path="/appointment-slots" element={<AppointmentSlots />} />
             <Route path="/doctor-analytics" element={<DoctorAnalytics />} />
             <Route path="/patient-list" element={<PatientList />} />
+            <Route path="/patient-list/:patientId" element={<PatientDetail />} />
+            <Route path="/appointment-history" element={<AppointmentHistory />} />
             <Route path="/health-blogs" element={<HealthBlogs />} />
             <Route path="/health-blogs/new" element={<WriteBlog />} />
             <Route path="/health-blogs/edit/:id" element={<WriteBlog />} />

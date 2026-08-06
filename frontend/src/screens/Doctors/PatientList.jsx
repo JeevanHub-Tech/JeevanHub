@@ -1,6 +1,6 @@
 import { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
-import { Clock, Calendar, ChevronLeft, ChevronRight, Star, CheckCircle2, Hourglass, Pill } from "lucide-react";
+import { Clock, Calendar, ChevronLeft, ChevronRight, ChevronDown, Star, CheckCircle2, Hourglass, Pill } from "lucide-react";
 
 import { AuthContext } from "../../context/AuthContext";
 import { authFetch } from "../../utils/authFetch";
@@ -63,6 +63,11 @@ function PatientList() {
 	const [galleryImages, setGalleryImages] = useState([]);
 	const [currentImageIndex, setCurrentImageIndex] = useState(0);
 	const [selectedIllness, setSelectedIllness] = useState(null);
+	const [expandedPatients, setExpandedPatients] = useState({});
+
+	const toggleExpanded = (patientKey) => {
+		setExpandedPatients((prev) => ({ ...prev, [patientKey]: !prev[patientKey] }));
+	};
 
 	const { auth } = useContext(AuthContext);
 	const doctorId = auth.user?.id;
@@ -128,6 +133,31 @@ function PatientList() {
 		fetchAppointments();
 	}, [doctorId]);
 
+	// Group each patient's completed appointments into one row -- a returning
+	// patient previously showed up once per visit; here their whole history
+	// (all prescriptions across visits) rolls up under a single card.
+	const patients = [];
+	const patientsByKey = new Map();
+	previousAppointments.forEach((appointment) => {
+		const key = appointment.patientId?._id || appointment.patientId || appointment.patientEmail;
+		if (!patientsByKey.has(key)) {
+			const entry = { key, latest: appointment, visits: [] };
+			patientsByKey.set(key, entry);
+			patients.push(entry);
+		}
+		patientsByKey.get(key).visits.push(appointment);
+	});
+	// Each patient's visits arrive already sorted newest-first (previousAppointments
+	// is sorted that way), and `latest` is simply the first visit seen per patient.
+	patients.forEach((entry) => {
+		entry.prescriptions = entry.visits.flatMap((visit) =>
+			(visit.recommendedSupplements || []).map((supplement) => ({
+				...supplement,
+				visitDate: visit.dateOfAppointment,
+			}))
+		);
+	});
+
 	if (loading) {
 		return (
 			<DashboardShell>
@@ -155,59 +185,55 @@ function PatientList() {
 				</TabsList>
 
 				<TabsContent value="Previous">
-					{previousAppointments.length === 0 ? (
-						<p className="text-center text-muted-foreground">No previous appointments found.</p>
+					{patients.length === 0 ? (
+						<p className="text-center text-muted-foreground">No previous patients found.</p>
 					) : (
 						<div className="flex flex-col gap-5">
-							{previousAppointments.map((appointment) => {
-								const hasScreenshots = appointment.paymentScreenshots && appointment.paymentScreenshots.length > 0;
-								const isPendingPayment = appointment.amountPaid > 0 && appointment.paymentStatus === "Pending";
-								const supplementCount = appointment.recommendedSupplements?.length || 0;
+							{patients.map(({ key, latest, visits, prescriptions }) => {
+								const hasScreenshots = latest.paymentScreenshots && latest.paymentScreenshots.length > 0;
+								const isPendingPayment = latest.amountPaid > 0 && latest.paymentStatus === "Pending";
+								const isExpanded = !!expandedPatients[key];
 
 								return (
-									<Card key={appointment._id} className="p-6">
+									<Card key={key} className="p-6">
 										<div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
 											<div>
 												<div className="flex flex-wrap items-center gap-2">
-													<h3 className="text-lg font-semibold text-foreground">{appointment.patientName}</h3>
-													{appointment.isReturningPatient ? (
-														<Badge variant="secondary" title="Has previously booked appointments with you">
-															Returning
-														</Badge>
-													) : (
-														<Badge title="First-time booking with you">New</Badge>
-													)}
+													<h3 className="text-lg font-semibold text-foreground">{latest.patientName}</h3>
+													<Badge variant="secondary" title="Total appointments with you">
+														{visits.length} visit{visits.length > 1 ? "s" : ""}
+													</Badge>
 												</div>
 												<p
 													className="mt-1 text-sm text-muted-foreground"
-													title={`Age: ${appointment.patientAge} yrs | Gender: ${appointment.patientGender} | Email: ${appointment.patientEmail}`}
+													title={`Age: ${latest.patientAge} yrs | Gender: ${latest.patientGender} | Email: ${latest.patientEmail}`}
 												>
-													{appointment.patientAge || "N/A"} yrs &bull; {appointment.patientGender || "N/A"} &bull;{" "}
-													{appointment.patientEmail || "N/A"}
+													{latest.patientAge || "N/A"} yrs &bull; {latest.patientGender || "N/A"} &bull;{" "}
+													{latest.patientEmail || "N/A"}
 												</p>
 												<div className="mt-3 text-sm text-foreground/80">
-													<strong className="text-foreground">Illness:</strong>{" "}
-													{appointment.patientIllness && appointment.patientIllness.length > 80 ? (
+													<strong className="text-foreground">Latest reason for visit:</strong>{" "}
+													{latest.patientIllness && latest.patientIllness.length > 80 ? (
 														<>
-															{appointment.patientIllness.substring(0, 80)}...
+															{latest.patientIllness.substring(0, 80)}...
 															<button
 																className="ml-1 text-primary underline hover:no-underline"
-																onClick={() => setSelectedIllness(appointment.patientIllness)}
+																onClick={() => setSelectedIllness(latest.patientIllness)}
 															>
 																More
 															</button>
 														</>
 													) : (
-														appointment.patientIllness || "No illness information"
+														latest.patientIllness || "No illness information"
 													)}
 												</div>
-												{appointment.rating ? (
+												{latest.rating ? (
 													<div
 														className="mt-3 flex items-center gap-1 text-xs text-muted-foreground"
-														title="Patient's feedback for this consultation"
+														title="Patient's feedback for the latest consultation"
 													>
-														<Star className="size-3.5 fill-primary text-primary" /> {appointment.rating}/5
-														{appointment.review ? ` — "${appointment.review}"` : ""}
+														<Star className="size-3.5 fill-primary text-primary" /> {latest.rating}/5
+														{latest.review ? ` — "${latest.review}"` : ""}
 													</div>
 												) : (
 													<div className="mt-3 text-xs text-muted-foreground">No review submitted yet</div>
@@ -217,9 +243,9 @@ function PatientList() {
 											<div>
 												<div className="flex flex-wrap items-center justify-between gap-3">
 													<div className="flex flex-col gap-1 text-sm text-foreground/80">
-														<span className="flex items-center gap-1.5" title="Date of Appointment">
+														<span className="flex items-center gap-1.5" title="Most Recent Appointment">
 															<Calendar className="size-4 text-muted-foreground" />
-															{new Date(appointment.dateOfAppointment).toLocaleDateString("en-GB", {
+															{new Date(latest.dateOfAppointment).toLocaleDateString("en-GB", {
 																weekday: "short",
 																day: "numeric",
 																month: "short",
@@ -228,15 +254,15 @@ function PatientList() {
 														</span>
 														<span className="flex items-center gap-1.5" title="Time of Appointment">
 															<Clock className="size-4 text-muted-foreground" />
-															{format12HourTime(appointment.timeSlot)}
+															{format12HourTime(latest.timeSlot)}
 														</span>
 													</div>
-													<Badge variant={appointment.amountPaid === 0 ? "secondary" : "default"} title="Consultation Fee">
-														{appointment.amountPaid === 0 ? "Free" : `₹${appointment.amountPaid}`}
+													<Badge variant={latest.amountPaid === 0 ? "secondary" : "default"} title="Latest Consultation Fee">
+														{latest.amountPaid === 0 ? "Free" : `₹${latest.amountPaid}`}
 													</Badge>
 												</div>
 
-												{appointment.paymentStatus === "Completed" ? (
+												{latest.paymentStatus === "Completed" ? (
 													<p className="mt-3 flex items-center gap-1.5 text-sm font-semibold text-primary">
 														<CheckCircle2 className="size-4" /> Payment Verified
 													</p>
@@ -245,10 +271,10 @@ function PatientList() {
 												{hasScreenshots ? (
 													<div className="mt-3">
 														<p className="mb-2 text-xs font-medium text-muted-foreground">
-															Payment Proofs ({appointment.paymentScreenshots.length}):
+															Payment Proofs ({latest.paymentScreenshots.length}):
 														</p>
 														<div className="flex flex-wrap gap-2">
-															{appointment.paymentScreenshots.map((proof, index) => {
+															{latest.paymentScreenshots.map((proof, index) => {
 																const imgUrl = proof.startsWith("http")
 																	? proof
 																	: `${BACKEND_URL || "http://localhost:8080"}/${proof}`;
@@ -259,7 +285,7 @@ function PatientList() {
 																		alt={`Payment Proof ${index + 1}`}
 																		className="size-16 cursor-pointer rounded-md border border-border object-cover"
 																		onClick={() => {
-																			setGalleryImages(appointment.paymentScreenshots);
+																			setGalleryImages(latest.paymentScreenshots);
 																			setCurrentImageIndex(index);
 																		}}
 																	/>
@@ -275,15 +301,34 @@ function PatientList() {
 													</p>
 												) : null}
 
-												{supplementCount > 0 ? (
-													<p className="mt-3 flex items-center gap-1.5 border-t border-dashed border-border pt-3 text-xs font-medium text-muted-foreground">
-														<Pill className="size-3.5" /> {supplementCount} medicine{supplementCount > 1 ? "s" : ""} prescribed
-													</p>
+												{prescriptions.length > 0 ? (
+													<button
+														type="button"
+														onClick={() => toggleExpanded(key)}
+														className="mt-3 flex w-full items-center gap-1.5 border-t border-dashed border-border bg-transparent pt-3 text-left text-xs font-medium text-muted-foreground hover:text-foreground"
+													>
+														<Pill className="size-3.5" /> {prescriptions.length} medicine{prescriptions.length > 1 ? "s" : ""} prescribed across {visits.length} visit{visits.length > 1 ? "s" : ""}
+														<ChevronDown className={`ml-auto size-3.5 shrink-0 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+													</button>
+												) : null}
+
+												{isExpanded ? (
+													<ul className="mt-2 flex flex-col gap-1.5 rounded-(--jh-radius-md) bg-secondary/60 p-3 text-xs text-foreground/80">
+														{prescriptions.map((supplement, idx) => (
+															<li key={idx}>
+																<strong className="text-foreground">{supplement.medicineName}</strong>
+																{supplement.dosage ? ` — ${supplement.dosage}` : ""}
+																<span className="ml-1 text-muted-foreground">
+																	({new Date(supplement.visitDate).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })})
+																</span>
+															</li>
+														))}
+													</ul>
 												) : null}
 											</div>
 
 											<div>
-												<Button onClick={() => navigate(`/doctorsprescribe/${appointment._id}`)}>
+												<Button onClick={() => navigate(`/doctorsprescribe/${latest._id}`)}>
 													Prescribe Medicine & Diet - Yoga Plan
 												</Button>
 											</div>

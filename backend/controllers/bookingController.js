@@ -8,6 +8,8 @@ const { isDailyConfigured, createDailyRoom, createDailyMeetingToken } = require(
 const fs = require("fs");
 const multer = require("multer");
 const path = require("path");
+const crypto = require("crypto");
+const getRazorpay = require("../services/razorpayService");
 
 // A pending request "expires" once its slot's start time has passed without the
 // doctor acting on it — from that point on it's treated the same as an explicit
@@ -166,6 +168,7 @@ exports.createBooking = async (req, res) => {
 					amountPaid: { $gt: 0 },
 					$or: [
 						{ 'paymentScreenshots.0': { $exists: true } },
+						{ paymentStatus: 'Completed' },
 						{ createdAt: { $gte: tenMinutesAgo } }
 					]
 				}
@@ -249,6 +252,7 @@ exports.createBooking = async (req, res) => {
 					amountPaid: { $gt: 0 },
 					$or: [
 						{ 'paymentScreenshots.0': { $exists: true } },
+						{ paymentStatus: 'Completed' },
 						{ createdAt: { $gte: tenMinutesAgo } }
 					]
 				}
@@ -376,6 +380,67 @@ exports.uploadPaymentScreenshot = (req, res) => {
 			return res.status(500).json({ error: "Server error" });
 		}
 	});
+};
+
+// Verifies a Razorpay payment for a booking's consultation fee -- same
+// signature + server-fetched-amount pattern as orderController.createOrder,
+// so a tampered request body can't mark an underpaid or fake booking as paid.
+exports.verifyBookingPayment = async (req, res) => {
+	const { id } = req.params;
+	const { razorpayOrderId, razorpayPaymentId, razorpaySignature } = req.body;
+
+	try {
+		if (!razorpayOrderId || !razorpayPaymentId || !razorpaySignature) {
+			return res.status(400).json({ error: "Missing payment verification details" });
+		}
+		if (!process.env.RAZORPAY_KEY_SECRET) {
+			return res.status(500).json({ error: "Payment gateway not configured" });
+		}
+
+		const booking = await Booking.findById(id);
+		if (!booking) {
+			return res.status(404).json({ error: "Booking not found" });
+		}
+		if (booking.patientId.toString() !== req.user._id.toString()) {
+			return res.status(403).json({ error: "Not authorized" });
+		}
+
+		const expectedSignature = crypto
+			.createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+			.update(razorpayOrderId + "|" + razorpayPaymentId)
+			.digest('hex');
+		if (expectedSignature !== razorpaySignature) {
+			return res.status(400).json({ error: "Payment verification failed" });
+		}
+
+		// Signature only proves the payment/order pair is genuine -- confirm the
+		// Razorpay order amount against this booking's fee before trusting it.
+		const razorpayOrder = await getRazorpay().orders.fetch(razorpayOrderId);
+		if (razorpayOrder.amount !== Math.round(booking.amountPaid * 100)) {
+			return res.status(400).json({ error: "Paid amount does not match consultation fee" });
+		}
+
+		booking.paymentDetails = {
+			razorpayOrderId,
+			razorpayPaymentId,
+			razorpaySignature,
+			amount: booking.amountPaid,
+			currency: "INR",
+			status: "paid"
+		};
+		booking.paymentStatus = "Completed";
+		await booking.save();
+
+		notifyDoctor(booking.doctorId);
+
+		return res.status(200).json({
+			message: "Payment verified successfully",
+			booking,
+		});
+	} catch (error) {
+		console.error("❌ Error verifying booking payment:", error);
+		return res.status(500).json({ error: "Server error" });
+	}
 };
 
 const sharedRecordStorage = new CloudinaryStorage({
@@ -570,14 +635,11 @@ exports.updateBookingStatus = async (req, res) => {
         if (requestAccept === "accepted") {
             updateData.paymentStatus = "Completed";
 
-            // Logic to generate Jitsi link if the request is accepted
+            // Video calls run on Daily.co by default (see getDailyJoinInfo) -- meetLink
+            // is now only an optional backup the doctor can set here or later via
+            // updateMeetLink, shared with the patient in case Daily.co fails.
             if (req.body.meetLink && req.body.meetLink.trim() !== "") {
                 updateData.meetLink = req.body.meetLink.trim();
-            } else {
-                // Create a unique room name using the booking ID and a short random string
-                // Jitsi rooms are accessed via: https://meet.jit.si/RoomName
-                const uniqueRoomName = `AyuHub-${id}-${Math.random().toString(36).substring(7)}`;
-                updateData.meetLink = `https://meet.jit.si/${uniqueRoomName}`;
             }
         }
 

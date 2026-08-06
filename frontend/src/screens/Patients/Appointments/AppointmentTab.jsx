@@ -3,7 +3,6 @@ import {
 	Calendar,
 	ChevronDown,
 	Clock,
-	CreditCard,
 	Link as LinkIcon,
 	Mail,
 	MessageSquareText,
@@ -198,7 +197,6 @@ const AppointmentTab = ({
 	deniedDoctors,
 	previousAppointments,
 	supplements,
-	handlePayFees,
 	onRatingClick,
 	onIllnessUpdated,
 	onRequestCancelled,
@@ -334,22 +332,23 @@ const AppointmentTab = ({
 				) : null}
 
 				<div className="mt-4 flex flex-wrap gap-2">
-					{variant === "upcoming" &&
-						(appointment.meetLink && appointment.meetLink !== "no" ? (
-							// Daily.co replaces the old meet.jit.si join flow (public Jitsi
-							// rooms left both sides stuck on "waiting for moderator").
-							// Old code, left for reference:
-							// <Button size="sm" onClick={() => window.open(appointment.meetLink, "_blank")}>
-							// 	<Video size={14} /> Join Meet
-							// </Button>
+					{variant === "upcoming" && (
+						<>
 							<Button size="sm" onClick={() => handleJoinDaily(appointment._id)} disabled={joiningId === appointment._id}>
 								<Video size={14} /> {joiningId === appointment._id ? "Joining…" : "Join Meet"}
 							</Button>
-						) : (
-							<Button size="sm" onClick={() => handlePayFees(doctorIdStr, appointment._id)}>
-								<CreditCard size={14} /> Pay Fees
-							</Button>
-						))}
+							{appointment.meetLink && appointment.meetLink !== "no" ? (
+								<Button
+									size="sm"
+									variant="outline"
+									title="Backup link from your doctor, in case the built-in video call fails"
+									onClick={() => window.open(appointment.meetLink, "_blank")}
+								>
+									<LinkIcon size={14} /> Alternate Link
+								</Button>
+							) : null}
+						</>
+					)}
 
 					{variant === "pending" ? (
 						<Button

@@ -90,6 +90,10 @@ router.get("/reviews/:doctorEmail", async (req, res) => {
 
 router.post("/:id/payment", auth, bookingController.uploadPaymentScreenshot);
 
+// Razorpay verification for a booking's consultation fee (alternative to the
+// manual UPI-screenshot flow above).
+router.put("/:id/verify-payment", auth, bookingController.verifyBookingPayment);
+
 // Stream notifications for doctor dashboard (SSE)
 router.get("/stream-notifications/:doctorId", auth, bookingController.streamNotifications);
 

@@ -19,7 +19,6 @@ function CurrentRequests() {
 	const [denyingRequest, setDenyingRequest] = useState(null);
 	const [acceptingRequest, setAcceptingRequest] = useState(null);
 	const [doctorsMessage, setDoctorsMessage] = useState("");
-	const [meetLink, setMeetLink] = useState("");
 	const [galleryImages, setGalleryImages] = useState([]);
 	const [currentImageIndex, setCurrentImageIndex] = useState(0);
 	const [selectedIllness, setSelectedIllness] = useState(null);
@@ -86,7 +85,7 @@ function CurrentRequests() {
 		}
 	}, [doctorId]);
 
-	const acceptRequest = async (id, customMeetLink) => {
+	const acceptRequest = async (id) => {
 		try {
 			const response = await authFetch(`${BACKEND_URL}/api/bookings/update/${id}`, {
 				method: "PUT",
@@ -94,7 +93,7 @@ function CurrentRequests() {
 					"Content-Type": "application/json",
 					Authorization: `Bearer ${localStorage.getItem("token")}`,
 				},
-				body: JSON.stringify({ requestAccept: "accepted", meetLink: customMeetLink }),
+				body: JSON.stringify({ requestAccept: "accepted" }),
 			});
 
 			if (!response.ok) {
@@ -104,7 +103,6 @@ function CurrentRequests() {
 			setRequests((prevRequests) => prevRequests.filter((request) => request._id !== id));
 
 			setAcceptingRequest(null);
-			setMeetLink("");
 			alert(`Request accepted successfully!`);
 		} catch (error) {
 			console.error("Error accepting request:", error);
@@ -275,20 +273,13 @@ function CurrentRequests() {
 
 									{acceptingRequest === request._id ? (
 										<div className="flex flex-col gap-2">
-											<p className="text-xs text-muted-foreground">
-												{request.amountPaid > 0
-													? "Accepting confirms the payment proof above is valid."
-													: "Optional custom link (Zoom/Meet)."}
-												<br />
-												Blank = Auto Jitsi.
-											</p>
-											<Input
-												value={meetLink}
-												onChange={(e) => setMeetLink(e.target.value)}
-												placeholder="Custom meeting link"
-											/>
+											{request.amountPaid > 0 ? (
+												<p className="text-xs text-muted-foreground">
+													Accepting confirms the payment proof above is valid.
+												</p>
+											) : null}
 											<div className="flex gap-2">
-												<Button size="sm" onClick={() => acceptRequest(request._id, meetLink)}>
+												<Button size="sm" onClick={() => acceptRequest(request._id)}>
 													Confirm
 												</Button>
 												<Button size="sm" variant="outline" onClick={() => setAcceptingRequest(null)}>

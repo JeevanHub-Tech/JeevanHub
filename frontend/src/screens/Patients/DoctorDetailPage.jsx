@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { AuthContext } from "../../context/AuthContext";
 import { authFetch } from "../../utils/authFetch";
-import { BACKEND_URL } from "../../config";
+import { BACKEND_URL, RAZORPAY_KEY_ID } from "../../config";
 import defaultProfilePic from "../../media/default-profile.png";
 
 const getLocalDateString = (d = new Date()) => {
@@ -49,6 +49,8 @@ function DoctorDetail() {
 	const [currentBooking, setCurrentBooking] = useState(null);
 	const [screenshotFiles, setScreenshotFiles] = useState([]);
 	const [uploadingScreenshot, setUploadingScreenshot] = useState(false);
+	const [payingViaRazorpay, setPayingViaRazorpay] = useState(false);
+	const [showManualUpi, setShowManualUpi] = useState(false);
 	const [uploadAlert, setUploadAlert] = useState(null);
 	const [timeLeft, setTimeLeft] = useState(600);
 	const [loadingSlots, setLoadingSlots] = useState(false);
@@ -77,16 +79,9 @@ function DoctorDetail() {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [paymentModalOpen, currentBooking]);
 
-	const filteredSlots = useMemo(() => {
-		let slots = availableSlots || [];
-		if (!doctorUpiId) {
-			slots = slots.filter((slot) => {
-				const fee = slot.fee !== undefined ? slot.fee : doctor.pricepoint || doctor.price || 0;
-				return fee <= 0;
-			});
-		}
-		return slots;
-	}, [availableSlots, doctorUpiId, doctor.pricepoint, doctor.price]);
+	// Paid slots no longer require the doctor to have a UPI ID on file --
+	// Razorpay is a platform-level gateway, not tied to a per-doctor payout ID.
+	const filteredSlots = availableSlots || [];
 
 	const dates = useMemo(() => {
 		const d = [];
@@ -211,6 +206,7 @@ function DoctorDetail() {
 				if (response.ok) {
 					if (bookingData.amountPaid > 0) {
 						setCurrentBooking(result.booking);
+						setShowManualUpi(false);
 						setPaymentModalOpen(true);
 					} else {
 						alert("Appointment booked successfully!");
@@ -223,6 +219,80 @@ function DoctorDetail() {
 			}
 		} else {
 			setStatusMessage({ message: "Please fill all fields and select a time slot.", type: "error" });
+		}
+	};
+
+	const handleRazorpayPayment = async () => {
+		setPayingViaRazorpay(true);
+		try {
+			const token = localStorage.getItem("token");
+			const res = await authFetch(`${BACKEND_URL}/api/payment/create-order`, {
+				method: "POST",
+				headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+				body: JSON.stringify({ amount: currentBooking.amountPaid }),
+			});
+			const razorpayOrder = await res.json();
+			if (!res.ok) {
+				throw new Error(razorpayOrder.error || "Could not start payment");
+			}
+
+			const options = {
+				key: RAZORPAY_KEY_ID,
+				amount: razorpayOrder.amount,
+				currency: razorpayOrder.currency,
+				name: "JeevanHub",
+				description: `Consultation fee — Dr. ${doctor.firstName} ${doctor.lastName}`,
+				order_id: razorpayOrder.id,
+
+				handler: async function (response) {
+					try {
+						const verifyRes = await authFetch(`${BACKEND_URL}/api/bookings/${currentBooking._id}/verify-payment`, {
+							method: "PUT",
+							headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+							body: JSON.stringify({
+								razorpayOrderId: response.razorpay_order_id,
+								razorpayPaymentId: response.razorpay_payment_id,
+								razorpaySignature: response.razorpay_signature,
+							}),
+						});
+						const verifyData = await verifyRes.json();
+						if (!verifyRes.ok) throw new Error(verifyData.error || "Payment verification failed");
+
+						setPaymentModalOpen(false);
+						setCurrentBooking(null);
+						alert("Payment successful! Your appointment request has been sent to the doctor.");
+						fetchSlots();
+					} catch (err) {
+						console.error("Error verifying payment:", err);
+						alert(`Payment was received but we could not confirm it: ${err.message}. Please contact support with payment id ${response.razorpay_payment_id}.`);
+					} finally {
+						setPayingViaRazorpay(false);
+					}
+				},
+
+				modal: {
+					ondismiss: () => setPayingViaRazorpay(false),
+				},
+
+				prefill: {
+					name: patientName,
+				},
+
+				theme: {
+					color: "#556b2f",
+				},
+			};
+
+			const rzp = new window.Razorpay(options);
+			rzp.on("payment.failed", () => {
+				alert("Payment failed. Please try again.");
+				setPayingViaRazorpay(false);
+			});
+			rzp.open();
+		} catch (err) {
+			console.error("Payment error:", err);
+			alert(err.message || "Payment failed");
+			setPayingViaRazorpay(false);
 		}
 	};
 
@@ -556,7 +626,7 @@ function DoctorDetail() {
 
 			<Dialog open={paymentModalOpen && Boolean(currentBooking)} onOpenChange={(open) => !open && handleCancelPayment()}>
 				<DialogContent className="max-w-2xl">
-					<DialogTitle>Secure UPI payment</DialogTitle>
+					<DialogTitle>Secure payment</DialogTitle>
 					<p className="rounded-(--jh-radius-md) bg-secondary/60 px-3 py-2 text-sm text-muted-foreground">
 						Your slot is temporarily locked for you. Complete payment now to confirm.
 					</p>
@@ -582,39 +652,49 @@ function DoctorDetail() {
 						</div>
 
 						<div className="flex flex-col gap-4">
-							<div className="flex flex-col items-center gap-2 sm:hidden">
-								<Button
-									type="button"
-									className="w-full"
-									onClick={() => {
-										const upiUrl = `upi://pay?pa=${doctorUpiId}&pn=Dr.%20${doctor.firstName}%20${doctor.lastName}&am=${currentBooking?.amountPaid}&cu=INR&tn=AyuHub-${currentBooking?._id}`;
-										window.open(upiUrl, "_self");
-									}}
-								>
-									Pay using any UPI app
-								</Button>
-								<span className="text-xs text-muted-foreground">OR</span>
-							</div>
-
-							<div className="flex flex-col items-center gap-2 text-center">
-								<span className="inline-flex items-center gap-1.5 rounded-(--jh-radius-pill) bg-secondary px-3 py-1 text-xs font-semibold text-secondary-foreground">
-									<Clock size={13} />
-									<span className={timeLeft < 60 ? "text-destructive" : undefined}>
-										{Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, "0")}
-									</span>
-									remaining to complete payment
+							<span className="mx-auto inline-flex items-center gap-1.5 rounded-(--jh-radius-pill) bg-secondary px-3 py-1 text-xs font-semibold text-secondary-foreground">
+								<Clock size={13} />
+								<span className={timeLeft < 60 ? "text-destructive" : undefined}>
+									{Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, "0")}
 								</span>
-								<p className="text-sm font-semibold text-foreground">Scan QR code to pay</p>
-								<img
-									src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
-										`upi://pay?pa=${doctorUpiId}&pn=Dr.%20${doctor.firstName}%20${doctor.lastName}&am=${currentBooking?.amountPaid}&cu=INR&tn=AyuHub-${currentBooking?._id}`,
-									)}`}
-									alt="UPI payment QR code"
-									className="size-40 rounded-(--jh-radius-md) bg-secondary/60 p-2"
-								/>
-							</div>
+								remaining to complete payment
+							</span>
 
-							<form onSubmit={handleUploadProof} className="flex flex-col gap-3">
+							<Button type="button" className="w-full" onClick={handleRazorpayPayment} disabled={payingViaRazorpay}>
+								{payingViaRazorpay ? <Loader2 className="size-4 animate-spin" /> : null}
+								{payingViaRazorpay ? "Processing..." : "Pay Now"}
+							</Button>
+
+							{doctorUpiId ? (
+								showManualUpi ? (
+									<div className="flex flex-col gap-4">
+										<div className="flex flex-col items-center gap-2 sm:hidden">
+											<Button
+												type="button"
+												variant="outline"
+												className="w-full"
+												onClick={() => {
+													const upiUrl = `upi://pay?pa=${doctorUpiId}&pn=Dr.%20${doctor.firstName}%20${doctor.lastName}&am=${currentBooking?.amountPaid}&cu=INR&tn=AyuHub-${currentBooking?._id}`;
+													window.open(upiUrl, "_self");
+												}}
+											>
+												Pay using any UPI app
+											</Button>
+											<span className="text-xs text-muted-foreground">OR</span>
+										</div>
+
+										<div className="flex flex-col items-center gap-2 text-center">
+											<p className="text-sm font-semibold text-foreground">Scan QR code to pay</p>
+											<img
+												src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
+													`upi://pay?pa=${doctorUpiId}&pn=Dr.%20${doctor.firstName}%20${doctor.lastName}&am=${currentBooking?.amountPaid}&cu=INR&tn=AyuHub-${currentBooking?._id}`,
+												)}`}
+												alt="UPI payment QR code"
+												className="size-40 rounded-(--jh-radius-md) bg-secondary/60 p-2"
+											/>
+										</div>
+
+										<form onSubmit={handleUploadProof} className="flex flex-col gap-3">
 								<div>
 									<Label>Upload payment screenshots (max 5)</Label>
 									<p className="mt-1 text-xs text-muted-foreground">Upload screenshots of the successful transaction. You can add multiple images.</p>
@@ -680,7 +760,26 @@ function DoctorDetail() {
 										{uploadingScreenshot ? "Uploading..." : "Submit payment proof"}
 									</Button>
 								</DialogFooter>
-							</form>
+										</form>
+
+										<button
+											type="button"
+											onClick={() => setShowManualUpi(false)}
+											className="mx-auto bg-transparent p-0 text-xs font-medium text-muted-foreground underline hover:text-foreground"
+										>
+											Back to Pay Now
+										</button>
+									</div>
+								) : (
+									<button
+										type="button"
+										onClick={() => setShowManualUpi(true)}
+										className="mx-auto bg-transparent p-0 text-xs font-medium text-muted-foreground underline hover:text-foreground"
+									>
+										Or pay manually via UPI (QR / screenshot)
+									</button>
+								)
+							) : null}
 						</div>
 					</div>
 				</DialogContent>

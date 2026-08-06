@@ -113,8 +113,14 @@ exports.getPatientById = async (req, res) => {
 	const { id } = req.params;
 
 	try {
-		if (req.user.role !== 'admin' && req.user._id.toString() !== id) {
-			return res.status(403).json({ message: "Not authorized to view this patient's details" });
+		const isSelf = req.user._id.toString() === id;
+		if (req.user.role !== 'admin' && !isSelf) {
+			// A doctor who's actually had a booking with this patient can view
+			// their basic profile too -- same relationship gate as medical history.
+			const hasRelationship = req.user.role === 'doctor' && await Booking.exists({ doctorId: req.user._id, patientId: id });
+			if (!hasRelationship) {
+				return res.status(403).json({ message: "Not authorized to view this patient's details" });
+			}
 		}
 		const patient = await Patient.findById(id).select('-password -resetPasswordOTP -resetPasswordOTPExpires -isOTPVerified');
 

@@ -56,6 +56,28 @@ const OrderHistory = () => {
 	const { auth } = useContext(AuthContext);
 	const userId = auth?.user?.id;
 	const navigate = useNavigate();
+	const [reportingId, setReportingId] = useState(null);
+
+	// Fairness/escrow: the retailer's payout for a paid order is held for a
+	// window after delivery — this is the patient's chance to flag "paid but
+	// never received it" before that hold auto-releases.
+	const handleReportIssue = async (order) => {
+		const reason = window.prompt("What went wrong with this order? (e.g. never received the medicines)");
+		if (!reason || !reason.trim()) return;
+		setReportingId(order._id);
+		try {
+			await axios.post(
+				`${API_BASE_URL}/api/orders/${order._id}/dispute`,
+				{ reason },
+				{ headers: { Authorization: `Bearer ${auth.token}` } }
+			);
+			alert("Thanks — we've flagged this and will review it before any payout goes out.");
+		} catch (err) {
+			alert(err.response?.data?.message || "Could not report this issue. Please try again.");
+		} finally {
+			setReportingId(null);
+		}
+	};
 
 	useEffect(() => {
 		const fetchOrders = async () => {
@@ -294,17 +316,31 @@ const OrderHistory = () => {
 												</span>
 											</div>
 
-											{canViewDetail ? (
-												<Button
-													size="sm"
-													className="gap-1.5 bg-(--jh-bark-brown) text-primary-foreground hover:bg-(--jh-bark-brown)/90"
-													onClick={() => navigate(`/BuyerFeedback/${order._id}`)}
-												>
-													<Package className="size-4" aria-hidden="true" />
-													{statusKey === "shipped" ? "Update order status" : "View order"}
-													<ChevronRight className="size-4" aria-hidden="true" />
-												</Button>
-											) : null}
+											<div className="flex items-center gap-2">
+												{order.payoutStatus === "held" ? (
+													<Button
+														size="sm"
+														variant="ghost"
+														title="Flag a problem with this order before payout to the retailer is released"
+														onClick={() => handleReportIssue(order)}
+														disabled={reportingId === order._id}
+													>
+														{reportingId === order._id ? "Reporting…" : "Report an Issue"}
+													</Button>
+												) : null}
+
+												{canViewDetail ? (
+													<Button
+														size="sm"
+														className="gap-1.5 bg-(--jh-bark-brown) text-primary-foreground hover:bg-(--jh-bark-brown)/90"
+														onClick={() => navigate(`/BuyerFeedback/${order._id}`)}
+													>
+														<Package className="size-4" aria-hidden="true" />
+														{statusKey === "shipped" ? "Update order status" : "View order"}
+														<ChevronRight className="size-4" aria-hidden="true" />
+													</Button>
+												) : null}
+											</div>
 										</div>
 									</CardContent>
 								</Card>

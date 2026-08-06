@@ -8,6 +8,28 @@ const { isDailyConfigured, createDailyRoom, createDailyMeetingToken } = require(
 const fs = require("fs");
 const multer = require("multer");
 const path = require("path");
+const crypto = require("crypto");
+const getRazorpay = require("../services/razorpayService");
+const notificationController = require("./notificationController");
+
+// Slot times ("HH:MM") are always IST wall-clock -- the doctor picked "23:00"
+// meaning 11pm India time, regardless of what timezone the server process
+// happens to run in (Render/Docker default to UTC). Building the instant with
+// `Date.setHours` uses the *server's* local timezone, which silently corrupts
+// this by ~5.5h whenever server tz !== IST. Always go through this helper
+// instead of setHours for slot-time math.
+const buildIstDateTime = (dateOfAppointment, timeStr) => {
+	if (!timeStr || typeof timeStr !== 'string' || !timeStr.includes(':')) return null;
+	const [hours, minutes] = timeStr.split(':').map(Number);
+	if (Number.isNaN(hours)) return null;
+	const dateObj = new Date(dateOfAppointment);
+	const y = dateObj.getUTCFullYear();
+	const m = String(dateObj.getUTCMonth() + 1).padStart(2, '0');
+	const d = String(dateObj.getUTCDate()).padStart(2, '0');
+	const hh = String(hours).padStart(2, '0');
+	const mm = String(minutes || 0).padStart(2, '0');
+	return new Date(`${y}-${m}-${d}T${hh}:${mm}:00+05:30`);
+};
 
 // A pending request "expires" once its slot's start time has passed without the
 // doctor acting on it — from that point on it's treated the same as an explicit
@@ -15,12 +37,70 @@ const path = require("path");
 // resolved live from Doctor.availableSlots (never persisted on the Booking itself).
 const AUTO_DENY_MESSAGE = "Automatically denied — the requested slot passed without a response.";
 const hasSlotTimePassed = (dateOfAppointment, timeSlot) => {
-	if (!timeSlot || typeof timeSlot !== 'string' || !timeSlot.includes(':')) return false;
-	const [hours, minutes] = timeSlot.split(':').map(Number);
-	if (Number.isNaN(hours)) return false;
-	const slotDateTime = new Date(dateOfAppointment);
-	slotDateTime.setHours(hours, minutes || 0, 0, 0);
+	const slotDateTime = buildIstDateTime(dateOfAppointment, timeSlot);
+	if (!slotDateTime) return false;
 	return new Date() > slotDateTime;
+};
+
+// Resolves a booking's actual startTime/duration from the doctor's slot
+// template + any same-day reschedule override -- the values are never
+// persisted on the Booking itself (see hasSlotTimePassed above).
+const resolveBookingSlotTime = (doctor, booking) => {
+	if (!doctor || !doctor.availableSlots || !booking.slotId) return null;
+
+	const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][new Date(booking.dateOfAppointment).getDay()];
+	const baseSlots = doctor.availableSlots[dayName] || [];
+	const baseSlot = baseSlots.find(s => s._id.toString() === booking.slotId.toString());
+	if (!baseSlot) return null;
+
+	let startTime = baseSlot.startTime;
+	let duration = baseSlot.duration || 30;
+
+	if (Array.isArray(doctor.scheduleOverrides)) {
+		const bookingDateStr = new Date(booking.dateOfAppointment).toDateString();
+		const override = doctor.scheduleOverrides.find(o =>
+			new Date(o.date).toDateString() === bookingDateStr &&
+			o.targetSlotId && o.targetSlotId.toString() === booking.slotId.toString() &&
+			o.type === 'rescheduled'
+		);
+		if (override) {
+			startTime = override.newStartTime || startTime;
+			duration = override.newDuration || duration;
+		}
+	}
+
+	return { startTime, duration };
+};
+
+// The video call room only opens in a window around the actual slot --
+// otherwise a patient (or a leaked join link) could join hours early/late.
+const JOIN_WINDOW_BEFORE_MS = 10 * 60 * 1000;
+const JOIN_WINDOW_AFTER_GRACE_MS = 15 * 60 * 1000;
+// How long after a slot ends a paid booking's payout stays "held" before the
+// settlement cron auto-releases it -- the patient's dispute window.
+const PAYOUT_HOLD_GRACE_MS = 48 * 60 * 60 * 1000;
+
+// Fairness/escrow: computes the payout-hold fields for a just-confirmed paid
+// booking (slot-end + PAYOUT_HOLD_GRACE_MS). Returns null for free bookings --
+// there's nothing to hold. Shared by every path that can confirm a booking
+// (free auto-confirm, Razorpay verification, manual screenshot upload).
+const computeBookingPayoutHold = async (booking) => {
+	if (!booking.amountPaid || booking.amountPaid <= 0) return null;
+	const doctor = await Doctor.findById(booking.doctorId);
+	const slotTime = resolveBookingSlotTime(doctor, booking);
+	const joinWindow = getJoinWindow(booking.dateOfAppointment, slotTime);
+	const slotEnd = joinWindow ? joinWindow.closesAt : new Date(Date.now() + PAYOUT_HOLD_GRACE_MS);
+	return {
+		payoutStatus: 'held',
+		payoutHoldUntil: new Date(slotEnd.getTime() + PAYOUT_HOLD_GRACE_MS),
+	};
+};
+const getJoinWindow = (dateOfAppointment, slotTime) => {
+	if (!slotTime || !slotTime.startTime) return null;
+	const start = buildIstDateTime(dateOfAppointment, slotTime.startTime);
+	if (!start) return null;
+	const end = new Date(start.getTime() + (slotTime.duration || 30) * 60 * 1000 + JOIN_WINDOW_AFTER_GRACE_MS);
+	return { opensAt: new Date(start.getTime() - JOIN_WINDOW_BEFORE_MS), closesAt: end };
 };
 
 // Global registry for SSE doctor connections
@@ -166,6 +246,7 @@ exports.createBooking = async (req, res) => {
 					amountPaid: { $gt: 0 },
 					$or: [
 						{ 'paymentScreenshots.0': { $exists: true } },
+						{ paymentStatus: 'Completed' },
 						{ createdAt: { $gte: tenMinutesAgo } }
 					]
 				}
@@ -213,6 +294,8 @@ exports.createBooking = async (req, res) => {
 			return res.status(400).json({ error: "This time slot is already booked for the selected doctor. Please Choose a different date or time slot." });
 		}
 
+		const resolvedAmountPaid = amountPaid !== undefined ? amountPaid : (doctor.price || 0);
+
 		// Create a new booking
 		const newBooking = new Booking({
 			doctorId: doctor._id,
@@ -227,7 +310,12 @@ exports.createBooking = async (req, res) => {
 			patientAge,
 			patientIllness,
 			meetLink,
-			amountPaid: amountPaid !== undefined ? amountPaid : (doctor.price || 0),
+			amountPaid: resolvedAmountPaid,
+			// Appointments confirm by default -- there's no doctor accept/deny step.
+			// A free consult is confirmed immediately; a paid one confirms as soon as
+			// payment lands (verifyBookingPayment / uploadPaymentScreenshot), so it
+			// stays 'pending' only for the few minutes it takes to pay.
+			requestAccept: resolvedAmountPaid > 0 ? 'pending' : 'accepted',
 		});
 
 		// Save the booking to the database
@@ -249,6 +337,7 @@ exports.createBooking = async (req, res) => {
 					amountPaid: { $gt: 0 },
 					$or: [
 						{ 'paymentScreenshots.0': { $exists: true } },
+						{ paymentStatus: 'Completed' },
 						{ createdAt: { $gte: tenMinutesAgo } }
 					]
 				}
@@ -359,8 +448,14 @@ exports.uploadPaymentScreenshot = (req, res) => {
 
 			// Save all uploaded file paths
 			booking.paymentScreenshots = req.files.map(file => file.path);
-			// C5-1: Server dictates status, not client
+			// C5-1: Server dictates status, not client. Unlike Razorpay this isn't
+			// cryptographically verified, so paymentStatus stays Pending -- but the
+			// appointment still confirms by default (no doctor review gate); the
+			// payout-hold/dispute system is the fraud net, not a manual accept step.
 			booking.paymentStatus = "Pending";
+			booking.requestAccept = "accepted";
+			const payoutHold = await computeBookingPayoutHold(booking);
+			if (payoutHold) Object.assign(booking, payoutHold);
 
 			await booking.save();
 
@@ -376,6 +471,74 @@ exports.uploadPaymentScreenshot = (req, res) => {
 			return res.status(500).json({ error: "Server error" });
 		}
 	});
+};
+
+// Verifies a Razorpay payment for a booking's consultation fee -- same
+// signature + server-fetched-amount pattern as orderController.createOrder,
+// so a tampered request body can't mark an underpaid or fake booking as paid.
+exports.verifyBookingPayment = async (req, res) => {
+	const { id } = req.params;
+	const { razorpayOrderId, razorpayPaymentId, razorpaySignature } = req.body;
+
+	try {
+		if (!razorpayOrderId || !razorpayPaymentId || !razorpaySignature) {
+			return res.status(400).json({ error: "Missing payment verification details" });
+		}
+		if (!process.env.RAZORPAY_KEY_SECRET) {
+			return res.status(500).json({ error: "Payment gateway not configured" });
+		}
+
+		const booking = await Booking.findById(id);
+		if (!booking) {
+			return res.status(404).json({ error: "Booking not found" });
+		}
+		if (booking.patientId.toString() !== req.user._id.toString()) {
+			return res.status(403).json({ error: "Not authorized" });
+		}
+
+		const expectedSignature = crypto
+			.createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+			.update(razorpayOrderId + "|" + razorpayPaymentId)
+			.digest('hex');
+		if (expectedSignature !== razorpaySignature) {
+			return res.status(400).json({ error: "Payment verification failed" });
+		}
+
+		// Signature only proves the payment/order pair is genuine -- confirm the
+		// Razorpay order amount against this booking's fee before trusting it.
+		const razorpayOrder = await getRazorpay().orders.fetch(razorpayOrderId);
+		if (razorpayOrder.amount !== Math.round(booking.amountPaid * 100)) {
+			return res.status(400).json({ error: "Paid amount does not match consultation fee" });
+		}
+
+		booking.paymentDetails = {
+			razorpayOrderId,
+			razorpayPaymentId,
+			razorpaySignature,
+			amount: booking.amountPaid,
+			currency: "INR",
+			status: "paid"
+		};
+		booking.paymentStatus = "Completed";
+
+		// Appointments confirm by default once payment lands -- no separate
+		// doctor accept step.
+		booking.requestAccept = "accepted";
+		const payoutHold = await computeBookingPayoutHold(booking);
+		if (payoutHold) Object.assign(booking, payoutHold);
+
+		await booking.save();
+
+		notifyDoctor(booking.doctorId);
+
+		return res.status(200).json({
+			message: "Payment verified successfully",
+			booking,
+		});
+	} catch (error) {
+		console.error("❌ Error verifying booking payment:", error);
+		return res.status(500).json({ error: "Server error" });
+	}
 };
 
 const sharedRecordStorage = new CloudinaryStorage({
@@ -555,14 +718,14 @@ exports.getNotifications = async (req, res) => {
 
 // New controller function to update booking requestAccept status
 exports.updateBookingStatus = async (req, res) => {
-    const { id } = req.params; 
-    const { requestAccept, doctorsMessage } = req.body; 
+    const { id } = req.params;
+    const { requestAccept, doctorsMessage } = req.body;
 
     try {
         // Prepare the update object
-        let updateData = { 
-            requestAccept, 
-            doctorsMessage 
+        let updateData = {
+            requestAccept,
+            doctorsMessage
         };
 
         // Accepting a request is the doctor's verification of the payment proof shown
@@ -570,15 +733,19 @@ exports.updateBookingStatus = async (req, res) => {
         if (requestAccept === "accepted") {
             updateData.paymentStatus = "Completed";
 
-            // Logic to generate Jitsi link if the request is accepted
+            // Video calls run on Daily.co by default (see getDailyJoinInfo) -- meetLink
+            // is now only an optional backup the doctor can set here or later via
+            // updateMeetLink, shared with the patient in case Daily.co fails.
             if (req.body.meetLink && req.body.meetLink.trim() !== "") {
                 updateData.meetLink = req.body.meetLink.trim();
-            } else {
-                // Create a unique room name using the booking ID and a short random string
-                // Jitsi rooms are accessed via: https://meet.jit.si/RoomName
-                const uniqueRoomName = `AyuHub-${id}-${Math.random().toString(36).substring(7)}`;
-                updateData.meetLink = `https://meet.jit.si/${uniqueRoomName}`;
             }
+
+            // Fairness/escrow: start the payout hold on acceptance so the doctor
+            // doesn't get paid out immediately -- the patient has a window to
+            // dispute a no-show. See computeBookingPayoutHold and the settlement cron.
+            const existingBooking = await Booking.findById(id);
+            const payoutHold = existingBooking ? await computeBookingPayoutHold(existingBooking) : null;
+            if (payoutHold) Object.assign(updateData, payoutHold);
         }
 
         // Find the booking by ID and update the fields, ensuring doctor owns it
@@ -602,6 +769,53 @@ exports.updateBookingStatus = async (req, res) => {
         console.error("Error updating booking:", error);
         return res.status(500).json({ error: "Server error" });
     }
+};
+
+// Doctor cancels an already-confirmed appointment. Since appointments confirm
+// by default now (no accept/deny request queue), this is the doctor's only
+// way to back out of one -- and unlike a patient-raised dispute, a doctor
+// self-cancelling is an admission, so the refund happens immediately instead
+// of waiting on the hold window.
+exports.cancelBookingByDoctor = async (req, res) => {
+	const { id } = req.params;
+	const { reason } = req.body;
+
+	try {
+		const booking = await Booking.findOne({ _id: id, doctorId: req.user._id });
+		if (!booking) {
+			return res.status(404).json({ error: "Booking not found" });
+		}
+		if (booking.requestAccept !== "accepted") {
+			return res.status(400).json({ error: "Only a confirmed appointment can be cancelled." });
+		}
+		if (booking.payoutStatus === "released") {
+			return res.status(400).json({ error: "This booking's payout has already been released -- contact support to arrange a refund." });
+		}
+
+		booking.requestAccept = "denied";
+		booking.doctorsMessage = reason?.trim() || "Cancelled by the doctor.";
+		if (booking.amountPaid > 0) {
+			booking.payoutStatus = "refunded";
+		}
+		await booking.save();
+
+		await notificationController.createNotification(
+			booking.patientId,
+			'patient',
+			booking._id,
+			booking.amountPaid > 0
+				? `Your appointment with Dr. ${booking.doctorName} has been cancelled by the doctor. ₹${booking.amountPaid} will be refunded.`
+				: `Your appointment with Dr. ${booking.doctorName} has been cancelled by the doctor.`,
+			'appointment'
+		);
+
+		notifyDoctor(booking.doctorId);
+
+		return res.status(200).json({ message: "Appointment cancelled", booking });
+	} catch (error) {
+		console.error("Error cancelling booking:", error);
+		return res.status(500).json({ error: "Server error" });
+	}
 };
 
 // New controller function to update the meetLink
@@ -662,11 +876,44 @@ exports.getDailyJoinInfo = async (req, res) => {
 			return res.status(400).json({ error: "This appointment hasn't been accepted yet." });
 		}
 
+		const doctor = await Doctor.findById(booking.doctorId);
+		const slotTime = resolveBookingSlotTime(doctor, booking);
+		const joinWindow = getJoinWindow(booking.dateOfAppointment, slotTime);
+
+		// Admins can still open the room (support/troubleshooting); the actual
+		// patient/doctor are held to the window so a leaked link, or just an
+		// early click, can't sit in an idle room burning Daily.co minutes.
+		if (joinWindow && req.user.role !== "admin") {
+			const now = new Date();
+			if (now < joinWindow.opensAt) {
+				return res.status(403).json({ error: "This call opens 10 minutes before your slot. Please come back closer to the time." });
+			}
+			if (now > joinWindow.closesAt) {
+				return res.status(403).json({ error: "This appointment's time window has passed." });
+			}
+		}
+
+		let needsSave = false;
 		if (!booking.dailyRoomUrl) {
 			const roomName = `ayuhub-${booking._id}`;
-			const room = await createDailyRoom(roomName);
+			// Room self-destructs shortly after the slot ends instead of sitting
+			// around for a flat 6h -- a leaked room URL/token stops working once
+			// the appointment is actually over.
+			const expiresAt = joinWindow ? Math.floor(joinWindow.closesAt.getTime() / 1000) : Math.floor(Date.now() / 1000) + 6 * 60 * 60;
+			const room = await createDailyRoom(roomName, expiresAt);
 			booking.dailyRoomName = room.name;
 			booking.dailyRoomUrl = room.url;
+			needsSave = true;
+		}
+
+		// Fairness: the doctor actually opening the room is the technical
+		// proof-of-attendance signal the settlement cron uses to tell a real
+		// no-show apart from a disputed-but-attended call.
+		if (isDoctor && !booking.doctorJoinedAt) {
+			booking.doctorJoinedAt = new Date();
+			needsSave = true;
+		}
+		if (needsSave) {
 			await booking.save();
 		}
 
@@ -675,11 +922,108 @@ exports.getDailyJoinInfo = async (req, res) => {
 			roomName: booking.dailyRoomName,
 			isOwner: isDoctor,
 			userName: userName || (isDoctor ? "Doctor" : "Patient"),
+			expiresAt: joinWindow ? Math.floor(joinWindow.closesAt.getTime() / 1000) : undefined,
 		});
 
 		return res.status(200).json({ url: `${booking.dailyRoomUrl}?t=${token}` });
 	} catch (error) {
 		console.error("Error creating Daily join info:", error);
+		return res.status(500).json({ error: "Server error" });
+	}
+};
+
+// Patient-raised dispute over a held payout (e.g. doctor no-show) -- freezes
+// the settlement cron's auto-release so an admin has to look at it.
+exports.raiseBookingDispute = async (req, res) => {
+	const { id } = req.params;
+	const { reason } = req.body;
+
+	try {
+		if (req.user.role !== 'patient') {
+			return res.status(403).json({ error: "Only patients can raise a dispute" });
+		}
+		if (!reason || !reason.trim()) {
+			return res.status(400).json({ error: "A reason is required" });
+		}
+
+		const booking = await Booking.findById(id);
+		if (!booking) {
+			return res.status(404).json({ error: "Booking not found" });
+		}
+		if (booking.patientId.toString() !== req.user._id.toString()) {
+			return res.status(403).json({ error: "Not authorized" });
+		}
+		if (booking.payoutStatus !== 'held') {
+			return res.status(400).json({ error: `Cannot dispute this booking -- its payout is already ${booking.payoutStatus}.` });
+		}
+
+		booking.payoutStatus = 'disputed';
+		booking.dispute = { reason: reason.trim(), raisedAt: new Date() };
+		await booking.save();
+
+		return res.status(200).json({ message: "Dispute raised. Our team will review this before any payout goes out.", booking });
+	} catch (error) {
+		console.error("Error raising booking dispute:", error);
+		return res.status(500).json({ error: "Server error" });
+	}
+};
+
+// Admin resolves a disputed payout -- either releases it (dispute rejected)
+// or refunds the patient (dispute upheld). Actual money movement (payout to
+// the doctor's bank account, or refund via Razorpay) is a manual step for
+// now; this just records the decision and unblocks/settles the state.
+exports.resolveBookingDispute = async (req, res) => {
+	const { id } = req.params;
+	const { resolution } = req.body; // 'released' | 'refunded'
+
+	try {
+		if (req.user.role !== 'admin') {
+			return res.status(403).json({ error: "Admins only" });
+		}
+		if (!['released', 'refunded'].includes(resolution)) {
+			return res.status(400).json({ error: "resolution must be 'released' or 'refunded'" });
+		}
+
+		const booking = await Booking.findById(id);
+		if (!booking) {
+			return res.status(404).json({ error: "Booking not found" });
+		}
+		if (booking.payoutStatus !== 'disputed') {
+			return res.status(400).json({ error: "This booking has no open dispute." });
+		}
+
+		booking.payoutStatus = resolution;
+		booking.dispute.resolvedAt = new Date();
+		booking.dispute.resolution = resolution;
+		booking.dispute.resolvedBy = req.user._id;
+		await booking.save();
+
+		return res.status(200).json({ message: `Dispute resolved as ${resolution}.`, booking });
+	} catch (error) {
+		console.error("Error resolving booking dispute:", error);
+		return res.status(500).json({ error: "Server error" });
+	}
+};
+
+// Lists all bookings an admin currently needs to act on: open disputes plus
+// anything held with no doctorJoinedAt whose window has already closed
+// (a likely no-show the cron will otherwise sit on rather than silently pay out).
+exports.getBookingPayoutQueue = async (req, res) => {
+	try {
+		if (req.user.role !== 'admin') {
+			return res.status(403).json({ error: "Admins only" });
+		}
+
+		const disputed = await Booking.find({ payoutStatus: 'disputed' }).sort({ 'dispute.raisedAt': -1 });
+		const likelyNoShow = await Booking.find({
+			payoutStatus: 'held',
+			doctorJoinedAt: null,
+			payoutHoldUntil: { $lte: new Date() }
+		}).sort({ payoutHoldUntil: 1 });
+
+		return res.status(200).json({ disputed, likelyNoShow });
+	} catch (error) {
+		console.error("Error fetching booking payout queue:", error);
 		return res.status(500).json({ error: "Server error" });
 	}
 };

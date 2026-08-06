@@ -214,11 +214,18 @@ const Medicines = () => {
 
 	const updateLocalCartFromBackend = useCallback((backendCartData) => {
 		const backendItems = backendCartData.items || [];
-		const formattedCart = backendItems.map((item) => ({
-			...item.medicineId,
-			quantity: item.quantity,
-			_id: item.medicineId._id,
-		}));
+		// A cart item can reference a medicine that's since been deleted/re-imported
+		// (medicineId populates null) -- skip those instead of crashing the whole remap.
+		const formattedCart = backendItems.reduce((acc, item) => {
+			if (item.medicineId) {
+				acc.push({
+					...item.medicineId,
+					quantity: item.quantity,
+					_id: item.medicineId._id,
+				});
+			}
+			return acc;
+		}, []);
 		setCart(formattedCart);
 	}, []);
 

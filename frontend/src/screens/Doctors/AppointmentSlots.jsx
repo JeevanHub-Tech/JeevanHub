@@ -10,6 +10,7 @@ import { DashboardShell, DashboardPageHeader } from "@/components/layout/Dashboa
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 function AppointmentSlots() {
@@ -22,6 +23,10 @@ function AppointmentSlots() {
 	const [currentImageIndex, setCurrentImageIndex] = useState(0);
 	const [selectedIllness, setSelectedIllness] = useState(null);
 	const [expandedProofs, setExpandedProofs] = useState({});
+	const [editingLinkId, setEditingLinkId] = useState(null);
+	const [backupLinkValue, setBackupLinkValue] = useState("");
+	const [savingLink, setSavingLink] = useState(false);
+	const [cancellingId, setCancellingId] = useState(null);
 
 	const { auth } = useContext(AuthContext);
 	const doctorId = auth.user?.id;
@@ -141,6 +146,55 @@ function AppointmentSlots() {
 		}
 	};
 
+	const saveBackupLink = async (bookingId) => {
+		setSavingLink(true);
+		try {
+			const response = await authFetch(`${BACKEND_URL}/api/bookings/update/meet-link/${bookingId}`, {
+				method: "PUT",
+				headers: {
+					"Content-Type": "application/json",
+					Authorization: `Bearer ${localStorage.getItem("token")}`,
+				},
+				body: JSON.stringify({ meetLink: backupLinkValue.trim() }),
+			});
+			const data = await response.json();
+			if (!response.ok) throw new Error(data.error || "Failed to save backup link");
+
+			setAppointments((prev) => prev.map((a) => (a._id === bookingId ? { ...a, meetLink: data.booking.meetLink } : a)));
+			setEditingLinkId(null);
+			setBackupLinkValue("");
+		} catch (err) {
+			alert(err.message || "Could not save backup link. Please try again.");
+		} finally {
+			setSavingLink(false);
+		}
+	};
+
+	const handleCancelAppointment = async (appointment) => {
+		const confirmMsg = appointment.amountPaid > 0
+			? `Cancel this appointment with ${appointment.patientName}? ₹${appointment.amountPaid} will be refunded to them.`
+			: `Cancel this appointment with ${appointment.patientName}?`;
+		if (!window.confirm(confirmMsg)) return;
+		const reason = window.prompt("Reason for cancelling (shown to the patient):") || "";
+
+		setCancellingId(appointment._id);
+		try {
+			const response = await authFetch(`${BACKEND_URL}/api/bookings/${appointment._id}/cancel`, {
+				method: "PUT",
+				headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("token")}` },
+				body: JSON.stringify({ reason }),
+			});
+			const data = await response.json();
+			if (!response.ok) throw new Error(data.error || "Failed to cancel appointment");
+
+			setAppointments((prev) => prev.filter((a) => a._id !== appointment._id));
+		} catch (err) {
+			alert(err.message || "Could not cancel this appointment. Please try again.");
+		} finally {
+			setCancellingId(null);
+		}
+	};
+
 	const isAppointmentActive = (appointment) => {
 		const now = new Date();
 		const startTime = parseAppointmentDateTime(appointment.dateOfAppointment, appointment.timeSlot);
@@ -189,7 +243,7 @@ function AppointmentSlots() {
 				<div className="flex flex-col gap-5">
 					{appointments.map((request) => {
 						const isActive = isAppointmentActive(request);
-						const hasMeetLink = request.meetLink && request.meetLink !== "no";
+						const hasBackupLink = request.meetLink && request.meetLink !== "no";
 
 						return (
 							<Card key={request._id} className={isActive ? "ring-2 ring-primary p-6" : "p-6"}>
@@ -299,16 +353,51 @@ function AppointmentSlots() {
 									</div>
 
 									<div className="flex flex-col gap-2">
-										{hasMeetLink ? (
-											<Button onClick={() => handleJoinMeet(request._id)}>Join Meet</Button>
-										) : (
-											<Button variant="secondary" disabled>
-												Meeting Link Pending
-											</Button>
-										)}
+										<Button onClick={() => handleJoinMeet(request._id)}>Join Meet</Button>
+
+										{editingLinkId === request._id ? (
+											<div className="flex flex-col gap-1.5">
+												<p className="text-xs text-muted-foreground">
+													Share this with the patient only if Daily.co isn&apos;t connecting.
+												</p>
+												<Input
+													value={backupLinkValue}
+													onChange={(e) => setBackupLinkValue(e.target.value)}
+													placeholder="Backup meeting link (e.g. Zoom/Meet)"
+												/>
+												<div className="flex gap-1.5">
+													<Button size="sm" disabled={savingLink} onClick={() => saveBackupLink(request._id)}>
+														{savingLink ? "Saving..." : "Save"}
+													</Button>
+													<Button size="sm" variant="outline" onClick={() => setEditingLinkId(null)}>
+														Cancel
+													</Button>
+												</div>
+											</div>
+										) : isActive || hasBackupLink ? (
+											<button
+												type="button"
+												className="bg-transparent p-0 text-left text-xs font-medium text-muted-foreground underline hover:text-foreground"
+												onClick={() => {
+													setEditingLinkId(request._id);
+													setBackupLinkValue(hasBackupLink ? request.meetLink : "");
+												}}
+											>
+												{hasBackupLink ? "Edit backup link" : "Trouble connecting via Daily.co? Add a backup link"}
+											</button>
+										) : null}
 
 										<Button variant="outline" onClick={() => navigate(`/doctorsprescribe/${request._id}`)}>
 											Prescribe Medicine & Diet - Yoga Plan
+										</Button>
+
+										<Button
+											variant="destructive"
+											size="sm"
+											disabled={cancellingId === request._id}
+											onClick={() => handleCancelAppointment(request)}
+										>
+											{cancellingId === request._id ? "Cancelling..." : "Cancel Appointment"}
 										</Button>
 									</div>
 								</div>

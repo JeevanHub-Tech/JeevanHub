@@ -23,6 +23,8 @@ import { AuthContext } from "../../context/AuthContext";
 import { DashboardShell, DashboardPageHeader } from "@/components/layout/DashboardShell";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 
 const RADIAN = Math.PI / 180;
 const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
@@ -121,6 +123,21 @@ function DoctorAnalytics() {
 	const ratingData = bookings
 		.filter((b) => b.rating !== null)
 		.map((b) => ({ rating: b.rating, date: new Date(b.dateOfAppointment).toLocaleDateString() }));
+
+	// Payment history: only appointments the doctor actually got paid for --
+	// accepted + a completed payment (Razorpay-verified or doctor-confirmed proof).
+	const paidBookings = bookings
+		.filter((b) => b.requestAccept === "accepted" && b.amountPaid > 0 && b.paymentStatus === "Completed")
+		.sort((a, b) => new Date(b.dateOfAppointment) - new Date(a.dateOfAppointment));
+
+	const totalEarnings = paidBookings.reduce((sum, b) => sum + (b.amountPaid || 0), 0);
+
+	const monthlyEarnings = Array.from({ length: 12 }, (_, i) => ({
+		month: new Date(currentYear, i).toLocaleString("default", { month: "short" }),
+		earnings: paidBookings
+			.filter((b) => new Date(b.dateOfAppointment).getFullYear() === currentYear && new Date(b.dateOfAppointment).getMonth() === i)
+			.reduce((sum, b) => sum + (b.amountPaid || 0), 0),
+	}));
 
 	if (loading) {
 		return (
@@ -245,7 +262,59 @@ function DoctorAnalytics() {
 						</ScatterChart>
 					</ResponsiveContainer>
 				</Card>
+
+				<Card className="p-6">
+					<div className="mb-5 flex flex-wrap items-center justify-between gap-2 border-b border-border pb-3">
+						<h2 className="text-lg font-semibold text-foreground">Monthly Earnings ({currentYear})</h2>
+						<Badge title="Sum of completed consultation payments this year">
+							Total: ₹{totalEarnings.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+						</Badge>
+					</div>
+					<ResponsiveContainer width="100%" height={300}>
+						<BarChart data={monthlyEarnings} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+							<CartesianGrid strokeDasharray="3 3" stroke={GRID_COLOR} vertical={false} />
+							<XAxis dataKey="month" stroke={AXIS_COLOR} tick={{ fill: AXIS_COLOR }} tickLine={false} axisLine={false} />
+							<YAxis stroke={AXIS_COLOR} tick={{ fill: AXIS_COLOR }} tickLine={false} axisLine={false} />
+							<Tooltip
+								cursor={{ fill: "var(--muted)" }}
+								contentStyle={tooltipContentStyle}
+								formatter={(value) => [`₹${value.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, "Earnings"]}
+							/>
+							<Bar dataKey="earnings" name="Earnings" fill={SERIES_COLOR} radius={[6, 6, 0, 0]} />
+						</BarChart>
+					</ResponsiveContainer>
+				</Card>
 			</div>
+
+			<Card className="mt-6 overflow-hidden p-0">
+				<h2 className="border-b border-border p-6 pb-3 text-lg font-semibold text-foreground">Payment History</h2>
+				{paidBookings.length === 0 ? (
+					<p className="p-6 text-center text-muted-foreground">No completed payments yet.</p>
+				) : (
+					<div className="overflow-x-auto">
+						<Table>
+							<TableHeader>
+								<TableRow>
+									<TableHead>Patient</TableHead>
+									<TableHead>Date</TableHead>
+									<TableHead>Amount</TableHead>
+								</TableRow>
+							</TableHeader>
+							<TableBody>
+								{paidBookings.map((b) => (
+									<TableRow key={b._id}>
+										<TableCell>{b.patientName}</TableCell>
+										<TableCell>
+											{new Date(b.dateOfAppointment).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+										</TableCell>
+										<TableCell className="font-semibold text-foreground">₹{b.amountPaid.toLocaleString(undefined, { minimumFractionDigits: 2 })}</TableCell>
+									</TableRow>
+								))}
+							</TableBody>
+						</Table>
+					</div>
+				)}
+			</Card>
 		</DashboardShell>
 	);
 }

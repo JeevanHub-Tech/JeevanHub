@@ -129,6 +129,24 @@ const bookingSchema = new mongoose.Schema({
 		status: { type: String, enum: ["created", "paid", "failed"], default: "created" },
 		transferId: { type: String }
 		},
+		// Fairness/escrow: the doctor's payout is held until slot-end + a grace
+		// window (or resolved by an admin), so a paid no-show doesn't just pay
+		// out regardless. doctorJoinedAt is the technical proof-of-attendance
+		// signal -- set the first time the doctor actually opens the Daily.co room.
+		doctorJoinedAt: { type: Date },
+		payoutStatus: {
+			type: String,
+			enum: ['not_applicable', 'held', 'released', 'disputed', 'refunded'],
+			default: 'not_applicable'
+		},
+		payoutHoldUntil: { type: Date },
+		dispute: {
+			reason: { type: String },
+			raisedAt: { type: Date },
+			resolvedAt: { type: Date },
+			resolution: { type: String, enum: ['released', 'refunded'] },
+			resolvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin' }
+		},
 		// Records the patient shares with the doctor ahead of / shortly after this specific
 		// consultation (e.g. an external prescription photo, or a link to a prior bookings
 		// prescription on this platform) so the doctor has context before prescribing here.

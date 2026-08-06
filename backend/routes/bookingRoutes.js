@@ -45,6 +45,10 @@ router.put("/update/:id", auth, updateBookingStatus);
 
 router.put("/update/meet-link/:id", auth, updateMeetLink);
 
+// Doctor cancels an already-confirmed appointment (refunds if paid) -- the
+// only way to back out of a booking now that appointments confirm by default.
+router.put("/:id/cancel", auth, bookingController.cancelBookingByDoctor);
+
 // Daily.co join info (room url + per-user meeting token) -- replaces the
 // meet.jit.si flow on the frontend; kept LAST-before-catch-all so it doesn't
 // shadow anything, but needs to come before the generic "/:id" GET below.
@@ -90,6 +94,10 @@ router.get("/reviews/:doctorEmail", async (req, res) => {
 
 router.post("/:id/payment", auth, bookingController.uploadPaymentScreenshot);
 
+// Razorpay verification for a booking's consultation fee (alternative to the
+// manual UPI-screenshot flow above).
+router.put("/:id/verify-payment", auth, bookingController.verifyBookingPayment);
+
 // Stream notifications for doctor dashboard (SSE)
 router.get("/stream-notifications/:doctorId", auth, bookingController.streamNotifications);
 
@@ -113,6 +121,12 @@ router.post("/:id/shared-records", auth, addSharedRecord);
 
 // Patient's own past bookings that have a prescription, to pick from when sharing
 router.get("/sharing/own-bookings", auth, getOwnBookingsForSharing);
+
+// Fairness/escrow: patient disputes a held payout, admin resolves it or lists
+// what's queued for review.
+router.post("/:id/dispute", auth, bookingController.raiseBookingDispute);
+router.put("/:id/dispute/resolve", auth, bookingController.resolveBookingDispute);
+router.get("/payout/queue", auth, bookingController.getBookingPayoutQueue);
 
 // Get a single booking by ID — kept LAST so it doesn't shadow the more specific routes above
 router.get("/:id", auth, getBookingById);

@@ -1,6 +1,6 @@
 import { useContext } from "react";
 import { NavLink } from "react-router-dom";
-import { CalendarRange, ClipboardList, Users, BarChart3, BookOpen, Star } from "lucide-react";
+import { CalendarRange, Users, BarChart3, BookOpen, Star } from "lucide-react";
 
 import { DashboardShell, DashboardPageHeader } from "@/components/layout/DashboardShell";
 import { DashboardNavCard } from "@/components/layout/DashboardNavCard";
@@ -25,9 +25,9 @@ function DoctorHomeScreen() {
 				title={`Hi Dr. ${firstName}`}
 				description="Welcome back! Let's manage appointments and patient records efficiently."
 				actions={
-					<Button render={<NavLink to="/current-requests" />}>
-						<ClipboardList data-icon="inline-start" />
-						Current Requests
+					<Button render={<NavLink to="/appointment-slots" />}>
+						<CalendarRange data-icon="inline-start" />
+						Today's Appointments
 					</Button>
 				}
 			/>

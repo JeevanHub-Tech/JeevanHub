@@ -49,7 +49,8 @@ const orderSchema = new mongoose.Schema({
   },
   razorpayOrderId: { type: String, required: false },
   paymentId: { type: String, required: false }, // Razorpay payment id, set once verified
-  prescriptionUrl: { type: String, required: false }, // Uploaded prescription image, required when cart has an Rx item
+  prescriptionUrl: { type: String, required: false }, // Deprecated: first of prescriptionUrls, kept for older orders/clients
+  prescriptionUrls: { type: [String], default: [] }, // Uploaded prescription images, required when cart has an Rx item
   review: {
     rating: { type: Number, min: 1, max: 5 },
     comment: { type: String, trim: true },
@@ -65,6 +66,23 @@ const orderSchema = new mongoose.Schema({
     type: String,
     enum: ['received', 'accepted', 'rejected', 'shipped'],
     default: 'received'
+  },
+  deliveredAt: { type: Date }, // Set when orderStatus first becomes 'delivered' -- starts the payout hold window
+  // Fairness/escrow: the retailer's payout for this order is held until deliveredAt +
+  // a grace window (or resolved by an admin), so a "paid but never shipped" order can
+  // be disputed and refunded instead of the retailer being paid regardless.
+  payoutStatus: {
+    type: String,
+    enum: ['not_applicable', 'held', 'released', 'disputed', 'refunded'],
+    default: 'not_applicable'
+  },
+  payoutHoldUntil: { type: Date },
+  dispute: {
+    reason: { type: String },
+    raisedAt: { type: Date },
+    resolvedAt: { type: Date },
+    resolution: { type: String, enum: ['released', 'refunded'] },
+    resolvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin' }
   },
   createdAt: {
     type: Date,

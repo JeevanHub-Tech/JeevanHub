@@ -408,14 +408,9 @@ const AppointmentTab = ({
 					) : null}
 
 					{canShare ? (
-						<>
-							<Button size="sm" variant="outline" onClick={() => setShareModal({ bookingId: appointment._id, mode: "reference" })}>
-								<LinkIcon size={14} /> Attach Prescription
-							</Button>
-							<Button size="sm" variant="outline" onClick={() => setShareModal({ bookingId: appointment._id, mode: "upload" })}>
-								<UploadCloud size={14} /> Upload Prescription
-							</Button>
-						</>
+						<Button size="sm" variant="outline" onClick={() => setShareModal({ bookingId: appointment._id, mode: "upload" })}>
+							<UploadCloud size={14} /> Share Prescription
+						</Button>
 					) : null}
 
 					{variant === "previous" && appointment.source === "Completed" && rowSupplements?.length > 0 ? (

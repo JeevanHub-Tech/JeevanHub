@@ -12,17 +12,33 @@ const crypto = require("crypto");
 const getRazorpay = require("../services/razorpayService");
 const notificationController = require("./notificationController");
 
+// Slot times ("HH:MM") are always IST wall-clock -- the doctor picked "23:00"
+// meaning 11pm India time, regardless of what timezone the server process
+// happens to run in (Render/Docker default to UTC). Building the instant with
+// `Date.setHours` uses the *server's* local timezone, which silently corrupts
+// this by ~5.5h whenever server tz !== IST. Always go through this helper
+// instead of setHours for slot-time math.
+const buildIstDateTime = (dateOfAppointment, timeStr) => {
+	if (!timeStr || typeof timeStr !== 'string' || !timeStr.includes(':')) return null;
+	const [hours, minutes] = timeStr.split(':').map(Number);
+	if (Number.isNaN(hours)) return null;
+	const dateObj = new Date(dateOfAppointment);
+	const y = dateObj.getUTCFullYear();
+	const m = String(dateObj.getUTCMonth() + 1).padStart(2, '0');
+	const d = String(dateObj.getUTCDate()).padStart(2, '0');
+	const hh = String(hours).padStart(2, '0');
+	const mm = String(minutes || 0).padStart(2, '0');
+	return new Date(`${y}-${m}-${d}T${hh}:${mm}:00+05:30`);
+};
+
 // A pending request "expires" once its slot's start time has passed without the
 // doctor acting on it — from that point on it's treated the same as an explicit
 // denial. timeSlot here is always the doctor's 24h "HH:MM" startTime string,
 // resolved live from Doctor.availableSlots (never persisted on the Booking itself).
 const AUTO_DENY_MESSAGE = "Automatically denied — the requested slot passed without a response.";
 const hasSlotTimePassed = (dateOfAppointment, timeSlot) => {
-	if (!timeSlot || typeof timeSlot !== 'string' || !timeSlot.includes(':')) return false;
-	const [hours, minutes] = timeSlot.split(':').map(Number);
-	if (Number.isNaN(hours)) return false;
-	const slotDateTime = new Date(dateOfAppointment);
-	slotDateTime.setHours(hours, minutes || 0, 0, 0);
+	const slotDateTime = buildIstDateTime(dateOfAppointment, timeSlot);
+	if (!slotDateTime) return false;
 	return new Date() > slotDateTime;
 };
 
@@ -81,10 +97,8 @@ const computeBookingPayoutHold = async (booking) => {
 };
 const getJoinWindow = (dateOfAppointment, slotTime) => {
 	if (!slotTime || !slotTime.startTime) return null;
-	const [hours, minutes] = slotTime.startTime.split(':').map(Number);
-	if (Number.isNaN(hours)) return null;
-	const start = new Date(dateOfAppointment);
-	start.setHours(hours, minutes || 0, 0, 0);
+	const start = buildIstDateTime(dateOfAppointment, slotTime.startTime);
+	if (!start) return null;
 	const end = new Date(start.getTime() + (slotTime.duration || 30) * 60 * 1000 + JOIN_WINDOW_AFTER_GRACE_MS);
 	return { opensAt: new Date(start.getTime() - JOIN_WINDOW_BEFORE_MS), closesAt: end };
 };

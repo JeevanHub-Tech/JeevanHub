@@ -40,7 +40,7 @@ router.get('/:id', auth, orderController.getOrderById);
 router.put("/updateOrderReview/:orderId", auth, orderController.updateOrderReview);
 router.put('/status', auth, orderController.updateOrderStatus);
 router.post('/:orderId/payment-proof', auth, upload.single('paymentProof'), orderController.uploadPaymentProof);
-router.post('/upload-prescription', auth, upload.single('prescription'), orderController.uploadPrescription);
+router.post('/upload-prescription', auth, upload.array('prescriptions', 5), orderController.uploadPrescription);
 
 
 module.exports = router;

@@ -79,10 +79,17 @@ exports.createOrder = async (req, res) => {
             shippingAddress,
             paymentMethod,
             prescriptionUrl,
+            prescriptionUrls,
             razorpayOrderId,
             razorpayPaymentId,
             razorpaySignature
         } = req.body;
+
+        // Accept either the legacy single prescriptionUrl or the new prescriptionUrls
+        // array (multi-file checkout upload), normalized to an array either way.
+        const formattedPrescriptionUrls = Array.isArray(prescriptionUrls) && prescriptionUrls.length > 0
+            ? prescriptionUrls.filter(Boolean)
+            : (prescriptionUrl ? [prescriptionUrl] : []);
 
         if (!Array.isArray(items) || items.length === 0) {
             return res.status(400).json({ message: "Cart is empty" });
@@ -114,7 +121,7 @@ exports.createOrder = async (req, res) => {
         const totalPrice = formattedItems.reduce((sum, item) => sum + item.subTotal, 0);
 
         const requiresPrescription = medicines.some(med => med.prescription === true);
-        if (requiresPrescription && !prescriptionUrl) {
+        if (requiresPrescription && formattedPrescriptionUrls.length === 0) {
             return res.status(400).json({ message: "This order contains a prescription-required medicine. Please upload a valid prescription before checkout." });
         }
 
@@ -137,7 +144,8 @@ exports.createOrder = async (req, res) => {
         });
 
         if (requiresPrescription) {
-            newOrder.prescriptionUrl = prescriptionUrl;
+            newOrder.prescriptionUrls = formattedPrescriptionUrls;
+            newOrder.prescriptionUrl = formattedPrescriptionUrls[0];
         }
 
         if (paymentMethod === 'onlinePayment') {
@@ -229,10 +237,12 @@ exports.createOrder = async (req, res) => {
 
 exports.uploadPrescription = async (req, res) => {
     try {
-        if (!req.file) {
-            return res.status(400).json({ message: 'Prescription image is required' });
+        if (!req.files || req.files.length === 0) {
+            return res.status(400).json({ message: 'At least one prescription image is required' });
         }
-        res.status(200).json({ url: req.file.path });
+        const urls = req.files.map(file => file.path);
+        // Kept for older clients that only read a single `url`.
+        res.status(200).json({ url: urls[0], urls });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

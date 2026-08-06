@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircle2, Loader2, ShoppingCart } from 'lucide-react';
+import { CheckCircle2, Loader2, ShoppingCart, X } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
 import { authFetch } from '../utils/authFetch';
 import { BACKEND_URL, RAZORPAY_KEY_ID } from '../config';
@@ -53,8 +53,8 @@ const CheckoutScreen = () => {
 		country: 'India'
 	});
 	const [paymentMethod, setPaymentMethod] = useState('cashOnDelivery');
-	const [prescriptionFile, setPrescriptionFile] = useState(null);
-	const [prescriptionUrl, setPrescriptionUrl] = useState(null);
+	const [prescriptionFiles, setPrescriptionFiles] = useState([]);
+	const [prescriptionUrls, setPrescriptionUrls] = useState([]);
 	const [prescriptionUploading, setPrescriptionUploading] = useState(false);
 	const [orderId, setOrderId] = useState(null);
 	const [loading, setLoading] = useState(false);
@@ -144,21 +144,26 @@ const CheckoutScreen = () => {
 		setPaymentMethod(value);
 	};
 
-	const handlePrescriptionFileChange = (e) => {
-		setPrescriptionFile(e.target.files[0]);
-		setPrescriptionUrl(null);
+	const handlePrescriptionFilesChange = (e) => {
+		const files = Array.from(e.target.files || []).slice(0, 5);
+		setPrescriptionFiles(files);
+		setPrescriptionUrls([]);
+	};
+
+	const removePrescriptionFile = (index) => {
+		setPrescriptionFiles(prev => prev.filter((_, i) => i !== index));
 	};
 
 	const uploadPrescription = async () => {
-		if (!prescriptionFile) {
-			setError('Please select a prescription image to upload');
+		if (prescriptionFiles.length === 0) {
+			setError('Please select at least one prescription image to upload');
 			return;
 		}
 		try {
 			setPrescriptionUploading(true);
 			setError('');
 			const formData = new FormData();
-			formData.append('prescription', prescriptionFile);
+			prescriptionFiles.forEach(file => formData.append('prescriptions', file));
 
 			const response = await authFetch(`${BACKEND_URL}/api/orders/upload-prescription`, {
 				method: 'POST',
@@ -168,7 +173,7 @@ const CheckoutScreen = () => {
 			if (!response.ok) {
 				throw new Error(data.message || 'Failed to upload prescription');
 			}
-			setPrescriptionUrl(data.url);
+			setPrescriptionUrls(data.urls || (data.url ? [data.url] : []));
 		} catch (err) {
 			console.error('Error uploading prescription:', err);
 			setError(err.message || 'Failed to upload prescription. Please try again.');
@@ -188,7 +193,7 @@ const CheckoutScreen = () => {
 			}
 		}
 		if (currentStep === 'prescription') {
-			if (!prescriptionUrl) {
+			if (prescriptionUrls.length === 0) {
 				setError('Please upload your prescription to continue');
 				return false;
 			}
@@ -215,7 +220,7 @@ const CheckoutScreen = () => {
 		},
 		shippingAddress: address,
 		paymentMethod,
-		...(prescriptionNeeded ? { prescriptionUrl } : {}),
+		...(prescriptionNeeded ? { prescriptionUrls } : {}),
 		...extra
 	});
 
@@ -485,21 +490,43 @@ const CheckoutScreen = () => {
 						</h2>
 						<p className="mb-4 text-sm text-muted-foreground">
 							Your cart contains one or more prescription-required medicines.
-							Please upload a clear photo or scan of a valid prescription before continuing.
+							Please upload a clear photo or scan of a valid prescription before continuing — you can add multiple pages/files at once.
 						</p>
 
 						<Field className="mb-4">
-							<FieldLabel htmlFor="prescriptionFile">Prescription Image</FieldLabel>
+							<FieldLabel htmlFor="prescriptionFiles">Prescription Image(s)</FieldLabel>
 							<Input
 								type="file"
-								id="prescriptionFile"
+								id="prescriptionFiles"
 								accept="image/*,application/pdf"
-								onChange={handlePrescriptionFileChange}
+								multiple
+								onChange={handlePrescriptionFilesChange}
+								disabled={prescriptionUrls.length > 0}
 							/>
 						</Field>
 
-						{prescriptionUrl && (
-							<Badge variant="warning" className="mb-4">Prescription uploaded successfully.</Badge>
+						{prescriptionFiles.length > 0 && prescriptionUrls.length === 0 && (
+							<ul className="mb-4 flex flex-col gap-2">
+								{prescriptionFiles.map((file, index) => (
+									<li key={index} className="flex items-center justify-between gap-3 rounded-(--jh-radius-md) bg-secondary/60 px-3 py-2 text-sm text-foreground">
+										<span className="truncate">{file.name}</span>
+										<button
+											type="button"
+											onClick={() => removePrescriptionFile(index)}
+											aria-label={`Remove ${file.name}`}
+											className="shrink-0 text-muted-foreground hover:text-destructive"
+										>
+											<X size={16} />
+										</button>
+									</li>
+								))}
+							</ul>
+						)}
+
+						{prescriptionUrls.length > 0 && (
+							<Badge variant="warning" className="mb-4">
+								{prescriptionUrls.length} prescription file{prescriptionUrls.length > 1 ? 's' : ''} uploaded successfully.
+							</Badge>
 						)}
 
 						{error && (
@@ -512,11 +539,11 @@ const CheckoutScreen = () => {
 							<Button type="button" variant="outline" onClick={prevStep}>
 								Back to Shipping
 							</Button>
-							{!prescriptionUrl ? (
+							{prescriptionUrls.length === 0 ? (
 								<Button
 									type="button"
 									onClick={uploadPrescription}
-									disabled={prescriptionUploading || !prescriptionFile}
+									disabled={prescriptionUploading || prescriptionFiles.length === 0}
 								>
 									{prescriptionUploading ? 'Uploading...' : 'Upload Prescription'}
 								</Button>

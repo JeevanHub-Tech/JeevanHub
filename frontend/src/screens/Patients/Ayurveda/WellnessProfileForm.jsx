@@ -196,20 +196,22 @@ function WellnessProfileForm({ embedded = false, onSaved } = {}) {
 		}
 	};
 
-	const Wrapper = embedded
-		? ({ children }) => <div className="flex flex-col gap-6">{children}</div>
-		: ({ children }) => (
+	if (loading) {
+		return embedded ? (
+			<div className="flex flex-col gap-6">
+				<p className="text-center text-muted-foreground">Loading…</p>
+			</div>
+		) : (
 			<main className="bg-background">
-				<div className="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-10 sm:px-6 lg:px-8">{children}</div>
+				<div className="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-10 sm:px-6 lg:px-8">
+					<p className="text-center text-muted-foreground">Loading…</p>
+				</div>
 			</main>
 		);
-
-	if (loading) {
-		return <Wrapper><p className="text-center text-muted-foreground">Loading…</p></Wrapper>;
 	}
 
-	return (
-		<Wrapper>
+	const content = (
+		<>
 			{!embedded ? <BackButton to="/ayurveda-wellness" /> : null}
 			<div>
 				<h1 className="font-display text-2xl text-foreground">Ayurveda wellness profile</h1>
@@ -231,7 +233,14 @@ function WellnessProfileForm({ embedded = false, onSaved } = {}) {
 						</Field>
 						<div className="sm:col-span-2">
 							<Field label="Body type" htmlFor="bodyType">
-								<Input id="bodyType" value={form.bodyType} onChange={setInput("bodyType")} placeholder="e.g. Slim, Athletic, Broad" />
+								<Select value={form.bodyType} onValueChange={set("bodyType")}>
+									<SelectTrigger id="bodyType"><SelectValue placeholder="Select body type" /></SelectTrigger>
+									<SelectContent>
+										<SelectItem value="Slim">Slim</SelectItem>
+										<SelectItem value="Athletic">Athletic</SelectItem>
+										<SelectItem value="Broad">Broad</SelectItem>
+									</SelectContent>
+								</Select>
 							</Field>
 						</div>
 						{bmi !== null ? (
@@ -381,7 +390,19 @@ function WellnessProfileForm({ embedded = false, onSaved } = {}) {
 						<Button onClick={handleSave} disabled={saving}>{saving ? "Saving…" : "Save profile"}</Button>
 					</div>
 				</div>
-		</Wrapper>
+		</>
+	);
+
+	if (embedded) {
+		return <div className="flex flex-col gap-6">{content}</div>;
+	}
+
+	return (
+		<main className="bg-background">
+			<div className="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-10 sm:px-6 lg:px-8">
+				{content}
+			</div>
+		</main>
 	);
 }
 

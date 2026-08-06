@@ -10,6 +10,7 @@ const multer = require("multer");
 const path = require("path");
 const crypto = require("crypto");
 const getRazorpay = require("../services/razorpayService");
+const notificationController = require("./notificationController");
 
 // A pending request "expires" once its slot's start time has passed without the
 // doctor acting on it — from that point on it's treated the same as an explicit
@@ -62,6 +63,22 @@ const JOIN_WINDOW_AFTER_GRACE_MS = 15 * 60 * 1000;
 // How long after a slot ends a paid booking's payout stays "held" before the
 // settlement cron auto-releases it -- the patient's dispute window.
 const PAYOUT_HOLD_GRACE_MS = 48 * 60 * 60 * 1000;
+
+// Fairness/escrow: computes the payout-hold fields for a just-confirmed paid
+// booking (slot-end + PAYOUT_HOLD_GRACE_MS). Returns null for free bookings --
+// there's nothing to hold. Shared by every path that can confirm a booking
+// (free auto-confirm, Razorpay verification, manual screenshot upload).
+const computeBookingPayoutHold = async (booking) => {
+	if (!booking.amountPaid || booking.amountPaid <= 0) return null;
+	const doctor = await Doctor.findById(booking.doctorId);
+	const slotTime = resolveBookingSlotTime(doctor, booking);
+	const joinWindow = getJoinWindow(booking.dateOfAppointment, slotTime);
+	const slotEnd = joinWindow ? joinWindow.closesAt : new Date(Date.now() + PAYOUT_HOLD_GRACE_MS);
+	return {
+		payoutStatus: 'held',
+		payoutHoldUntil: new Date(slotEnd.getTime() + PAYOUT_HOLD_GRACE_MS),
+	};
+};
 const getJoinWindow = (dateOfAppointment, slotTime) => {
 	if (!slotTime || !slotTime.startTime) return null;
 	const [hours, minutes] = slotTime.startTime.split(':').map(Number);
@@ -263,6 +280,8 @@ exports.createBooking = async (req, res) => {
 			return res.status(400).json({ error: "This time slot is already booked for the selected doctor. Please Choose a different date or time slot." });
 		}
 
+		const resolvedAmountPaid = amountPaid !== undefined ? amountPaid : (doctor.price || 0);
+
 		// Create a new booking
 		const newBooking = new Booking({
 			doctorId: doctor._id,
@@ -277,7 +296,12 @@ exports.createBooking = async (req, res) => {
 			patientAge,
 			patientIllness,
 			meetLink,
-			amountPaid: amountPaid !== undefined ? amountPaid : (doctor.price || 0),
+			amountPaid: resolvedAmountPaid,
+			// Appointments confirm by default -- there's no doctor accept/deny step.
+			// A free consult is confirmed immediately; a paid one confirms as soon as
+			// payment lands (verifyBookingPayment / uploadPaymentScreenshot), so it
+			// stays 'pending' only for the few minutes it takes to pay.
+			requestAccept: resolvedAmountPaid > 0 ? 'pending' : 'accepted',
 		});
 
 		// Save the booking to the database
@@ -410,8 +434,14 @@ exports.uploadPaymentScreenshot = (req, res) => {
 
 			// Save all uploaded file paths
 			booking.paymentScreenshots = req.files.map(file => file.path);
-			// C5-1: Server dictates status, not client
+			// C5-1: Server dictates status, not client. Unlike Razorpay this isn't
+			// cryptographically verified, so paymentStatus stays Pending -- but the
+			// appointment still confirms by default (no doctor review gate); the
+			// payout-hold/dispute system is the fraud net, not a manual accept step.
 			booking.paymentStatus = "Pending";
+			booking.requestAccept = "accepted";
+			const payoutHold = await computeBookingPayoutHold(booking);
+			if (payoutHold) Object.assign(booking, payoutHold);
 
 			await booking.save();
 
@@ -476,6 +506,13 @@ exports.verifyBookingPayment = async (req, res) => {
 			status: "paid"
 		};
 		booking.paymentStatus = "Completed";
+
+		// Appointments confirm by default once payment lands -- no separate
+		// doctor accept step.
+		booking.requestAccept = "accepted";
+		const payoutHold = await computeBookingPayoutHold(booking);
+		if (payoutHold) Object.assign(booking, payoutHold);
+
 		await booking.save();
 
 		notifyDoctor(booking.doctorId);
@@ -690,18 +727,11 @@ exports.updateBookingStatus = async (req, res) => {
             }
 
             // Fairness/escrow: start the payout hold on acceptance so the doctor
-            // doesn't get paid out immediately -- the patient has a window (until
-            // slot-end + PAYOUT_HOLD_GRACE_MS) to dispute a no-show. See
-            // getJoinWindow/resolveBookingSlotTime and the settlement cron.
+            // doesn't get paid out immediately -- the patient has a window to
+            // dispute a no-show. See computeBookingPayoutHold and the settlement cron.
             const existingBooking = await Booking.findById(id);
-            if (existingBooking && existingBooking.amountPaid > 0) {
-                const doctor = await Doctor.findById(existingBooking.doctorId);
-                const slotTime = resolveBookingSlotTime(doctor, existingBooking);
-                const joinWindow = getJoinWindow(existingBooking.dateOfAppointment, slotTime);
-                const slotEnd = joinWindow ? joinWindow.closesAt : new Date(Date.now() + PAYOUT_HOLD_GRACE_MS);
-                updateData.payoutStatus = 'held';
-                updateData.payoutHoldUntil = new Date(slotEnd.getTime() + PAYOUT_HOLD_GRACE_MS);
-            }
+            const payoutHold = existingBooking ? await computeBookingPayoutHold(existingBooking) : null;
+            if (payoutHold) Object.assign(updateData, payoutHold);
         }
 
         // Find the booking by ID and update the fields, ensuring doctor owns it
@@ -725,6 +755,53 @@ exports.updateBookingStatus = async (req, res) => {
         console.error("Error updating booking:", error);
         return res.status(500).json({ error: "Server error" });
     }
+};
+
+// Doctor cancels an already-confirmed appointment. Since appointments confirm
+// by default now (no accept/deny request queue), this is the doctor's only
+// way to back out of one -- and unlike a patient-raised dispute, a doctor
+// self-cancelling is an admission, so the refund happens immediately instead
+// of waiting on the hold window.
+exports.cancelBookingByDoctor = async (req, res) => {
+	const { id } = req.params;
+	const { reason } = req.body;
+
+	try {
+		const booking = await Booking.findOne({ _id: id, doctorId: req.user._id });
+		if (!booking) {
+			return res.status(404).json({ error: "Booking not found" });
+		}
+		if (booking.requestAccept !== "accepted") {
+			return res.status(400).json({ error: "Only a confirmed appointment can be cancelled." });
+		}
+		if (booking.payoutStatus === "released") {
+			return res.status(400).json({ error: "This booking's payout has already been released -- contact support to arrange a refund." });
+		}
+
+		booking.requestAccept = "denied";
+		booking.doctorsMessage = reason?.trim() || "Cancelled by the doctor.";
+		if (booking.amountPaid > 0) {
+			booking.payoutStatus = "refunded";
+		}
+		await booking.save();
+
+		await notificationController.createNotification(
+			booking.patientId,
+			'patient',
+			booking._id,
+			booking.amountPaid > 0
+				? `Your appointment with Dr. ${booking.doctorName} has been cancelled by the doctor. ₹${booking.amountPaid} will be refunded.`
+				: `Your appointment with Dr. ${booking.doctorName} has been cancelled by the doctor.`,
+			'appointment'
+		);
+
+		notifyDoctor(booking.doctorId);
+
+		return res.status(200).json({ message: "Appointment cancelled", booking });
+	} catch (error) {
+		console.error("Error cancelling booking:", error);
+		return res.status(500).json({ error: "Server error" });
+	}
 };
 
 // New controller function to update the meetLink

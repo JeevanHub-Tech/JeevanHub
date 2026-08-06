@@ -45,6 +45,10 @@ router.put("/update/:id", auth, updateBookingStatus);
 
 router.put("/update/meet-link/:id", auth, updateMeetLink);
 
+// Doctor cancels an already-confirmed appointment (refunds if paid) -- the
+// only way to back out of a booking now that appointments confirm by default.
+router.put("/:id/cancel", auth, bookingController.cancelBookingByDoctor);
+
 // Daily.co join info (room url + per-user meeting token) -- replaces the
 // meet.jit.si flow on the frontend; kept LAST-before-catch-all so it doesn't
 // shadow anything, but needs to come before the generic "/:id" GET below.

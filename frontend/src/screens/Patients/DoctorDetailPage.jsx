@@ -260,7 +260,7 @@ function DoctorDetail() {
 
 						setPaymentModalOpen(false);
 						setCurrentBooking(null);
-						alert("Payment successful! Your appointment request has been sent to the doctor.");
+						alert("Payment successful! Your appointment is confirmed.");
 						fetchSlots();
 					} catch (err) {
 						console.error("Error verifying payment:", err);
@@ -322,7 +322,7 @@ function DoctorDetail() {
 				setPaymentModalOpen(false);
 				setCurrentBooking(null);
 				setScreenshotFiles([]);
-				alert("Payment proof uploaded successfully! Your appointment request is sent for verification.");
+				alert("Payment proof uploaded! Your appointment is confirmed.");
 				fetchSlots();
 			} else {
 				alert(result.error || "Failed to upload payment proof.");
@@ -600,8 +600,8 @@ function DoctorDetail() {
 					</div>
 
 					<p className="mt-4 text-xs leading-relaxed text-muted-foreground">
-						<strong className="font-semibold">Note:</strong> Once you see the message "Appointment booked successfully!", please check
-						the "Your appointed doctor" section on the home page to see if the doctor has approved your request.
+						<strong className="font-semibold">Note:</strong> Your appointment is confirmed as soon as booking (and payment, if applicable)
+						goes through — no separate doctor approval needed. You'll find it under "Your appointed doctor" on the home page.
 					</p>
 
 					<div className="sticky bottom-0 mt-5 border-t border-border bg-card pt-4">

@@ -26,6 +26,7 @@ function AppointmentSlots() {
 	const [editingLinkId, setEditingLinkId] = useState(null);
 	const [backupLinkValue, setBackupLinkValue] = useState("");
 	const [savingLink, setSavingLink] = useState(false);
+	const [cancellingId, setCancellingId] = useState(null);
 
 	const { auth } = useContext(AuthContext);
 	const doctorId = auth.user?.id;
@@ -166,6 +167,31 @@ function AppointmentSlots() {
 			alert(err.message || "Could not save backup link. Please try again.");
 		} finally {
 			setSavingLink(false);
+		}
+	};
+
+	const handleCancelAppointment = async (appointment) => {
+		const confirmMsg = appointment.amountPaid > 0
+			? `Cancel this appointment with ${appointment.patientName}? ₹${appointment.amountPaid} will be refunded to them.`
+			: `Cancel this appointment with ${appointment.patientName}?`;
+		if (!window.confirm(confirmMsg)) return;
+		const reason = window.prompt("Reason for cancelling (shown to the patient):") || "";
+
+		setCancellingId(appointment._id);
+		try {
+			const response = await authFetch(`${BACKEND_URL}/api/bookings/${appointment._id}/cancel`, {
+				method: "PUT",
+				headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("token")}` },
+				body: JSON.stringify({ reason }),
+			});
+			const data = await response.json();
+			if (!response.ok) throw new Error(data.error || "Failed to cancel appointment");
+
+			setAppointments((prev) => prev.filter((a) => a._id !== appointment._id));
+		} catch (err) {
+			alert(err.message || "Could not cancel this appointment. Please try again.");
+		} finally {
+			setCancellingId(null);
 		}
 	};
 
@@ -363,6 +389,15 @@ function AppointmentSlots() {
 
 										<Button variant="outline" onClick={() => navigate(`/doctorsprescribe/${request._id}`)}>
 											Prescribe Medicine & Diet - Yoga Plan
+										</Button>
+
+										<Button
+											variant="destructive"
+											size="sm"
+											disabled={cancellingId === request._id}
+											onClick={() => handleCancelAppointment(request)}
+										>
+											{cancellingId === request._id ? "Cancelling..." : "Cancel Appointment"}
 										</Button>
 									</div>
 								</div>

@@ -21,8 +21,33 @@ const PatientFeedback = () => {
 	const [rating, setRating] = useState(0);
 	const [hoveredRating, setHoveredRating] = useState(0);
 	const [comment, setComment] = useState("");
+	const [reportingIssue, setReportingIssue] = useState(false);
 	const navigate = useNavigate();
 	const { id: appointmentId } = useParams();
+
+	// Fairness/escrow: the doctor's payout for this appointment is held for a
+	// window after the slot -- this is the natural place, right after rating the
+	// consult, to flag a problem (e.g. the doctor never joined) before it releases.
+	const handleReportIssue = async () => {
+		const reason = window.prompt("What went wrong with this appointment? (e.g. the doctor never joined the call)");
+		if (!reason || !reason.trim()) return;
+		setReportingIssue(true);
+		try {
+			const token = localStorage.getItem("token");
+			const response = await authFetch(`${BACKEND_URL}/api/bookings/${appointmentId}/dispute`, {
+				method: "POST",
+				headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+				body: JSON.stringify({ reason }),
+			});
+			const data = await response.json();
+			if (!response.ok) throw new Error(data.error || "Failed to report this issue");
+			alert("Thanks — we've flagged this and will review it before any payout goes out.");
+		} catch (err) {
+			alert(err.message || "Could not report this issue. Please try again.");
+		} finally {
+			setReportingIssue(false);
+		}
+	};
 
 	const handleSubmit = async (e) => {
 		e.preventDefault();
@@ -118,6 +143,15 @@ const PatientFeedback = () => {
 								</Button>
 							</div>
 						</form>
+
+						<div className="mt-6 border-t border-border pt-4 text-center">
+							<p className="mb-2 text-xs text-muted-foreground">
+								Something went wrong during this appointment — like the doctor never joining the call?
+							</p>
+							<Button type="button" variant="ghost" size="sm" onClick={handleReportIssue} disabled={reportingIssue}>
+								{reportingIssue ? "Reporting…" : "Report an Issue"}
+							</Button>
+						</div>
 					</CardContent>
 				</Card>
 			</div>

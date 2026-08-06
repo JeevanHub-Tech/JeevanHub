@@ -1,5 +1,6 @@
 const Booking = require("../models/Booking");
 const Doctor = require("../models/Doctor");
+const Patient = require("../models/Patient");
 const Medicine = require("../models/Medicine");
 const Cart = require("../models/Cart");
 const Notification = require("../models/Notification");
@@ -412,7 +413,7 @@ exports.addSharedRecord = (req, res) => {
 		}
 
 		const { id } = req.params;
-		const { referencedBookingId, note } = req.body;
+		const { referencedBookingId, medicalHistoryDocId, note } = req.body;
 
 		try {
 			if (req.user.role !== 'patient') {
@@ -438,6 +439,26 @@ exports.addSharedRecord = (req, res) => {
 					fileUrl: req.file.path,
 					note: note || ""
 				};
+			} else if (medicalHistoryDocId) {
+				// Links a document already uploaded + OCR-reviewed via the patient's
+				// medical-history uploader (ShareRecordModal's upload flow) onto this
+				// booking, instead of re-uploading the file a second time.
+				const patient = await Patient.findOne(
+					{ _id: req.user._id, "medicalHistory._id": medicalHistoryDocId },
+					{ "medicalHistory.$": 1 }
+				);
+				const doc = patient?.medicalHistory?.[0];
+				if (!doc) {
+					return res.status(404).json({ error: "Medical history document not found" });
+				}
+				if (doc.patientVerification?.status !== "submitted") {
+					return res.status(400).json({ error: "This document hasn't been reviewed and submitted yet." });
+				}
+				newRecord = {
+					type: "external_file",
+					fileUrl: doc.url,
+					note: note || ""
+				};
 			} else if (referencedBookingId) {
 				const refBooking = await Booking.findById(referencedBookingId);
 				if (!refBooking) {
@@ -452,7 +473,7 @@ exports.addSharedRecord = (req, res) => {
 					note: note || ""
 				};
 			} else {
-				return res.status(400).json({ error: "Either a file or a referencedBookingId is required" });
+				return res.status(400).json({ error: "A file, medicalHistoryDocId, or referencedBookingId is required" });
 			}
 
 			booking.patientSharedRecords.push(newRecord);

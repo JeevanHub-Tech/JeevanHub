@@ -27,5 +27,21 @@ services:
     depends_on:
       - mongo
 
+  frontend:
+    build: ./frontend
+    container_name: jeevanhub-frontend
+    restart: unless-stopped
+    env_file:
+      - ./frontend/.env
+    environment:
+      - VITE_AYURVEDA_BACKEND_URL=http://localhost:5000
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+
 volumes:
   mongo_data:

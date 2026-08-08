@@ -94,10 +94,10 @@ function PatientPage() {
 			onClick: () => navigate("/treatments"),
 		},
 		{
-			title: "Prescription",
-			description: "Your doctor's personalized diet & yoga plan.",
+			title: "Prescription & Wellness",
+			description: "Medicines, meal plan, yoga, and wellness recommendations.",
 			image: yogaImage,
-			onClick: () => navigate("/diet-yoga"),
+			onClick: () => navigate("/prescription-wellness"),
 		},
 		{
 			title: "Medicines & remedies",

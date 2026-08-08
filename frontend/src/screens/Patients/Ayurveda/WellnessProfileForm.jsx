@@ -236,9 +236,10 @@ function WellnessProfileForm({ embedded = false, onSaved } = {}) {
 								<Select value={form.bodyType} onValueChange={set("bodyType")}>
 									<SelectTrigger id="bodyType"><SelectValue placeholder="Select body type" /></SelectTrigger>
 									<SelectContent>
-										<SelectItem value="Slim">Slim</SelectItem>
-										<SelectItem value="Athletic">Athletic</SelectItem>
-										<SelectItem value="Broad">Broad</SelectItem>
+										<SelectItem value="lean_thin">Lean / Thin Frame</SelectItem>
+										<SelectItem value="athletic_defined">Athletic / Well Defined</SelectItem>
+										<SelectItem value="medium_frame">Medium Frame</SelectItem>
+										<SelectItem value="soft_round">Soft / Round Body</SelectItem>
 									</SelectContent>
 								</Select>
 							</Field>

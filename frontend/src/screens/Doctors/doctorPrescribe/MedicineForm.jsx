@@ -7,6 +7,7 @@ import { BACKEND_URL } from "../../../config";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { SourceBadge } from "@/components/ui/SourceBadge";
 
 const BACKEND = BACKEND_URL || "http://localhost:8080";
 const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1587854692152-cbe660dbde88?q=80&w=300&auto=format&fit=crop";
@@ -43,6 +44,7 @@ export function MedicineForm({ bookingId, patientId, doctorId, onPrescribed }) {
 					medicineName: s.medicineName,
 					dosage: s.dosage || "",
 					instructions: s.instructions || "",
+					published: s.published,
 					thumb: map[s.medicineId]?.thumb || FALLBACK_IMAGE,
 					price: map[s.medicineId]?.price,
 				}));
@@ -81,6 +83,7 @@ export function MedicineForm({ bookingId, patientId, doctorId, onPrescribed }) {
 					medicineName: s.medicineName,
 					dosage: "",
 					instructions: "",
+					published: s.published,
 					thumb: resolveThumb(medicine.images),
 					price: medicine.price,
 				},
@@ -129,11 +132,14 @@ export function MedicineForm({ bookingId, patientId, doctorId, onPrescribed }) {
 			<div className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-muted/40 px-6 py-4">
 				<h3 className="flex items-center gap-3 text-lg font-bold text-foreground">
 					<ClipboardPlus className="size-6 text-primary" />
-					Prescribe Medicine
+					Medicines, Herbs & Supplements
 				</h3>
-				<span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-					<ShoppingCart size={14} /> Prescribed medicines are added to the patient's cart
-				</span>
+				<div className="flex items-center gap-3">
+					{rows.length > 0 ? <SourceBadge status="doctor" /> : null}
+					<span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+						<ShoppingCart size={14} /> Prescribed items are added to the patient's cart
+					</span>
+				</div>
 			</div>
 
 			<div className="p-6">
@@ -146,7 +152,7 @@ export function MedicineForm({ bookingId, patientId, doctorId, onPrescribed }) {
 						{rows.length === 0 ? (
 							<div className="flex flex-col items-center gap-1.5 rounded-xl border border-dashed border-border p-10 text-center text-muted-foreground">
 								<Pill size={32} />
-								<p className="mt-1.5 font-semibold text-muted-foreground/90">No medicines prescribed yet.</p>
+								<p className="mt-1.5 font-semibold text-muted-foreground/90">Not prescribed</p>
 								<span className="text-sm">Click "Add Medicine" to pick from the store inventory.</span>
 							</div>
 						) : (
@@ -174,7 +180,12 @@ export function MedicineForm({ bookingId, patientId, doctorId, onPrescribed }) {
 												}}
 											/>
 											<div className="flex min-w-0 flex-col gap-0.5">
-												<span className="text-sm font-bold text-foreground">{row.medicineName}</span>
+												<span className="flex flex-wrap items-center gap-1.5 text-sm font-bold text-foreground">
+													{row.medicineName}
+													{row.published === false ? (
+														<span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">Draft -- not sent yet</span>
+													) : null}
+												</span>
 												{row.price != null ? <span className="text-sm font-semibold text-primary">₹{row.price}</span> : null}
 											</div>
 										</div>

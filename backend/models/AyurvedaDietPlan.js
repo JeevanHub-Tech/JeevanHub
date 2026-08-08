@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { CONTENT_SOURCE_VALUES } = require("../constants/contentSource");
 
 const mealSchema = new mongoose.Schema({
     items: [{ type: String }],
@@ -70,6 +71,41 @@ const ayurvedaDietPlanSchema = new mongoose.Schema({
     lifestyleRecommendations: [{ type: String }],
     model: { type: String },
     generatedAt: { type: Date, default: Date.now },
+
+    // AI-vs-doctor provenance. Defaults to 'ai' since every plan starts as a
+    // pure AI generation; moves to 'ai_modified'/'doctor_approved' once a
+    // doctor reviews it via reviewDietPlan. Patient-facing reads must use the
+    // resolved `displayPlan` (computed in the controller), not these raw
+    // top-level AI fields, once status has moved past 'ai'.
+    status: { type: String, enum: CONTENT_SOURCE_VALUES, default: "ai" },
+    doctorReview: {
+        reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: "Doctor" },
+        reviewedAt: { type: Date },
+        bookingId: { type: mongoose.Schema.Types.ObjectId, ref: "Booking" },
+        weeklyPlan: [dayPlanSchema],
+        cookingInstructions: {
+            meals: [cookingInstructionSchema],
+            generalGuidelines: [{ type: String }],
+        },
+        foodsToAvoid: {
+            doshaBased: [{ type: String }],
+            medicalBased: [{ type: String }],
+            seasonalBased: [{ type: String }],
+        },
+        lifestyleRecommendations: [{ type: String }],
+        notes: { type: String },
+        // The doctor's review is a silent draft (Save) until "Submit
+        // Prescription" flips this to true -- resolveDisplayPlan() only shows
+        // doctorReview to the patient once published.
+        published: { type: Boolean, default: false },
+    },
+    // Bounded to the last 10 entries by the controller ($push + $slice).
+    history: [{
+        changedAt: { type: Date, default: Date.now },
+        changedBy: { type: mongoose.Schema.Types.ObjectId, ref: "Doctor" },
+        action: { type: String, enum: ["edited", "approved", "replaced"] },
+        snapshot: mongoose.Schema.Types.Mixed,
+    }],
 }, { timestamps: true });
 
 const AyurvedaDietPlan = mongoose.model("AyurvedaDietPlan", ayurvedaDietPlanSchema);

@@ -40,7 +40,6 @@ function DialogContent({ className, children, showClose = true, ...props }) {
         )}
         {...props}
       >
-        {children}
         {showClose ? (
           <DialogClose
             aria-label="Close"
@@ -49,6 +48,7 @@ function DialogContent({ className, children, showClose = true, ...props }) {
             <X className="size-4" />
           </DialogClose>
         ) : null}
+        {children}
       </DialogPrimitive.Popup>
     </DialogPrimitive.Portal>
   );

@@ -4,8 +4,7 @@ export const patientNavigation = [
   { label: "Treatments", to: "/treatments" },
   { label: "Doctors", to: "/doctors" },
   { label: "Medicines", to: "/medicines" },
-  { label: "Prescription", to: "/diet-yoga" },
-  { label: "Ayurveda wellness", to: "/ayurveda-wellness" },
+  { label: "Prescription & Wellness", to: "/prescription-wellness" },
   { label: "Blogs & videos", to: "/blogs-videos" },
   { label: "Orders", to: "/order-history" },
 ];
@@ -14,6 +13,6 @@ export const patientExploreOptions = [
   { label: "Doctors", value: "doctor", to: "/doctors" },
   { label: "Treatments", value: "disease", to: "/treatments" },
   { label: "Medicines", value: "medicine", to: "/medicines" },
-  { label: "Prescription", value: "diet-yoga", to: "/diet-yoga" },
+  { label: "Prescription & Wellness", value: "prescription-wellness", to: "/prescription-wellness" },
   { label: "Blogs & videos", value: "blogs-videos", to: "/blogs-videos" },
 ];

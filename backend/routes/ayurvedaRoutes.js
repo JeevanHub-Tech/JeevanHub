@@ -13,7 +13,15 @@ const {
     getDietPlan,
     getDietPlanForPatient,
     deleteDietPlan,
+    reviewDietPlan,
 } = require("../controllers/ayurvedaController");
+const {
+    generateYogaPlan,
+    getYogaPlan,
+    getYogaPlanForPatient,
+    deleteYogaPlan,
+    reviewYogaPlan,
+} = require("../controllers/ayurvedaYogaPlanController");
 
 router.post("/wellness-profile", verifyToken, upsertWellnessProfile);
 router.get("/wellness-profile", verifyToken, getWellnessProfile);
@@ -35,5 +43,18 @@ router.post("/diet-plan/generate", verifyToken, dietPlanAiLimit, generateDietPla
 router.get("/diet-plan", verifyToken, getDietPlan);
 router.get("/diet-plan/patient/:patientId", verifyToken, getDietPlanForPatient);
 router.delete("/diet-plan", verifyToken, deleteDietPlan);
+router.put("/diet-plan/patient/:patientId/review", verifyToken, reviewDietPlan);
+
+const yogaPlanAiLimit = aiRateLimit({
+    windowMs: 60 * 60 * 1000, // 1 hour
+    max: 5,
+    message: "Too many yoga plan generation requests. Please wait before generating another plan.",
+});
+
+router.post("/yoga-plan/generate", verifyToken, yogaPlanAiLimit, generateYogaPlan);
+router.get("/yoga-plan", verifyToken, getYogaPlan);
+router.get("/yoga-plan/patient/:patientId", verifyToken, getYogaPlanForPatient);
+router.delete("/yoga-plan", verifyToken, deleteYogaPlan);
+router.put("/yoga-plan/patient/:patientId/review", verifyToken, reviewYogaPlan);
 
 module.exports = router;

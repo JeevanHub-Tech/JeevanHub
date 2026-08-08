@@ -4,6 +4,7 @@
  * Handles all AI-powered conversation intelligence
  */
 const axios = require('axios');
+const { fetchYouTubeVideos } = require('./youtubeService');
 
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
@@ -554,10 +555,7 @@ Return ONLY valid JSON:
 // YOUTUBE RECOMMENDATIONS - Real videos via YouTube Data API v3
 // ============================================================
 async function getYouTubeRecommendations(healthTopic) {
-    const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
-    console.log('[YouTube] Topic:', healthTopic, '| API Key present:', !!YOUTUBE_API_KEY);
-
-    // Step 1: Use AI to generate the BEST Ayurvedic search query for this condition
+    // Use AI to generate the BEST Ayurvedic search query for this condition
     let searchQuery = `${healthTopic} Ayurvedic treatment home remedy`;
     try {
         const queryText = await groqChat([
@@ -576,57 +574,7 @@ Rules:
         console.log('AI query generation fallback, using default query');
     }
 
-    console.log('[YouTube] Search query:', searchQuery);
-
-    // Step 2: Fetch real videos from YouTube Data API v3 (sorted by viewCount for popularity)
-    if (YOUTUBE_API_KEY) {
-        try {
-            console.log('[YouTube] Calling YouTube Data API v3...');
-            const ytResponse = await axios.get('https://www.googleapis.com/youtube/v3/search', {
-                params: {
-                    part: 'snippet',
-                    q: searchQuery,
-                    type: 'video',
-                    order: 'viewCount',
-                    maxResults: 3,
-                    relevanceLanguage: 'en',
-                    key: YOUTUBE_API_KEY
-                }
-            });
-
-            const items = ytResponse.data?.items || [];
-            if (items.length > 0) {
-                const videos = items.map(item => ({
-                    title: item.snippet.title,
-                    description: item.snippet.description?.slice(0, 120) || '',
-                    channel: item.snippet.channelTitle,
-                    thumbnail: item.snippet.thumbnails?.medium?.url || item.snippet.thumbnails?.default?.url,
-                    link: `https://www.youtube.com/watch?v=${item.id.videoId}`,
-                    type: 'real'
-                }));
-                console.log('[YouTube] SUCCESS — Found', videos.length, 'real videos');
-                return { videos, topicSummary: healthTopic, searchQuery };
-            }
-        } catch (ytError) {
-            console.error('YouTube API Error:', ytError.response?.data?.error?.message || ytError.message);
-        }
-    }
-
-    // Step 3: Fallback — generate direct YouTube search URL if API key missing or failed
-    console.log('YouTube API key missing or failed, using search URL fallback');
-    return {
-        videos: [
-            {
-                title: `Top Ayurvedic remedies for ${healthTopic}`,
-                description: `Watch the best-rated videos about ${healthTopic} treatment in Ayurveda`,
-                link: `https://www.youtube.com/results?search_query=${encodeURIComponent(searchQuery)}&sp=CAMSAhAB`,
-                type: 'search',
-                channel: 'YouTube Search'
-            }
-        ],
-        topicSummary: healthTopic,
-        searchQuery
-    };
+    return fetchYouTubeVideos(searchQuery, healthTopic);
 }
 
 // ============================================================

@@ -4,6 +4,9 @@ const Patient = require("../models/Patient");
 const Medicine = require("../models/Medicine");
 const Cart = require("../models/Cart");
 const Notification = require("../models/Notification");
+const AyurvedaDietPlan = require("../models/AyurvedaDietPlan");
+const { publishYogaDraft } = require("./dietYogaController");
+const { publishYogaPlanForPatient } = require("./ayurvedaYogaPlanController");
 const { isDailyConfigured, createDailyRoom, createDailyMeetingToken } = require("../utils/dailyClient");
 const fs = require("fs");
 const multer = require("multer");
@@ -1133,11 +1136,12 @@ exports.addSupplement = async (req, res) => {
 			medicineId: medicine._id,
 			medicineName: medicine.name,
 			dosage: dosage || "",
-			instructions: instructions || ""
+			instructions: instructions || "",
+			// Stays hidden from the patient (and out of their cart) until the
+			// doctor submits the prescription -- see publishPrescription.
+			published: false,
 		});
 		await booking.save();
-
-		await addMedicineToCart(booking.patientId, booking.doctorId, medicine);
 
 		const created = booking.recommendedSupplements[booking.recommendedSupplements.length - 1];
 		return res.status(201).json({ message: "Medicine added to prescription.", supplement: created });
@@ -1186,10 +1190,13 @@ exports.deleteSupplement = async (req, res) => {
 		}
 
 		const medicineId = supplement.medicineId;
+		const wasPublished = supplement.published;
 		supplement.deleteOne();
 		await booking.save();
 
-		await removeMedicineFromCart(booking.patientId, booking.doctorId, medicineId);
+		if (wasPublished) {
+			await removeMedicineFromCart(booking.patientId, booking.doctorId, medicineId);
+		}
 
 		return res.status(200).json({ message: "Medicine removed from prescription." });
 	} catch (error) {
@@ -1249,14 +1256,59 @@ exports.updatePatientIllness = async (req, res) => {
 	}
 };
 
-// ✅ Send the patient one notification that their prescription / treatment plan is ready.
-// Called explicitly by the doctor when they're done (realtime edits stay silent).
+// ✅ "Submit Prescription": everything the doctor has been silently saving as
+// drafts (medicines, diet/wellness review, yoga) becomes visible to the
+// patient in one shot, then the patient is notified. Called explicitly by
+// the doctor when they're done -- realtime per-panel Save calls stay silent
+// drafts until this runs.
 exports.notifyPrescription = async (req, res) => {
 	const { id } = req.params;
 
 	try {
 		const booking = await loadOwnedBooking(id, req, res);
 		if (!booking) return;
+
+		// 1. Medicines: publish any draft rows and add them to the patient's cart.
+		const draftSupplements = booking.recommendedSupplements.filter((s) => s.published === false);
+		for (const supp of draftSupplements) {
+			supp.published = true;
+			if (supp.medicineId) {
+				try {
+					const medicine = await Medicine.findById(supp.medicineId);
+					if (medicine) await addMedicineToCart(booking.patientId, booking.doctorId, medicine);
+				} catch (e) {
+					console.error("Error adding published medicine to cart:", e);
+				}
+			}
+		}
+		if (draftSupplements.length) await booking.save();
+
+		// 2. Diet plan + Other Wellness Recommendations (same doctorReview draft).
+		try {
+			const plan = await AyurvedaDietPlan.findOne({ patientId: booking.patientId });
+			if (plan?.doctorReview?.reviewedAt && !plan.doctorReview.published) {
+				plan.doctorReview.published = true;
+				plan.status = "doctor_approved";
+				await plan.save();
+			}
+		} catch (e) {
+			console.error("Error publishing diet plan draft:", e);
+		}
+
+		// 3. Yoga plan (patient-scoped AI plan the doctor reviewed).
+		try {
+			await publishYogaPlanForPatient(booking.patientId);
+		} catch (e) {
+			console.error("Error publishing yoga plan draft:", e);
+		}
+		// Legacy booking-scoped manual yoga entries (pre-AI-generation flow),
+		// kept for back-compat with any doctor still using the old per-booking
+		// asana editor.
+		try {
+			await publishYogaDraft(id, req.user._id);
+		} catch (e) {
+			console.error("Error publishing legacy yoga draft:", e);
+		}
 
 		await new Notification({
 			userId: booking.patientId,
@@ -1267,9 +1319,9 @@ exports.notifyPrescription = async (req, res) => {
 			isRead: false
 		}).save();
 
-		return res.status(200).json({ message: "Patient notified successfully." });
+		return res.status(200).json({ message: "Prescription submitted and patient notified." });
 	} catch (error) {
-		console.error("Error notifying patient:", error);
+		console.error("Error submitting prescription:", error);
 		return res.status(500).json({ error: "Server error", details: error.message });
 	}
 };

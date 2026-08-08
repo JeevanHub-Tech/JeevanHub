@@ -20,7 +20,7 @@ import { AuthContext } from './context/AuthContext';
 const MobileChatApp = lazy(() => import('./screens/MobileChatApp'));
 const HomeScreen = lazy(() => import('./screens/Home'));
 const MedicinesScreen = lazy(() => import('./screens/Medicines'));
-const DietYogaScreen = lazy(() => import('./screens/Patients/DietYogaComponent'));
+const PrescriptionWellnessPage = lazy(() => import('./screens/Patients/PrescriptionWellness/PrescriptionWellnessPage'));
 const BlogsVideosScreen = lazy(() => import('./screens/BlogVideos/BlogsVideosScreen'));
 const CartScreen = lazy(() => import('./screens/Cart'));
 const PaymentScreen = lazy(() => import('./screens/Payment'));
@@ -36,7 +36,6 @@ const SignUpPatientScreen = lazy(() => import('./screens/Patients/SignUpPatientS
 const SignUpDoctorScreen = lazy(() => import('./screens/Doctors/SignUpDoctorScreen'));
 const SignUpRetailerScreen = lazy(() => import('./screens/Retailers/SignUpRetailerScreen'));
 const PrakritiDetermination = lazy(() => import('./screens/Patients/Prakriti/PrakritiDetermination'));
-const AyurvedaDashboard = lazy(() => import('./screens/Patients/Ayurveda/AyurvedaDashboard'));
 const WellnessProfileForm = lazy(() => import('./screens/Patients/Ayurveda/WellnessProfileForm'));
 const DoshaAssessmentQuiz = lazy(() => import('./screens/Patients/Ayurveda/DoshaAssessmentQuiz'));
 const TreatmentsScreen = lazy(() => import('./screens/Treatments'));
@@ -157,7 +156,8 @@ function App() {
           <Route path="/signup" element={<SignUpScreen />} />
           <Route path="/treatments" element={<TreatmentsScreen />} />
           <Route path="/treatment/:category" element={<TreatmentDetailsScreen />} />
-          <Route path="/diet-yoga" element={<DietYogaScreen />} />
+          {/* Legacy paths kept working -- both now point at the unified Prescription & Wellness page. */}
+          <Route path="/diet-yoga" element={<PrescriptionWellnessPage />} />
           <Route path="/blogs-videos" element={<BlogsVideosScreen />} />
           <Route path="/blogs" element={<BlogScreen />} />
           <Route path="/blog/:id" element={<Blog />} />
@@ -200,7 +200,8 @@ function App() {
             <Route path="/profile/patient" element={<PatientProfileNew />} />
             <Route path="/profile/doctor" element={<DoctorProfileNew />} />
             <Route path="/profile/retailer" element={<RetailerProfileNew />} />
-            <Route path="/ayurveda-wellness" element={<AyurvedaDashboard />} />
+            <Route path="/prescription-wellness" element={<PrescriptionWellnessPage />} />
+            <Route path="/ayurveda-wellness" element={<PrescriptionWellnessPage />} />
             <Route path="/ayurveda-wellness/profile" element={<WellnessProfileForm />} />
             <Route path="/ayurveda-wellness/assessment" element={<DoshaAssessmentQuiz />} />
 

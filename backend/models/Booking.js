@@ -94,7 +94,11 @@ const bookingSchema = new mongoose.Schema({
 			medicineName: { type: String, required: true }, // denormalized for display
 			dosage: { type: String, default: "" },
 			instructions: { type: String, default: "" },
-			addedAt: { type: Date, default: Date.now }
+			addedAt: { type: Date, default: Date.now },
+			// Doctor saves work in-progress silently; patient only sees a row once
+			// "Submit Prescription" flips it to true. Defaults true so rows that
+			// existed before this field was added stay visible (no regression).
+			published: { type: Boolean, default: true },
 		}
 	],
 	rating: {

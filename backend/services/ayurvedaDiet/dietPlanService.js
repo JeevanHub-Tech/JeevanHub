@@ -9,6 +9,9 @@
  * RATE_LIMIT / JSON_PARSE_ERROR). Provider-pluggable via config.js.
  */
 const { AYURVEDA_DIET_ENABLED, AYURVEDA_DIET_PROVIDER, AYURVEDA_DIET_MODEL } = require('./config');
+const { BODY_TYPES } = require('../../constants/bodyTypes');
+
+const BODY_TYPE_LABELS = Object.fromEntries(BODY_TYPES.map((b) => [b.value, b.label]));
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
@@ -146,7 +149,7 @@ function buildPrompt({ profile, dosha, patient }) {
     weightKg: na(bd.weightKg),
     bmi: bmi === null ? 'not provided' : bmi,
     bmiCategory: bmiCategory(bmi),
-    bodyType: na(bd.bodyType),
+    bodyType: bd.bodyType ? (BODY_TYPE_LABELS[bd.bodyType] || bd.bodyType) : 'not provided',
     medicalConditions: conditionsList.length ? conditionsList : 'none reported',
     medications: (profile?.healthInfo?.medications || []).length ? profile.healthInfo.medications : 'none reported',
     allergiesAndRestrictions: (profile?.healthInfo?.allergies || []).length ? profile.healthInfo.allergies : 'none reported',

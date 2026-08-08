@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { BODY_TYPE_VALUES } = require("../constants/bodyTypes");
 
 // Patient wellness profile input for the Ayurveda diet module. Every field
 // here is optional except patientId -- patients may skip anything they don't
@@ -14,7 +15,7 @@ const ayurvedaWellnessProfileSchema = new mongoose.Schema({
     basicDetails: {
         heightCm: { type: Number, min: 0 },
         weightKg: { type: Number, min: 0 },
-        bodyType: { type: String },
+        bodyType: { type: String, enum: BODY_TYPE_VALUES },
     },
     healthInfo: {
         conditions: {

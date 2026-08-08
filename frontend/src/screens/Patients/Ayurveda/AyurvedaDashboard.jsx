@@ -8,17 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { AuthContext } from "../../../context/AuthContext";
 import { BACKEND_URL } from "../../../config";
 import DoshaAssessmentQuiz from "./DoshaAssessmentQuiz";
 import WellnessProfileForm from "./WellnessProfileForm";
 import OverviewTab from "./tabs/OverviewTab";
-import WeeklyMealPlannerTab from "./tabs/WeeklyMealPlannerTab";
-import CookingInstructionsTab from "./tabs/CookingInstructionsTab";
-import FoodsToAvoidTab from "./tabs/FoodsToAvoidTab";
-import LifestyleRecommendationsTab from "./tabs/LifestyleRecommendationsTab";
+import { generateBothPlans } from "@/lib/ayurvedaPlans";
 
 const API = BACKEND_URL || "http://localhost:8080";
 
@@ -57,6 +53,13 @@ function isProfileFilled(profile) {
 		fh.dietType || fh.preferredFoods?.length || fh.dislikedFoods?.length || fh.eatingTimings || fh.waterIntakeLiters
 	);
 }
+
+const BODY_TYPE_LABELS = {
+	lean_thin: "Lean / Thin Frame",
+	athletic_defined: "Athletic / Well Defined",
+	medium_frame: "Medium Frame",
+	soft_round: "Soft / Round Body",
+};
 
 const THIRD_DOSHA_LABEL = {
 	Balanced: "in balance",
@@ -165,7 +168,7 @@ function WellnessProfileDetails({ profile }) {
 						</span>
 					) : "Not provided"}
 				/>
-				<DetailRow label="Body type" value={na(bd.bodyType)} />
+				<DetailRow label="Body type" value={bd.bodyType ? (BODY_TYPE_LABELS[bd.bodyType] || bd.bodyType) : "Not provided"} />
 			</DetailSection>
 
 			<DetailSection icon={HeartPulse} title="Health information">
@@ -190,6 +193,23 @@ function WellnessProfileDetails({ profile }) {
 				<DetailRow label="Water intake" value={fh.waterIntakeLiters ? `${fh.waterIntakeLiters} L/day` : "Not provided"} />
 			</DetailSection>
 		</div>
+	);
+}
+
+// Hoisted to module scope (not defined inside AyurvedaDashboard's render) so
+// they keep a stable component identity across re-renders. Defining these
+// inline in render previously gave them a *new* identity every render,
+// forcing React to remount everything beneath -- including any open Dialog
+// modal -- which dropped focus/state after the first keystroke in the
+// wellness profile / dosha quiz forms.
+function EmbeddedWrapper({ children }) {
+	return <div className="flex flex-col gap-6">{children}</div>;
+}
+function PageWrapper({ children }) {
+	return (
+		<main className="bg-background">
+			<div className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-10 sm:px-6 lg:px-8">{children}</div>
+		</main>
 	);
 }
 
@@ -222,9 +242,11 @@ function StatusTile({ icon: Icon, title, complete, statusText, actions }) {
  * of a specific patient (uses the .../patient/:patientId endpoints instead).
  * Pass `embedded` when composing this inside another page's own <main>/layout
  * (e.g. the Diet & Yoga screen) so it doesn't nest a second <main> or fight
- * the parent's width.
+ * the parent's width. Pass `onPlanChanged` to be notified after a
+ * generate/regenerate/delete succeeds, so a parent page showing the plan
+ * elsewhere (e.g. the Weekly Meal Planner section) can refetch.
  */
-function AyurvedaDashboard({ patientId: patientIdProp, readOnly = false, embedded = false }) {
+function AyurvedaDashboard({ patientId: patientIdProp, readOnly = false, embedded = false, onPlanChanged }) {
 	const { auth, loading: authLoading } = useContext(AuthContext);
 	const navigate = useNavigate();
 	const [profile, setProfile] = useState(null);
@@ -275,15 +297,25 @@ function AyurvedaDashboard({ patientId: patientIdProp, readOnly = false, embedde
 		fetchAll();
 	}, [auth, authLoading, navigate, fetchAll]);
 
+	// One "Generate" always produces both the diet plan and the yoga plan
+	// together (see generateBothPlans) -- there's no separate yoga button.
 	const handleGenerate = async () => {
 		setGenerating(true);
 		try {
-			const body = isDoctorView ? { patientId: patientIdProp } : {};
-			const res = await axios.post(`${API}/api/ayurveda/diet-plan/generate`, body, { headers: { Authorization: `Bearer ${auth.token}` } });
-			setPlan({ ...res.data.plan, isStale: false });
+			const headers = { Authorization: `Bearer ${auth.token}` };
+			const postJson = async (url, body) => {
+				const res = await axios.post(`${API}${url}`, body, { headers });
+				return res.data;
+			};
+			const result = await generateBothPlans(postJson, isDoctorView ? patientIdProp : undefined);
+			if (result.dietOk) setPlan({ ...result.plan, isStale: false });
+			if (!result.dietOk || !result.yogaOk) {
+				alert([result.dietError, result.yogaError].filter(Boolean).join(" "));
+			}
+			onPlanChanged?.();
 		} catch (error) {
-			console.error("Error generating diet plan:", error);
-			alert(error.response?.data?.message || "Failed to generate diet plan.");
+			console.error("Error generating plan:", error);
+			alert(error.message || "Failed to generate your plan.");
 		} finally {
 			setGenerating(false);
 		}
@@ -305,19 +337,14 @@ function AyurvedaDashboard({ patientId: patientIdProp, readOnly = false, embedde
 		try {
 			await axios.delete(`${API}/api/ayurveda/diet-plan`, { headers: { Authorization: `Bearer ${auth.token}` } });
 			setPlan(null);
+			onPlanChanged?.();
 		} catch (error) {
 			console.error("Error deleting diet plan:", error);
 			alert(error.response?.data?.message || error.response?.data?.error || `Failed to delete diet plan (${error.response?.status ?? "network error"}).`);
 		}
 	};
 
-	const Wrapper = embedded
-		? ({ children }) => <div className="flex flex-col gap-6">{children}</div>
-		: ({ children }) => (
-			<main className="bg-background">
-				<div className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-10 sm:px-6 lg:px-8">{children}</div>
-			</main>
-		);
+	const Wrapper = embedded ? EmbeddedWrapper : PageWrapper;
 
 	if (loading) {
 		return <Wrapper><p className="text-center text-muted-foreground">Loading…</p></Wrapper>;
@@ -347,149 +374,67 @@ function AyurvedaDashboard({ patientId: patientIdProp, readOnly = false, embedde
 		);
 	}
 
-	const bd = profile?.basicDetails || {};
-	const bmi = computeBmi(bd.heightCm, bd.weightKg);
-	const conditions = profile?.healthInfo?.conditions || {};
-	const conditionsList = [
-		conditions.diabetes && "Diabetes",
-		conditions.highBP && "High blood pressure",
-		conditions.obesityFocus && "Weight management",
-		conditions.skinDisease && "Skin disease (eczema/psoriasis)",
-		conditions.jointPainArthritis && "Joint pain / arthritis",
-		conditions.digestiveIssues && "Digestive issues (GERD/gastritis)",
-		conditions.respiratoryIssues && "Respiratory issues",
-		...(conditions.other || []),
-	].filter(Boolean);
-
 	return (
 		<Wrapper>
-				<div>
-					<h1 className="font-display text-2xl text-foreground">Ayurveda wellness</h1>
-					<p className="text-sm text-muted-foreground">Personalized Prakriti profile and AI-generated diet plan.</p>
+				{!embedded ? (
+					<div>
+						<h1 className="font-display text-2xl text-foreground">Ayurveda wellness</h1>
+						<p className="text-sm text-muted-foreground">Personalized Prakriti profile and AI-generated diet plan.</p>
+					</div>
+				) : null}
+
+				<div className="grid gap-4 sm:grid-cols-2">
+					<StatusTile
+						icon={Leaf}
+						title="Prakriti Assessment"
+						complete={Boolean(dosha)}
+						statusText={dosha
+							? `${dosha.primaryDosha}${dosha.secondaryDosha ? ` · ${dosha.secondaryDosha}` : ""}`
+							: "Not completed yet"}
+						actions={dosha
+							? isDoctorView
+								? [{ label: "View result", variant: "outline", onClick: () => setOpenPanel("prakriti-view") }]
+								: [
+									{ label: "View result", variant: "outline", onClick: () => setOpenPanel("prakriti-view") },
+									{ label: "Retake", variant: "outline", onClick: () => setOpenPanel("prakriti") },
+								]
+							: isDoctorView
+								? []
+								: [{ label: "Fill assessment", variant: "default", onClick: () => setOpenPanel("prakriti") }]}
+					/>
+					<StatusTile
+						icon={ClipboardEdit}
+						title="Wellness Profile"
+						complete={profileFilled}
+						statusText={profileFilled ? "Filled" : "Not filled yet"}
+						actions={profileFilled
+							? isDoctorView
+								? [{ label: "View details", variant: "outline", onClick: () => setOpenPanel("profile-view") }]
+								: [
+									{ label: "View details", variant: "outline", onClick: () => setOpenPanel("profile-view") },
+									{ label: "Refill", variant: "outline", onClick: () => setOpenPanel("profile") },
+								]
+							: isDoctorView
+								? []
+								: [{ label: "Fill profile", variant: "default", onClick: () => setOpenPanel("profile") }]}
+					/>
 				</div>
 
-				{!isDoctorView ? (
-					<>
-						<div className="grid gap-4 sm:grid-cols-2">
-							<StatusTile
-								icon={Leaf}
-								title="Prakriti Assessment"
-								complete={Boolean(dosha)}
-								statusText={dosha
-									? `${dosha.primaryDosha}${dosha.secondaryDosha ? ` · ${dosha.secondaryDosha}` : ""}`
-									: "Not completed yet"}
-								actions={dosha
-									? [
-										{ label: "View result", variant: "outline", onClick: () => setOpenPanel("prakriti-view") },
-										{ label: "Retake", variant: "outline", onClick: () => setOpenPanel("prakriti") },
-									]
-									: [{ label: "Fill assessment", variant: "default", onClick: () => setOpenPanel("prakriti") }]}
-							/>
-							<StatusTile
-								icon={ClipboardEdit}
-								title="Wellness Profile"
-								complete={profileFilled}
-								statusText={profileFilled ? "Filled" : "Not filled yet"}
-								actions={profileFilled
-									? [
-										{ label: "View details", variant: "outline", onClick: () => setOpenPanel("profile-view") },
-										{ label: "Refill", variant: "outline", onClick: () => setOpenPanel("profile") },
-									]
-									: [{ label: "Fill profile", variant: "default", onClick: () => setOpenPanel("profile") }]}
-							/>
-						</div>
-					</>
-				) : null}
-
-				{isDoctorView && dosha ? (
-					<Card>
-						<CardHeader><CardTitle className="font-display text-lg">Your Prakriti (Ayurvedic constitution)</CardTitle></CardHeader>
-						<CardContent className="flex flex-col gap-6">
-							<div className="flex flex-wrap gap-2">
-								<Badge>Primary: {dosha.primaryDosha}</Badge>
-								{dosha.secondaryDosha ? <Badge variant="secondary">Secondary: {dosha.secondaryDosha}</Badge> : null}
-							</div>
-
-							{dosha.doshaProfile?.primary ? (
-								<DoshaDetail heading={`${dosha.secondaryDosha ? "Primary — " : ""}${dosha.doshaProfile.primary.title} (${dosha.doshaProfile.primary.element})`} info={dosha.doshaProfile.primary} />
-							) : null}
-
-							{dosha.doshaProfile?.secondary ? (
-								<DoshaDetail heading={`Secondary — ${dosha.doshaProfile.secondary.title} (${dosha.doshaProfile.secondary.element})`} info={dosha.doshaProfile.secondary} />
-							) : null}
-
-							{dosha.thirdDoshaStatus ? (
-								<p className="text-sm text-muted-foreground">
-									Your remaining dosha is{" "}
-									{THIRD_DOSHA_LABEL[dosha.thirdDoshaStatus] || dosha.thirdDoshaStatus.toLowerCase()}.
-								</p>
-							) : null}
-						</CardContent>
-					</Card>
-				) : null}
-
-				{isDoctorView && profileFilled ? (
-				<Card>
-					<CardHeader><CardTitle className="font-display text-lg">Health parameters</CardTitle></CardHeader>
-					<CardContent className="flex flex-col gap-2 text-sm">
-						<div className="flex items-center gap-2">
-							<span className="text-muted-foreground">BMI:</span>
-							<span className="font-medium text-foreground">{bmi ?? "Not provided"}</span>
-							{bmi !== null ? <Badge variant="secondary">{bmiCategory(bmi)}</Badge> : null}
-						</div>
-						<div>
-							<span className="text-muted-foreground">Weight: </span>
-							<span className="text-foreground">{bd.weightKg ? `${bd.weightKg} kg` : "Not provided"}</span>
-						</div>
-						<div>
-							<span className="text-muted-foreground">Conditions: </span>
-							<span className="text-foreground">{conditionsList.length ? conditionsList.join(", ") : "None reported"}</span>
-						</div>
-						<div>
-							<span className="text-muted-foreground">Lifestyle: </span>
-							<span className="text-foreground">
-								{profile?.lifestyle?.activityLevel
-									? `${profile.lifestyle.activityLevel} activity, ${profile.lifestyle.stressLevel || "unknown"} stress`
-									: "Not provided"}
-							</span>
-						</div>
-					</CardContent>
-				</Card>
-				) : null}
-
-				<Tabs defaultValue="overview">
-					<TabsList>
-						<TabsTrigger value="overview">Overview</TabsTrigger>
-						<TabsTrigger value="weekly">Weekly Meal Planner</TabsTrigger>
-						<TabsTrigger value="cooking">Cooking Instructions</TabsTrigger>
-						<TabsTrigger value="avoid">Foods To Avoid</TabsTrigger>
-						<TabsTrigger value="lifestyle">Lifestyle Recommendations</TabsTrigger>
-					</TabsList>
-					<TabsContent value="overview">
-						<OverviewTab
-						plan={plan}
-						isStale={plan?.isStale}
-						readOnly={readOnly}
-						onRegenerate={handleGenerateClick}
-						onDelete={handleDeletePlan}
-						onGenerate={handleGenerateClick}
-						generating={generating}
-						missingPrereqs={[!dosha && "the Prakriti assessment", !profileFilled && "your wellness profile"].filter(Boolean)}
-					/>
-					</TabsContent>
-					<TabsContent value="weekly">
-						<WeeklyMealPlannerTab plan={plan} />
-					</TabsContent>
-					<TabsContent value="cooking">
-						<CookingInstructionsTab plan={plan} />
-					</TabsContent>
-					<TabsContent value="avoid">
-						<FoodsToAvoidTab plan={plan} />
-					</TabsContent>
-					<TabsContent value="lifestyle">
-						<LifestyleRecommendationsTab plan={plan} dosha={dosha} />
-					</TabsContent>
-				</Tabs>
+				{/* Weekly meal planner / cooking instructions / foods to avoid / lifestyle
+				    recommendations now live in the unified Prescription & Wellness page --
+				    this dashboard is intake/management only (profile, Prakriti, generate/
+				    regenerate/delete), so only the Overview summary stays here. */}
+				<OverviewTab
+					plan={plan}
+					isStale={plan?.isStale}
+					readOnly={readOnly}
+					isDoctorView={isDoctorView}
+					onRegenerate={handleGenerateClick}
+					onDelete={handleDeletePlan}
+					onGenerate={handleGenerateClick}
+					generating={generating}
+					missingPrereqs={[!dosha && "the Prakriti assessment", !profileFilled && "your wellness profile"].filter(Boolean)}
+				/>
 
 				{!isDoctorView ? (
 					<>
@@ -499,58 +444,67 @@ function AyurvedaDashboard({ patientId: patientIdProp, readOnly = false, embedde
 								<DoshaAssessmentQuiz embedded onDone={() => { setOpenPanel(null); fetchAll(); }} />
 							</DialogContent>
 						</Dialog>
-						<Dialog open={openPanel === "prakriti-view"} onOpenChange={(open) => !open && setOpenPanel(null)}>
-							<DialogContent className="max-w-2xl overflow-y-auto">
-								<DialogTitle className="font-display text-lg">Your Prakriti assessment result</DialogTitle>
-								{dosha ? (
-									<div className="flex flex-col gap-6">
-										<div className="flex flex-wrap gap-2">
-											<Badge>Primary: {dosha.primaryDosha}</Badge>
-											{dosha.secondaryDosha ? <Badge variant="secondary">Secondary: {dosha.secondaryDosha}</Badge> : null}
-										</div>
-										{dosha.doshaProfile?.primary ? (
-											<DoshaDetail heading={`${dosha.secondaryDosha ? "Primary — " : ""}${dosha.doshaProfile.primary.title} (${dosha.doshaProfile.primary.element})`} info={dosha.doshaProfile.primary} />
-										) : null}
-										{dosha.doshaProfile?.secondary ? (
-											<DoshaDetail heading={`Secondary — ${dosha.doshaProfile.secondary.title} (${dosha.doshaProfile.secondary.element})`} info={dosha.doshaProfile.secondary} />
-										) : null}
-										{dosha.thirdDoshaStatus ? (
-											<p className="text-sm text-muted-foreground">
-												Your remaining dosha is{" "}
-												{THIRD_DOSHA_LABEL[dosha.thirdDoshaStatus] || dosha.thirdDoshaStatus.toLowerCase()}.
-											</p>
-										) : null}
-									</div>
-								) : null}
-								<Button
-									size="sm"
-									variant="outline"
-									className="self-start"
-									onClick={() => setOpenPanel("prakriti")}
-								>
-									Retake assessment
-								</Button>
-							</DialogContent>
-						</Dialog>
 						<Dialog open={openPanel === "profile"} onOpenChange={(open) => !open && setOpenPanel(null)}>
 							<DialogContent className="max-w-2xl overflow-y-auto">
 								<DialogTitle className="sr-only">Wellness profile</DialogTitle>
 								<WellnessProfileForm embedded onSaved={() => { setOpenPanel(null); fetchAll(); }} />
 							</DialogContent>
 						</Dialog>
-						<Dialog open={openPanel === "profile-view"} onOpenChange={(open) => !open && setOpenPanel(null)}>
-							<DialogContent className="max-w-2xl overflow-y-auto">
-								<div className="flex items-center justify-between gap-3 pr-6">
-									<DialogTitle className="font-display text-lg">Your wellness profile</DialogTitle>
-									<Button size="sm" onClick={() => setOpenPanel("profile")}>
-										<ClipboardEdit size={14} /> Edit
-									</Button>
-								</div>
-								<WellnessProfileDetails profile={profile} />
-							</DialogContent>
-						</Dialog>
 					</>
 				) : null}
+
+				<Dialog open={openPanel === "prakriti-view"} onOpenChange={(open) => !open && setOpenPanel(null)}>
+					<DialogContent className="max-w-2xl overflow-y-auto">
+						<DialogTitle className="font-display text-lg">
+							{isDoctorView ? "Patient's Prakriti assessment result" : "Your Prakriti assessment result"}
+						</DialogTitle>
+						{dosha ? (
+							<div className="flex flex-col gap-6">
+								<div className="flex flex-wrap gap-2">
+									<Badge>Primary: {dosha.primaryDosha}</Badge>
+									{dosha.secondaryDosha ? <Badge variant="secondary">Secondary: {dosha.secondaryDosha}</Badge> : null}
+								</div>
+								{dosha.doshaProfile?.primary ? (
+									<DoshaDetail heading={`${dosha.secondaryDosha ? "Primary — " : ""}${dosha.doshaProfile.primary.title} (${dosha.doshaProfile.primary.element})`} info={dosha.doshaProfile.primary} />
+								) : null}
+								{dosha.doshaProfile?.secondary ? (
+									<DoshaDetail heading={`Secondary — ${dosha.doshaProfile.secondary.title} (${dosha.doshaProfile.secondary.element})`} info={dosha.doshaProfile.secondary} />
+								) : null}
+								{dosha.thirdDoshaStatus ? (
+									<p className="text-sm text-muted-foreground">
+										{isDoctorView ? "Their" : "Your"} remaining dosha is{" "}
+										{THIRD_DOSHA_LABEL[dosha.thirdDoshaStatus] || dosha.thirdDoshaStatus.toLowerCase()}.
+									</p>
+								) : null}
+							</div>
+						) : null}
+						{!isDoctorView ? (
+							<Button
+								size="sm"
+								variant="outline"
+								className="self-start"
+								onClick={() => setOpenPanel("prakriti")}
+							>
+								Retake assessment
+							</Button>
+						) : null}
+					</DialogContent>
+				</Dialog>
+				<Dialog open={openPanel === "profile-view"} onOpenChange={(open) => !open && setOpenPanel(null)}>
+					<DialogContent className="max-w-2xl overflow-y-auto">
+						<div className="flex items-center justify-between gap-3 pr-6">
+							<DialogTitle className="font-display text-lg">
+								{isDoctorView ? "Patient's wellness profile" : "Your wellness profile"}
+							</DialogTitle>
+							{!isDoctorView ? (
+								<Button size="sm" onClick={() => setOpenPanel("profile")}>
+									<ClipboardEdit size={14} /> Edit
+								</Button>
+							) : null}
+						</div>
+						<WellnessProfileDetails profile={profile} />
+					</DialogContent>
+				</Dialog>
 		</Wrapper>
 	);
 }

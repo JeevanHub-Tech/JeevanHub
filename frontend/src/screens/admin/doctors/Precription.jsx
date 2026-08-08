@@ -42,7 +42,7 @@ const DoctorPrescriptions = ({ doctorId }) => {
 	return (
 		<Card className="p-6">
 			<h3 className="flex items-center gap-2 border-b border-border pb-4 text-xl font-semibold text-foreground">
-				<Pill className="size-5" /> Medicines Prescribed
+				<Pill className="size-5" /> Medicines, Herbs & Supplements
 			</h3>
 
 			<div className="mt-5 flex flex-col gap-4">
@@ -90,13 +90,13 @@ const DoctorPrescriptions = ({ doctorId }) => {
 							))
 						) : (
 							<p key={booking._id} className="py-4 text-center text-sm italic text-muted-foreground">
-								No prescriptions have been issued for {booking.patientName}.
+								Not prescribed for {booking.patientName}.
 							</p>
 						)
 					)
 				) : (
 					<p className="py-8 text-center text-muted-foreground">
-						No prescriptions have been issued for this doctor's patients.
+						Not prescribed for any of this doctor's patients yet.
 					</p>
 				)}
 			</div>

@@ -12,6 +12,7 @@ async function assertDoctorRelationship(req, patientId) {
     if (req.user.role !== "doctor") return false;
     return Booking.exists({ doctorId: req.user._id, patientId });
 }
+exports.assertDoctorRelationship = assertDoctorRelationship;
 
 // Every field on AyurvedaWellnessProfile is optional, so a saved document can
 // exist (patientId only) without the patient having actually entered
@@ -33,6 +34,7 @@ function isProfileFilled(profile) {
         profile.season?.current
     );
 }
+exports.isProfileFilled = isProfileFilled;
 
 // ---------------------------------------------------------------- Wellness profile
 
@@ -221,6 +223,24 @@ exports.generateDietPlan = async (req, res) => {
             patient: { age: patient.age, gender: patient.gender },
         });
 
+        // findOneAndUpdate here is a full replacement (no $set), so every
+        // field -- including history/status/doctorReview -- must be spelled
+        // out explicitly or it's dropped. Doctor input is always first-class:
+        // once a doctor has reviewed this plan (draft or published), that
+        // review is NEVER discarded by a regenerate -- only the underlying
+        // raw AI fields refresh (invisible to the patient while the doctor's
+        // version is what's shown). Only a plan the doctor has never touched
+        // resets cleanly to a fresh AI plan.
+        const existing = await AyurvedaDietPlan.findOne({ patientId });
+        const hasDoctorReview = Boolean(existing?.doctorReview?.reviewedAt);
+        let history = existing?.history ? existing.history.map((h) => (h.toObject ? h.toObject() : h)) : [];
+        history.push({
+            changedAt: new Date(),
+            action: hasDoctorReview ? "replaced" : "edited",
+            snapshot: { summary: planFields.summary, note: "AI baseline regenerated" },
+        });
+        if (history.length > 10) history = history.slice(-10);
+
         const plan = await AyurvedaDietPlan.findOneAndUpdate(
             { patientId },
             {
@@ -233,8 +253,11 @@ exports.generateDietPlan = async (req, res) => {
                 ...planFields,
                 model: AYURVEDA_DIET_MODEL,
                 generatedAt: new Date(),
+                status: hasDoctorReview ? existing.status : "ai",
+                doctorReview: hasDoctorReview ? existing.doctorReview : {},
+                history,
             },
-            { new: true, upsert: true, runValidators: true }
+            { new: true, upsert: true, runValidators: true, setDefaultsOnInsert: true }
         );
 
         return res.status(200).json({ message: "Diet plan generated", plan });
@@ -243,7 +266,36 @@ exports.generateDietPlan = async (req, res) => {
     }
 };
 
-async function attachStaleness(plan) {
+// AI-vs-doctor provenance resolution: once a doctor has edited or approved
+// the plan, patient-facing rendering must use ONLY this resolved version --
+// never the raw top-level AI fields. Callers should read `displayPlan`
+// exclusively for patient display; the raw AI fields + doctorReview remain
+// available for doctor-facing review UI where seeing both matters.
+function resolveDisplayPlan(plan) {
+    const status = plan.status || "ai";
+    const reviewPublished = Boolean(plan.doctorReview?.published);
+    if ((status === "ai_modified" || status === "doctor_approved") && reviewPublished) {
+        const dr = plan.doctorReview || {};
+        return {
+            summary: plan.summary,
+            explanation: plan.explanation,
+            weeklyPlan: dr.weeklyPlan,
+            cookingInstructions: dr.cookingInstructions,
+            foodsToAvoid: dr.foodsToAvoid,
+            lifestyleRecommendations: dr.lifestyleRecommendations,
+        };
+    }
+    return {
+        summary: plan.summary,
+        explanation: plan.explanation,
+        weeklyPlan: plan.weeklyPlan,
+        cookingInstructions: plan.cookingInstructions,
+        foodsToAvoid: plan.foodsToAvoid,
+        lifestyleRecommendations: plan.lifestyleRecommendations,
+    };
+}
+
+async function attachStaleness(plan, { includeHistory = false } = {}) {
     if (!plan) return null;
     const [profile, dosha] = await Promise.all([
         plan.wellnessProfileId ? AyurvedaWellnessProfile.findById(plan.wellnessProfileId) : null,
@@ -253,7 +305,9 @@ async function attachStaleness(plan) {
         && new Date(profile.updatedAt).getTime() !== new Date(plan.basedOn.wellnessProfileUpdatedAt).getTime();
     const doshaChanged = dosha && plan.basedOn?.doshaAssessmentUpdatedAt
         && new Date(dosha.updatedAt).getTime() !== new Date(plan.basedOn.doshaAssessmentUpdatedAt).getTime();
-    return { ...plan.toObject(), isStale: Boolean(profileChanged || doshaChanged) };
+    const obj = plan.toObject();
+    if (!includeHistory) delete obj.history;
+    return { ...obj, isStale: Boolean(profileChanged || doshaChanged), displayPlan: resolveDisplayPlan(obj) };
 }
 
 exports.getDietPlan = async (req, res) => {
@@ -273,9 +327,66 @@ exports.getDietPlanForPatient = async (req, res) => {
         if (!allowed) return res.status(403).json({ error: "Access denied" });
 
         const plan = await AyurvedaDietPlan.findOne({ patientId });
-        return res.status(200).json(await attachStaleness(plan));
+        return res.status(200).json(await attachStaleness(plan, { includeHistory: true }));
     } catch (error) {
         console.error("Error fetching patient's diet plan:", error);
+        return res.status(500).json({ error: "Server error" });
+    }
+};
+
+// Doctor reviews the AI-generated diet plan: a silent draft save. Never
+// visible to the patient by itself -- only publishPrescription() (fired by
+// the doctor's "Submit Prescription" button) flips doctorReview.published
+// and the plan status to doctor_approved.
+exports.reviewDietPlan = async (req, res) => {
+    const { patientId } = req.params;
+    try {
+        const allowed = await assertDoctorRelationship(req, patientId);
+        if (!allowed) return res.status(403).json({ error: "Access denied" });
+
+        const { bookingId, weeklyPlan, cookingInstructions, foodsToAvoid, lifestyleRecommendations, notes } = req.body || {};
+
+        const plan = await AyurvedaDietPlan.findOne({ patientId });
+        if (!plan) return res.status(404).json({ error: "No AI diet plan exists for this patient yet." });
+
+        // Base the new review on the current doctor version (if one already
+        // exists) or the original AI content (first review), so edits layer
+        // on top of prior doctor changes rather than reverting to raw AI.
+        const hasExistingReview = plan.doctorReview && plan.doctorReview.reviewedAt;
+        const base = hasExistingReview ? plan.doctorReview : {
+            weeklyPlan: plan.weeklyPlan,
+            cookingInstructions: plan.cookingInstructions,
+            foodsToAvoid: plan.foodsToAvoid,
+            lifestyleRecommendations: plan.lifestyleRecommendations,
+        };
+
+        plan.doctorReview = {
+            reviewedBy: req.user._id,
+            reviewedAt: new Date(),
+            bookingId: bookingId || plan.doctorReview?.bookingId,
+            weeklyPlan: weeklyPlan || base.weeklyPlan,
+            cookingInstructions: cookingInstructions || base.cookingInstructions,
+            foodsToAvoid: foodsToAvoid || base.foodsToAvoid,
+            lifestyleRecommendations: lifestyleRecommendations || base.lifestyleRecommendations,
+            notes: notes !== undefined ? notes : plan.doctorReview?.notes,
+            published: false,
+        };
+        plan.status = "ai_modified";
+
+        const snapshot = plan.doctorReview.toObject ? plan.doctorReview.toObject() : plan.doctorReview;
+        plan.history = plan.history || [];
+        plan.history.push({
+            changedAt: new Date(),
+            changedBy: req.user._id,
+            action: "edited",
+            snapshot,
+        });
+        if (plan.history.length > 10) plan.history = plan.history.slice(-10);
+
+        await plan.save();
+        return res.status(200).json({ message: "Diet plan draft saved", plan: await attachStaleness(plan, { includeHistory: true }) });
+    } catch (error) {
+        console.error("Error reviewing diet plan:", error);
         return res.status(500).json({ error: "Server error" });
     }
 };

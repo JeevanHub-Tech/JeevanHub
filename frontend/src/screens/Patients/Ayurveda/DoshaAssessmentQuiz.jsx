@@ -76,6 +76,21 @@ const CATEGORIES = [
 	},
 ];
 
+// Hoisted to module scope so these keep a stable component identity across
+// re-renders -- see the identical fix/comment in AyurvedaDashboard.jsx for
+// why defining these inside render was the root cause of the modal
+// focus-loss bug.
+function EmbeddedWrapper({ children }) {
+	return <div className="flex flex-col gap-6">{children}</div>;
+}
+function PageWrapper({ children }) {
+	return (
+		<main className="bg-background">
+			<div className="mx-auto flex max-w-2xl flex-col gap-6 px-4 py-10 sm:px-6 lg:px-8">{children}</div>
+		</main>
+	);
+}
+
 function DoshaAssessmentQuiz({ embedded = false, onDone } = {}) {
 	const { auth, loading: authLoading } = useContext(AuthContext);
 	const navigate = useNavigate();
@@ -139,13 +154,7 @@ function DoshaAssessmentQuiz({ embedded = false, onDone } = {}) {
 		}
 	};
 
-	const Wrapper = embedded
-		? ({ children }) => <div className="flex flex-col gap-6">{children}</div>
-		: ({ children }) => (
-			<main className="bg-background">
-				<div className="mx-auto flex max-w-2xl flex-col gap-6 px-4 py-10 sm:px-6 lg:px-8">{children}</div>
-			</main>
-		);
+	const Wrapper = embedded ? EmbeddedWrapper : PageWrapper;
 
 	if (loadingExisting) {
 		return <Wrapper><p className="text-center text-muted-foreground">Loading…</p></Wrapper>;

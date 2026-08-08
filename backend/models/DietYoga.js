@@ -1,5 +1,6 @@
 // models/DietYoga.js
 const mongoose = require("mongoose");
+const { CONTENT_SOURCE_VALUES } = require("../constants/contentSource");
 
 const dietYogaSchema = new mongoose.Schema({
 	patient: { type: mongoose.Schema.Types.ObjectId, ref: "Patient", required: true },
@@ -56,12 +57,36 @@ const dietYogaSchema = new mongoose.Schema({
     yoga: {
         morning: [{
             name: { type: String, required: true },
-            link: { type: String, default: "" } 
+            link: { type: String, default: "" }
         }],
         evening: [{
             name: { type: String, required: true },
             link: { type: String, default: "" }
-        }]
+        }],
+        // Defaults to 'doctor' so existing records (all doctor-authored,
+        // pre-dating AI generation) keep their correct provenance.
+        status: { type: String, enum: CONTENT_SOURCE_VALUES, default: "doctor" },
+        aiGenerated: { type: Boolean, default: false },
+        aiGeneratedAt: { type: Date },
+        // Asana names whose video link came from the YouTube auto-fetch
+        // rather than the doctor, for internal audit/badge purposes.
+        videoAutoFetched: { type: [String], default: [] },
+        // Doctor's work-in-progress edits, invisible to the patient until
+        // "Submit Prescription" copies it into morning/evening/status above.
+        draft: {
+            morning: [{ name: String, link: String }],
+            evening: [{ name: String, link: String }],
+            updatedAt: { type: Date },
+        },
+        history: [{
+            changedAt: { type: Date, default: Date.now },
+            changedBy: { type: mongoose.Schema.Types.ObjectId, ref: "Doctor" },
+            action: { type: String, enum: ["ai_generated", "edited", "approved", "replaced"] },
+            snapshot: {
+                morning: [{ name: String, link: String }],
+                evening: [{ name: String, link: String }],
+            },
+        }],
     },
 	// Link to the original booking
 	bookingId: {

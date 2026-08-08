@@ -196,7 +196,7 @@ const PrescribeIndex = () => {
 
 					<Card className="flex flex-wrap items-center justify-between gap-4 p-4.5">
 						<p className="max-w-[480px] text-sm leading-relaxed text-muted-foreground">
-							Medicines, diet, and yoga plans save automatically as you go. Submit once everything for this visit is ready.
+							Each panel's Save keeps your work as a private draft -- the patient sees nothing until you submit. Submit once everything for this visit is ready.
 						</p>
 						<Button onClick={submitPrescription} disabled={submitting}>
 							{submitting ? <Loader2 className="animate-spin" data-icon="inline-start" /> : <Send data-icon="inline-start" />}

@@ -16,7 +16,7 @@ const Prescription = ({ patientBookings }) => {
 		<Card>
 			<CardHeader>
 				<CardTitle className="flex items-center gap-2 font-display text-xl">
-					<Pill size={20} /> Medicines Prescribed
+					<Pill size={20} /> Medicines, Herbs & Supplements
 					<Badge variant="secondary">{supplementCount}</Badge>
 				</CardTitle>
 			</CardHeader>
@@ -44,7 +44,7 @@ const Prescription = ({ patientBookings }) => {
 						))
 					)
 				) : (
-					<EmptyState icon={Pill} title="No medicines prescribed" description="Prescribed medicines will show up here once a doctor adds them." />
+					<EmptyState icon={Pill} title="Not prescribed" description="Prescribed medicines, herbs, and supplements will show up here once a doctor adds them." />
 				)}
 			</CardContent>
 		</Card>

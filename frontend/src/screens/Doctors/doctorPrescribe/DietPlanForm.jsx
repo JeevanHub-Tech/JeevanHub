@@ -1,179 +1,190 @@
-import { useState, useEffect } from "react";
-import { Salad, Sprout, Leaf, Plus, X, Send, Loader2, Copy, ListChecks } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Salad, Send, Loader2, PenLine, Check, Sparkles } from "lucide-react";
 
 import { authFetch } from "../../../utils/authFetch";
 import { BACKEND_URL } from "../../../config";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { EmptyState } from "@/components/ui/empty-state";
+import { SourceBadge } from "@/components/ui/SourceBadge";
 
-const DAYS_OF_WEEK = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
-const MEAL_FIELDS = ["breakfast", "lunch", "dinner", "juices"];
-const BLANK_DAY = { breakfast: "", lunch: "", dinner: "", juices: "" };
-
-const MEAL_PLACEHOLDERS = {
-	breakfast: "e.g., Warm oats with stewed apple and a pinch of cinnamon",
-	lunch: "e.g., Steamed rice, moong dal, and seasonal cooked vegetables",
-	dinner: "e.g., Light khichdi with ghee; avoid heavy or fried foods",
-	juices: "e.g., Warm water with lemon and honey",
+const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+const MEAL_KEYS = ["breakfast", "midMorning", "lunch", "eveningSnack", "dinner"];
+const MEAL_LABELS = {
+	breakfast: "Breakfast",
+	midMorning: "Mid-Morning",
+	lunch: "Lunch",
+	eveningSnack: "Evening Snack",
+	dinner: "Dinner",
 };
 
-const blankWeekly = () =>
-	DAYS_OF_WEEK.reduce((acc, day) => {
-		acc[day] = { ...BLANK_DAY };
-		return acc;
-	}, {});
+const blankMeal = () => ({ items: "", portion: "", purpose: "" });
+const blankWeeklyPlan = () => DAYS.map((day) => ({
+	day,
+	breakfast: blankMeal(),
+	midMorning: blankMeal(),
+	lunch: blankMeal(),
+	eveningSnack: blankMeal(),
+	dinner: blankMeal(),
+}));
 
-// Are all 7 days identical? Used to detect whether an existing plan can be shown
-// collapsed in "same every day" mode, or needs the full per-day editor.
-const daysAreIdentical = (weekly) => {
-	const first = JSON.stringify(weekly[DAYS_OF_WEEK[0]]);
-	return DAYS_OF_WEEK.every((day) => JSON.stringify(weekly[day]) === first);
-};
+const toStr = (arr) => (Array.isArray(arr) ? arr.join(", ") : "");
+const toList = (str) => (str || "").split(",").map((s) => s.trim()).filter(Boolean);
 
-export function DietPlanForm({ bookingId, patientId, doctorId, onPrescribed }) {
-	const [activeTab, setActiveTab] = useState("weekly");
-	const [entryMode, setEntryMode] = useState("same");
-	const [activeDayTab, setActiveDayTab] = useState("monday");
-	const [herbInput, setHerbInput] = useState("");
+// Converts the API's { items: [], portion, purpose } meal shape into the
+// comma-string form the editor uses, and back on submit.
+function weeklyPlanToForm(weeklyPlan) {
+	const byDay = new Map((weeklyPlan || []).map((d) => [d.day, d]));
+	return DAYS.map((day) => {
+		const d = byDay.get(day) || {};
+		const form = { day };
+		MEAL_KEYS.forEach((meal) => {
+			const m = d[meal] || {};
+			form[meal] = { items: toStr(m.items), portion: m.portion || "", purpose: m.purpose || "" };
+		});
+		return form;
+	});
+}
 
-	const [loading, setLoading] = useState(false);
+function formToWeeklyPlan(formPlan) {
+	return formPlan.map((d) => {
+		const day = { day: d.day };
+		MEAL_KEYS.forEach((meal) => {
+			day[meal] = { items: toList(d[meal].items), portion: d[meal].portion, purpose: d[meal].purpose };
+		});
+		return day;
+	});
+}
+
+function otherFieldsToForm(plan) {
+	return {
+		cookingGuidelines: toStr(plan?.cookingInstructions?.generalGuidelines),
+		foodsAvoidDosha: toStr(plan?.foodsToAvoid?.doshaBased),
+		foodsAvoidMedical: toStr(plan?.foodsToAvoid?.medicalBased),
+		foodsAvoidSeasonal: toStr(plan?.foodsToAvoid?.seasonalBased),
+		lifestyleRecommendations: toStr(plan?.lifestyleRecommendations),
+		notes: plan?.notes || "",
+	};
+}
+
+// Which content the patient currently sees: doctorReview fields once a
+// doctor has edited/approved, otherwise the raw AI fields. Mirrors
+// resolveDisplayPlan() in backend/controllers/ayurvedaController.js.
+function resolveActiveContent(plan) {
+	if (!plan) return null;
+	if (plan.status === "ai_modified" || plan.status === "doctor_approved") {
+		return { ...plan.doctorReview, cookingInstructions: plan.doctorReview?.cookingInstructions };
+	}
+	return {
+		weeklyPlan: plan.weeklyPlan,
+		cookingInstructions: plan.cookingInstructions,
+		foodsToAvoid: plan.foodsToAvoid,
+		lifestyleRecommendations: plan.lifestyleRecommendations,
+	};
+}
+
+export function DietPlanForm({ bookingId, patientId, onPrescribed }) {
+	const [plan, setPlan] = useState(null);
 	const [loadingExisting, setLoadingExisting] = useState(true);
+	const [saving, setSaving] = useState(false);
+	const [editing, setEditing] = useState(false);
 	const [error, setError] = useState(null);
 
-	const [templateDay, setTemplateDay] = useState({ ...BLANK_DAY });
-	const [weeklyPlan, setWeeklyPlan] = useState(blankWeekly);
-	const [herbs, setHerbs] = useState([]);
+	const [activeDayTab, setActiveDayTab] = useState("Monday");
+	const [formPlan, setFormPlan] = useState(blankWeeklyPlan);
+	const [otherFields, setOtherFields] = useState(otherFieldsToForm({}));
+
+	const fetchExisting = useCallback(async () => {
+		if (!patientId) {
+			setLoadingExisting(false);
+			return;
+		}
+		try {
+			const response = await authFetch(`${BACKEND_URL}/api/ayurveda/diet-plan/patient/${patientId}`);
+			if (response.ok) {
+				const data = await response.json();
+				setPlan(data);
+			}
+		} catch (err) {
+			console.error("Error fetching diet plan:", err);
+		} finally {
+			setLoadingExisting(false);
+		}
+	}, [patientId]);
 
 	useEffect(() => {
-		const fetchExisting = async () => {
-			if (!bookingId) {
-				setLoadingExisting(false);
-				return;
-			}
-			try {
-				const response = await authFetch(`${BACKEND_URL}/api/diet-yoga/booking/${bookingId}`);
-				if (response.ok) {
-					const data = await response.json();
-					const existingWeekly = data?.dietYoga?.diet?.weekly;
-					if (existingWeekly) {
-						const filledWeekly = DAYS_OF_WEEK.reduce((acc, day) => {
-							acc[day] = { ...BLANK_DAY, ...existingWeekly[day] };
-							return acc;
-						}, {});
-						setWeeklyPlan(filledWeekly);
-						if (daysAreIdentical(filledWeekly)) {
-							setEntryMode("same");
-							setTemplateDay(filledWeekly.monday);
-						} else {
-							setEntryMode("custom");
-						}
-					}
-					if (data?.dietYoga?.diet?.herbs) {
-						setHerbs(data.dietYoga.diet.herbs);
-					}
-				}
-			} catch (err) {
-				console.error("Error fetching existing diet plan:", err);
-			} finally {
-				setLoadingExisting(false);
-			}
-		};
-
 		fetchExisting();
-	}, [bookingId]);
+	}, [fetchExisting]);
 
-	const updateTemplateField = (field, value) => {
-		setTemplateDay((prev) => ({ ...prev, [field]: value }));
+	const startEditing = () => {
+		const active = resolveActiveContent(plan);
+		setFormPlan(weeklyPlanToForm(active?.weeklyPlan));
+		setOtherFields(otherFieldsToForm(active));
+		setEditing(true);
 	};
 
-	const updateWeeklyDiet = (day, field, value) => {
-		setWeeklyPlan((prev) => ({
-			...prev,
-			[day]: { ...prev[day], [field]: value },
-		}));
-	};
-
-	const switchToCustom = () => {
-		setWeeklyPlan(
-			DAYS_OF_WEEK.reduce((acc, day) => {
-				acc[day] = { ...templateDay };
-				return acc;
-			}, {})
+	const updateMealField = (day, meal, field, value) => {
+		setFormPlan((prev) =>
+			prev.map((d) => (d.day !== day ? d : { ...d, [meal]: { ...d[meal], [field]: value } }))
 		);
-		setEntryMode("custom");
 	};
 
-	const switchToSame = () => {
-		setTemplateDay({ ...weeklyPlan.monday });
-		setEntryMode("same");
-	};
-
-	const addHerb = () => {
-		const trimmedHerb = herbInput.trim();
-		if (trimmedHerb && !herbs.includes(trimmedHerb)) {
-			setHerbs((prev) => [...prev, trimmedHerb]);
-			setHerbInput("");
-		}
-	};
-
-	const removeHerb = (herbToRemove) => {
-		setHerbs((prev) => prev.filter((herb) => herb !== herbToRemove));
-	};
-
-	const handleHerbInputKeyPress = (e) => {
-		if (e.key === "Enter") {
-			e.preventDefault();
-			addHerb();
-		}
-	};
-
-	const handleSubmit = async (e) => {
-		e.preventDefault();
-
-		setLoading(true);
+	// Accepts explicit fp/of so callers that just computed fresh values (e.g.
+	// saveAsIs) don't have to round-trip through setState + wait for a
+	// re-render -- reading the `formPlan`/`otherFields` state here would be
+	// stale (this closure was created on the render before that state
+	// update lands), which previously caused "Approve as-is" to submit
+	// still-blank form state and wipe the plan. Always a silent draft save --
+	// nothing reaches the patient until "Submit Prescription" publishes it.
+	const submitReview = async (fp = formPlan, of = otherFields) => {
+		setSaving(true);
 		setError(null);
-
-		const finalWeekly =
-			entryMode === "same"
-				? DAYS_OF_WEEK.reduce((acc, day) => {
-						acc[day] = { ...templateDay };
-						return acc;
-					}, {})
-				: weeklyPlan;
-
 		try {
-			const response = await authFetch(`${BACKEND_URL}/api/diet-yoga/`, {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
+			const body = {
+				bookingId,
+				weeklyPlan: formToWeeklyPlan(fp),
+				cookingInstructions: {
+					meals: plan?.doctorReview?.cookingInstructions?.meals || plan?.cookingInstructions?.meals || [],
+					generalGuidelines: toList(of.cookingGuidelines),
 				},
-				body: JSON.stringify({
-					bookingId: bookingId,
-					patientId: patientId,
-					doctorId: doctorId,
-					dietPlan: { weekly: finalWeekly, herbs },
-				}),
+				foodsToAvoid: {
+					doshaBased: toList(of.foodsAvoidDosha),
+					medicalBased: toList(of.foodsAvoidMedical),
+					seasonalBased: toList(of.foodsAvoidSeasonal),
+				},
+				lifestyleRecommendations: toList(of.lifestyleRecommendations),
+				notes: of.notes,
+			};
+			const response = await authFetch(`${BACKEND_URL}/api/ayurveda/diet-plan/patient/${patientId}/review`, {
+				method: "PUT",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify(body),
 			});
-
-			if (!response.ok) {
-				const errData = await response.json().catch(() => ({}));
-				throw new Error(errData.message || "Failed to submit diet plan");
-			}
-
-			await response.json();
-			alert("The diet plan has been successfully prescribed.");
+			const data = await response.json().catch(() => ({}));
+			if (!response.ok) throw new Error(data.error || data.message || "Failed to save diet plan review");
+			setPlan(data.plan);
+			setEditing(false);
 			onPrescribed?.();
 		} catch (err) {
-			console.error("Submission Error:", err);
+			console.error("Error reviewing diet plan:", err);
 			setError(err.message);
-			alert(`Error: ${err.message}`);
+			alert(err.message);
 		} finally {
-			setLoading(false);
+			setSaving(false);
 		}
+	};
+
+	// Save the current active content unchanged as the doctor's draft (no
+	// edits needed first) -- still just a draft until Submit Prescription.
+	const saveAsIs = async () => {
+		const active = resolveActiveContent(plan);
+		const fp = weeklyPlanToForm(active?.weeklyPlan);
+		const of = otherFieldsToForm(active);
+		setFormPlan(fp);
+		setOtherFields(of);
+		submitReview(fp, of);
 	};
 
 	if (loadingExisting) {
@@ -182,7 +193,7 @@ export function DietPlanForm({ bookingId, patientId, doctorId, onPrescribed }) {
 				<div className="border-b border-border bg-muted/40 px-6 py-4">
 					<h3 className="flex items-center gap-3 text-lg font-bold text-foreground">
 						<Salad className="size-6 text-primary" />
-						Prescribe Diet Plan
+						Diet & Weekly Meal Planner
 					</h3>
 				</div>
 				<div className="p-6">
@@ -192,147 +203,173 @@ export function DietPlanForm({ bookingId, patientId, doctorId, onPrescribed }) {
 		);
 	}
 
+	if (!plan) {
+		return (
+			<Card className="overflow-hidden p-0">
+				<div className="border-b border-border bg-muted/40 px-6 py-4">
+					<h3 className="flex items-center gap-3 text-lg font-bold text-foreground">
+						<Salad className="size-6 text-primary" />
+						Diet & Weekly Meal Planner
+					</h3>
+				</div>
+				<div className="p-6">
+					<EmptyState
+						icon={Sparkles}
+						title="No AI diet plan yet"
+						description="This patient hasn't generated a plan yet. Use the Generate button above to create one, then review and approve it here."
+					/>
+				</div>
+			</Card>
+		);
+	}
+
+	const active = resolveActiveContent(plan);
+
 	return (
 		<Card className="overflow-hidden p-0">
-			<div className="border-b border-border bg-muted/40 px-6 py-4">
+			<div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-muted/40 px-6 py-4">
 				<h3 className="flex items-center gap-3 text-lg font-bold text-foreground">
 					<Salad className="size-6 text-primary" />
-					Prescribe Diet Plan
+					Diet & Weekly Meal Planner
 				</h3>
+				<div className="flex items-center gap-2">
+					{plan.doctorReview?.reviewedAt && !plan.doctorReview?.published ? (
+						<span className="rounded-full bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground">Draft -- not sent yet</span>
+					) : null}
+					<SourceBadge status={plan.status} />
+				</div>
 			</div>
-			<div className="p-6">
-				<form onSubmit={handleSubmit} className="flex flex-col gap-6">
-					<Tabs value={activeTab} onValueChange={setActiveTab}>
-						<TabsList className="grid h-auto grid-cols-2">
-							<TabsTrigger value="weekly">Weekly Plan</TabsTrigger>
-							<TabsTrigger value="herbs">Herbs & Supplements</TabsTrigger>
-						</TabsList>
-
-						<TabsContent value="weekly" className="mt-4">
-							<div className="flex flex-col gap-4">
-								<div className="grid grid-cols-2 gap-2 rounded-lg bg-muted p-1.5">
-									<Button type="button" variant={entryMode === "same" ? "default" : "ghost"} onClick={switchToSame}>
-										<Copy data-icon="inline-start" size={16} /> Same plan every day
-									</Button>
-									<Button type="button" variant={entryMode === "custom" ? "default" : "ghost"} onClick={switchToCustom}>
-										<ListChecks data-icon="inline-start" size={16} /> Customize per day
-									</Button>
-								</div>
-
-								{entryMode === "same" ? (
-									<div className="rounded-lg border border-border p-4">
-										<h4 className="mb-4 text-base font-bold text-foreground">Applies every day this week</h4>
-										<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-											{MEAL_FIELDS.map((meal) => (
-												<div key={meal} className="flex flex-col gap-1.5">
-													<label className="text-xs font-semibold text-muted-foreground">
-														{meal.charAt(0).toUpperCase() + meal.slice(1)}
-													</label>
-													<Textarea
-														value={templateDay[meal]}
-														onChange={(e) => updateTemplateField(meal, e.target.value)}
-														placeholder={MEAL_PLACEHOLDERS[meal]}
-														rows={2}
-													/>
-												</div>
-											))}
-										</div>
+			<div className="flex flex-col gap-6 p-6">
+				{!editing ? (
+					<>
+						<div className="flex flex-wrap gap-1.5">
+							{DAYS.map((day) => (
+								<button
+									key={day}
+									type="button"
+									onClick={() => setActiveDayTab(day)}
+									className={
+										activeDayTab === day
+											? "rounded-full bg-primary px-3.5 py-2 text-xs font-semibold text-primary-foreground"
+											: "rounded-full border border-border bg-muted/40 px-3.5 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground"
+									}
+								>
+									{day.slice(0, 3).toUpperCase()}
+								</button>
+							))}
+						</div>
+						<div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+							{MEAL_KEYS.map((meal) => {
+								const dayPlan = (active?.weeklyPlan || []).find((d) => d.day === activeDayTab);
+								const m = dayPlan?.[meal] || {};
+								return (
+									<div key={meal} className="rounded-lg border border-border p-3">
+										<h5 className="mb-1 text-xs font-semibold text-muted-foreground">{MEAL_LABELS[meal]}</h5>
+										<p className="text-sm text-foreground">{(m.items || []).join(", ") || "—"}</p>
+										{m.portion ? <p className="text-xs text-muted-foreground">Portion: {m.portion}</p> : null}
+										{m.purpose ? <p className="text-xs text-muted-foreground italic">{m.purpose}</p> : null}
 									</div>
-								) : (
-									<>
-										<div className="flex flex-wrap gap-1.5">
-											{DAYS_OF_WEEK.map((day) => (
-												<button
-													key={day}
-													type="button"
-													onClick={() => setActiveDayTab(day)}
-													className={
-														activeDayTab === day
-															? "rounded-full bg-primary px-3.5 py-2 text-xs font-semibold text-primary-foreground"
-															: "rounded-full border border-border bg-muted/40 px-3.5 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground"
-													}
-												>
-													{day.slice(0, 3).toUpperCase()}
-												</button>
-											))}
-										</div>
-										<div className="rounded-lg border border-border p-4">
-											<h4 className="mb-4 text-base font-bold text-foreground">
-												{activeDayTab.charAt(0).toUpperCase() + activeDayTab.slice(1)}
-											</h4>
-											<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-												{MEAL_FIELDS.map((meal) => (
-													<div key={meal} className="flex flex-col gap-1.5">
-														<label className="text-xs font-semibold text-muted-foreground">
-															{meal.charAt(0).toUpperCase() + meal.slice(1)}
-														</label>
-														<Textarea
-															value={weeklyPlan[activeDayTab][meal]}
-															onChange={(e) => updateWeeklyDiet(activeDayTab, meal, e.target.value)}
-															placeholder={MEAL_PLACEHOLDERS[meal]}
-															rows={2}
-														/>
-													</div>
-												))}
-											</div>
-										</div>
-									</>
-								)}
+								);
+							})}
+						</div>
+						{active?.lifestyleRecommendations?.length ? (
+							<div>
+								<h5 className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Lifestyle recommendations</h5>
+								<ul className="list-disc pl-5 text-sm text-foreground">
+									{active.lifestyleRecommendations.map((r, i) => <li key={i}>{r}</li>)}
+								</ul>
 							</div>
-						</TabsContent>
+						) : null}
 
-						<TabsContent value="herbs" className="mt-4">
-							<div className="flex max-w-xl flex-col gap-4">
-								<h4 className="flex items-center gap-2.5 text-base font-bold text-foreground">
-									<Sprout size={18} className="text-primary" />
-									Herbs & Supplements
-								</h4>
-								<div className="flex gap-2">
-									<Input
-										value={herbInput}
-										onChange={(e) => setHerbInput(e.target.value)}
-										placeholder="Enter herb name and press Enter"
-										onKeyDown={handleHerbInputKeyPress}
-									/>
-									<Button type="button" size="icon" onClick={addHerb}>
-										<Plus />
-									</Button>
-								</div>
-								<div className="flex flex-wrap gap-2.5">
-									{herbs.length > 0 ? (
-										herbs.map((herb, index) => (
-											<Badge key={index} variant="secondary" className="gap-1.5">
-												<Leaf size={14} />
-												{herb}
-												<button type="button" onClick={() => removeHerb(herb)}>
-													<X size={14} />
-												</button>
-											</Badge>
-										))
-									) : (
-										<p className="w-full py-6 text-center text-sm text-muted-foreground italic">No herbs added yet.</p>
-									)}
-								</div>
+						<div className="flex flex-wrap gap-2">
+							<Button type="button" variant="outline" onClick={startEditing}>
+								<PenLine data-icon="inline-start" size={16} /> Edit
+							</Button>
+							<Button type="button" onClick={saveAsIs} disabled={saving}>
+								{saving ? <Loader2 className="animate-spin" data-icon="inline-start" /> : <Check data-icon="inline-start" size={16} />}
+								Save
+							</Button>
+						</div>
+					</>
+				) : (
+					<>
+						<div className="flex flex-wrap gap-1.5">
+							{DAYS.map((day) => (
+								<button
+									key={day}
+									type="button"
+									onClick={() => setActiveDayTab(day)}
+									className={
+										activeDayTab === day
+											? "rounded-full bg-primary px-3.5 py-2 text-xs font-semibold text-primary-foreground"
+											: "rounded-full border border-border bg-muted/40 px-3.5 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground"
+									}
+								>
+									{day.slice(0, 3).toUpperCase()}
+								</button>
+							))}
+						</div>
+						<div className="rounded-lg border border-border p-4">
+							<h4 className="mb-4 text-base font-bold text-foreground">{activeDayTab}</h4>
+							<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+								{MEAL_KEYS.map((meal) => {
+									const dayForm = formPlan.find((d) => d.day === activeDayTab);
+									return (
+										<div key={meal} className="flex flex-col gap-1.5">
+											<label className="text-xs font-semibold text-muted-foreground">{MEAL_LABELS[meal]}</label>
+											<Textarea
+												value={dayForm[meal].items}
+												onChange={(e) => updateMealField(activeDayTab, meal, "items", e.target.value)}
+												placeholder="Comma-separated food items"
+												rows={2}
+											/>
+											<Input
+												value={dayForm[meal].portion}
+												onChange={(e) => updateMealField(activeDayTab, meal, "portion", e.target.value)}
+												placeholder="Portion"
+											/>
+											<Input
+												value={dayForm[meal].purpose}
+												onChange={(e) => updateMealField(activeDayTab, meal, "purpose", e.target.value)}
+												placeholder="Why this helps (optional)"
+											/>
+										</div>
+									);
+								})}
 							</div>
-						</TabsContent>
-					</Tabs>
+						</div>
 
-					{error ? <p className="text-sm text-destructive">Error: {error}</p> : null}
+						<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+							<div className="flex flex-col gap-1.5">
+								<label className="text-xs font-semibold text-muted-foreground">Lifestyle recommendations (comma-separated)</label>
+								<Textarea
+									value={otherFields.lifestyleRecommendations}
+									onChange={(e) => setOtherFields((f) => ({ ...f, lifestyleRecommendations: e.target.value }))}
+									rows={2}
+								/>
+							</div>
+							<div className="flex flex-col gap-1.5">
+								<label className="text-xs font-semibold text-muted-foreground">Doctor's notes (optional)</label>
+								<Textarea
+									value={otherFields.notes}
+									onChange={(e) => setOtherFields((f) => ({ ...f, notes: e.target.value }))}
+									rows={2}
+								/>
+							</div>
+						</div>
 
-					<Button type="submit" disabled={loading} className="self-end">
-						{loading ? (
-							<>
-								<Loader2 className="animate-spin" data-icon="inline-start" size={18} />
-								Prescribing...
-							</>
-						) : (
-							<>
-								<Send data-icon="inline-start" size={18} />
-								Prescribe Diet Plan
-							</>
-						)}
-					</Button>
-				</form>
+						<div className="flex flex-wrap gap-2">
+							<Button type="button" variant="outline" onClick={() => setEditing(false)} disabled={saving}>
+								Cancel
+							</Button>
+							<Button type="button" onClick={() => submitReview()} disabled={saving}>
+								{saving ? <Loader2 className="animate-spin" data-icon="inline-start" /> : <Send data-icon="inline-start" size={16} />}
+								Save
+							</Button>
+						</div>
+					</>
+				)}
+				{error ? <p className="text-sm text-destructive">Error: {error}</p> : null}
 			</div>
 		</Card>
 	);

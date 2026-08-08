@@ -1,7 +1,7 @@
 import { useState, useContext, useEffect, useMemo } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
-import { Clock, Loader2, Plus, Star, X } from "lucide-react";
+import { ArrowLeft, Clock, Loader2, Plus, Star, X } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,7 @@ const getLocalDateString = (d = new Date()) => {
 
 function DoctorDetail() {
 	const location = useLocation();
+	const navigate = useNavigate();
 	const { doctor } = location.state;
 
 	const specializations = Array.isArray(doctor.specialization)
@@ -423,7 +424,16 @@ function DoctorDetail() {
 
 	return (
 		<main className="bg-background">
-			<div className="mx-auto grid max-w-5xl gap-6 px-4 py-10 sm:px-6 lg:grid-cols-[1fr_1.1fr] lg:px-8">
+			<div className="mx-auto max-w-5xl px-4 pt-6 sm:px-6 lg:px-8">
+				<button
+					onClick={() => navigate(-1)}
+					className="inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors"
+				>
+					<ArrowLeft size={16} />
+					Back to Doctors
+				</button>
+			</div>
+			<div className="mx-auto grid max-w-5xl gap-6 px-4 pb-10 pt-2 sm:px-6 lg:grid-cols-[1fr_1.1fr] lg:px-8">
 				<div className="flex flex-col gap-6">
 					<div className="rounded-(--jh-radius-lg) bg-card p-5 shadow-(--jh-shadow-rest) sm:p-6">
 						<div className="flex items-start gap-4">

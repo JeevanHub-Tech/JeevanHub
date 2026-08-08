@@ -51,7 +51,7 @@ export function PrescriptionTabs({ bookingId, patientId, doctorId, onPrescribed 
 
 			<Tabs value={activeTab} onValueChange={setActiveTab}>
 				<div className="mb-6 -mx-6 overflow-x-auto overflow-y-hidden px-6 sm:mx-0 sm:px-0 [scrollbar-width:thin] [&::-webkit-scrollbar]:h-1.5">
-					<TabsList className="h-auto w-max min-w-full sm:min-w-0">
+					<TabsList className="h-auto w-max min-w-full sm:w-full">
 						{tabs.map(({ id, label, Icon }) => (
 							<TabsTrigger key={id} value={id} className="shrink-0">
 								<Icon data-icon="inline-start" />

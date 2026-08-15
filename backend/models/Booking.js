@@ -124,6 +124,9 @@ const bookingSchema = new mongoose.Schema({
 		enum: ['Pending', 'Completed'], // Can either be Pending or Completed
 		default: 'Pending',
 	},
+	paymentConfirmedAt: {
+		type: Date,
+	},
 	paymentDetails: {
 		razorpayOrderId: { type: String },
 		razorpayPaymentId: { type: String },

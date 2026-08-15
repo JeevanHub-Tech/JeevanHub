@@ -17,13 +17,20 @@ import {
 	ResponsiveContainer,
 } from "recharts";
 
+import { 
+	CreditCard, 
+	Users, 
+	UserCheck, 
+	CalendarDays, 
+	Star 
+} from "lucide-react";
+
 import { BACKEND_URL } from "../../config";
 import { authFetch } from "../../utils/authFetch";
 import { AuthContext } from "../../context/AuthContext";
 import { DashboardShell, DashboardPageHeader } from "@/components/layout/DashboardShell";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 
 const RADIAN = Math.PI / 180;
@@ -58,6 +65,8 @@ function DoctorAnalytics() {
 	const [bookings, setBookings] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
+	const [activeTab, setActiveTab] = useState("payments");
+	const [filterRange, setFilterRange] = useState("all");
 
 	const { auth } = useContext(AuthContext);
 	const doctorId = auth.user?.id;
@@ -120,33 +129,66 @@ function DoctorAnalytics() {
 		};
 	});
 
-	const ratingData = bookings
-		.filter((b) => b.rating !== null)
-		.map((b) => ({ rating: b.rating, date: new Date(b.dateOfAppointment).toLocaleDateString() }));
+	const ratingsByDate = bookings
+		.filter((b) => b.rating !== null && b.rating !== undefined)
+		.reduce((acc, b) => {
+			const key = new Date(b.dateOfAppointment).toISOString().split('T')[0];
+			if (!acc[key]) {
+				acc[key] = { sum: 0, count: 0, dateObj: new Date(b.dateOfAppointment) };
+			}
+			acc[key].sum += b.rating;
+			acc[key].count += 1;
+			return acc;
+		}, {});
+
+	const averageRatingData = Object.keys(ratingsByDate)
+		.map((key) => {
+			const item = ratingsByDate[key];
+			return {
+				date: item.dateObj.toLocaleDateString("en-GB", { day: "numeric", month: "short" }),
+				averageRating: parseFloat((item.sum / item.count).toFixed(1)),
+				dateObj: item.dateObj,
+			};
+		})
+		.sort((a, b) => a.dateObj - b.dateObj);
+
+	// Helper to get the actual payment date (fallback to createdAt if paymentConfirmedAt is missing)
+	const getPaymentDate = (b) => b.paymentConfirmedAt || b.createdAt;
 
 	// Payment history: only appointments the doctor actually got paid for --
 	// accepted + a completed payment (Razorpay-verified or doctor-confirmed proof).
 	const paidBookings = bookings
 		.filter((b) => b.requestAccept === "accepted" && b.amountPaid > 0 && b.paymentStatus === "Completed")
-		.sort((a, b) => new Date(b.dateOfAppointment) - new Date(a.dateOfAppointment));
+		.sort((a, b) => new Date(getPaymentDate(b)) - new Date(getPaymentDate(a)));
 
-	const totalEarnings = paidBookings.reduce((sum, b) => sum + (b.amountPaid || 0), 0);
+	const getFilteredPayments = () => {
+		const now = new Date();
+		return paidBookings.filter((b) => {
+			const paymentDate = new Date(getPaymentDate(b));
+			if (filterRange === "today") {
+				return paymentDate.toDateString() === now.toDateString();
+			}
+			if (filterRange === "week") {
+				const oneWeekAgo = new Date();
+				oneWeekAgo.setDate(now.getDate() - 7);
+				return paymentDate >= oneWeekAgo;
+			}
+			if (filterRange === "month") {
+				const oneMonthAgo = new Date();
+				oneMonthAgo.setDate(now.getDate() - 30);
+				return paymentDate >= oneMonthAgo;
+			}
+			return true; // "all"
+		});
+	};
 
-	const monthlyEarnings = Array.from({ length: 12 }, (_, i) => ({
-		month: new Date(currentYear, i).toLocaleString("default", { month: "short" }),
-		earnings: paidBookings
-			.filter((b) => new Date(b.dateOfAppointment).getFullYear() === currentYear && new Date(b.dateOfAppointment).getMonth() === i)
-			.reduce((sum, b) => sum + (b.amountPaid || 0), 0),
-	}));
+	const filteredPaidBookings = getFilteredPayments();
 
 	if (loading) {
 		return (
 			<DashboardShell>
-				<div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-					{Array.from({ length: 4 }).map((_, i) => (
-						<Skeleton key={i} className="h-80 rounded-xl" />
-					))}
-				</div>
+				<Skeleton className="h-12 w-full rounded-lg mb-6" />
+				<Skeleton className="h-[400px] w-full rounded-xl" />
 			</DashboardShell>
 		);
 	}
@@ -161,160 +203,226 @@ function DoctorAnalytics() {
 		);
 	}
 
+	const tabs = [
+		{ id: "payments", label: "Payments & Earnings", icon: CreditCard },
+		{ id: "gender", label: "Gender Distribution", icon: Users },
+		{ id: "age", label: "Age Distribution", icon: UserCheck },
+		{ id: "appointments", label: "Monthly Appointments", icon: CalendarDays },
+		{ id: "ratings", label: "Patient Ratings", icon: Star },
+	];
+
 	return (
 		<DashboardShell>
 			<DashboardPageHeader
-				title="Dashboard Overview"
-				description="Track your appointments, patient demographics, and performance."
+				title="Analytics Dashboard"
+				description="Track your performance, payments, and patient statistics."
 			/>
 
-			<div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-				<Card className="p-6">
-					<h2 className="mb-5 border-b border-border pb-3 text-lg font-semibold text-foreground">
-						Gender Distribution
-					</h2>
-					<ResponsiveContainer width="100%" height={300}>
-						<PieChart>
-							<Pie
-								data={genderData}
-								cx="50%"
-								cy="50%"
-								innerRadius={70}
-								outerRadius={110}
-								dataKey="value"
-								label={renderCustomizedLabel}
-								labelLine={false}
-								stroke="none"
-							>
-								{genderData.map((_entry, index) => (
-									<Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
-								))}
-							</Pie>
-							<Tooltip contentStyle={tooltipContentStyle} />
-							<Legend iconType="circle" verticalAlign="bottom" />
-						</PieChart>
-					</ResponsiveContainer>
-				</Card>
-
-				<Card className="p-6">
-					<h2 className="mb-5 border-b border-border pb-3 text-lg font-semibold text-foreground">
-						Age Distribution
-					</h2>
-					<ResponsiveContainer width="100%" height={300}>
-						<LineChart data={ageData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-							<CartesianGrid strokeDasharray="3 3" stroke={GRID_COLOR} vertical={false} />
-							<XAxis dataKey="ageGroup" stroke={AXIS_COLOR} tick={{ fill: AXIS_COLOR }} tickLine={false} axisLine={false} />
-							<YAxis stroke={AXIS_COLOR} tick={{ fill: AXIS_COLOR }} tickLine={false} axisLine={false} />
-							<Tooltip contentStyle={tooltipContentStyle} />
-							<Line
-								type="monotone"
-								dataKey="count"
-								name="Patients"
-								stroke={SERIES_COLOR}
-								strokeWidth={3}
-								dot={{ r: 5, strokeWidth: 2 }}
-								activeDot={{ r: 8 }}
-							/>
-						</LineChart>
-					</ResponsiveContainer>
-				</Card>
-
-				<Card className="p-6">
-					<h2 className="mb-5 border-b border-border pb-3 text-lg font-semibold text-foreground">
-						Monthly Appointments ({currentYear})
-					</h2>
-					<ResponsiveContainer width="100%" height={300}>
-						<BarChart data={monthlyData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-							<CartesianGrid strokeDasharray="3 3" stroke={GRID_COLOR} vertical={false} />
-							<XAxis dataKey="month" stroke={AXIS_COLOR} tick={{ fill: AXIS_COLOR }} tickLine={false} axisLine={false} />
-							<YAxis
-								stroke={AXIS_COLOR}
-								tick={{ fill: AXIS_COLOR }}
-								tickLine={false}
-								axisLine={false}
-								allowDecimals={false}
-							/>
-							<Tooltip cursor={{ fill: "var(--muted)" }} contentStyle={tooltipContentStyle} />
-							<Bar dataKey="count" name="Appointments" fill={SERIES_COLOR} radius={[6, 6, 0, 0]} />
-						</BarChart>
-					</ResponsiveContainer>
-				</Card>
-
-				<Card className="p-6">
-					<h2 className="mb-5 border-b border-border pb-3 text-lg font-semibold text-foreground">
-						Patient Ratings Over Time
-					</h2>
-					<ResponsiveContainer width="100%" height={300}>
-						<ScatterChart margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-							<CartesianGrid strokeDasharray="3 3" stroke={GRID_COLOR} />
-							<XAxis dataKey="date" name="Date" stroke={AXIS_COLOR} tick={{ fill: AXIS_COLOR }} tickLine={false} />
-							<YAxis
-								dataKey="rating"
-								name="Rating"
-								domain={[1, 5]}
-								stroke={AXIS_COLOR}
-								tick={{ fill: AXIS_COLOR }}
-								tickLine={false}
-								axisLine={false}
-							/>
-							<Tooltip cursor={{ strokeDasharray: "3 3", stroke: AXIS_COLOR }} contentStyle={tooltipContentStyle} />
-							<Scatter name="Ratings" data={ratingData} fill={SERIES_COLOR} />
-						</ScatterChart>
-					</ResponsiveContainer>
-				</Card>
-
-				<Card className="p-6">
-					<div className="mb-5 flex flex-wrap items-center justify-between gap-2 border-b border-border pb-3">
-						<h2 className="text-lg font-semibold text-foreground">Monthly Earnings ({currentYear})</h2>
-						<Badge title="Sum of completed consultation payments this year">
-							Total: ₹{totalEarnings.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-						</Badge>
-					</div>
-					<ResponsiveContainer width="100%" height={300}>
-						<BarChart data={monthlyEarnings} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-							<CartesianGrid strokeDasharray="3 3" stroke={GRID_COLOR} vertical={false} />
-							<XAxis dataKey="month" stroke={AXIS_COLOR} tick={{ fill: AXIS_COLOR }} tickLine={false} axisLine={false} />
-							<YAxis stroke={AXIS_COLOR} tick={{ fill: AXIS_COLOR }} tickLine={false} axisLine={false} />
-							<Tooltip
-								cursor={{ fill: "var(--muted)" }}
-								contentStyle={tooltipContentStyle}
-								formatter={(value) => [`₹${value.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, "Earnings"]}
-							/>
-							<Bar dataKey="earnings" name="Earnings" fill={SERIES_COLOR} radius={[6, 6, 0, 0]} />
-						</BarChart>
-					</ResponsiveContainer>
-				</Card>
+			{/* Sub-navigation tabs */}
+			<div className="mb-6 flex flex-wrap gap-2 rounded-xl bg-muted p-1">
+				{tabs.map((tab) => {
+					const Icon = tab.icon;
+					const isActive = activeTab === tab.id;
+					return (
+						<button
+							key={tab.id}
+							onClick={() => setActiveTab(tab.id)}
+							className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200 ${
+								isActive
+									? "bg-background text-foreground shadow-sm"
+									: "text-muted-foreground hover:bg-background/40 hover:text-foreground"
+							}`}
+						>
+							<Icon className="h-4 w-4" />
+							{tab.label}
+						</button>
+					);
+				})}
 			</div>
 
-			<Card className="mt-6 overflow-hidden p-0">
-				<h2 className="border-b border-border p-6 pb-3 text-lg font-semibold text-foreground">Payment History</h2>
-				{paidBookings.length === 0 ? (
-					<p className="p-6 text-center text-muted-foreground">No completed payments yet.</p>
-				) : (
-					<div className="overflow-x-auto">
-						<Table>
-							<TableHeader>
-								<TableRow>
-									<TableHead>Patient</TableHead>
-									<TableHead>Date</TableHead>
-									<TableHead>Amount</TableHead>
-								</TableRow>
-							</TableHeader>
-							<TableBody>
-								{paidBookings.map((b) => (
-									<TableRow key={b._id}>
-										<TableCell>{b.patientName}</TableCell>
-										<TableCell>
-											{new Date(b.dateOfAppointment).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
-										</TableCell>
-										<TableCell className="font-semibold text-foreground">₹{b.amountPaid.toLocaleString(undefined, { minimumFractionDigits: 2 })}</TableCell>
-									</TableRow>
-								))}
-							</TableBody>
-						</Table>
-					</div>
+			{/* Render dynamic section content based on activeTab */}
+			<div className="transition-all duration-300">
+				{activeTab === "payments" && (
+					<Card className="overflow-hidden p-0">
+						<div className="border-b border-border p-6 pb-4 flex flex-wrap items-center justify-between gap-4">
+							<h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+								<CreditCard className="h-5 w-5 text-primary" /> Payment History
+							</h2>
+							<div className="flex items-center gap-2">
+								<label htmlFor="payment-filter" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Filter:</label>
+								<select
+									id="payment-filter"
+									value={filterRange}
+									onChange={(e) => setFilterRange(e.target.value)}
+									className="rounded-md border border-border bg-background px-3 py-1.5 text-xs font-semibold text-foreground shadow-sm focus:border-primary focus:outline-none"
+								>
+									<option value="all">All Payments</option>
+									<option value="today">Today</option>
+									<option value="week">Last 7 Days</option>
+									<option value="month">Last 30 Days</option>
+								</select>
+							</div>
+						</div>
+						{filteredPaidBookings.length === 0 ? (
+							<p className="p-6 text-center text-muted-foreground">No payments found for this timeframe.</p>
+						) : (
+							<div className="overflow-x-auto">
+								<Table>
+									<TableHeader>
+										<TableRow>
+											<TableHead className="pl-6">Patient</TableHead>
+											<TableHead>Payment Date</TableHead>
+											<TableHead>Appointment Date</TableHead>
+											<TableHead className="pr-6 text-right">Amount</TableHead>
+										</TableRow>
+									</TableHeader>
+									<TableBody>
+										{filteredPaidBookings.map((b) => (
+											<TableRow key={b._id}>
+												<TableCell className="pl-6 font-medium">{b.patientName}</TableCell>
+												<TableCell>
+													{new Date(getPaymentDate(b)).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+												</TableCell>
+												<TableCell>
+													{new Date(b.dateOfAppointment).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+												</TableCell>
+												<TableCell className="pr-6 text-right font-bold text-primary">₹{b.amountPaid.toLocaleString(undefined, { minimumFractionDigits: 2 })}</TableCell>
+											</TableRow>
+										))}
+									</TableBody>
+								</Table>
+							</div>
+						)}
+					</Card>
 				)}
-			</Card>
+
+				{activeTab === "gender" && (
+					<Card className="p-6">
+						<h2 className="mb-5 border-b border-border pb-3 text-lg font-semibold text-foreground flex items-center gap-2">
+							<Users className="h-5 w-5 text-primary" /> Patient Gender Distribution
+						</h2>
+						{genderData.length === 0 ? (
+							<p className="py-12 text-center text-muted-foreground">No gender data available.</p>
+						) : (
+							<div className="flex flex-col items-center justify-center md:flex-row md:gap-12">
+								<ResponsiveContainer width="100%" height={320} className="max-w-[400px]">
+									<PieChart>
+										<Pie
+											data={genderData}
+											cx="50%"
+											cy="50%"
+											innerRadius={80}
+											outerRadius={120}
+											dataKey="value"
+											label={renderCustomizedLabel}
+											labelLine={false}
+											stroke="none"
+										>
+											{genderData.map((_entry, index) => (
+												<Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+											))}
+										</Pie>
+										<Tooltip contentStyle={tooltipContentStyle} />
+									</PieChart>
+								</ResponsiveContainer>
+								<div className="flex flex-col gap-4 mt-6 md:mt-0">
+									{genderData.map((d, index) => (
+										<div key={d.name} className="flex items-center gap-3">
+											<div className="h-4 w-4 rounded-full" style={{ backgroundColor: PIE_COLORS[index % PIE_COLORS.length] }} />
+											<span className="text-sm font-semibold text-foreground">{d.name}:</span>
+											<span className="text-sm text-muted-foreground">{d.value} patient(s)</span>
+										</div>
+									))}
+								</div>
+							</div>
+						)}
+					</Card>
+				)}
+
+				{activeTab === "age" && (
+					<Card className="p-6">
+						<h2 className="mb-5 border-b border-border pb-3 text-lg font-semibold text-foreground flex items-center gap-2">
+							<UserCheck className="h-5 w-5 text-primary" /> Patient Age Distribution
+						</h2>
+						<ResponsiveContainer width="100%" height={320}>
+							<LineChart data={ageData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+								<CartesianGrid strokeDasharray="3 3" stroke={GRID_COLOR} vertical={false} />
+								<XAxis dataKey="ageGroup" stroke={AXIS_COLOR} tick={{ fill: AXIS_COLOR }} tickLine={false} axisLine={false} />
+								<YAxis stroke={AXIS_COLOR} tick={{ fill: AXIS_COLOR }} tickLine={false} axisLine={false} />
+								<Tooltip contentStyle={tooltipContentStyle} />
+								<Line
+									type="monotone"
+									dataKey="count"
+									name="Patients"
+									stroke={SERIES_COLOR}
+									strokeWidth={3}
+									dot={{ r: 5, strokeWidth: 2 }}
+									activeDot={{ r: 8 }}
+								/>
+							</LineChart>
+						</ResponsiveContainer>
+					</Card>
+				)}
+
+				{activeTab === "appointments" && (
+					<Card className="p-6">
+						<h2 className="mb-5 border-b border-border pb-3 text-lg font-semibold text-foreground flex items-center gap-2">
+							<CalendarDays className="h-5 w-5 text-primary" /> Monthly Appointments ({currentYear})
+						</h2>
+						<ResponsiveContainer width="100%" height={320}>
+							<BarChart data={monthlyData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+								<CartesianGrid strokeDasharray="3 3" stroke={GRID_COLOR} vertical={false} />
+								<XAxis dataKey="month" stroke={AXIS_COLOR} tick={{ fill: AXIS_COLOR }} tickLine={false} axisLine={false} />
+								<YAxis
+									stroke={AXIS_COLOR}
+									tick={{ fill: AXIS_COLOR }}
+									tickLine={false}
+									axisLine={false}
+									allowDecimals={false}
+								/>
+								<Tooltip cursor={{ fill: "var(--muted)" }} contentStyle={tooltipContentStyle} />
+								<Bar dataKey="count" name="Appointments" fill={SERIES_COLOR} radius={[6, 6, 0, 0]} />
+							</BarChart>
+						</ResponsiveContainer>
+					</Card>
+				)}
+
+				{activeTab === "ratings" && (
+					<Card className="p-6">
+						<h2 className="mb-5 border-b border-border pb-3 text-lg font-semibold text-foreground flex items-center gap-2">
+							<Star className="h-5 w-5 text-primary fill-primary/10" /> Patient Ratings Trend (Daily Average)
+						</h2>
+						{averageRatingData.length === 0 ? (
+							<p className="py-12 text-center text-muted-foreground">No ratings received yet.</p>
+						) : (
+							<ResponsiveContainer width="100%" height={320}>
+								<LineChart data={averageRatingData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+									<CartesianGrid strokeDasharray="3 3" stroke={GRID_COLOR} vertical={false} />
+									<XAxis dataKey="date" stroke={AXIS_COLOR} tick={{ fill: AXIS_COLOR }} tickLine={false} axisLine={false} />
+									<YAxis
+										domain={[1, 5]}
+										ticks={[1, 2, 3, 4, 5]}
+										stroke={AXIS_COLOR}
+										tick={{ fill: AXIS_COLOR }}
+										tickLine={false}
+										axisLine={false}
+									/>
+									<Tooltip contentStyle={tooltipContentStyle} />
+									<Line
+										type="monotone"
+										dataKey="averageRating"
+										name="Average Rating"
+										stroke={SERIES_COLOR}
+										strokeWidth={3}
+										dot={{ r: 5, strokeWidth: 2 }}
+										activeDot={{ r: 8 }}
+									/>
+								</LineChart>
+							</ResponsiveContainer>
+						)}
+					</Card>
+				)}
+			</div>
 		</DashboardShell>
 	);
 }

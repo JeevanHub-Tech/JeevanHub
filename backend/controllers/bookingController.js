@@ -395,16 +395,35 @@ exports.getAllBookings = async (req, res) => {
 const cloudinary = require("../config/cloudinary");
 const { CloudinaryStorage } = require("multer-storage-cloudinary");
 
-const storage = new CloudinaryStorage({
-  cloudinary: cloudinary,
-  params: async (req, file) => {
-    return {
-      folder: "jeevanhub/payments",
-      resource_type: "auto",
-      public_id: Date.now() + "-" + file.originalname.split('.')[0]
-    };
-  },
-});
+const isPlaceholder = (v) => !v || v.startsWith('your_');
+const CLOUDINARY_CONFIGURED = !isPlaceholder(process.env.CLOUDINARY_CLOUD_NAME) &&
+	!isPlaceholder(process.env.CLOUDINARY_API_KEY) &&
+	!isPlaceholder(process.env.CLOUDINARY_API_SECRET);
+
+const LOCAL_UPLOAD_DIR = path.join(__dirname, '..', 'uploads', 'payments');
+
+let storage;
+if (CLOUDINARY_CONFIGURED) {
+	storage = new CloudinaryStorage({
+		cloudinary: cloudinary,
+		params: async (req, file) => {
+			return {
+				folder: "jeevanhub/payments",
+				resource_type: "auto",
+				public_id: Date.now() + "-" + file.originalname.split('.')[0]
+			};
+		},
+	});
+} else {
+	fs.mkdirSync(LOCAL_UPLOAD_DIR, { recursive: true });
+	storage = multer.diskStorage({
+		destination: LOCAL_UPLOAD_DIR,
+		filename: (req, file, cb) => {
+			const safeName = file.originalname.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+			cb(null, `${Date.now()}-${safeName}`);
+		},
+	});
+}
 
 const fileFilter = (req, file, cb) => {
 	const filetypes = /jpeg|jpg|png|pdf/;
@@ -449,8 +468,15 @@ exports.uploadPaymentScreenshot = (req, res) => {
 				return res.status(403).json({ error: "Not authorized" });
 			}
 
-			// Save all uploaded file paths
-			booking.paymentScreenshots = req.files.map(file => file.path);
+			// Save all uploaded file paths (use relative URL paths if stored locally)
+			booking.paymentScreenshots = req.files.map(file => {
+				if (CLOUDINARY_CONFIGURED) {
+					return file.path;
+				} else {
+					return `uploads/payments/${file.filename}`;
+				}
+			});
+			
 			// C5-1: Server dictates status, not client. Unlike Razorpay this isn't
 			// cryptographically verified, so paymentStatus stays Pending -- but the
 			// appointment still confirms by default (no doctor review gate); the
@@ -523,6 +549,7 @@ exports.verifyBookingPayment = async (req, res) => {
 			status: "paid"
 		};
 		booking.paymentStatus = "Completed";
+		booking.paymentConfirmedAt = new Date();
 
 		// Appointments confirm by default once payment lands -- no separate
 		// doctor accept step.
@@ -735,6 +762,7 @@ exports.updateBookingStatus = async (req, res) => {
         // alongside it in Current Requests — there is no separate verification step.
         if (requestAccept === "accepted") {
             updateData.paymentStatus = "Completed";
+            updateData.paymentConfirmedAt = new Date();
 
             // Video calls run on Daily.co by default (see getDailyJoinInfo) -- meetLink
             // is now only an optional backup the doctor can set here or later via

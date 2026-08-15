@@ -195,6 +195,27 @@ function AppointmentSlots() {
 		}
 	};
 
+	const approvePayment = async (bookingId) => {
+		if (!window.confirm("Are you sure you want to approve this payment proof?")) return;
+		try {
+			const response = await authFetch(`${BACKEND_URL}/api/bookings/update/${bookingId}`, {
+				method: "PUT",
+				headers: {
+					"Content-Type": "application/json",
+					Authorization: `Bearer ${localStorage.getItem("token")}`,
+				},
+				body: JSON.stringify({ requestAccept: "accepted" }),
+			});
+			const data = await response.json();
+			if (!response.ok) throw new Error(data.error || "Failed to approve payment");
+
+			setAppointments((prev) => prev.map((a) => (a._id === bookingId ? { ...a, paymentStatus: "Completed" } : a)));
+			alert("Payment approved successfully!");
+		} catch (err) {
+			alert(err.message || "Could not approve payment. Please try again.");
+		}
+	};
+
 	const isAppointmentActive = (appointment) => {
 		const now = new Date();
 		const startTime = parseAppointmentDateTime(appointment.dateOfAppointment, appointment.timeSlot);
@@ -348,6 +369,18 @@ function AppointmentSlots() {
 														})}
 													</div>
 												) : null}
+												{request.paymentStatus === "Pending" ? (
+													<Button
+														variant="outline"
+														size="sm"
+														className="mt-3 text-xs bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 hover:text-emerald-800"
+														onClick={() => approvePayment(request._id)}
+													>
+														Approve Payment
+													</Button>
+												) : (
+													<p className="mt-3 text-xs font-semibold text-emerald-600">Payment Verified</p>
+												)}
 											</div>
 										) : null}
 									</div>

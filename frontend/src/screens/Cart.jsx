@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { AuthContext } from "../context/AuthContext";
+import { CartContext } from "../context/CartContext";
 import { authFetch } from "../utils/authFetch";
 import { BACKEND_URL } from '../config';
 
@@ -103,6 +104,7 @@ const MyCartEmptyPlaceholder = ({ onBrowse }) => (
 const CartScreen = () => {
 	const navigate = useNavigate();
 	const { auth, loading: authLoading } = useContext(AuthContext);
+	const { setCartCount } = useContext(CartContext);
 
 	const [defaultCart, setDefaultCart] = useState({ items: [], totalPrice: 0 });
 	const [doctorCarts, setDoctorCarts] = useState([]);
@@ -140,10 +142,12 @@ const CartScreen = () => {
 
 				const data = await response.json();
 				const fetchedDoctorCarts = data.doctorCarts || [];
+				const defaultItems = data.defaultCart?.items || [];
 				setDefaultCart({
-					items: data.defaultCart?.items || [],
+					items: defaultItems,
 					totalPrice: data.defaultCart?.totalPrice || 0
 				});
+				setCartCount(defaultItems.reduce((n, i) => n + i.quantity, 0));
 				setDoctorCarts(fetchedDoctorCarts);
 
 				// The most recently active doctor cart (already sorted by the API)
@@ -194,6 +198,7 @@ const CartScreen = () => {
 			}
 			if (data.cartItems) {
 				setDefaultCart({ items: data.cartItems.items, totalPrice: data.cartItems.totalPrice });
+				setCartCount((data.cartItems.items || []).reduce((n, i) => n + i.quantity, 0));
 			}
 		} catch (err) {
 			console.error("Update Error:", err);
@@ -219,10 +224,12 @@ const CartScreen = () => {
 				alert(data.message || "Failed to remove item");
 				return;
 			}
+			const defaultItems = data.cartItems?.items || [];
 			setDefaultCart({
-				items: data.cartItems?.items || [],
+				items: defaultItems,
 				totalPrice: data.cartItems?.totalPrice || 0
 			});
+			setCartCount(defaultItems.reduce((n, i) => n + i.quantity, 0));
 		} catch (err) {
 			console.error("Remove Error:", err);
 			alert("Error removing item");
@@ -308,7 +315,9 @@ const CartScreen = () => {
 				alert(data.message || "Failed to move items to your cart");
 				return;
 			}
-			setDefaultCart({ items: data.cartItems.items, totalPrice: data.cartItems.totalPrice });
+			const defaultItems = data.cartItems?.items || [];
+			setDefaultCart({ items: defaultItems, totalPrice: data.cartItems?.totalPrice || 0 });
+			setCartCount(defaultItems.reduce((n, i) => n + i.quantity, 0));
 			removeDoctorCartLocal(doctorId);
 		} catch (err) {
 			console.error("Move To Default Error:", err);

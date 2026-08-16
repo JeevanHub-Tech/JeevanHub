@@ -6,10 +6,12 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import capsuleImage from '../../media/capsule.jpg';
 import { AuthContext } from '../../context/AuthContext';
+import { CartContext } from '../../context/CartContext';
 import { BACKEND_URL } from '../../config';
 
 const Medicines = () => {
   const { auth } = useContext(AuthContext);
+  const { fetchCartCount } = useContext(CartContext);
   const [medicines, setMedicines] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -131,7 +133,10 @@ const Medicines = () => {
                       medicineId: medicine._id,
                       quantity: 1
                     }, { headers: { Authorization: `Bearer ${token}` } })
-                    .then(() => alert("Added to cart successfully!"))
+                    .then(() => {
+                      fetchCartCount();
+                      alert("Added to cart successfully!");
+                    })
                     .catch(err => alert("Failed to add to cart"));
                   }}
                 >

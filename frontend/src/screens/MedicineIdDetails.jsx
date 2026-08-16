@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { AuthContext } from "../context/AuthContext";
+import { CartContext } from "../context/CartContext";
 import { BACKEND_URL } from "../config";
 
 // Fallback image (real generic pharmacy photo)
@@ -16,6 +17,7 @@ const FALLBACK_IMAGE =
 
 function MedicineIdDetails({ addToCart }) {
   const { auth } = useContext(AuthContext);
+  const { fetchCartCount } = useContext(CartContext);
   const { id, medicineId } = useParams();
   const paramId = decodeURIComponent(medicineId ?? id ?? "");
   const navigate = useNavigate();
@@ -129,6 +131,7 @@ function MedicineIdDetails({ addToCart }) {
         { patientId, medicineId: medicine.id, quantity: quantity },
         { headers: { Authorization: `Bearer ${token}` } }
       );
+      await fetchCartCount();
       alert(`${medicine.name} added to cart!`);
     } catch (error) {
       console.error("Failed to add to cart", error);

@@ -18,6 +18,7 @@ import {
 	PaginationPrevious,
 } from "@/components/ui/pagination";
 import { AuthContext } from "../../context/AuthContext";
+import { CartContext } from "../../context/CartContext";
 import { BACKEND_URL } from "../../config";
 import { useGlobalSearch } from "@/hooks/useGlobalSearch";
 import { useUrlFilters } from "@/hooks/useUrlFilters";
@@ -55,6 +56,7 @@ const buildPageList = (current, total) => {
 
 const Medicines = () => {
 	const { auth } = useContext(AuthContext);
+	const { setCartCount } = useContext(CartContext);
 	const patientId = auth?.user?.id;
 	const token = localStorage.getItem("token");
 	const navigate = useNavigate();
@@ -165,6 +167,7 @@ const Medicines = () => {
 				}, []);
 
 				setCart(formattedCart);
+				setCartCount(formattedCart.reduce((total, item) => total + item.quantity, 0));
 			} catch (err) {
 				console.error("Failed to fetch cart:", err);
 			} finally {
@@ -173,7 +176,7 @@ const Medicines = () => {
 		};
 
 		fetchCart();
-	}, [patientId, token]);
+	}, [patientId, token, setCartCount]);
 
 	// Medicines are fetched per page/filter combo from the server.
 	useEffect(() => {
@@ -227,7 +230,8 @@ const Medicines = () => {
 			return acc;
 		}, []);
 		setCart(formattedCart);
-	}, []);
+		setCartCount(formattedCart.reduce((total, item) => total + item.quantity, 0));
+	}, [setCartCount]);
 
 	// Both handlers update `cart` synchronously first (optimistic) so the +/- buttons
 	// feel instant, then reconcile with the server response or roll back on failure --

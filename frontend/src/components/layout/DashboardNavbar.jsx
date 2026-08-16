@@ -1,4 +1,4 @@
-import { useContext, useState } from "react";
+import { useContext, useState, useEffect } from "react";
 import { Menu, X, Bell, LogOut, ShoppingCart } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 
@@ -9,6 +9,7 @@ import GlobalSearchBox from "@/components/layout/GlobalSearchBox";
 import LocationPicker from "@/components/layout/LocationPicker";
 import { exploreOptions as defaultExploreOptions } from "@/screens/publicNavigation";
 import { AuthContext } from "@/context/AuthContext";
+import { CartContext } from "@/context/CartContext";
 import defaultProfilePic from "@/media/default-profile.png";
 import logo from "@/media/logo2.png";
 
@@ -42,6 +43,7 @@ function NavigationLink({ item, onNavigate }) {
 function DashboardNavbar({ navItems, profileTo, notificationsTo, cartTo, logoTo = "/", exploreOptions = defaultExploreOptions }) {
 	const [showMenu, setShowMenu] = useState(false);
 	const { auth, logout } = useContext(AuthContext);
+	const { cartCount } = useContext(CartContext);
 	const savedLocation = auth.user?.address || auth.user?.zipCode;
 	const navigate = useNavigate();
 
@@ -69,8 +71,13 @@ function DashboardNavbar({ navItems, profileTo, notificationsTo, cartTo, logoTo 
 					<LocationPicker savedLocation={savedLocation} className="hidden xl:flex" />
 
 					{cartTo ? (
-						<NavLink to={cartTo} aria-label="Cart" className="hidden rounded-md p-2 text-primary-foreground/80 transition-colors hover:bg-primary-foreground/10 hover:text-primary-foreground sm:inline-flex">
+						<NavLink to={cartTo} aria-label="Cart" className="relative hidden rounded-md p-2 text-primary-foreground/80 transition-colors hover:bg-primary-foreground/10 hover:text-primary-foreground sm:inline-flex">
 							<ShoppingCart className="size-5" aria-hidden="true" />
+							{cartCount > 0 && (
+								<span className="absolute -top-1 -right-1 flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-extrabold text-white shadow-sm select-none">
+									{cartCount}
+								</span>
+							)}
 						</NavLink>
 					) : null}
 
@@ -126,8 +133,13 @@ function DashboardNavbar({ navItems, profileTo, notificationsTo, cartTo, logoTo 
 						</NavLink>
 						<div className="flex items-center gap-1">
 							{cartTo ? (
-								<NavLink to={cartTo} aria-label="Cart" onClick={() => setShowMenu(false)} className="rounded-md p-2 text-primary-foreground/80 hover:bg-primary-foreground/10">
+								<NavLink to={cartTo} aria-label="Cart" onClick={() => setShowMenu(false)} className="relative rounded-md p-2 text-primary-foreground/80 hover:bg-primary-foreground/10">
 									<ShoppingCart className="size-5" aria-hidden="true" />
+									{cartCount > 0 && (
+										<span className="absolute -top-1 -right-1 flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-extrabold text-white shadow-sm select-none">
+											{cartCount}
+										</span>
+									)}
 								</NavLink>
 							) : null}
 							<NavLink to={notificationsTo} aria-label="Notifications" onClick={() => setShowMenu(false)} className="rounded-md p-2 text-primary-foreground/80 hover:bg-primary-foreground/10">

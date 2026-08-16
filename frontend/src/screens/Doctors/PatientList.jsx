@@ -1,6 +1,6 @@
 import { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
-import { Star, ChevronRight } from "lucide-react";
+import { Star, ChevronRight, Search } from "lucide-react";
 
 import { AuthContext } from "../../context/AuthContext";
 import { authFetch } from "../../utils/authFetch";
@@ -9,6 +9,7 @@ import { DashboardShell, DashboardPageHeader } from "@/components/layout/Dashboa
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 
 const parseAppointmentDateTime = (dateString, timeSlot) => {
 	const appointmentDate = new Date(dateString);
@@ -34,6 +35,7 @@ const parseAppointmentDateTime = (dateString, timeSlot) => {
 function PatientList() {
 	const navigate = useNavigate();
 	const [patients, setPatients] = useState([]);
+	const [searchTerm, setSearchTerm] = useState("");
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
 
@@ -114,6 +116,11 @@ function PatientList() {
 		);
 	}
 
+	const filteredPatients = patients.filter(({ latest }) => {
+		const name = latest?.patientName || "";
+		return name.toLowerCase().includes(searchTerm.toLowerCase());
+	});
+
 	return (
 		<DashboardShell>
 			<DashboardPageHeader
@@ -125,46 +132,61 @@ function PatientList() {
 				<p className="text-center text-muted-foreground">No previously consulted patients yet.</p>
 			) : (
 				<div className="flex flex-col gap-4">
-					{patients.map(({ key, patientId, latest, visitCount }) => (
-						<Card
-							key={key}
-							className="cursor-pointer p-6 transition-colors hover:border-primary"
-							onClick={() => patientId && navigate(`/patient-list/${patientId}`)}
-						>
-							<div className="flex flex-wrap items-center justify-between gap-4">
-								<div>
-									<div className="flex flex-wrap items-center gap-2">
-										<h3 className="text-lg font-semibold text-foreground">{latest.patientName}</h3>
-										<Badge variant="secondary" title="Total consultations with you">
-											{visitCount} visit{visitCount > 1 ? "s" : ""}
-										</Badge>
-									</div>
-									<p className="mt-1 text-sm text-muted-foreground">
-										{latest.patientAge || "N/A"} yrs &bull; {latest.patientGender || "N/A"} &bull; {latest.patientEmail || "N/A"}
-									</p>
-									<p className="mt-2 text-xs text-muted-foreground">
-										Last consulted{" "}
-										{new Date(latest.dateOfAppointment).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
-									</p>
-									{latest.rating ? (
-										<div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
-											<Star className="size-3.5 fill-primary text-primary" /> {latest.rating}/5 (latest visit)
-										</div>
-									) : null}
-								</div>
+					<div className="relative flex items-center max-w-md w-full">
+						<Search className="absolute left-3 size-4 text-muted-foreground pointer-events-none" />
+						<Input
+							type="text"
+							placeholder="Search patients by name..."
+							value={searchTerm}
+							onChange={(e) => setSearchTerm(e.target.value)}
+							className="pl-9 h-10 w-full"
+						/>
+					</div>
 
-								<Button
-									variant="outline"
-									onClick={(e) => {
-										e.stopPropagation();
-										patientId && navigate(`/patient-list/${patientId}`);
-									}}
-								>
-									View Patient <ChevronRight className="size-4" />
-								</Button>
-							</div>
-						</Card>
-					))}
+					{filteredPatients.length === 0 ? (
+						<p className="text-center text-muted-foreground py-8">No patients match your search.</p>
+					) : (
+						filteredPatients.map(({ key, patientId, latest, visitCount }) => (
+							<Card
+								key={key}
+								className="cursor-pointer p-6 transition-colors hover:border-primary"
+								onClick={() => patientId && navigate(`/patient-list/${patientId}`)}
+							>
+								<div className="flex flex-wrap items-center justify-between gap-4">
+									<div>
+										<div className="flex flex-wrap items-center gap-2">
+											<h3 className="text-lg font-semibold text-foreground">{latest.patientName}</h3>
+											<Badge variant="secondary" title="Total consultations with you">
+												{visitCount} visit{visitCount > 1 ? "s" : ""}
+											</Badge>
+										</div>
+										<p className="mt-1 text-sm text-muted-foreground">
+											{latest.patientAge || "N/A"} yrs &bull; {latest.patientGender || "N/A"} &bull; {latest.patientEmail || "N/A"}
+										</p>
+										<p className="mt-2 text-xs text-muted-foreground">
+											Last consulted{" "}
+											{new Date(latest.dateOfAppointment).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+										</p>
+										{latest.rating ? (
+											<div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
+												<Star className="size-3.5 fill-primary text-primary" /> {latest.rating}/5 (latest visit)
+											</div>
+										) : null}
+									</div>
+
+									<Button
+										variant="outline"
+										onClick={(e) => {
+											e.stopPropagation();
+											patientId && navigate(`/patient-list/${patientId}`);
+										}}
+									>
+										View Patient <ChevronRight className="size-4" />
+									</Button>
+								</div>
+							</Card>
+						))
+					)}
 				</div>
 			)}
 		</DashboardShell>

@@ -58,7 +58,7 @@ const allowedOrigins = [
 // Middleware
 app.use(cors({
   origin: allowedOrigins,
-  methods: ["GET", "POST", "PUT", "DELETE"],
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true, // required so the httpOnly refresh-token cookie is sent/received
   maxAge: 86400 // cache preflight so repeat requests skip the OPTIONS round-trip

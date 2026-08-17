@@ -102,23 +102,51 @@ function DoctorAnalytics() {
 		fetchBookings();
 	}, [doctorId]);
 
+	const parseAppointmentDateTime = (dateStr, timeStr) => {
+		if (!dateStr) return new Date(0);
+		const dateObj = new Date(dateStr);
+		if (!timeStr || typeof timeStr !== 'string') return dateObj;
+		
+		let [hoursStr, minutesStr] = timeStr.split(':');
+		let hours = parseInt(hoursStr, 10);
+		let minutes = parseInt(minutesStr, 10) || 0;
+		
+		if (timeStr.toLowerCase().includes('pm') && hours < 12) hours += 12;
+		if (timeStr.toLowerCase().includes('am') && hours === 12) hours = 0;
+		
+		dateObj.setHours(hours, minutes, 0, 0);
+		return dateObj;
+	};
+
+	// Demographics, monthly appointment count, and ratings trend should only reflect
+	// COMPLETED (past) accepted appointments.
+	const now = new Date();
+	const completedBookings = bookings.filter((b) => {
+		if (b.requestAccept !== "accepted") return false;
+		const apptDate = parseAppointmentDateTime(b.dateOfAppointment, b.timeSlot);
+		return apptDate < now;
+	});
+
+	// For the payments history table, we show all paid bookings (including upcoming ones)
+	const acceptedBookings = bookings.filter((b) => b.requestAccept === "accepted");
+
 	const genderData = [
-		{ name: "Male", value: bookings.filter((b) => b.patientGender === "Male").length },
-		{ name: "Female", value: bookings.filter((b) => b.patientGender === "Female").length },
-		{ name: "Other", value: bookings.filter((b) => b.patientGender === "Other").length },
+		{ name: "Male", value: completedBookings.filter((b) => b.patientGender === "Male").length },
+		{ name: "Female", value: completedBookings.filter((b) => b.patientGender === "Female").length },
+		{ name: "Other", value: completedBookings.filter((b) => b.patientGender === "Other").length },
 	].filter((d) => d.value > 0);
 
 	const ageData = [
-		{ ageGroup: "0-10", count: bookings.filter((b) => b.patientAge >= 0 && b.patientAge <= 10).length },
-		{ ageGroup: "11-20", count: bookings.filter((b) => b.patientAge >= 11 && b.patientAge <= 20).length },
-		{ ageGroup: "21-30", count: bookings.filter((b) => b.patientAge >= 21 && b.patientAge <= 30).length },
-		{ ageGroup: "31-40", count: bookings.filter((b) => b.patientAge >= 31 && b.patientAge <= 40).length },
-		{ ageGroup: "41-50", count: bookings.filter((b) => b.patientAge >= 41 && b.patientAge <= 50).length },
-		{ ageGroup: "51+", count: bookings.filter((b) => b.patientAge >= 51).length },
+		{ ageGroup: "0-10", count: completedBookings.filter((b) => b.patientAge >= 0 && b.patientAge <= 10).length },
+		{ ageGroup: "11-20", count: completedBookings.filter((b) => b.patientAge >= 11 && b.patientAge <= 20).length },
+		{ ageGroup: "21-30", count: completedBookings.filter((b) => b.patientAge >= 21 && b.patientAge <= 30).length },
+		{ ageGroup: "31-40", count: completedBookings.filter((b) => b.patientAge >= 31 && b.patientAge <= 40).length },
+		{ ageGroup: "41-50", count: completedBookings.filter((b) => b.patientAge >= 41 && b.patientAge <= 50).length },
+		{ ageGroup: "51+", count: completedBookings.filter((b) => b.patientAge >= 51).length },
 	];
 
 	const currentYear = new Date().getFullYear();
-	const currentYearBookings = bookings.filter(
+	const currentYearBookings = completedBookings.filter(
 		(booking) => new Date(booking.dateOfAppointment).getFullYear() === currentYear
 	);
 
@@ -129,7 +157,7 @@ function DoctorAnalytics() {
 		};
 	});
 
-	const ratingsByDate = bookings
+	const ratingsByDate = completedBookings
 		.filter((b) => b.rating !== null && b.rating !== undefined)
 		.reduce((acc, b) => {
 			const key = new Date(b.dateOfAppointment).toISOString().split('T')[0];
@@ -157,8 +185,8 @@ function DoctorAnalytics() {
 
 	// Payment history: only appointments the doctor actually got paid for --
 	// accepted + a completed payment (Razorpay-verified or doctor-confirmed proof).
-	const paidBookings = bookings
-		.filter((b) => b.requestAccept === "accepted" && b.amountPaid > 0 && b.paymentStatus === "Completed")
+	const paidBookings = acceptedBookings
+		.filter((b) => b.amountPaid > 0 && b.paymentStatus === "Completed")
 		.sort((a, b) => new Date(getPaymentDate(b)) - new Date(getPaymentDate(a)));
 
 	const getFilteredPayments = () => {

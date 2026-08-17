@@ -1,6 +1,6 @@
 import { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
-import { Clock, Calendar, ChevronLeft, ChevronRight, ChevronDown, Star, CheckCircle2, Hourglass, Pill } from "lucide-react";
+import { Clock, Calendar, ChevronLeft, ChevronRight, ChevronDown, Star, CheckCircle2, Hourglass, Pill, X } from "lucide-react";
 
 import { AuthContext } from "../../context/AuthContext";
 import { authFetch } from "../../utils/authFetch";
@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 
 const parseAppointmentDateTime = (dateString, timeSlot) => {
 	const appointmentDate = new Date(dateString);
@@ -60,10 +61,12 @@ function AppointmentHistory() {
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
 
-	const [galleryImages, setGalleryImages] = useState([]);
+		const [galleryImages, setGalleryImages] = useState([]);
 	const [currentImageIndex, setCurrentImageIndex] = useState(0);
 	const [selectedIllness, setSelectedIllness] = useState(null);
 	const [expandedPatients, setExpandedPatients] = useState({});
+	const [datePreset, setDatePreset] = useState("all");
+	const [customDate, setCustomDate] = useState("");
 
 	const toggleExpanded = (patientKey) => {
 		setExpandedPatients((prev) => ({ ...prev, [patientKey]: !prev[patientKey] }));
@@ -133,12 +136,52 @@ function AppointmentHistory() {
 		fetchAppointments();
 	}, [doctorId]);
 
+	// Helper to filter appointments by date
+	const getFilteredAppointments = (appointments) => {
+		return appointments.filter((appointment) => {
+			if (datePreset === "all") return true;
+
+			const appointmentDate = new Date(appointment.dateOfAppointment);
+			appointmentDate.setHours(0, 0, 0, 0);
+
+			const today = new Date();
+			today.setHours(0, 0, 0, 0);
+
+			if (datePreset === "today") {
+				return appointmentDate.getTime() === today.getTime();
+			}
+
+			if (datePreset === "week") {
+				const sevenDaysAgo = new Date(today);
+				sevenDaysAgo.setDate(today.getDate() - 7);
+				return appointmentDate >= sevenDaysAgo && appointmentDate <= today;
+			}
+
+			if (datePreset === "month") {
+				const thirtyDaysAgo = new Date(today);
+				thirtyDaysAgo.setDate(today.getDate() - 30);
+				return appointmentDate >= thirtyDaysAgo && appointmentDate <= today;
+			}
+
+			if (datePreset === "custom" && customDate) {
+				const selectedDate = new Date(customDate);
+				selectedDate.setHours(0, 0, 0, 0);
+				return appointmentDate.getTime() === selectedDate.getTime();
+			}
+
+			return true;
+		});
+	};
+
+	const filteredPrevious = getFilteredAppointments(previousAppointments);
+	const filteredDenied = getFilteredAppointments(deniedAppointments);
+
 	// Group each patient's completed appointments into one row -- a returning
 	// patient previously showed up once per visit; here their whole history
 	// (all prescriptions across visits) rolls up under a single card.
 	const patients = [];
 	const patientsByKey = new Map();
-	previousAppointments.forEach((appointment) => {
+	filteredPrevious.forEach((appointment) => {
 		const key = appointment.patientId?._id || appointment.patientId || appointment.patientEmail;
 		if (!patientsByKey.has(key)) {
 			const entry = { key, latest: appointment, visits: [] };
@@ -178,6 +221,79 @@ function AppointmentHistory() {
 		<DashboardShell>
 			<DashboardPageHeader title="Appointment History" description="Past consultations and denied requests." />
 
+			{/* Date Filter Bar */}
+			<div className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-border bg-card p-4 shadow-sm">
+				<div className="flex flex-wrap items-center gap-2">
+					{["all", "today", "week", "month"].map((preset) => (
+						<Button
+							key={preset}
+							variant={datePreset === preset ? "default" : "outline"}
+							size="sm"
+							onClick={() => {
+								setDatePreset(preset);
+								setCustomDate("");
+							}}
+							className="capitalize"
+						>
+							{preset === "all"
+								? "All Time"
+								: preset === "week"
+								? "Last Week"
+								: preset === "month"
+								? "Last Month"
+								: preset}
+						</Button>
+					))}
+				</div>
+
+				<div className="flex items-center gap-3">
+					<div className="flex items-center gap-2">
+						<span className="text-sm font-medium text-muted-foreground">Specific Date:</span>
+						<div className="relative">
+							<Input
+								type="date"
+								className="w-44 h-9 pr-8"
+								value={customDate}
+								onChange={(e) => {
+									if (e.target.value) {
+										setDatePreset("custom");
+										setCustomDate(e.target.value);
+									} else {
+										setDatePreset("all");
+										setCustomDate("");
+									}
+								}}
+							/>
+							{customDate && (
+								<button
+									onClick={() => {
+										setDatePreset("all");
+										setCustomDate("");
+									}}
+									className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+								>
+									<X className="size-4" />
+								</button>
+							)}
+						</div>
+					</div>
+
+					{(datePreset !== "all" || customDate) && (
+						<Button
+							variant="ghost"
+							size="sm"
+							onClick={() => {
+								setDatePreset("all");
+								setCustomDate("");
+							}}
+							className="h-9 px-2 text-muted-foreground hover:text-foreground"
+						>
+							Reset
+						</Button>
+					)}
+				</div>
+			</div>
+
 			<Tabs value={activeTab} onValueChange={setActiveTab}>
 				<TabsList className="mb-6">
 					<TabsTrigger value="Previous">Previous Appointments</TabsTrigger>
@@ -186,7 +302,11 @@ function AppointmentHistory() {
 
 				<TabsContent value="Previous">
 					{patients.length === 0 ? (
-						<p className="text-center text-muted-foreground">No previous patients found.</p>
+						<p className="text-center text-muted-foreground">
+							{datePreset !== "all" || customDate
+								? "No previous appointments found matching the selected date filter."
+								: "No previous patients found."}
+						</p>
 					) : (
 						<div className="flex flex-col gap-5">
 							{patients.map(({ key, latest, visits, prescriptions }) => {
@@ -341,11 +461,15 @@ function AppointmentHistory() {
 				</TabsContent>
 
 				<TabsContent value="Denied">
-					{deniedAppointments.length === 0 ? (
-						<p className="text-center text-muted-foreground">No denied requests found.</p>
+					{filteredDenied.length === 0 ? (
+						<p className="text-center text-muted-foreground">
+							{datePreset !== "all" || customDate
+								? "No denied requests found matching the selected date filter."
+								: "No denied requests found."}
+						</p>
 					) : (
 						<div className="flex flex-col gap-5">
-							{deniedAppointments.map((appointment) => (
+							{filteredDenied.map((appointment) => (
 								<Card key={appointment._id} className="p-6">
 									<div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
 										<div>

@@ -10,6 +10,9 @@ import LocationPicker from "@/components/layout/LocationPicker";
 import { exploreOptions as defaultExploreOptions } from "@/screens/publicNavigation";
 import { AuthContext } from "@/context/AuthContext";
 import { CartContext } from "@/context/CartContext";
+import { NotificationContext } from "@/context/NotificationContext";
+import { authFetch } from "@/utils/authFetch";
+import { BACKEND_URL } from "@/config";
 import defaultProfilePic from "@/media/default-profile.png";
 import logo from "@/media/logo2.png";
 
@@ -44,6 +47,7 @@ function DashboardNavbar({ navItems, profileTo, notificationsTo, cartTo, logoTo 
 	const [showMenu, setShowMenu] = useState(false);
 	const { auth, logout } = useContext(AuthContext);
 	const { cartCount } = useContext(CartContext);
+	const { unreadNotificationsCount } = useContext(NotificationContext);
 	const savedLocation = auth.user?.address || auth.user?.zipCode;
 	const navigate = useNavigate();
 
@@ -81,8 +85,13 @@ function DashboardNavbar({ navItems, profileTo, notificationsTo, cartTo, logoTo 
 						</NavLink>
 					) : null}
 
-					<NavLink to={notificationsTo} aria-label="Notifications" className="hidden rounded-md p-2 text-primary-foreground/80 transition-colors hover:bg-primary-foreground/10 hover:text-primary-foreground sm:inline-flex">
+					<NavLink to={notificationsTo} aria-label="Notifications" className="relative hidden rounded-md p-2 text-primary-foreground/80 transition-colors hover:bg-primary-foreground/10 hover:text-primary-foreground sm:inline-flex">
 						<Bell className="size-5" aria-hidden="true" />
+						{unreadNotificationsCount > 0 && (
+							<span className="absolute -top-1 -right-1 flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-extrabold text-white shadow-sm select-none">
+								{unreadNotificationsCount}
+							</span>
+						)}
 					</NavLink>
 
 					<button
@@ -142,8 +151,13 @@ function DashboardNavbar({ navItems, profileTo, notificationsTo, cartTo, logoTo 
 									)}
 								</NavLink>
 							) : null}
-							<NavLink to={notificationsTo} aria-label="Notifications" onClick={() => setShowMenu(false)} className="rounded-md p-2 text-primary-foreground/80 hover:bg-primary-foreground/10">
+							<NavLink to={notificationsTo} aria-label="Notifications" onClick={() => setShowMenu(false)} className="relative rounded-md p-2 text-primary-foreground/80 hover:bg-primary-foreground/10">
 								<Bell className="size-5" aria-hidden="true" />
+								{unreadNotificationsCount > 0 && (
+									<span className="absolute -top-1 -right-1 flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-extrabold text-white shadow-sm select-none">
+										{unreadNotificationsCount}
+									</span>
+								)}
 							</NavLink>
 							<Button variant="ghost" size="icon" aria-label="Sign out" onClick={handleSignOut} className="text-primary-foreground hover:bg-primary-foreground/10">
 								<LogOut className="size-4" />

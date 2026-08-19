@@ -15,41 +15,17 @@ const DietYoga = require('../models/DietYoga');
 const Retailer = require('../models/Retailer');
 const Medicine = require('../models/Medicine');
 
-const PATIENTS = [
-	{
-		email: 'patient2@demo.com',
-		password: 'Patient@123',
-		firstName: 'Demo',
-		lastName: 'Patient',
-		phone: '9876543211',
-		dob: '1995-01-01',
-		gender: 'Male',
-		zipCode: '110001',
-		address: 'Demo Address, New Delhi',
-	},
-	{
-		email: 'patient3@demo.com',
-		password: 'Test@1234',
-		firstName: 'Aditi',
-		lastName: 'Verma',
-		phone: '9876543213',
-		dob: '1998-05-15',
-		gender: 'Female',
-		zipCode: '110003',
-		address: 'Demo Address 3, New Delhi',
-	},
-	{
-		email: 'patient4@demo.com',
-		password: 'Test@1234',
-		firstName: 'Shreya',
-		lastName: 'Patel',
-		phone: '9876543214',
-		dob: '1997-09-20',
-		gender: 'Female',
-		zipCode: '110004',
-		address: 'Demo Address 4, New Delhi',
-	}
-];
+const PATIENT = {
+	email: 'patient2@demo.com',
+	password: 'Patient@123',
+	firstName: 'Demo',
+	lastName: 'Patient',
+	phone: '9876543211',
+	dob: '1995-01-01',
+	gender: 'Male',
+	zipCode: '110001',
+	address: 'Demo Address, New Delhi',
+};
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 const SLOT_TIMES = ['09:00', '10:00', '11:00', '14:00', '15:00', '16:00'];
@@ -70,132 +46,78 @@ function buildAvailableSlots() {
 	return availableSlots;
 }
 
-const DOCTORS = [
-	{
-		email: 'doctor2@demo.com',
-		password: 'Doctor@123',
-		firstName: 'Anjali',
-		lastName: 'Sharma',
-		registrationNumber: 'DEMO67890',
-		phone: '9123456781',
-		dob: '1985-01-01',
-		gender: 'Female',
-		zipCode: '110002',
-		address: 'Demo Clinic, New Delhi',
-		specialization: ['Ayurveda', 'General Medicine'],
-		experience: 10,
-		price: 500,
-		education: 'BAMS, MD (Ayurveda)',
-		approvalStatus: 'Approved',
-		availableSlots: buildAvailableSlots(),
-		upiId: 'doctor2@upi',
-	},
-	{
-		email: 'doctor3@demo.com',
-		password: 'Test@1234',
-		firstName: 'Ram',
-		lastName: 'Kumar',
-		registrationNumber: 'DEMO34567',
-		phone: '9123456783',
-		dob: '1980-04-12',
-		gender: 'Male',
-		zipCode: '110003',
-		address: 'Ram Clinic, New Delhi',
-		specialization: ['Ayurveda'],
-		experience: 15,
-		price: 600,
-		education: 'BAMS',
-		approvalStatus: 'Approved',
-		availableSlots: buildAvailableSlots(),
-		upiId: 'doctor3@upi',
-	},
-	{
-		email: 'doctor4@demo.com',
-		password: 'Test@1234',
-		firstName: 'John',
-		lastName: 'Doe',
-		registrationNumber: 'DEMO45678',
-		phone: '9123456784',
-		dob: '1988-11-23',
-		gender: 'Male',
-		zipCode: '110004',
-		address: 'John Clinic, New Delhi',
-		specialization: ['General Medicine'],
-		experience: 8,
-		price: 450,
-		education: 'MBBS, MD',
-		approvalStatus: 'Approved',
-		availableSlots: buildAvailableSlots(),
-		upiId: 'doctor4@upi',
-	}
-];
+const DOCTOR = {
+	email: 'doctor2@demo.com',
+	password: 'Doctor@123',
+	firstName: 'Anjali',
+	lastName: 'Sharma',
+	registrationNumber: 'DEMO67890',
+	phone: '9123456781',
+	dob: '1985-01-01',
+	gender: 'Female',
+	zipCode: '110002',
+	address: 'Demo Clinic, New Delhi',
+	specialization: ['Ayurveda', 'General Medicine'],
+	experience: 10,
+	price: 500,
+	education: 'BAMS, MD (Ayurveda)',
+	approvalStatus: 'Approved',
+	availableSlots: buildAvailableSlots(),
+};
 
 async function seed() {
 	const MDB = process.env.MDB || 'mongodb://localhost:27017/ayurveda';
 	await mongoose.connect(MDB);
 	console.log('Connected to', MDB);
 
-	let patient;
-	for (const p of PATIENTS) {
-		const patientHash = await bcrypt.hash(p.password, 10);
-		const upsertedPatient = await Patient.findOneAndUpdate(
-			{ email: p.email },
-			{
-				$set: {
-					firstName: p.firstName,
-					lastName: p.lastName,
-					email: p.email,
-					phone: p.phone,
-					dob: p.dob,
-					gender: p.gender,
-					zipCode: p.zipCode,
-					address: p.address,
-					password: patientHash,
-					role: 'patient',
-				},
+	const patientHash = await bcrypt.hash(PATIENT.password, 10);
+	const patient = await Patient.findOneAndUpdate(
+		{ email: PATIENT.email },
+		{
+			$set: {
+				firstName: PATIENT.firstName,
+				lastName: PATIENT.lastName,
+				email: PATIENT.email,
+				phone: PATIENT.phone,
+				dob: PATIENT.dob,
+				gender: PATIENT.gender,
+				zipCode: PATIENT.zipCode,
+				address: PATIENT.address,
+				password: patientHash,
+				role: 'patient',
 			},
-			{ new: true, upsert: true, setDefaultsOnInsert: true }
-		);
-		console.log(`Patient upserted: ${upsertedPatient.email} (id: ${upsertedPatient._id})`);
-		if (p.email === 'patient2@demo.com') {
-			patient = upsertedPatient;
-		}
-	}
+		},
+		{ new: true, upsert: true, setDefaultsOnInsert: true }
+	);
+	console.log(`Patient upserted: ${patient.email} (id: ${patient._id})`);
 
-	let doctor;
-	for (const d of DOCTORS) {
-		const doctorHash = await bcrypt.hash(d.password, 10);
-		const upsertedDoctor = await Doctor.findOneAndUpdate(
-			{ email: d.email },
-			{
-				$set: {
-					firstName: d.firstName,
-					lastName: d.lastName,
-					email: d.email,
-					registrationNumber: d.registrationNumber,
-					phone: d.phone,
-					dob: d.dob,
-					gender: d.gender,
-					zipCode: d.zipCode,
-					address: d.address,
-					specialization: d.specialization,
-					experience: d.experience,
-					price: d.price,
-					education: d.education,
-					approvalStatus: d.approvalStatus,
-					availableSlots: d.availableSlots,
-					password: doctorHash,
-					role: 'doctor',
-					upiId: d.upiId,
-				},
+	const doctorHash = await bcrypt.hash(DOCTOR.password, 10);
+	const doctor = await Doctor.findOneAndUpdate(
+		{ email: DOCTOR.email },
+		{
+			$set: {
+				firstName: DOCTOR.firstName,
+				lastName: DOCTOR.lastName,
+				email: DOCTOR.email,
+				registrationNumber: DOCTOR.registrationNumber,
+				phone: DOCTOR.phone,
+				dob: DOCTOR.dob,
+				gender: DOCTOR.gender,
+				zipCode: DOCTOR.zipCode,
+				address: DOCTOR.address,
+				specialization: DOCTOR.specialization,
+				experience: DOCTOR.experience,
+				price: DOCTOR.price,
+				education: DOCTOR.education,
+				approvalStatus: DOCTOR.approvalStatus,
+				availableSlots: DOCTOR.availableSlots,
+				password: doctorHash,
+				role: 'doctor',
 			},
-			{ new: true, upsert: true, setDefaultsOnInsert: true }
-		);
-		console.log(`Doctor upserted: ${upsertedDoctor.email} (id: ${upsertedDoctor._id})`);
-		if (d.email === 'doctor2@demo.com') {
-			doctor = upsertedDoctor;
-		}
-	}
+		},
+		{ new: true, upsert: true, setDefaultsOnInsert: true }
+	);
+	console.log(`Doctor upserted: ${doctor.email} (id: ${doctor._id})`);
 
 	// Retailer + store medicines, so recommendedSupplements can reference a
 	// real medicineId (image/price show up wherever the app resolves one).
@@ -404,8 +326,8 @@ async function seed() {
 	console.log('Done.');
 
 	console.log('\n--- Login credentials ---');
-	PATIENTS.forEach(p => console.log(`Patient -> email: ${p.email}  password: ${p.password}`));
-	DOCTORS.forEach(d => console.log(`Doctor  -> email: ${d.email}  password: ${d.password}`));
+	console.log(`Patient -> email: ${PATIENT.email}  password: ${PATIENT.password}`);
+	console.log(`Doctor  -> email: ${DOCTOR.email}  password: ${DOCTOR.password}`);
 }
 
 seed().catch((err) => {

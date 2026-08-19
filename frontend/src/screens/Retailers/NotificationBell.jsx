@@ -107,9 +107,12 @@ const NotificationBell = () => {
 					<button className="relative flex size-9 items-center justify-center rounded-full hover:bg-muted">
 						<Bell className="size-5" />
 						{unreadCount > 0 ? (
-							<span className="absolute -top-1 -right-1 flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-extrabold text-white shadow-sm select-none">
+							<Badge
+								variant="destructive"
+								className="absolute -top-0.5 -right-0.5 flex size-4.5 items-center justify-center rounded-full p-0 text-[11px]"
+							>
 								{unreadCount}
-							</span>
+							</Badge>
 						) : null}
 					</button>
 				}

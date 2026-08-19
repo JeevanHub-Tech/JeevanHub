@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { Stethoscope, Send, Loader2, Activity, ArrowLeft } from "lucide-react";
+import { useParams } from "react-router-dom";
+import { Stethoscope, Send, Loader2, Activity } from "lucide-react";
 
 import { PatientHeader } from "./PatientHeader";
 import { PrescriptionHistory } from "./PrescriptionHistory";
@@ -17,7 +17,6 @@ const BACKEND = BACKEND_URL || "http://localhost:8080";
 
 const PrescribeIndex = () => {
 	const { bookingId } = useParams();
-	const navigate = useNavigate();
 
 	const [booking, setBooking] = useState(null);
 	const [loading, setLoading] = useState(true);
@@ -148,12 +147,6 @@ const PrescribeIndex = () => {
 	return (
 		<DashboardShell>
 			<div className="mx-auto grid max-w-[1320px] grid-cols-1 items-start gap-6 lg:grid-cols-[340px_1fr]">
-				<div className="col-span-full">
-					<Button variant="outline" size="sm" onClick={() => navigate(-1)} className="gap-1.5 bg-background">
-						<ArrowLeft className="h-4 w-4" /> Back
-					</Button>
-				</div>
-
 				<div className="col-span-full">
 					<PatientHeader patient={booking.patientId} prakritiDosha={prakritiDosha} />
 				</div>

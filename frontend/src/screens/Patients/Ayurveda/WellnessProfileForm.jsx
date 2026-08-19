@@ -75,53 +75,17 @@ const emptyForm = {
 	waterIntakeLiters: "",
 };
 
-function profileToFormState(p) {
-	if (!p) return emptyForm;
-	return {
-		heightCm: p.basicDetails?.heightCm ?? "",
-		weightKg: p.basicDetails?.weightKg ?? "",
-		bodyType: p.basicDetails?.bodyType || "",
-		diabetes: Boolean(p.healthInfo?.conditions?.diabetes),
-		highBP: Boolean(p.healthInfo?.conditions?.highBP),
-		obesityFocus: Boolean(p.healthInfo?.conditions?.obesityFocus),
-		skinDisease: Boolean(p.healthInfo?.conditions?.skinDisease),
-		jointPainArthritis: Boolean(p.healthInfo?.conditions?.jointPainArthritis),
-		digestiveIssues: Boolean(p.healthInfo?.conditions?.digestiveIssues),
-		respiratoryIssues: Boolean(p.healthInfo?.conditions?.respiratoryIssues),
-		otherConditions: toStr(p.healthInfo?.conditions?.other),
-		medications: toStr(p.healthInfo?.medications),
-		allergies: toStr(p.healthInfo?.allergies),
-		activityLevel: p.lifestyle?.activityLevel || "",
-		sleepHours: p.lifestyle?.sleepHours ?? "",
-		sleepQuality: p.lifestyle?.sleepQuality || "",
-		stressLevel: p.lifestyle?.stressLevel || "",
-		exerciseHabits: p.lifestyle?.exerciseHabits || "",
-		workRoutine: p.lifestyle?.workRoutine || "",
-		dietType: p.foodHabits?.dietType || "",
-		preferredFoods: toStr(p.foodHabits?.preferredFoods),
-		dislikedFoods: toStr(p.foodHabits?.dislikedFoods),
-		eatingTimings: p.foodHabits?.eatingTimings || "",
-		waterIntakeLiters: p.foodHabits?.waterIntakeLiters ?? "",
-	};
-}
-
-function WellnessProfileForm({ embedded = false, onSaved, initialProfile } = {}) {
+function WellnessProfileForm({ embedded = false, onSaved } = {}) {
 	const { auth, loading: authLoading } = useContext(AuthContext);
 	const navigate = useNavigate();
-	const [form, setForm] = useState(() => profileToFormState(initialProfile));
-	const [loading, setLoading] = useState(!initialProfile);
+	const [form, setForm] = useState(emptyForm);
+	const [loading, setLoading] = useState(false);
 	const [saving, setSaving] = useState(false);
 
 	useEffect(() => {
 		if (authLoading) return;
 		if (!auth.token) {
 			if (!embedded) navigate("/signin");
-			return;
-		}
-
-		if (initialProfile) {
-			setForm(profileToFormState(initialProfile));
-			setLoading(false);
 			return;
 		}
 
@@ -133,7 +97,32 @@ function WellnessProfileForm({ embedded = false, onSaved, initialProfile } = {})
 				});
 				const p = res.data;
 				if (p) {
-					setForm(profileToFormState(p));
+					setForm({
+						heightCm: p.basicDetails?.heightCm ?? "",
+						weightKg: p.basicDetails?.weightKg ?? "",
+						bodyType: p.basicDetails?.bodyType || "",
+						diabetes: Boolean(p.healthInfo?.conditions?.diabetes),
+						highBP: Boolean(p.healthInfo?.conditions?.highBP),
+						obesityFocus: Boolean(p.healthInfo?.conditions?.obesityFocus),
+						skinDisease: Boolean(p.healthInfo?.conditions?.skinDisease),
+						jointPainArthritis: Boolean(p.healthInfo?.conditions?.jointPainArthritis),
+						digestiveIssues: Boolean(p.healthInfo?.conditions?.digestiveIssues),
+						respiratoryIssues: Boolean(p.healthInfo?.conditions?.respiratoryIssues),
+						otherConditions: toStr(p.healthInfo?.conditions?.other),
+						medications: toStr(p.healthInfo?.medications),
+						allergies: toStr(p.healthInfo?.allergies),
+						activityLevel: p.lifestyle?.activityLevel || "",
+						sleepHours: p.lifestyle?.sleepHours ?? "",
+						sleepQuality: p.lifestyle?.sleepQuality || "",
+						stressLevel: p.lifestyle?.stressLevel || "",
+						exerciseHabits: p.lifestyle?.exerciseHabits || "",
+						workRoutine: p.lifestyle?.workRoutine || "",
+						dietType: p.foodHabits?.dietType || "",
+						preferredFoods: toStr(p.foodHabits?.preferredFoods),
+						dislikedFoods: toStr(p.foodHabits?.dislikedFoods),
+						eatingTimings: p.foodHabits?.eatingTimings || "",
+						waterIntakeLiters: p.foodHabits?.waterIntakeLiters ?? "",
+					});
 				}
 			} catch (error) {
 				console.error("Error fetching wellness profile:", error);
@@ -141,7 +130,7 @@ function WellnessProfileForm({ embedded = false, onSaved, initialProfile } = {})
 				setLoading(false);
 			}
 		})();
-	}, [auth, authLoading, navigate, initialProfile, embedded]);
+	}, [auth, authLoading, navigate]);
 
 	const set = (key) => (value) => setForm((f) => ({ ...f, [key]: value }));
 	const setInput = (key) => (e) => set(key)(e.target.value);

@@ -1,6 +1,6 @@
 import { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
-import { Clock, Calendar, ChevronLeft, ChevronRight, ChevronDown, Star, CheckCircle2, Hourglass, Pill } from "lucide-react";
+import { Clock, Calendar, ChevronLeft, ChevronRight, ChevronDown, Star, CheckCircle2, Hourglass, Pill, Search, X } from "lucide-react";
 
 import { AuthContext } from "../../context/AuthContext";
 import { authFetch } from "../../utils/authFetch";
@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const parseAppointmentDateTime = (dateString, timeSlot) => {
 	const appointmentDate = new Date(dateString);
@@ -52,6 +54,13 @@ const timeElapsed = (dateStr) => {
 	return `${days}d ago`;
 };
 
+const TIME_FILTER_OPTIONS = [
+	{ value: "all", label: "All Appointments" },
+	{ value: "today", label: "Today" },
+	{ value: "week", label: "Last 7 Days" },
+	{ value: "month", label: "Last 30 Days" },
+];
+
 function AppointmentHistory() {
 	const [activeTab, setActiveTab] = useState("Previous");
 	const navigate = useNavigate();
@@ -64,6 +73,15 @@ function AppointmentHistory() {
 	const [currentImageIndex, setCurrentImageIndex] = useState(0);
 	const [selectedIllness, setSelectedIllness] = useState(null);
 	const [expandedPatients, setExpandedPatients] = useState({});
+
+	const [searchTerm, setSearchTerm] = useState("");
+	const [timeFilter, setTimeFilter] = useState("all");
+	const [customDate, setCustomDate] = useState("");
+	const [visibleProofs, setVisibleProofs] = useState({});
+
+	const toggleProofVisibility = (bookingId) => {
+		setVisibleProofs((prev) => ({ ...prev, [bookingId]: !prev[bookingId] }));
+	};
 
 	const toggleExpanded = (patientKey) => {
 		setExpandedPatients((prev) => ({ ...prev, [patientKey]: !prev[patientKey] }));
@@ -133,12 +151,57 @@ function AppointmentHistory() {
 		fetchAppointments();
 	}, [doctorId]);
 
+	// Filter appointments based on active search and date filters
+	const filterAppointments = (appointments, isDenied = false) => {
+		return appointments.filter((appt) => {
+			// Name filter
+			const patientName = appt.patientName || "";
+			const matchesName = patientName.toLowerCase().includes(searchTerm.toLowerCase());
+			if (!matchesName) return false;
+
+			// Date filter
+			const dateStr = isDenied ? appt.createdAt : appt.dateOfAppointment;
+			if (!dateStr) return true;
+			
+			// Normalize date objects to ignore time comparisons for exact matching
+			const apptDate = new Date(dateStr);
+
+			if (customDate) {
+				const targetDate = new Date(customDate);
+				return apptDate.toDateString() === targetDate.toDateString();
+			}
+
+			if (timeFilter === "today") {
+				return apptDate.toDateString() === new Date().toDateString();
+			}
+
+			if (timeFilter === "week") {
+				const oneWeekAgo = new Date();
+				oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+				oneWeekAgo.setHours(0, 0, 0, 0);
+				return apptDate >= oneWeekAgo;
+			}
+
+			if (timeFilter === "month") {
+				const oneMonthAgo = new Date();
+				oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+				oneMonthAgo.setHours(0, 0, 0, 0);
+				return apptDate >= oneMonthAgo;
+			}
+
+			return true;
+		});
+	};
+
+	const filteredPrevious = filterAppointments(previousAppointments, false);
+	const filteredDenied = filterAppointments(deniedAppointments, true);
+
 	// Group each patient's completed appointments into one row -- a returning
 	// patient previously showed up once per visit; here their whole history
 	// (all prescriptions across visits) rolls up under a single card.
 	const patients = [];
 	const patientsByKey = new Map();
-	previousAppointments.forEach((appointment) => {
+	filteredPrevious.forEach((appointment) => {
 		const key = appointment.patientId?._id || appointment.patientId || appointment.patientEmail;
 		if (!patientsByKey.has(key)) {
 			const entry = { key, latest: appointment, visits: [] };
@@ -178,10 +241,86 @@ function AppointmentHistory() {
 		<DashboardShell>
 			<DashboardPageHeader title="Appointment History" description="Past consultations and denied requests." />
 
+			{/* Filters Panel */}
+			<Card className="mb-6 p-4 flex flex-col md:flex-row items-center gap-4 bg-card">
+				<div className="relative w-full md:w-72">
+					<Search className="absolute left-3 top-3 size-4 text-muted-foreground" />
+					<Input
+						placeholder="Search patient by name..."
+						value={searchTerm}
+						onChange={(e) => setSearchTerm(e.target.value)}
+						className="pl-9 pr-8"
+					/>
+					{searchTerm && (
+						<button
+							onClick={() => setSearchTerm("")}
+							className="absolute right-2.5 top-3 text-muted-foreground hover:text-foreground"
+						>
+							<X className="size-4" />
+						</button>
+					)}
+				</div>
+
+				<div className="flex w-full md:w-auto items-center gap-2">
+					<Select
+						value={timeFilter}
+						onValueChange={(val) => {
+							setTimeFilter(val);
+							setCustomDate(""); // Clear custom date when quick range changes
+						}}
+						items={TIME_FILTER_OPTIONS}
+					>
+						<SelectTrigger className="w-full md:w-48">
+							<SelectValue placeholder="All Appointments" />
+						</SelectTrigger>
+						<SelectContent>
+							{TIME_FILTER_OPTIONS.map((opt) => (
+								<SelectItem key={opt.value} value={opt.value}>
+									{opt.label}
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
+				</div>
+
+				<div className="flex w-full md:w-auto items-center gap-2">
+					<span className="text-sm font-medium text-muted-foreground hidden md:inline">Or:</span>
+					<div className="relative flex items-center w-full md:w-auto">
+						<Input
+							type="date"
+							value={customDate}
+							onChange={(e) => {
+								setCustomDate(e.target.value);
+								if (e.target.value) {
+									setTimeFilter("all"); // Reset quick filter when custom date is chosen
+								}
+							}}
+							onMouseDown={(e) => {
+								e.preventDefault(); // Prevents the blue text highlight of dd/mm/yyyy segments
+								try {
+									e.target.showPicker();
+								} catch (err) {
+									// Ignore errors in browsers that don't support showPicker
+								}
+							}}
+							className="w-full md:w-auto pr-8 cursor-pointer"
+						/>
+						{customDate && (
+							<button
+								onClick={() => setCustomDate("")}
+								className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground"
+							>
+								<X className="size-4" />
+							</button>
+						)}
+					</div>
+				</div>
+			</Card>
+
 			<Tabs value={activeTab} onValueChange={setActiveTab}>
 				<TabsList className="mb-6">
-					<TabsTrigger value="Previous">Previous Appointments</TabsTrigger>
-					<TabsTrigger value="Denied">Denied / Cancelled</TabsTrigger>
+					<TabsTrigger value="Previous" className="cursor-pointer">Previous Appointments</TabsTrigger>
+					<TabsTrigger value="Denied" className="cursor-pointer">Denied / Cancelled</TabsTrigger>
 				</TabsList>
 
 				<TabsContent value="Previous">
@@ -270,28 +409,34 @@ function AppointmentHistory() {
 
 												{hasScreenshots ? (
 													<div className="mt-3">
-														<p className="mb-2 text-xs font-medium text-muted-foreground">
-															Payment Proofs ({latest.paymentScreenshots.length}):
-														</p>
-														<div className="flex flex-wrap gap-2">
-															{latest.paymentScreenshots.map((proof, index) => {
-																const imgUrl = proof.startsWith("http")
-																	? proof
-																	: `${BACKEND_URL || "http://localhost:8080"}/${proof}`;
-																return (
-																	<img
-																		key={index}
-																		src={imgUrl}
-																		alt={`Payment Proof ${index + 1}`}
-																		className="size-16 cursor-pointer rounded-md border border-border object-cover"
-																		onClick={() => {
-																			setGalleryImages(latest.paymentScreenshots);
-																			setCurrentImageIndex(index);
-																		}}
-																	/>
-																);
-															})}
-														</div>
+														<button
+															type="button"
+															onClick={() => toggleProofVisibility(latest._id)}
+															className="text-xs font-semibold text-primary hover:underline flex items-center gap-1 cursor-pointer bg-transparent border-0 p-0 outline-none"
+														>
+															{visibleProofs[latest._id] ? "Hide Payment Proof" : "View Payment Proof"} ({latest.paymentScreenshots.length})
+														</button>
+														{visibleProofs[latest._id] && (
+															<div className="mt-2 flex flex-wrap gap-2">
+																{latest.paymentScreenshots.map((proof, index) => {
+																	const imgUrl = proof.startsWith("http")
+																		? proof
+																		: `${BACKEND_URL || "http://localhost:8080"}/${proof}`;
+																	return (
+																		<img
+																			key={index}
+																			src={imgUrl}
+																			alt={`Payment Proof ${index + 1}`}
+																			className="size-16 cursor-pointer rounded-md border border-border object-cover"
+																			onClick={() => {
+																				setGalleryImages(latest.paymentScreenshots);
+																				setCurrentImageIndex(index);
+																			}}
+																		/>
+																	);
+																})}
+															</div>
+														)}
 													</div>
 												) : null}
 
@@ -310,7 +455,11 @@ function AppointmentHistory() {
 														<Pill className="size-3.5" /> {prescriptions.length} medicine{prescriptions.length > 1 ? "s" : ""} prescribed across {visits.length} visit{visits.length > 1 ? "s" : ""}
 														<ChevronDown className={`ml-auto size-3.5 shrink-0 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
 													</button>
-												) : null}
+												) : (
+													<div className="mt-3 flex w-full items-center gap-1.5 border-t border-dashed border-border pt-3 text-left text-xs font-medium text-muted-foreground/60 select-none">
+														<Pill className="size-3.5" /> No medicine prescribed yet
+													</div>
+												)}
 
 												{isExpanded ? (
 													<ul className="mt-2 flex flex-col gap-1.5 rounded-(--jh-radius-md) bg-secondary/60 p-3 text-xs text-foreground/80">
@@ -341,11 +490,11 @@ function AppointmentHistory() {
 				</TabsContent>
 
 				<TabsContent value="Denied">
-					{deniedAppointments.length === 0 ? (
+					{filteredDenied.length === 0 ? (
 						<p className="text-center text-muted-foreground">No denied requests found.</p>
 					) : (
 						<div className="flex flex-col gap-5">
-							{deniedAppointments.map((appointment) => (
+							{filteredDenied.map((appointment) => (
 								<Card key={appointment._id} className="p-6">
 									<div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
 										<div>

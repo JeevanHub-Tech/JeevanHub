@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import { useParams } from "react-router-dom";
-import { Stethoscope, Send, Loader2, Activity } from "lucide-react";
+import { useParams, useNavigate } from "react-router-dom";
+import { Stethoscope, Send, Loader2, Activity, ChevronLeft } from "lucide-react";
 
 import { PatientHeader } from "./PatientHeader";
 import { PrescriptionHistory } from "./PrescriptionHistory";
@@ -17,6 +17,7 @@ const BACKEND = BACKEND_URL || "http://localhost:8080";
 
 const PrescribeIndex = () => {
 	const { bookingId } = useParams();
+	const navigate = useNavigate();
 
 	const [booking, setBooking] = useState(null);
 	const [loading, setLoading] = useState(true);
@@ -136,6 +137,9 @@ const PrescribeIndex = () => {
 	if (error || !booking) {
 		return (
 			<DashboardShell>
+				<Button variant="ghost" size="sm" className="mb-4" onClick={() => navigate(-1)}>
+					<ChevronLeft className="size-4" /> Back
+				</Button>
 				<Card className="mx-auto max-w-2xl p-8 text-center">
 					<p className="text-foreground">{error || "This appointment could not be found."}</p>
 					<p className="mt-2 text-sm text-muted-foreground">Please go back to your appointment list and try again.</p>
@@ -146,6 +150,10 @@ const PrescribeIndex = () => {
 
 	return (
 		<DashboardShell>
+			<Button variant="ghost" size="sm" className="mb-4" onClick={() => navigate(-1)}>
+				<ChevronLeft className="size-4" /> Back
+			</Button>
+
 			<div className="mx-auto grid max-w-[1320px] grid-cols-1 items-start gap-6 lg:grid-cols-[340px_1fr]">
 				<div className="col-span-full">
 					<PatientHeader patient={booking.patientId} prakritiDosha={prakritiDosha} />

@@ -49,29 +49,39 @@ const hasSlotTimePassed = (dateOfAppointment, timeSlot) => {
 // template + any same-day reschedule override -- the values are never
 // persisted on the Booking itself (see hasSlotTimePassed above).
 const resolveBookingSlotTime = (doctor, booking) => {
-	if (!doctor || !doctor.availableSlots || !booking.slotId) return null;
+	if (!doctor || !booking.slotId) return null;
 
-	const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][new Date(booking.dateOfAppointment).getDay()];
-	const baseSlots = doctor.availableSlots[dayName] || [];
-	const baseSlot = baseSlots.find(s => s._id.toString() === booking.slotId.toString());
-	if (!baseSlot) return null;
+	let startTime = null;
+	let duration = 30;
 
-	let startTime = baseSlot.startTime;
-	let duration = baseSlot.duration || 30;
+	if (doctor.availableSlots) {
+		const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][new Date(booking.dateOfAppointment).getDay()];
+		const baseSlots = doctor.availableSlots[dayName] || [];
+		const baseSlot = baseSlots.find(s => s._id && s._id.toString() === booking.slotId.toString());
+		if (baseSlot) {
+			startTime = baseSlot.startTime;
+			duration = baseSlot.duration || 30;
+		}
+	}
 
 	if (Array.isArray(doctor.scheduleOverrides)) {
 		const bookingDateStr = new Date(booking.dateOfAppointment).toDateString();
 		const override = doctor.scheduleOverrides.find(o =>
 			new Date(o.date).toDateString() === bookingDateStr &&
-			o.targetSlotId && o.targetSlotId.toString() === booking.slotId.toString() &&
-			o.type === 'rescheduled'
+			(
+				(o.targetSlotId && o.targetSlotId.toString() === booking.slotId.toString()) ||
+				(o._id && o._id.toString() === booking.slotId.toString())
+			)
 		);
 		if (override) {
-			startTime = override.newStartTime || startTime;
-			duration = override.newDuration || duration;
+			if (override.type === 'rescheduled' || override.type === 'added') {
+				startTime = override.newStartTime || startTime;
+				duration = override.newDuration || duration;
+			}
 		}
 	}
 
+	if (!startTime) return null;
 	return { startTime, duration };
 };
 
@@ -1523,10 +1533,10 @@ exports.getBookingsByPatientId = async (req, res) => {
 			if (doctor && doctor.availableSlots && booking.slotId) {
 				const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][new Date(booking.dateOfAppointment).getDay()];
 				const baseSlots = doctor.availableSlots[dayName] || [];
-				const baseSlot = baseSlots.find(s => s._id.toString() === booking.slotId.toString());
+				const baseSlot = baseSlots.find(s => s._id && s._id.toString() === booking.slotId.toString());
 				if (baseSlot) {
 					bookingObj.timeSlot = baseSlot.startTime;
-					bookingObj.timeSlotDuration = baseSlot.duration;
+					bookingObj.timeSlotDuration = baseSlot.duration || 30;
 				}
 			}
 
@@ -1534,7 +1544,10 @@ exports.getBookingsByPatientId = async (req, res) => {
 				const bookingDateStr = new Date(booking.dateOfAppointment).toDateString();
 				const override = doctor.scheduleOverrides.find(o => {
 					return new Date(o.date).toDateString() === bookingDateStr &&
-						   o.targetSlotId && o.targetSlotId.toString() === booking.slotId.toString();
+						   (
+						       (o.targetSlotId && o.targetSlotId.toString() === booking.slotId.toString()) ||
+						       (o._id && o._id.toString() === booking.slotId.toString())
+						   );
 				});
 
 				if (override) {
@@ -1547,6 +1560,14 @@ exports.getBookingsByPatientId = async (req, res) => {
 						bookingObj.rescheduledTimeSlot = override.newStartTime;
 						bookingObj.originalTimeSlot = bookingObj.timeSlot;
 						bookingObj.timeSlot = override.newStartTime; // Dynamically show new time
+						if (override.newDuration) bookingObj.timeSlotDuration = override.newDuration;
+					} else if (override.type === 'added') {
+						if (override.isRescheduled) {
+							bookingObj.isRescheduledByDoctor = true;
+							bookingObj.rescheduledTimeSlot = override.newStartTime;
+							bookingObj.originalTimeSlot = override.originalStartTime || bookingObj.timeSlot;
+						}
+						bookingObj.timeSlot = override.newStartTime;
 						if (override.newDuration) bookingObj.timeSlotDuration = override.newDuration;
 					}
 				}
@@ -1615,18 +1636,22 @@ exports.getBookingsByDoctorId = async (req, res) => {
 				if (doctor.availableSlots && booking.slotId) {
 					const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][new Date(booking.dateOfAppointment).getDay()];
 					const baseSlots = doctor.availableSlots[dayName] || [];
-					const baseSlot = baseSlots.find(s => s._id.toString() === booking.slotId.toString());
+					const baseSlot = baseSlots.find(s => s._id && s._id.toString() === booking.slotId.toString());
 					if (baseSlot) {
 						bookingObj.timeSlot = baseSlot.startTime;
+						bookingObj.timeSlotDuration = baseSlot.duration || 30;
 					}
 				}
 
-				// Process bookings with doctor schedule overrides (cancellations and reschedules)
+				// Process bookings with doctor schedule overrides (cancellations, reschedules, added slots)
 				if (Array.isArray(doctor.scheduleOverrides) && booking.slotId) {
 					const bookingDateStr = new Date(booking.dateOfAppointment).toDateString();
 					const override = doctor.scheduleOverrides.find(o => {
 						return new Date(o.date).toDateString() === bookingDateStr &&
-							   o.targetSlotId && o.targetSlotId.toString() === booking.slotId.toString();
+							   (
+							       (o.targetSlotId && o.targetSlotId.toString() === booking.slotId.toString()) ||
+							       (o._id && o._id.toString() === booking.slotId.toString())
+							   );
 					});
 
 					if (override) {
@@ -1639,6 +1664,15 @@ exports.getBookingsByDoctorId = async (req, res) => {
 							bookingObj.rescheduledTimeSlot = override.newStartTime;
 							bookingObj.originalTimeSlot = bookingObj.timeSlot;
 							bookingObj.timeSlot = override.newStartTime; // Dynamically show new time
+							if (override.newDuration) bookingObj.timeSlotDuration = override.newDuration;
+						} else if (override.type === 'added') {
+							if (override.isRescheduled) {
+								bookingObj.isRescheduledByDoctor = true;
+								bookingObj.rescheduledTimeSlot = override.newStartTime;
+								bookingObj.originalTimeSlot = override.originalStartTime || bookingObj.timeSlot;
+							}
+							bookingObj.timeSlot = override.newStartTime;
+							if (override.newDuration) bookingObj.timeSlotDuration = override.newDuration;
 						}
 					}
 				}
@@ -1777,7 +1811,15 @@ exports.getBookingById = async (req, res) => {
 			return res.status(403).json({ error: "Not authorized to view this booking" });
 		}
 
-		return res.status(200).json({ booking });
+		const bookingObj = booking.toObject ? booking.toObject() : booking;
+		const doctor = await Doctor.findById(booking.doctorId);
+		const slotTime = resolveBookingSlotTime(doctor, booking);
+		if (slotTime) {
+			bookingObj.timeSlot = slotTime.startTime;
+			bookingObj.timeSlotDuration = slotTime.duration;
+		}
+
+		return res.status(200).json({ booking: bookingObj });
 	} catch (error) {
 		console.error("Error fetching booking by ID:", error);
 		return res.status(500).json({ error: "Server error" });
@@ -1821,7 +1863,7 @@ exports.getDoctorPatientHistory = async (req, res) => {
 				const baseSlot = baseSlots.find(s => s._id && s._id.toString() === booking.slotId.toString());
 				if (baseSlot) {
 					bookingObj.timeSlot = baseSlot.startTime;
-					bookingObj.timeSlotDuration = baseSlot.duration;
+					bookingObj.timeSlotDuration = baseSlot.duration || 30;
 				}
 			}
 
@@ -1829,10 +1871,13 @@ exports.getDoctorPatientHistory = async (req, res) => {
 				const bookingDateStr = new Date(booking.dateOfAppointment).toDateString();
 				const override = doctor.scheduleOverrides.find(o => {
 					return new Date(o.date).toDateString() === bookingDateStr &&
-						   o.targetSlotId && o.targetSlotId.toString() === booking.slotId.toString();
+						   (
+						       (o.targetSlotId && o.targetSlotId.toString() === booking.slotId.toString()) ||
+						       (o._id && o._id.toString() === booking.slotId.toString())
+						   );
 				});
 
-				if (override && override.type === 'rescheduled') {
+				if (override && (override.type === 'rescheduled' || override.type === 'added')) {
 					bookingObj.timeSlot = override.newStartTime;
 					if (override.newDuration) bookingObj.timeSlotDuration = override.newDuration;
 				}

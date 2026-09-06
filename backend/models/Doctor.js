@@ -23,7 +23,9 @@ const ScheduleOverrideSchema = new mongoose.Schema({
     newConsultationType: { type: String, enum: ['Online', 'In-Person', 'Both'] },
     newSessionType: { type: String, enum: ['1-to-1', 'Group'] },
     newMaxCapacity: { type: Number },
-    newBufferTime: { type: Number }
+    newBufferTime: { type: Number },
+    originalStartTime: { type: String },
+    isRescheduled: { type: Boolean, default: false }
 });
 
 const doctorSchema = new mongoose.Schema({

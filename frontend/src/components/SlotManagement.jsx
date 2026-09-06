@@ -357,6 +357,8 @@ const SlotManagement = ({ doctorId, token, defaultPrice }) => {
             } else if (override.type === 'added') {
                 baseSlots.push({
                     _id: override._id,
+                    overrideId: override._id,
+                    targetSlotId: override._id,
                     startTime: override.newStartTime,
                     duration: override.newDuration,
                     fee: override.newFee,
@@ -364,8 +366,10 @@ const SlotManagement = ({ doctorId, token, defaultPrice }) => {
                     sessionType: override.newSessionType,
                     maxCapacity: override.newMaxCapacity,
                     isDisabled: false,
-                    isOverride: true,
-                    isAddedOverride: true
+                    isOverride: !!override.isRescheduled,
+                    isAddedOverride: true,
+                    isRescheduled: !!override.isRescheduled,
+                    originalStartTime: override.originalStartTime
                 });
             }
         }
@@ -484,26 +488,23 @@ const SlotManagement = ({ doctorId, token, defaultPrice }) => {
                 );
                 setAvailableSlots(res.data.availableSlots);
             } else if (editSlotData.isAddedOverride) {
-                // Delete the old added override
-                await axios.delete(
-                    `${BACKEND_URL || 'http://localhost:5000'}/api/doctors/slots/overrides`,
-                    { 
-                        headers: { Authorization: `Bearer ${token}` },
-                        data: { date: selectedExceptionDate, targetSlotId: editSlotData.targetSlotId }
-                    }
-                );
-                // Create the updated added override
+                const overrideId = editSlotData.overrideId || editSlotData._id || editSlotData.targetSlotId;
+                const isTimeChanged = selectedSlot && selectedSlot.startTime && editSlotData.startTime !== selectedSlot.startTime;
                 const res = await axios.post(
                     `${BACKEND_URL || 'http://localhost:5000'}/api/doctors/slots/overrides`,
                     { 
                         date: selectedExceptionDate, 
                         type: 'added',
+                        overrideId: overrideId,
+                        targetSlotId: overrideId,
+                        originalStartTime: selectedSlot?.originalStartTime || selectedSlot?.startTime,
+                        isRescheduled: isTimeChanged || selectedSlot?.isRescheduled,
                         newStartTime: editSlotData.startTime,
                         newDuration: editSlotData.duration,
-                        newFee: editSlotData.fee,
+                        newFee: editSlotData.fee === '' ? 0 : Number(editSlotData.fee),
                         newConsultationType: editSlotData.consultationType,
-                        newSessionType: editSlotData.sessionType,
-                        newMaxCapacity: editSlotData.maxCapacity
+                        sessionType: editSlotData.sessionType,
+                        newMaxCapacity: editSlotData.maxCapacity === '' ? 1 : Number(editSlotData.maxCapacity)
                     },
                     { headers: { Authorization: `Bearer ${token}` } }
                 );
@@ -867,7 +868,11 @@ const SlotManagement = ({ doctorId, token, defaultPrice }) => {
                                                         `${BACKEND_URL || 'http://localhost:5000'}/api/doctors/slots/overrides`,
                                                         { 
                                                             headers: { Authorization: `Bearer ${token}` },
-                                                            data: { date: selectedExceptionDate, targetSlotId: selectedSlot.targetSlotId || selectedSlot._id }
+                                                            data: { 
+                                                                date: selectedExceptionDate, 
+                                                                overrideId: selectedSlot.overrideId || selectedSlot._id,
+                                                                targetSlotId: selectedSlot.targetSlotId || selectedSlot._id 
+                                                            }
                                                         }
                                                     );
                                                     setScheduleOverrides(res.data.scheduleOverrides);
@@ -883,7 +888,7 @@ const SlotManagement = ({ doctorId, token, defaultPrice }) => {
                                     ) : (
                                         <>
                                             <button 
-                                                onClick={() => { if(typeof setIsEditingSlot !== 'undefined') { setIsEditingSlot(true); setEditSlotData({...selectedSlot, targetSlotId: selectedSlot.targetSlotId || selectedSlot._id}); } }}
+                                                onClick={() => { if(typeof setIsEditingSlot !== 'undefined') { setIsEditingSlot(true); setEditSlotData({...selectedSlot, targetSlotId: selectedSlot.targetSlotId || selectedSlot._id, overrideId: selectedSlot.overrideId || selectedSlot._id}); } }}
                                                 style={{ background: '#3b82f6', color: 'white', border: 'none', padding: '6px', borderRadius: '4px', cursor: 'pointer', flex: 1, fontSize: '12px' }}
                                             >Reschedule</button>
                                             
@@ -897,7 +902,12 @@ const SlotManagement = ({ doctorId, token, defaultPrice }) => {
                                                                 `${BACKEND_URL || 'http://localhost:5000'}/api/doctors/slots/overrides`,
                                                                 { 
                                                                     headers: { Authorization: `Bearer ${token}` },
-                                                                    data: { date: selectedExceptionDate, targetSlotId: selectedSlot.targetSlotId || selectedSlot._id }
+                                                                    data: { 
+                                                                        date: selectedExceptionDate, 
+                                                                        overrideId: selectedSlot.overrideId || selectedSlot._id,
+                                                                        targetSlotId: selectedSlot.targetSlotId || selectedSlot._id,
+                                                                        originalStartTime: selectedSlot.startTime
+                                                                    }
                                                                 }
                                                             );
                                                             setScheduleOverrides(res.data.scheduleOverrides);

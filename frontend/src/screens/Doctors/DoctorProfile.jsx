@@ -69,6 +69,7 @@ const DoctorProfile = () => {
 					specialization: specString,
 					experience: data.experience || "",
 					price: data.price || "",
+					dietPlanFee: data.dietPlanFee !== undefined ? data.dietPlanFee : 299,
 					age: data.age || "",
 					gender: data.gender || "",
 					zipCode: data.zipCode || "",
@@ -117,6 +118,7 @@ const DoctorProfile = () => {
 				specialization: specArray,
 				experience: doctorData.experience,
 				price: doctorData.price,
+				dietPlanFee: doctorData.dietPlanFee,
 				age: doctorData.age,
 				gender: doctorData.gender,
 				zipCode: doctorData.zipCode,
@@ -444,6 +446,17 @@ const DoctorProfile = () => {
 							<Field>
 								<FieldLabel htmlFor="price">Consultation Price (₹)</FieldLabel>
 								<Input id="price" type="number" name="price" value={doctorData.price} onChange={handleInputChange} disabled={!isEditing} />
+							</Field>
+							<Field>
+								<FieldLabel htmlFor="dietPlanFee">Personalized Diet Plan Fee (₹)</FieldLabel>
+								<Input
+									id="dietPlanFee"
+									type="number"
+									name="dietPlanFee"
+									value={doctorData.dietPlanFee}
+									onChange={handleInputChange}
+									disabled={!isEditing}
+								/>
 							</Field>
 							<Field>
 								<FieldLabel htmlFor="age">Age</FieldLabel>

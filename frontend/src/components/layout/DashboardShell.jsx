@@ -3,10 +3,10 @@ import { cn } from "@/lib/utils";
 // Shared content shell for authenticated dashboard screens (Doctor, Retailer,
 // Admin, Patient home/hub pages). Navbar clearance comes from RoutePageShell
 // (App.jsx) - this only owns the max-width/padding grid all four roles share.
-function DashboardShell({ children, className }) {
+function DashboardShell({ children, className, containerClassName }) {
 	return (
 		<main className={cn("min-h-screen bg-background", className)}>
-			<div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">{children}</div>
+			<div className={cn("mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8", containerClassName)}>{children}</div>
 		</main>
 	);
 }

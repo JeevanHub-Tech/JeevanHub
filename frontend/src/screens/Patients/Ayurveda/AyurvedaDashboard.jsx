@@ -333,14 +333,17 @@ function AyurvedaDashboard({ patientId: patientIdProp, readOnly = false, embedde
 	};
 
 	const handleDeletePlan = async () => {
-		if (!confirm("Delete your generated diet plan? This can't be undone -- you can generate a new one anytime.")) return;
+		if (!confirm("Delete your current plan? This will remove the current diet and yoga plan so you can generate a fresh one.")) return;
 		try {
-			await axios.delete(`${API}/api/ayurveda/diet-plan`, { headers: { Authorization: `Bearer ${auth.token}` } });
+			await Promise.allSettled([
+				axios.delete(`${API}/api/ayurveda/diet-plan`, { headers: { Authorization: `Bearer ${auth.token}` } }),
+				axios.delete(`${API}/api/ayurveda/yoga-plan`, { headers: { Authorization: `Bearer ${auth.token}` } }),
+			]);
 			setPlan(null);
 			onPlanChanged?.();
 		} catch (error) {
-			console.error("Error deleting diet plan:", error);
-			alert(error.response?.data?.message || error.response?.data?.error || `Failed to delete diet plan (${error.response?.status ?? "network error"}).`);
+			console.error("Error deleting plan:", error);
+			alert(error.response?.data?.message || error.response?.data?.error || `Failed to delete plan.`);
 		}
 	};
 

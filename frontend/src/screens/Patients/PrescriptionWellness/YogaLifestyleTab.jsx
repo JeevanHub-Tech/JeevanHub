@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback, useContext } from "react";
-import { HeartPulse, Sun, Moon, Sparkles, Video, ExternalLink } from "lucide-react";
+import { HeartPulse, Sun, Moon, Sparkles, Video, ExternalLink, UserCheck } from "lucide-react";
 
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SourceBadge } from "@/components/ui/SourceBadge";
+import { formatDateReadable } from "@/lib/date";
 import { AuthContext } from "../../../context/AuthContext";
 import { BACKEND_URL } from "../../../config";
 import { authFetch } from "../../../utils/authFetch";
@@ -107,6 +108,22 @@ function YogaLifestyleTab() {
 	const hasYoga = yoga && ((yoga.morning?.length || 0) + (yoga.evening?.length || 0) > 0);
 	const lifestyleRecs = dietPlan?.displayPlan?.lifestyleRecommendations || [];
 
+	const yogaReview = yogaPlan?.doctorReview;
+	const isYogaDoctorApproved = Boolean(yogaReview?.published || yogaPlan?.status === "doctor_approved");
+	const yogaDocName = yogaReview?.doctorName ||
+		(yogaReview?.reviewedBy?.firstName
+			? `Dr. ${yogaReview.reviewedBy.firstName} ${yogaReview.reviewedBy.lastName || ""}`.trim()
+			: (typeof yogaReview?.reviewedBy === "string" ? yogaReview.reviewedBy : "your doctor"));
+	const yogaDate = yogaReview?.reviewedAt ? formatDateReadable(yogaReview.reviewedAt) : "";
+
+	const dietReview = dietPlan?.doctorReview;
+	const isDietDoctorApproved = Boolean(dietReview?.published || dietPlan?.status === "doctor_approved");
+	const dietDocName = dietReview?.doctorName ||
+		(dietReview?.reviewedBy?.firstName
+			? `Dr. ${dietReview.reviewedBy.firstName} ${dietReview.reviewedBy.lastName || ""}`.trim()
+			: (typeof dietReview?.reviewedBy === "string" ? dietReview.reviewedBy : "your doctor"));
+	const dietDate = dietReview?.reviewedAt ? formatDateReadable(dietReview.reviewedAt) : "";
+
 	return (
 		<div className="flex flex-col gap-6">
 			<Card>
@@ -119,6 +136,23 @@ function YogaLifestyleTab() {
 					</div>
 				</CardHeader>
 				<CardContent>
+					{isYogaDoctorApproved && (
+						<div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/30 bg-gradient-to-r from-primary/15 via-primary/10 to-amber-500/10 p-3.5 text-xs text-foreground shadow-xs">
+							<div className="flex flex-wrap items-center gap-2">
+								<span className="inline-flex items-center gap-1.5 rounded-md bg-primary/20 px-2.5 py-1 font-bold text-primary">
+									<UserCheck size={14} /> Doctor Approved
+								</span>
+								<span className="font-semibold text-foreground">
+									Made by {yogaDocName}{yogaDate ? ` on ${yogaDate}` : ""}
+								</span>
+							</div>
+							{yogaReview?.notes ? (
+								<p className="w-full text-xs italic text-muted-foreground sm:w-auto">
+									&ldquo;{yogaReview.notes}&rdquo;
+								</p>
+							) : null}
+						</div>
+					)}
 					{hasYoga ? (
 						<div className="flex flex-col gap-5 sm:flex-row">
 							{yoga.morning?.length ? <YogaColumn title="Morning flow" Icon={Sun} entries={yoga.morning} /> : null}
@@ -144,6 +178,18 @@ function YogaLifestyleTab() {
 					</div>
 				</CardHeader>
 				<CardContent>
+					{isDietDoctorApproved && (
+						<div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/30 bg-gradient-to-r from-primary/15 via-primary/10 to-amber-500/10 p-3.5 text-xs text-foreground shadow-xs">
+							<div className="flex flex-wrap items-center gap-2">
+								<span className="inline-flex items-center gap-1.5 rounded-md bg-primary/20 px-2.5 py-1 font-bold text-primary">
+									<UserCheck size={14} /> Doctor Approved
+								</span>
+								<span className="font-semibold text-foreground">
+									Made by {dietDocName}{dietDate ? ` on ${dietDate}` : ""}
+								</span>
+							</div>
+						</div>
+					)}
 					{lifestyleRecs.length ? (
 						<ul className="list-disc pl-5 text-sm text-foreground">
 							{lifestyleRecs.map((r, i) => <li key={i}>{r}</li>)}

@@ -52,6 +52,7 @@ const doctorSchema = new mongoose.Schema({
     certificate: { type: String, required: false },
     password: { type: String, required: false }, // not required for excel upload
     price: { type: Number, required: false }, // formerly fee
+    dietPlanFee: { type: Number, default: 299 }, // fee for personalized 7-day diet plan
     education: { type: String, required: false }, // degree
     college: { type: String, required: false }, // from DoctorData
     dob: { type: Date, required: false, set: parseDob }, // was stored as a raw string; now normalized to a real Date (parseDob also handles the "DD/MM/YYYY" strings produced by the Excel bulk-import path)

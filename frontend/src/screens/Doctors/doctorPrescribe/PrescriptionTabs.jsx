@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Pill, Salad, HeartPulse, FileText, Leaf } from "lucide-react";
 
 import { MedicineForm } from "./MedicineForm";
@@ -13,15 +13,21 @@ import AyurvedaDashboard from "../../Patients/Ayurveda/AyurvedaDashboard";
 // "Prescription & Wellness" doctor-facing structure: the same 4 content
 // sections the patient sees, plus Medical History.
 const tabs = [
-	{ id: "medicine", label: "Medicines, Herbs & Supplements", Icon: Pill },
-	{ id: "diet", label: "Diet & Weekly Meal Planner", Icon: Salad },
+	{ id: "medicine", label: "Medicines & Supplements", Icon: Pill },
+	{ id: "diet", label: "Diet & Meal Planner", Icon: Salad },
 	{ id: "yoga", label: "Yoga & Lifestyle", Icon: HeartPulse },
-	{ id: "wellness", label: "Other Wellness Recommendations", Icon: Leaf },
+	{ id: "wellness", label: "Other Wellness", Icon: Leaf },
 	{ id: "history", label: "Medical History", Icon: FileText },
 ];
 
-export function PrescriptionTabs({ bookingId, patientId, doctorId, onPrescribed }) {
-	const [activeTab, setActiveTab] = useState("medicine");
+export function PrescriptionTabs({ bookingId, patientId, doctorId, dietPlanRequested, defaultTab, onPrescribed }) {
+	const [activeTab, setActiveTab] = useState(defaultTab || "medicine");
+
+	useEffect(() => {
+		if (defaultTab) {
+			setActiveTab(defaultTab);
+		}
+	}, [defaultTab]);
 
 	const renderForm = () => {
 		switch (activeTab) {
@@ -41,7 +47,7 @@ export function PrescriptionTabs({ bookingId, patientId, doctorId, onPrescribed 
 	};
 
 	return (
-		<Card className="mx-auto flex max-w-[1800px] flex-col gap-6 p-6">
+		<Card className="flex w-full min-w-0 flex-col gap-6 p-4 sm:p-6 shadow-(--jh-shadow-rest)">
 			{/* Read-only view of the patient's Prakriti assessment + wellness
 			    profile -- the same inputs AI generation uses -- so the doctor has
 			    context before reviewing/editing the Diet & Yoga panels below. */}
@@ -49,18 +55,27 @@ export function PrescriptionTabs({ bookingId, patientId, doctorId, onPrescribed 
 				<AyurvedaDashboard patientId={patientId} readOnly embedded />
 			</div>
 
-			<Tabs value={activeTab} onValueChange={setActiveTab}>
-				<div className="mb-6 -mx-6 overflow-x-auto overflow-y-hidden px-6 sm:mx-0 sm:px-0 [scrollbar-width:thin] [&::-webkit-scrollbar]:h-1.5">
-					<TabsList className="h-auto w-max min-w-full sm:w-full">
+			<Tabs value={activeTab} onValueChange={setActiveTab} className="w-full min-w-0">
+				<div className="w-full min-w-0 mb-6">
+					<TabsList className="grid w-full h-auto grid-cols-2 gap-1.5 sm:grid-cols-3 lg:grid-cols-5 p-1.5 bg-muted/60 rounded-xl">
 						{tabs.map(({ id, label, Icon }) => (
-							<TabsTrigger key={id} value={id} className="shrink-0">
-								<Icon data-icon="inline-start" />
-								{label}
+							<TabsTrigger
+								key={id}
+								value={id}
+								className="flex items-center justify-center gap-1.5 px-2 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all data-[state=active]:bg-background data-[state=active]:shadow-xs"
+							>
+								<Icon size={15} className="shrink-0 text-primary" />
+								<span className="truncate">{label}</span>
+								{id === "diet" && dietPlanRequested ? (
+									<span className="shrink-0 rounded-full bg-emerald-600 px-1.5 py-0.5 text-[9px] font-bold text-white shadow-xs">
+										Paid
+									</span>
+								) : null}
 							</TabsTrigger>
 						))}
 					</TabsList>
 				</div>
-				<TabsContent value={activeTab}>{renderForm()}</TabsContent>
+				<TabsContent value={activeTab} className="min-w-0 w-full">{renderForm()}</TabsContent>
 			</Tabs>
 		</Card>
 	);

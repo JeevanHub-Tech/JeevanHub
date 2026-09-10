@@ -98,6 +98,9 @@ router.post("/:id/payment", auth, bookingController.uploadPaymentScreenshot);
 // manual UPI-screenshot flow above).
 router.put("/:id/verify-payment", auth, bookingController.verifyBookingPayment);
 
+// Patient adds / pays for a personalized diet plan on an existing booking
+router.post("/:id/add-diet-plan", auth, bookingController.requestDietPlanPostBooking);
+
 // Stream notifications for doctor dashboard (SSE)
 router.get("/stream-notifications/:doctorId", auth, bookingController.streamNotifications);
 

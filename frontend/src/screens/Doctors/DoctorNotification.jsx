@@ -111,6 +111,42 @@ const formatNotificationTime = (dateStr) => {
 	});
 };
 
+export const getDoctorNotificationCategory = (n) => {
+	const type = (n?.type || "").toLowerCase();
+	const msg = (n?.message || "").toLowerCase();
+
+	// 1. Explicit type matching takes top priority
+	if (type === "diet_plan" || type === "diet") return "diet_plans";
+	if (type === "dispute") return "disputes";
+	if (type === "review") return "reviews";
+	if (type === "appointment") return "appointments";
+	if (type === "system") return "system";
+
+	// 2. Mutually exclusive fallback heuristics for untyped or generic messages
+	if (msg.includes("diet plan") || msg.includes("diet chart") || msg.includes("meal plan")) {
+		return "diet_plans";
+	}
+	if (msg.includes("dispute") || msg.includes("refund requested") || msg.includes("issue raised")) {
+		return "disputes";
+	}
+	if (msg.includes("review") || msg.includes("rating") || msg.includes("feedback")) {
+		return "reviews";
+	}
+	if (msg.includes("appointment") || msg.includes("consultation") || msg.includes("booking") || msg.includes("rescheduled") || msg.includes("cancelled")) {
+		return "appointments";
+	}
+
+	return "system";
+};
+
+const CATEGORY_DEFAULT_TYPE_KEY = {
+	diet_plans: "diet_plan",
+	disputes: "dispute",
+	reviews: "review",
+	appointments: "appointment",
+	system: "system",
+};
+
 const DoctorNotification = () => {
 	const navigate = useNavigate();
 	const { auth } = useContext(AuthContext);
@@ -218,10 +254,9 @@ const DoctorNotification = () => {
 			return;
 		}
 
-		const msgLower = (notification.message || "").toLowerCase();
-		const isDietPlan = notification.type === "diet_plan" || notification.type === "diet" || msgLower.includes("diet plan");
+		const category = getDoctorNotificationCategory(notification);
 
-		if (isDietPlan) {
+		if (category === "diet_plans") {
 			if (notification.orderId) {
 				navigate(`/doctorsprescribe/${notification.orderId}?tab=diet`, { state: { tab: "diet" } });
 			} else {
@@ -230,17 +265,17 @@ const DoctorNotification = () => {
 			return;
 		}
 
-		if (notification.type === "review" || msgLower.includes("review") || msgLower.includes("rating")) {
+		if (category === "reviews") {
 			navigate("/doctor-reviews");
 			return;
 		}
 
-		if (notification.type === "dispute" || msgLower.includes("dispute") || msgLower.includes("refund")) {
+		if (category === "disputes") {
 			navigate("/appointment-history");
 			return;
 		}
 
-		if (notification.type === "appointment" || msgLower.includes("appointment") || msgLower.includes("booking")) {
+		if (category === "appointments") {
 			navigate("/appointment-slots");
 			return;
 		}
@@ -250,56 +285,27 @@ const DoctorNotification = () => {
 
 	const filteredNotifications = useMemo(() => {
 		if (activeTab === "all") return notifications;
-		if (activeTab === "diet_plans") {
-			return notifications.filter((n) => {
-				const msg = (n.message || "").toLowerCase();
-				return n.type === "diet_plan" || n.type === "diet" || msg.includes("diet plan");
-			});
-		}
-		if (activeTab === "appointments") {
-			return notifications.filter((n) => {
-				const msg = (n.message || "").toLowerCase();
-				const isDiet = n.type === "diet_plan" || n.type === "diet" || msg.includes("diet plan");
-				return !isDiet && (n.type === "appointment" || msg.includes("appointment") || msg.includes("booking") || msg.includes("consultation"));
-			});
-		}
-		if (activeTab === "disputes") {
-			return notifications.filter((n) => {
-				const msg = (n.message || "").toLowerCase();
-				return n.type === "dispute" || msg.includes("dispute") || msg.includes("cancelled") || msg.includes("refund");
-			});
-		}
-		if (activeTab === "reviews") {
-			return notifications.filter((n) => {
-				const msg = (n.message || "").toLowerCase();
-				return n.type === "review" || msg.includes("review") || msg.includes("rating") || msg.includes("feedback");
-			});
-		}
-		if (activeTab === "system") {
-			return notifications.filter((n) => n.type === "system");
-		}
-		return notifications;
+		return notifications.filter((n) => getDoctorNotificationCategory(n) === activeTab);
 	}, [notifications, activeTab]);
 
 	const counts = useMemo(() => {
-		const isDiet = (n) => n.type === "diet_plan" || n.type === "diet" || (n.message || "").toLowerCase().includes("diet plan");
-		return {
+		const res = {
 			all: notifications.length,
-			diet_plans: notifications.filter(isDiet).length,
-			appointments: notifications.filter((n) => {
-				const msg = (n.message || "").toLowerCase();
-				return !isDiet(n) && (n.type === "appointment" || msg.includes("appointment") || msg.includes("booking") || msg.includes("consultation"));
-			}).length,
-			disputes: notifications.filter((n) => {
-				const msg = (n.message || "").toLowerCase();
-				return n.type === "dispute" || msg.includes("dispute") || msg.includes("cancelled") || msg.includes("refund");
-			}).length,
-			reviews: notifications.filter((n) => {
-				const msg = (n.message || "").toLowerCase();
-				return n.type === "review" || msg.includes("review") || msg.includes("rating") || msg.includes("feedback");
-			}).length,
-			system: notifications.filter((n) => n.type === "system").length,
+			diet_plans: 0,
+			appointments: 0,
+			disputes: 0,
+			reviews: 0,
+			system: 0,
 		};
+		notifications.forEach((n) => {
+			const cat = getDoctorNotificationCategory(n);
+			if (res[cat] !== undefined) {
+				res[cat] += 1;
+			} else {
+				res.system += 1;
+			}
+		});
+		return res;
 	}, [notifications]);
 
 	return (
@@ -429,7 +435,8 @@ const DoctorNotification = () => {
 					) : (
 						<ul className="flex flex-col gap-3">
 							{filteredNotifications.map((notification) => {
-								const config = TYPE_CONFIG[notification.type] || TYPE_CONFIG.default;
+								const category = getDoctorNotificationCategory(notification);
+								const config = TYPE_CONFIG[notification.type] || TYPE_CONFIG[CATEGORY_DEFAULT_TYPE_KEY[category]] || TYPE_CONFIG.default;
 								const Icon = config.icon;
 								const meetUrl = extractUrl(notification.message);
 								const cleanMessage = meetUrl

@@ -40,6 +40,8 @@ function OverviewTab({ plan, isStale, readOnly, isDoctorView, onRegenerate, onDe
 
 	if (readOnly) return null;
 
+	const isDoctorEdited = Boolean(plan?.doctorReview?.published || plan?.status === "doctor_approved" || plan?.status === "ai_modified");
+
 	return (
 		<div className="flex flex-wrap items-center justify-between gap-3">
 			{isStale ? (
@@ -48,9 +50,11 @@ function OverviewTab({ plan, isStale, readOnly, isDoctorView, onRegenerate, onDe
 				<span className="text-xs text-muted-foreground">Generated {formatDate(plan.generatedAt)}</span>
 			)}
 			<div className="flex gap-2">
-				<Button size="sm" variant="outline" onClick={onRegenerate} disabled={generating}>
-					<RefreshCw size={14} /> {generating ? "Regenerating…" : "Regenerate plan"}
-				</Button>
+				{!isDoctorEdited && (
+					<Button size="sm" variant="outline" onClick={onRegenerate} disabled={generating}>
+						<RefreshCw size={14} /> {generating ? "Regenerating…" : "Regenerate plan"}
+					</Button>
+				)}
 				<Button size="sm" variant="outline" onClick={onDelete} disabled={generating}>
 					<Trash2 size={14} /> Delete plan
 				</Button>

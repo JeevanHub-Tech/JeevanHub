@@ -31,16 +31,24 @@ exports.settlePayouts = async (req, res) => {
 	try {
 		const dueBookings = await Booking.find({ payoutStatus: "held", payoutHoldUntil: { $lte: now } });
 		for (const booking of dueBookings) {
-			if (booking.doctorJoinedAt) {
-				booking.payoutStatus = "released";
-				result.bookingsReleased += 1;
-			} else {
+			if (!booking.doctorJoinedAt) {
 				booking.payoutStatus = "disputed";
 				booking.dispute = {
 					reason: "Auto-flagged: the doctor never opened the video call room for this appointment.",
 					raisedAt: now,
 				};
 				result.bookingsFlaggedNoShow += 1;
+			} else if (booking.dietPlanRequested && booking.dietPlanStatus !== "completed") {
+				// Doctor attended the consultation call, but did not upload/publish the requested personalized diet plan
+				booking.payoutStatus = "disputed";
+				booking.dispute = {
+					reason: `Auto-flagged: Doctor did not upload/publish the requested Personalized Diet Plan (₹${booking.dietPlanFee || 299}) within the 48-hour fulfillment window.`,
+					raisedAt: now,
+				};
+				result.bookingsFlaggedNoShow += 1;
+			} else {
+				booking.payoutStatus = "released";
+				result.bookingsReleased += 1;
 			}
 			await booking.save();
 		}

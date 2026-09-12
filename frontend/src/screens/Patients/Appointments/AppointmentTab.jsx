@@ -5,27 +5,32 @@ import {
 	ChevronDown,
 	Clock,
 	Link as LinkIcon,
+	Loader2,
 	Mail,
 	MessageSquareText,
 	Pencil,
 	Pill,
+	Plus,
 	RotateCcw,
+	Salad,
 	ShoppingBag,
 	Star,
 	Stethoscope,
 	UploadCloud,
 	Video,
+	X,
 	XCircle,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogFooter, DialogTitle } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { cn } from "@/lib/utils";
 import ShareRecordModal from "./ShareRecordModal";
 import { authFetch } from "../../../utils/authFetch";
-import { BACKEND_URL } from "../../../config";
+import { BACKEND_URL, RAZORPAY_KEY_ID } from "../../../config";
 
 const BACKEND = BACKEND_URL;
 
@@ -236,6 +241,7 @@ const AppointmentTab = ({
 	onRatingClick,
 	onIllnessUpdated,
 	onRequestCancelled,
+	onReload,
 }) => {
 	const navigate = useNavigate();
 	// { bookingId, mode: 'upload' | 'reference' } — which action opened the modal
@@ -244,6 +250,122 @@ const AppointmentTab = ({
 	const [cancellingId, setCancellingId] = useState(null);
 	const [rebookingId, setRebookingId] = useState(null);
 	const [reportingId, setReportingId] = useState(null);
+	const [dietModalAppointment, setDietModalAppointment] = useState(null);
+	const [showManualUpi, setShowManualUpi] = useState(false);
+	const [screenshotFiles, setScreenshotFiles] = useState([]);
+	const [uploadingScreenshot, setUploadingScreenshot] = useState(false);
+	const [payingViaRazorpay, setPayingViaRazorpay] = useState(false);
+
+	const handleRazorpayDietPayment = async (appointment) => {
+		if (!appointment) return;
+		setPayingViaRazorpay(true);
+		try {
+			const fee = appointment.dietPlanFee || 299;
+			const token = localStorage.getItem("token");
+
+			const orderRes = await authFetch(`${BACKEND}/api/payment/create-order`, {
+				method: "POST",
+				headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+				body: JSON.stringify({ amount: fee }),
+			});
+			const orderData = await orderRes.json();
+			if (!orderRes.ok || !orderData.id) {
+				throw new Error(orderData.error || "Could not initialize payment order.");
+			}
+
+			if (RAZORPAY_KEY_ID && window.Razorpay) {
+				const options = {
+					key: RAZORPAY_KEY_ID,
+					amount: orderData.amount,
+					currency: orderData.currency,
+					name: "JeevanHub",
+					description: `Personalized 7-Day Diet Plan — Dr. ${appointment.doctorName}`,
+					order_id: orderData.id,
+					handler: async function (response) {
+						try {
+							const submitRes = await authFetch(`${BACKEND}/api/bookings/${appointment._id}/add-diet-plan`, {
+								method: "POST",
+								headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+								body: JSON.stringify({
+									razorpayPaymentId: response.razorpay_payment_id,
+									razorpayOrderId: response.razorpay_order_id,
+									razorpaySignature: response.razorpay_signature,
+								}),
+							});
+							const submitData = await submitRes.json();
+							if (!submitRes.ok) throw new Error(submitData.error || "Failed to confirm request");
+
+							setDietModalAppointment(null);
+							setShowManualUpi(false);
+							setScreenshotFiles([]);
+							alert(`Payment successful! Your Personalized Diet Plan request has been sent to Dr. ${appointment.doctorName}.`);
+							onReload?.();
+						} catch (err) {
+							console.error("Error confirming diet plan payment:", err);
+							alert(`Payment received (ID: ${response.razorpay_payment_id}), but error updating record: ${err.message}`);
+						} finally {
+							setPayingViaRazorpay(false);
+						}
+					},
+					modal: {
+						ondismiss: () => setPayingViaRazorpay(false),
+					},
+					theme: { color: "#556b2f" },
+				};
+				const rzp = new window.Razorpay(options);
+				rzp.on("payment.failed", () => {
+					alert("Payment failed. Please try again or use the UPI QR code.");
+					setPayingViaRazorpay(false);
+				});
+				rzp.open();
+			} else {
+				setShowManualUpi(true);
+				setPayingViaRazorpay(false);
+			}
+		} catch (err) {
+			console.error("Payment error:", err);
+			setShowManualUpi(true);
+			setPayingViaRazorpay(false);
+		}
+	};
+
+	const handleUploadDietProof = async (e, appointment) => {
+		e.preventDefault();
+		if (screenshotFiles.length === 0) {
+			alert("Please choose at least one screenshot file to upload as proof of payment.");
+			return;
+		}
+		setUploadingScreenshot(true);
+		const formData = new FormData();
+		screenshotFiles.forEach((file) => {
+			formData.append("paymentScreenshots", file);
+		});
+		formData.append("dietPlanRequested", "true");
+
+		try {
+			const token = localStorage.getItem("token");
+			const response = await authFetch(`${BACKEND}/api/bookings/${appointment._id}/payment`, {
+				method: "POST",
+				headers: { Authorization: `Bearer ${token}` },
+				body: formData,
+			});
+			const result = await response.json();
+			if (response.ok) {
+				setDietModalAppointment(null);
+				setScreenshotFiles([]);
+				setShowManualUpi(false);
+				alert("Payment proof uploaded! Your doctor has been notified and will customize your 7-day Ayurvedic diet plan.");
+				onReload?.();
+			} else {
+				alert(result.error || "Failed to upload payment proof.");
+			}
+		} catch (error) {
+			console.error("Error uploading payment proof:", error);
+			alert("Failed to upload payment proof.");
+		} finally {
+			setUploadingScreenshot(false);
+		}
+	};
 
 	// Fairness/escrow: the doctor's payout for a paid appointment is held for a
 	// window after the slot — this is the patient's chance to flag a problem
@@ -334,9 +456,22 @@ const AppointmentTab = ({
 		const badgeVariant = STATUS_VARIANTS[badgeLabel] || (variant === "denied" ? "destructive" : "default");
 
 		const rowSupplements = supplements[appointment._id];
+
+		const getAppointmentEndTime = () => {
+			const end = new Date(appointment.dateOfAppointment);
+			if (appointment.timeSlot && appointment.timeSlot.includes(":")) {
+				const [hours, minutes] = appointment.timeSlot.split(":").map(Number);
+				end.setHours(hours, minutes || 0, 0, 0);
+				end.setMinutes(end.getMinutes() + (appointment.timeSlotDuration || 30));
+			}
+			return end;
+		};
+
+		const isPastAppointment = getAppointmentEndTime() < new Date();
 		const showRating =
-			(variant === "upcoming" && new Date(appointment.dateOfAppointment) < new Date()) ||
-			(variant === "previous" && appointment.source === "Completed");
+			(variant === "previous" && appointment.source === "Completed") ||
+			(variant === "upcoming" && isPastAppointment);
+
 		const canShare = variant !== "denied" && isWithinSharingWindow(appointment.dateOfAppointment);
 		const canRebook = variant === "denied" || (variant === "previous" && appointment.source !== "Pending");
 		// doctorId comes back populated (a full object) from getBookingsByPatientId,
@@ -403,6 +538,34 @@ const AppointmentTab = ({
 					</div>
 				) : null}
 
+				{appointment.dietPlanRequested ? (
+					appointment.dietPlanStatus === "completed" ? (
+						<div className="mt-3.5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/30 bg-gradient-to-r from-primary/15 via-primary/10 to-amber-500/10 p-3 text-xs shadow-xs">
+							<span className="flex items-center gap-2 font-bold text-foreground">
+								<span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/20 text-primary">
+									<Salad size={14} />
+								</span>
+								Personalized diet plan is made by your doctor
+							</span>
+							<Link
+								to="/prescription-wellness?tab=diet"
+								className="inline-flex items-center gap-1 rounded-lg bg-primary px-3.5 py-1.5 text-xs font-bold text-primary-foreground shadow-xs transition-all hover:bg-primary/90 hover:shadow-sm"
+							>
+								View Meal Plan →
+							</Link>
+						</div>
+					) : (
+						<div className="mt-3.5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/30 bg-gradient-to-r from-primary/15 via-primary/10 to-amber-500/10 p-3 text-xs shadow-xs">
+							<span className="flex items-center gap-2 font-bold text-foreground">
+								<span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/20 text-primary">
+									<Salad size={14} />
+								</span>
+								Personalized Diet Plan Requested
+							</span>
+						</div>
+					)
+				) : null}
+
 				<div className="mt-4 flex flex-wrap gap-2">
 					{variant === "upcoming" && (
 						<>
@@ -421,6 +584,17 @@ const AppointmentTab = ({
 							) : null}
 						</>
 					)}
+
+					{(!appointment.dietPlanRequested || appointment.dietPlanStatus === "none") && variant !== "denied" && variant !== "pending" ? (
+						<Button
+							size="sm"
+							variant="outline"
+							className="inline-flex items-center gap-1.5 rounded-lg border border-primary/40 bg-card px-3 py-1.5 text-xs font-semibold text-primary shadow-xs transition-all hover:bg-primary hover:text-primary-foreground dark:border-primary/50 dark:hover:bg-primary"
+							onClick={() => setDietModalAppointment(appointment)}
+						>
+							<Salad size={14} className="text-primary" /> Request Diet Plan (+₹{appointment.dietPlanFee || 299})
+						</Button>
+					) : null}
 
 					{(variant === "upcoming" || variant === "previous") && appointment.payoutStatus === "held" ? (
 						<Button
@@ -518,6 +692,151 @@ const AppointmentTab = ({
 			{shareModal ? (
 				<ShareRecordModal bookingId={shareModal.bookingId} initialMode={shareModal.mode} onClose={() => setShareModal(null)} />
 			) : null}
+
+			<Dialog
+				open={Boolean(dietModalAppointment)}
+				onOpenChange={(open) => {
+					if (!open) {
+						setDietModalAppointment(null);
+						setShowManualUpi(false);
+						setScreenshotFiles([]);
+					}
+				}}
+			>
+				<DialogContent className="max-w-lg">
+					<DialogTitle className="flex items-center gap-2">
+						<Salad className="size-5 text-primary" />
+						Request Personalized Diet Plan
+					</DialogTitle>
+					<div className="flex flex-col gap-4 py-1 text-sm">
+						<div className="flex flex-col gap-2 rounded-xl border border-primary/25 bg-gradient-to-r from-primary/10 via-primary/5 to-amber-500/10 p-3.5">
+							<div className="flex items-center justify-between">
+								<span className="text-muted-foreground">Doctor:</span>
+								<strong className="font-semibold text-foreground">Dr. {dietModalAppointment?.doctorName}</strong>
+							</div>
+							<div className="flex items-center justify-between">
+								<span className="text-muted-foreground">Add-on:</span>
+								<span className="font-medium text-foreground">7-Day Ayurvedic Diet Plan</span>
+							</div>
+							<div className="flex items-center justify-between border-t border-border/60 pt-2 font-semibold">
+								<span className="text-foreground">Amount to Pay:</span>
+								<span className="text-base text-primary">₹{dietModalAppointment?.dietPlanFee || 299}</span>
+							</div>
+						</div>
+
+						{!showManualUpi ? (
+							<div className="flex flex-col gap-3">
+								<p className="text-xs text-muted-foreground">
+									The doctor will analyze your Prakriti (Dosha) and health conditions to design tailored daily meals, cooking advice, and avoidance guidelines.
+								</p>
+
+								<Button
+									type="button"
+									className="w-full"
+									onClick={() => handleRazorpayDietPayment(dietModalAppointment)}
+									disabled={payingViaRazorpay}
+								>
+									{payingViaRazorpay ? <Loader2 className="size-4 animate-spin" /> : null}
+									{payingViaRazorpay ? "Opening payment gateway..." : `Pay Now (₹${dietModalAppointment?.dietPlanFee || 299})`}
+								</Button>
+
+								<button
+									type="button"
+									onClick={() => setShowManualUpi(true)}
+									className="mx-auto bg-transparent p-0 text-xs font-medium text-muted-foreground underline hover:text-foreground"
+								>
+									Or pay manually via UPI (QR / screenshot upload)
+								</button>
+							</div>
+						) : (
+							<div className="flex flex-col gap-4">
+								{(() => {
+									const upiId = dietModalAppointment?.doctorId?.upiId || dietModalAppointment?.doctorUpiId || "payments@jeevanhub";
+									const fee = dietModalAppointment?.dietPlanFee || 299;
+									const upiUrl = `upi://pay?pa=${upiId}&pn=Dr.%20${encodeURIComponent(dietModalAppointment?.doctorName || "")}&am=${fee}&cu=INR&tn=DietPlan-${dietModalAppointment?._id}`;
+									return (
+										<>
+											<div className="flex flex-col items-center gap-2 text-center">
+												<p className="text-xs font-semibold text-foreground">Scan QR code using GPay, PhonePe, Paytm, or any UPI app</p>
+												<img
+													src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(upiUrl)}`}
+													alt="UPI Payment QR Code"
+													className="size-36 rounded-lg bg-white p-2 shadow-xs"
+												/>
+												<span className="text-xs text-muted-foreground">UPI ID: <strong className="text-foreground">{upiId}</strong></span>
+											</div>
+
+											<form onSubmit={(e) => handleUploadDietProof(e, dietModalAppointment)} className="flex flex-col gap-3 border-t border-border/60 pt-3">
+												<div>
+													<label className="text-xs font-semibold text-foreground">Upload Payment Screenshot (Max 5)</label>
+													<p className="text-[11px] text-muted-foreground">Upload a screenshot of your completed UPI transaction.</p>
+												</div>
+
+												<div className="flex flex-wrap gap-2">
+													{screenshotFiles.map((file, index) => (
+														<div key={index} className="relative size-14 overflow-hidden rounded-md bg-secondary/60">
+															{file.type.startsWith("image/") ? (
+																<img src={URL.createObjectURL(file)} alt={`preview-${index}`} className="size-full object-cover" />
+															) : (
+																<div className="flex size-full items-center justify-center text-xs font-semibold text-muted-foreground">PDF</div>
+															)}
+															<button
+																type="button"
+																onClick={() => setScreenshotFiles((prev) => prev.filter((_, i) => i !== index))}
+																aria-label="Remove file"
+																className="absolute right-0.5 top-0.5 flex size-4 items-center justify-center rounded-full bg-destructive text-[10px] text-white"
+															>
+																<X size={10} />
+															</button>
+														</div>
+													))}
+													{screenshotFiles.length < 5 ? (
+														<button
+															type="button"
+															onClick={() => document.getElementById("diet-multi-screenshot-input").click()}
+															className="flex size-14 items-center justify-center rounded-md border border-dashed border-border text-muted-foreground hover:border-ring hover:text-foreground"
+														>
+															<Plus size={18} />
+														</button>
+													) : null}
+												</div>
+												<input
+													type="file"
+													id="diet-multi-screenshot-input"
+													multiple
+													accept="image/*,application/pdf"
+													className="sr-only"
+													onChange={(e) => {
+														const files = Array.from(e.target.files);
+														setScreenshotFiles((prev) => [...prev, ...files].slice(0, 5));
+														e.target.value = null;
+													}}
+												/>
+
+												<div className="flex justify-end gap-2 pt-1">
+													<Button
+														type="button"
+														variant="ghost"
+														size="sm"
+														onClick={() => setShowManualUpi(false)}
+														disabled={uploadingScreenshot}
+													>
+														Back
+													</Button>
+													<Button type="submit" size="sm" disabled={uploadingScreenshot || screenshotFiles.length === 0}>
+														{uploadingScreenshot ? <Loader2 className="size-4 animate-spin" /> : null}
+														{uploadingScreenshot ? "Uploading..." : "Submit Payment Proof"}
+													</Button>
+												</div>
+											</form>
+										</>
+									);
+								})()}
+							</div>
+						)}
+					</div>
+				</DialogContent>
+			</Dialog>
 		</>
 	);
 };

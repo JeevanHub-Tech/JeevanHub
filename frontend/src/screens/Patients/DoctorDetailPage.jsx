@@ -1,7 +1,7 @@
 import { useState, useContext, useEffect, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
-import { ArrowLeft, Clock, Loader2, Plus, Star, X } from "lucide-react";
+import { ArrowLeft, Clock, Loader2, Plus, Salad, Star, X } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,31 +24,44 @@ const getLocalDateString = (d = new Date()) => {
 function DoctorDetail() {
 	const location = useLocation();
 	const navigate = useNavigate();
-	const { doctor } = location.state;
-
-	const specializations = Array.isArray(doctor.specialization)
-		? doctor.specialization
-		: (doctor.specialization || "").toString().split(",").map((s) => s.trim()).filter(Boolean);
-
-	const { auth } = useContext(AuthContext);
-	const patientFirstName = auth.user?.firstName || "Patient";
-	const patientLastName = auth.user?.lastName || "";
-	const patientGender = auth.user?.gender;
-	const patientAge = auth.user?.age;
-
-	const patientName = patientFirstName + " " + patientLastName;
-
-	const [selectedTime, setSelectedTime] = useState(null);
-	const [patientIllness, setPatientIllness] = useState("");
+	const doctor = location.state?.doctor;
 
 	useEffect(() => {
-		window.scrollTo(0, 0);
-	}, []);
+		if (!doctor) {
+			navigate("/doctors", { replace: true });
+		}
+	}, [doctor, navigate]);
+
+	const specializations = doctor
+		? Array.isArray(doctor.specialization)
+			? doctor.specialization
+			: typeof doctor.specialization === "string"
+				? doctor.specialization.split(",").map((s) => s.trim()).filter(Boolean)
+				: Array.isArray(doctor.specializations)
+					? doctor.specializations
+					: []
+		: [];
+
+	const doctorFullName = doctor?.name || `${doctor?.firstName || ""} ${doctor?.lastName || ""}`.trim() || "Doctor";
+	const doctorDisplayName = doctorFullName.replace(/^Dr\.?\s*/i, "");
+
+	const { auth } = useContext(AuthContext);
+	const patientFirstName = auth?.user?.firstName || "Patient";
+	const patientLastName = auth?.user?.lastName || "";
+	const patientGender = auth?.user?.gender || "";
+	const patientAge = auth?.user?.age || "";
+	const patientName = `${patientFirstName} ${patientLastName}`.trim();
+
+	const [patientIllness, setPatientIllness] = useState("");
 	const [dateOfAppointment, setDateOfAppointment] = useState(getLocalDateString());
+	const [selectedTime, setSelectedTime] = useState(null);
 	const [availableSlots, setAvailableSlots] = useState([]);
-	const [doctorUpiId, setDoctorUpiId] = useState(doctor.upiId || "");
+	const [doctorUpiId, setDoctorUpiId] = useState(doctor?.upiId || "");
+	const [statusMessage, setStatusMessage] = useState({ message: "", type: "" });
+	const [reviews, setReviews] = useState([]);
 	const [paymentModalOpen, setPaymentModalOpen] = useState(false);
 	const [currentBooking, setCurrentBooking] = useState(null);
+	const [includeDietPlan, setIncludeDietPlan] = useState(false);
 	const [screenshotFiles, setScreenshotFiles] = useState([]);
 	const [uploadingScreenshot, setUploadingScreenshot] = useState(false);
 	const [payingViaRazorpay, setPayingViaRazorpay] = useState(false);
@@ -83,7 +96,7 @@ function DoctorDetail() {
 
 	// Paid slots no longer require the doctor to have a UPI ID on file --
 	// Razorpay is a platform-level gateway, not tied to a per-doctor payout ID.
-	const filteredSlots = availableSlots || [];
+	const filteredSlots = Array.isArray(availableSlots) ? availableSlots : [];
 
 	const dates = useMemo(() => {
 		const d = [];
@@ -95,8 +108,6 @@ function DoctorDetail() {
 		}
 		return d;
 	}, [carouselStartDate]);
-	const [reviews, setReviews] = useState([]);
-	const [statusMessage, setStatusMessage] = useState({ message: "", type: "" });
 
 	const getPatientIdFromToken = () => {
 		const token = localStorage.getItem("token");
@@ -115,7 +126,7 @@ function DoctorDetail() {
 	const patientId = getPatientIdFromToken();
 
 	const fetchSlots = async () => {
-		if (!dateOfAppointment) return;
+		if (!dateOfAppointment || !doctor) return;
 		setLoadingSlots(true);
 		try {
 			const token = localStorage.getItem("token");
@@ -124,7 +135,7 @@ function DoctorDetail() {
 			});
 			const data = await res.json();
 			if (res.ok) {
-				setAvailableSlots(data.slots || []);
+				setAvailableSlots(Array.isArray(data.slots) ? data.slots : []);
 				if (data.upiId !== undefined) {
 					setDoctorUpiId(data.upiId);
 				}
@@ -170,10 +181,13 @@ function DoctorDetail() {
 			}
 
 			const patientEmail = localStorage.getItem("email");
+			const dietPlanPrice = doctor.dietPlanFee !== undefined ? Number(doctor.dietPlanFee) : 299;
+			const slotFee = selectedTime.fee !== undefined ? Number(selectedTime.fee) : (Number(doctor.pricepoint || doctor.price || 0));
+			const totalAmount = slotFee + (includeDietPlan ? dietPlanPrice : 0);
 
 			let bookingData = {
 				doctorId: doctor.id || doctor._id,
-				doctorName: doctor.name,
+				doctorName: doctor.name || `${doctor.firstName || ''} ${doctor.lastName || ''}`.trim(),
 				doctorEmail: doctor.email,
 				slotId: selectedTime._id,
 				dateOfAppointment: dateOfAppointment,
@@ -184,7 +198,9 @@ function DoctorDetail() {
 				patientGender: patientGender,
 				patientAge: patientAge,
 				patientIllness: patientIllness,
-				amountPaid: selectedTime.fee !== undefined ? selectedTime.fee : doctor.pricepoint || 0,
+				amountPaid: totalAmount,
+				dietPlanRequested: includeDietPlan,
+				dietPlanFee: includeDietPlan ? dietPlanPrice : 0,
 				meetLink: "no",
 			};
 
@@ -243,7 +259,7 @@ function DoctorDetail() {
 				amount: razorpayOrder.amount,
 				currency: razorpayOrder.currency,
 				name: "JeevanHub",
-				description: `Consultation fee — Dr. ${doctor.firstName} ${doctor.lastName}`,
+				description: `Consultation fee — Dr. ${doctorDisplayName}`,
 				order_id: razorpayOrder.id,
 
 				handler: async function (response) {
@@ -371,6 +387,7 @@ function DoctorDetail() {
 	};
 
 	useEffect(() => {
+		if (!doctor?.email) return;
 		const fetchReviews = async () => {
 			try {
 				const res = await fetch(`${BACKEND_URL}/api/bookings/reviews/${doctor.email}`);
@@ -380,12 +397,13 @@ function DoctorDetail() {
 			}
 		};
 		fetchReviews();
-	}, [doctor.email]);
+	}, [doctor?.email]);
 
 	useEffect(() => {
+		if (!doctor) return;
 		fetchSlots();
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [dateOfAppointment, doctor._id, doctor.id]);
+	}, [dateOfAppointment, doctor?._id, doctor?.id]);
 
 	const formatDateLabel = (dateObj) => {
 		const today = new Date();
@@ -418,6 +436,8 @@ function DoctorDetail() {
 		return `${h12}:${minutes} ${ampm}`;
 	};
 
+	if (!doctor) return null;
+
 	const currentProfilePic =
 		doctor.profileImage && doctor.profileImage !== "undefined" && doctor.profileImage !== "null"
 			? doctor.profileImage
@@ -445,8 +465,8 @@ function DoctorDetail() {
 								className="size-20 shrink-0 cursor-zoom-in rounded-full border border-border object-cover"
 							/>
 							<div className="min-w-0 flex-1">
-								<h1 className="font-display text-2xl text-foreground">{doctor.name.replace(/^Dr\.?\s*/i, "")}</h1>
-								<p className="text-sm text-muted-foreground">{parseInt(doctor.experience) || doctor.experience} years experience</p>
+								<h1 className="font-display text-2xl text-foreground">{doctorDisplayName}</h1>
+								<p className="text-sm text-muted-foreground">{parseInt(doctor.experience) || doctor.experience || 0} years experience</p>
 								<div className="mt-2 flex flex-wrap gap-1.5">
 									{specializations.map((spec, idx) => (
 										<Badge key={idx} variant="secondary">
@@ -459,7 +479,7 @@ function DoctorDetail() {
 
 						<div className="mt-4 border-t border-border pt-4">
 							<p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Education</p>
-							<p className="mt-1 text-sm text-foreground">{doctor.education}</p>
+							<p className="mt-1 text-sm text-foreground">{doctor.education || "Ayurvedic Practitioner"}</p>
 						</div>
 					</div>
 
@@ -610,6 +630,31 @@ function DoctorDetail() {
 						/>
 					</div>
 
+					<div className={`mt-4 rounded-xl border p-3.5 transition-all ${includeDietPlan ? 'border-primary/50 bg-gradient-to-r from-primary/15 via-primary/10 to-amber-500/10 shadow-xs' : 'border-border bg-card/60 hover:border-primary/30'}`}>
+						<label className="flex cursor-pointer items-start gap-3.5">
+							<input
+								type="checkbox"
+								checked={includeDietPlan}
+								onChange={(e) => setIncludeDietPlan(e.target.checked)}
+								className="mt-1 size-4.5 rounded border-border text-primary focus:ring-primary cursor-pointer accent-primary"
+							/>
+							<div className="flex-1 min-w-0">
+								<div className="flex items-center justify-between gap-2">
+									<span className="flex items-center gap-1.5 text-sm font-bold text-foreground">
+										<Salad size={16} className="text-primary" />
+										Personalized 7-Day Diet Plan
+									</span>
+									<span className="rounded-full bg-primary/15 px-2.5 py-0.5 text-xs font-bold text-primary">
+										+₹{doctor.dietPlanFee !== undefined ? doctor.dietPlanFee : 299}
+									</span>
+								</div>
+								<p className="mt-1 text-xs text-muted-foreground leading-relaxed">
+									Doctor will analyze your Dosha &amp; illness to craft a personalized 7-day Ayurvedic meal routine.
+								</p>
+							</div>
+						</label>
+					</div>
+
 					<p className="mt-4 text-xs leading-relaxed text-muted-foreground">
 						<strong className="font-semibold">Note:</strong> Your appointment is confirmed as soon as booking (and payment, if applicable)
 						goes through — no separate doctor approval needed. You'll find it under "Your appointed doctor" on the home page.
@@ -648,13 +693,18 @@ function DoctorDetail() {
 								<div className="flex items-center justify-between">
 									<span className="text-muted-foreground">Doctor</span>
 									<strong className="font-semibold text-foreground">
-										Dr. {doctor.firstName} {doctor.lastName}
+										Dr. {doctorDisplayName}
 									</strong>
 								</div>
 								<div className="flex items-center justify-between">
-									<span className="text-muted-foreground">Consultation fee</span>
+									<span className="text-muted-foreground">Total fee</span>
 									<strong className="font-semibold text-primary">₹{currentBooking?.amountPaid}</strong>
 								</div>
+								{currentBooking?.dietPlanRequested ? (
+									<p className="text-xs text-muted-foreground">
+										(Includes ₹{currentBooking?.dietPlanFee || 299} for Personalized 7-Day Diet Plan)
+									</p>
+								) : null}
 							</div>
 
 							<Button type="button" variant="destructive" onClick={() => handleCancelPayment()} disabled={uploadingScreenshot} className="hidden sm:inline-flex">
@@ -685,7 +735,7 @@ function DoctorDetail() {
 												variant="outline"
 												className="w-full"
 												onClick={() => {
-													const upiUrl = `upi://pay?pa=${doctorUpiId}&pn=Dr.%20${doctor.firstName}%20${doctor.lastName}&am=${currentBooking?.amountPaid}&cu=INR&tn=AyuHub-${currentBooking?._id}`;
+													const upiUrl = `upi://pay?pa=${doctorUpiId}&pn=Dr.%20${encodeURIComponent(doctorDisplayName)}&am=${currentBooking?.amountPaid}&cu=INR&tn=AyuHub-${currentBooking?._id}`;
 													window.open(upiUrl, "_self");
 												}}
 											>
@@ -698,7 +748,7 @@ function DoctorDetail() {
 											<p className="text-sm font-semibold text-foreground">Scan QR code to pay</p>
 											<img
 												src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
-													`upi://pay?pa=${doctorUpiId}&pn=Dr.%20${doctor.firstName}%20${doctor.lastName}&am=${currentBooking?.amountPaid}&cu=INR&tn=AyuHub-${currentBooking?._id}`,
+													`upi://pay?pa=${doctorUpiId}&pn=Dr.%20${encodeURIComponent(doctorDisplayName)}&am=${currentBooking?.amountPaid}&cu=INR&tn=AyuHub-${currentBooking?._id}`,
 												)}`}
 												alt="UPI payment QR code"
 												className="size-40 rounded-(--jh-radius-md) bg-secondary/60 p-2"

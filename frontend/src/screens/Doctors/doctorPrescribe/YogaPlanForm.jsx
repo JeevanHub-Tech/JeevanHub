@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { HeartPulse, Sun, Moon, Plus, X, Send, ExternalLink, Loader2, Search, PenLine, Check } from "lucide-react";
+import { HeartPulse, Sun, Moon, Plus, X, Send, ExternalLink, Loader2, Search, PenLine, Check, UserCheck } from "lucide-react";
 
 import { authFetch } from "../../../utils/authFetch";
 import { BACKEND_URL } from "../../../config";
@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SourceBadge } from "@/components/ui/SourceBadge";
+import { formatDateReadable } from "@/lib/date";
 
 const COMMON_ASANAS = [
 	"Surya Namaskara (Sun Salutation)",
@@ -334,6 +335,13 @@ export function YogaPlanForm({ patientId, bookingId }) {
 	}
 
 	const active = resolveActiveContent(plan);
+	const doctorReview = plan.doctorReview;
+	const isDoctorApproved = Boolean(doctorReview?.published || plan.status === "doctor_approved" || (doctorReview?.reviewedAt && plan.status === "ai_modified"));
+	const doctorDisplayName = doctorReview?.doctorName ||
+		(doctorReview?.reviewedBy?.firstName
+			? `Dr. ${doctorReview.reviewedBy.firstName} ${doctorReview.reviewedBy.lastName || ""}`.trim()
+			: (typeof doctorReview?.reviewedBy === "string" ? doctorReview.reviewedBy : "your doctor"));
+	const reviewedDate = doctorReview?.reviewedAt ? formatDateReadable(doctorReview.reviewedAt) : "";
 
 	return (
 		<Card className="overflow-hidden p-0">
@@ -350,6 +358,24 @@ export function YogaPlanForm({ patientId, bookingId }) {
 				</div>
 			</div>
 			<div className="p-6">
+				{doctorReview?.reviewedAt && (
+					<div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/30 bg-gradient-to-r from-primary/15 via-primary/10 to-amber-500/10 p-3.5 text-xs text-foreground shadow-xs">
+						<div className="flex flex-wrap items-center gap-2">
+							<span className="inline-flex items-center gap-1.5 rounded-md bg-primary/20 px-2.5 py-1 font-bold text-primary">
+								<UserCheck size={14} /> Doctor Approved
+							</span>
+							<span className="font-semibold text-foreground">
+								Made by {doctorDisplayName}{reviewedDate ? ` on ${reviewedDate}` : ""}
+							</span>
+						</div>
+						{doctorReview?.notes ? (
+							<p className="w-full text-xs italic text-muted-foreground sm:w-auto">
+								&ldquo;{doctorReview.notes}&rdquo;
+							</p>
+						) : null}
+					</div>
+				)}
+
 				{!editing ? (
 					<div className="flex flex-col gap-6">
 						<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

@@ -173,6 +173,8 @@ function App() {
           <Route path="/signup-retailer" element={<SignUpRetailerScreen />} />
           <Route path="/prakritidetermination" element={<PrakritiDetermination />} />
           <Route path="/appointed-doctor" element={<AppointedDoctor />} />
+          <Route path="/AppointedDoctor" element={<AppointedDoctor />} />
+          <Route path="/appointeddoctor" element={<AppointedDoctor />} />
           <Route path="/payment2" element={<PaymentPage />} />
           <Route path="/patient-home" element={<PatientPage />} />
 
@@ -201,6 +203,8 @@ function App() {
             <Route path="/profile/doctor" element={<DoctorProfileNew />} />
             <Route path="/profile/retailer" element={<RetailerProfileNew />} />
             <Route path="/prescription-wellness" element={<PrescriptionWellnessPage />} />
+            <Route path="/PrescriptionWellness" element={<PrescriptionWellnessPage />} />
+            <Route path="/prescriptionwellness" element={<PrescriptionWellnessPage />} />
             <Route path="/ayurveda-wellness" element={<PrescriptionWellnessPage />} />
             <Route path="/ayurveda-wellness/profile" element={<WellnessProfileForm />} />
             <Route path="/ayurveda-wellness/assessment" element={<DoshaAssessmentQuiz />} />

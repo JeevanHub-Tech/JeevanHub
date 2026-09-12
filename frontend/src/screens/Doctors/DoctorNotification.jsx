@@ -12,6 +12,7 @@ import {
 	MessageSquare,
 	Star,
 	User,
+	Utensils,
 	Video,
 } from "lucide-react";
 
@@ -30,6 +31,20 @@ const TYPE_CONFIG = {
 		iconColor: "text-blue-700 dark:text-blue-400",
 		borderAccent: "border-l-4 border-l-blue-600",
 		badgeClass: "bg-blue-100/80 text-blue-900 border-blue-300 font-bold",
+	},
+	diet_plan: {
+		label: "Diet Plan Request",
+		icon: Utensils,
+		iconColor: "text-emerald-700 dark:text-emerald-400",
+		borderAccent: "border-l-4 border-l-emerald-600",
+		badgeClass: "bg-emerald-100/80 text-emerald-900 border-emerald-300 font-bold",
+	},
+	diet: {
+		label: "Diet Plan Request",
+		icon: Utensils,
+		iconColor: "text-emerald-700 dark:text-emerald-400",
+		borderAccent: "border-l-4 border-l-emerald-600",
+		badgeClass: "bg-emerald-100/80 text-emerald-900 border-emerald-300 font-bold",
 	},
 	dispute: {
 		label: "Dispute / Issue",
@@ -204,6 +219,16 @@ const DoctorNotification = () => {
 		}
 
 		const msgLower = (notification.message || "").toLowerCase();
+		const isDietPlan = notification.type === "diet_plan" || notification.type === "diet" || msgLower.includes("diet plan");
+
+		if (isDietPlan) {
+			if (notification.orderId) {
+				navigate(`/doctorsprescribe/${notification.orderId}?tab=diet`, { state: { tab: "diet" } });
+			} else {
+				navigate("/appointment-slots");
+			}
+			return;
+		}
 
 		if (notification.type === "review" || msgLower.includes("review") || msgLower.includes("rating")) {
 			navigate("/doctor-reviews");
@@ -225,10 +250,17 @@ const DoctorNotification = () => {
 
 	const filteredNotifications = useMemo(() => {
 		if (activeTab === "all") return notifications;
+		if (activeTab === "diet_plans") {
+			return notifications.filter((n) => {
+				const msg = (n.message || "").toLowerCase();
+				return n.type === "diet_plan" || n.type === "diet" || msg.includes("diet plan");
+			});
+		}
 		if (activeTab === "appointments") {
 			return notifications.filter((n) => {
 				const msg = (n.message || "").toLowerCase();
-				return n.type === "appointment" || msg.includes("appointment") || msg.includes("booking") || msg.includes("consultation");
+				const isDiet = n.type === "diet_plan" || n.type === "diet" || msg.includes("diet plan");
+				return !isDiet && (n.type === "appointment" || msg.includes("appointment") || msg.includes("booking") || msg.includes("consultation"));
 			});
 		}
 		if (activeTab === "disputes") {
@@ -250,11 +282,13 @@ const DoctorNotification = () => {
 	}, [notifications, activeTab]);
 
 	const counts = useMemo(() => {
+		const isDiet = (n) => n.type === "diet_plan" || n.type === "diet" || (n.message || "").toLowerCase().includes("diet plan");
 		return {
 			all: notifications.length,
+			diet_plans: notifications.filter(isDiet).length,
 			appointments: notifications.filter((n) => {
 				const msg = (n.message || "").toLowerCase();
-				return n.type === "appointment" || msg.includes("appointment") || msg.includes("booking") || msg.includes("consultation");
+				return !isDiet(n) && (n.type === "appointment" || msg.includes("appointment") || msg.includes("booking") || msg.includes("consultation"));
 			}).length,
 			disputes: notifications.filter((n) => {
 				const msg = (n.message || "").toLowerCase();
@@ -313,6 +347,18 @@ const DoctorNotification = () => {
 						}`}
 					>
 						All ({counts.all})
+					</button>
+
+					<button
+						type="button"
+						onClick={() => setActiveTab("diet_plans")}
+						className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
+							activeTab === "diet_plans"
+								? "bg-[#4a5c28] text-white shadow-sm ring-2 ring-[#4a5c28]/20"
+								: "border border-[var(--jh-line-strong)] bg-white text-[var(--jh-ink)] hover:bg-[var(--jh-sage-pale)] hover:border-[#4a5c28]"
+						}`}
+					>
+						Diet Plans ({counts.diet_plans})
 					</button>
 
 					<button

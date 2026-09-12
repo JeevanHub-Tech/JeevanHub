@@ -9,11 +9,12 @@ import { DashboardShell, DashboardPageHeader } from "@/components/layout/Dashboa
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { ExpandableText } from "@/components/ui/expandable-text";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { formatDateReadable } from "@/lib/date";
+import { formatDate, formatDateReadable } from "@/lib/date";
 
 const parseAppointmentDateTime = (dateString, timeSlot) => {
 	const appointmentDate = new Date(dateString);
@@ -220,6 +221,9 @@ function AppointmentHistory() {
 				visitDate: visit.dateOfAppointment,
 			}))
 		);
+		entry.reviewedVisit = entry.visits.find(
+			(visit) => visit.rating != null || (visit.review && visit.review.trim() !== "")
+		);
 	});
 
 	if (loading) {
@@ -329,7 +333,7 @@ function AppointmentHistory() {
 						<p className="text-center text-muted-foreground">No previous patients found.</p>
 					) : (
 						<div className="flex flex-col gap-5">
-							{patients.map(({ key, latest, visits, prescriptions }) => {
+							{patients.map(({ key, latest, visits, prescriptions, reviewedVisit }) => {
 								const hasScreenshots = latest.paymentScreenshots && latest.paymentScreenshots.length > 0;
 								const isPendingPayment = latest.amountPaid > 0 && latest.paymentStatus === "Pending";
 								const isExpanded = !!expandedPatients[key];
@@ -367,13 +371,32 @@ function AppointmentHistory() {
 														latest.patientIllness || "No illness information"
 													)}
 												</div>
-												{latest.rating ? (
+												{reviewedVisit ? (
 													<div
-														className="mt-3 flex items-center gap-1 text-xs text-muted-foreground"
-														title="Patient's feedback for the latest consultation"
+														className="mt-3 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground"
+														title={
+															reviewedVisit._id === latest._id
+																? "Patient's feedback for the latest consultation"
+																: `Patient's feedback from consultation on ${formatDateReadable(reviewedVisit.dateOfAppointment)}`
+														}
 													>
-														<Star className="size-3.5 fill-primary text-primary" /> {latest.rating}/5
-														{latest.review ? ` — "${latest.review}"` : ""}
+														<span className="flex items-center gap-0.5 font-medium text-foreground">
+															<Star className="size-3.5 fill-(--jh-turmeric-gold) text-(--jh-turmeric-gold)" />{" "}
+															{reviewedVisit.rating ? `${reviewedVisit.rating}/5` : ""}
+														</span>
+														{reviewedVisit.review ? (
+															<ExpandableText
+																as="span"
+																text={`— "${reviewedVisit.review}"`}
+																maxLength={100}
+																className="text-xs text-muted-foreground"
+															/>
+														) : null}
+														{reviewedVisit._id !== latest._id ? (
+															<span className="text-[11px] text-muted-foreground/75">
+																({formatDate(reviewedVisit.dateOfAppointment)})
+															</span>
+														) : null}
 													</div>
 												) : (
 													<div className="mt-3 text-xs text-muted-foreground">No review submitted yet</div>

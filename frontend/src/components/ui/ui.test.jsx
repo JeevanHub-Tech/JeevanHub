@@ -12,6 +12,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty-state";
+import { ExpandableText } from "@/components/ui/expandable-text";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -89,5 +90,23 @@ describe("shared UI primitives", () => {
     fireEvent.click(screen.getByRole("button", { name: /close/i }));
 
     expect(screen.queryByText("Reschedule appointment")).not.toBeInTheDocument();
+  });
+
+  it("truncates long review text and expands/collapses on click", () => {
+    const longReview = "My experience with Dr. Anjali Sharma was truly exceptional from start to finish. I was quite anxious about my health issue, but the doctor completely changed that by explaining my condition in a simple and clear manner.";
+    render(<ExpandableText text={longReview} maxLength={80} />);
+
+    // Initially truncated with 'Show all' button
+    expect(screen.getByRole("button", { name: /show all/i })).toBeInTheDocument();
+    expect(screen.queryByText(longReview)).not.toBeInTheDocument();
+
+    // Click 'Show all'
+    fireEvent.click(screen.getByRole("button", { name: /show all/i }));
+    expect(screen.getByText(new RegExp(longReview.slice(0, 100)))).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /show less/i })).toBeInTheDocument();
+
+    // Click 'Show less'
+    fireEvent.click(screen.getByRole("button", { name: /show less/i }));
+    expect(screen.getByRole("button", { name: /show all/i })).toBeInTheDocument();
   });
 });

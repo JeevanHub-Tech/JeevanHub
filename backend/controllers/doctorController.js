@@ -91,6 +91,7 @@ exports.getAllDoctorsData = async (req, res) => {
 			experience: doc.experience,
 			certificate: doc.certificate,
 			price: doc.price,
+			dietPlanFee: doc.dietPlanFee !== undefined ? doc.dietPlanFee : 299,
 			education: doc.education,
 			dob: doc.dob,
 			approvalStatus: doc.approvalStatus || 'Pending',
@@ -144,6 +145,7 @@ exports.getPublicDoctorsData = async (req, res) => {
 					: ["Not specified"],
 			experience: doc.experience,
 			price: doc.price,
+			dietPlanFee: doc.dietPlanFee !== undefined ? doc.dietPlanFee : 299,
 			education: doc.education,
 			languages: Array.isArray(doc.languages) ? doc.languages.filter(Boolean) : [],
 			introduction: doc.introduction || "",
@@ -296,6 +298,7 @@ exports.getDoctorById = async (req, res) => {
 				experience: doc.experience,
 				certificate: doc.certificate,
 				price: doc.price,
+				dietPlanFee: doc.dietPlanFee !== undefined ? doc.dietPlanFee : 299,
 				availableSlots: doc.availableSlots || {},
 				scheduleOverrides: (doc.scheduleOverrides || []).filter(o => {
 					const overrideDate = new Date(o.date);
@@ -316,8 +319,6 @@ exports.getDoctorById = async (req, res) => {
 			};
 			return res.status(200).json(formattedDoctor);
 		}
-
-		return res.status(404).json({ message: "Doctor not found" });
 
 		return res.status(404).json({ message: "Doctor not found" });
 
@@ -353,7 +354,7 @@ exports.updateDoctor = async (req, res) => {
             if (updates.zipCode !== undefined) doctor.zipCode = updates.zipCode; 
             if (updates.address !== undefined) doctor.address = updates.address;
             if (updates.price !== undefined) doctor.price = updates.price;
-            if (updates.dietPlanFee !== undefined) doctor.dietPlanFee = updates.dietPlanFee;
+            if (updates.dietPlanFee !== undefined) doctor.dietPlanFee = Number(updates.dietPlanFee);
             if (updates.education !== undefined) doctor.education = updates.education;
             if (updates.designation !== undefined) doctor.designation = updates.designation;
             if (updates.profileImage !== undefined) doctor.profileImage = updates.profileImage;

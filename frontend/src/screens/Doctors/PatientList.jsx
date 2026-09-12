@@ -10,6 +10,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { formatDate } from "@/lib/date";
 
 const parseAppointmentDateTime = (dateString, timeSlot) => {
 	const appointmentDate = new Date(dateString);
@@ -84,12 +85,27 @@ function PatientList() {
 				consulted.forEach((appointment) => {
 					const key = appointment.patientId?._id || appointment.patientId || appointment.patientEmail;
 					if (!byPatient.has(key)) {
-						byPatient.set(key, { key, patientId: appointment.patientId?._id || appointment.patientId, latest: appointment, visitCount: 0 });
+						byPatient.set(key, {
+							key,
+							patientId: appointment.patientId?._id || appointment.patientId,
+							latest: appointment,
+							visitCount: 0,
+							visits: [],
+						});
 					}
-					byPatient.get(key).visitCount += 1;
+					const entry = byPatient.get(key);
+					entry.visitCount += 1;
+					entry.visits.push(appointment);
 				});
 
-				setPatients([...byPatient.values()]);
+				const patientList = [...byPatient.values()].map((p) => ({
+					...p,
+					reviewedVisit: p.visits.find(
+						(visit) => visit.rating != null || (visit.review && visit.review.trim() !== "")
+					),
+				}));
+
+				setPatients(patientList);
 				setLoading(false);
 			} catch (err) {
 				setError(err.message);
@@ -167,9 +183,13 @@ function PatientList() {
 											Last consulted{" "}
 											{new Date(latest.dateOfAppointment).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
 										</p>
-										{latest.rating ? (
+										{reviewedVisit ? (
 											<div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
-												<Star className="size-3.5 fill-primary text-primary" /> {latest.rating}/5 (latest visit)
+												<Star className="size-3.5 fill-(--jh-turmeric-gold) text-(--jh-turmeric-gold)" />{" "}
+												{reviewedVisit.rating ? `${reviewedVisit.rating}/5` : ""}{" "}
+												{reviewedVisit._id === latest._id
+													? "(latest visit)"
+													: `(${formatDate(reviewedVisit.dateOfAppointment)})`}
 											</div>
 										) : null}
 									</div>

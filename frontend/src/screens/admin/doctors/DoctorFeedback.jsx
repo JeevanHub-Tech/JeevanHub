@@ -3,6 +3,7 @@ import { MessageSquareText, Star } from "lucide-react";
 
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { ExpandableText } from "@/components/ui/expandable-text";
 import { authFetch } from "../../../utils/authFetch";
 import { BACKEND_URL } from "../../../config";
 
@@ -133,9 +134,13 @@ const Feedback = ({ doctorId }) => {
 								</span>
 							</div>
 							<StarRating rating={fb.rating} />
-							<p className="border-l border-border pl-4 text-[0.95rem] leading-relaxed text-foreground/80">
-								&quot;{fb.comment}&quot;
-							</p>
+							{fb.comment ? (
+								<ExpandableText
+									text={`"${fb.comment}"`}
+									maxLength={180}
+									className="border-l border-border pl-4 text-[0.95rem] leading-relaxed text-foreground/80"
+								/>
+							) : null}
 							<span className="mt-2 block text-sm text-muted-foreground">({fb.type})</span>
 						</div>
 					))

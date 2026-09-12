@@ -22,6 +22,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { ExpandableText } from "@/components/ui/expandable-text";
 import { Input } from "@/components/ui/input";
 import { formatDate } from "@/lib/date";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -293,7 +294,13 @@ const OrderHistory = () => {
 														/>
 													))}
 												</div>
-												{order.review.comment ? <p className="mt-1 text-sm text-foreground">{order.review.comment}</p> : null}
+												{order.review.comment ? (
+													<ExpandableText
+														text={order.review.comment}
+														maxLength={180}
+														className="mt-1 text-sm text-foreground"
+													/>
+												) : null}
 												{order.review.deliveredAt ? (
 													<p className="mt-1 text-xs text-muted-foreground">
 														Delivered on {formatDate(order.review.deliveredAt)}

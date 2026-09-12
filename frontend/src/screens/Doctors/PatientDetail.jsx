@@ -9,6 +9,7 @@ import { DashboardShell, DashboardPageHeader } from "@/components/layout/Dashboa
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { ExpandableText } from "@/components/ui/expandable-text";
 import { formatDateReadable } from "@/lib/date";
 import { MedicalHistoryViewer } from "./doctorPrescribe/MedicalHistoryViewer";
 
@@ -211,6 +212,27 @@ function PatientDetail() {
 											<span className="italic text-muted-foreground/75">Not provided</span>
 										</p>
 									)}
+
+									{/* 4. Patient Review/Feedback */}
+									{visit.rating || (visit.review && visit.review.trim()) ? (
+										<div className="mt-2.5 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+											<strong className="text-foreground">Feedback:</strong>
+											{visit.rating ? (
+												<span className="flex items-center gap-0.5 font-medium text-foreground">
+													<Star className="size-3.5 fill-(--jh-turmeric-gold) text-(--jh-turmeric-gold)" />{" "}
+													{visit.rating}/5
+												</span>
+											) : null}
+											{visit.review ? (
+												<ExpandableText
+													as="span"
+													text={`— "${visit.review}"`}
+													maxLength={100}
+													className="text-xs text-muted-foreground"
+												/>
+											) : null}
+										</div>
+									) : null}
 
 									<Button size="sm" variant="outline" className="mt-3.5" onClick={() => navigate(`/doctorsprescribe/${visit._id}`)}>
 										View / Edit Prescription

@@ -32,6 +32,7 @@ const DoctorProfile = () => {
 		specialization: "",
 		experience: "",
 		price: "",
+		dietPlanFee: "",
 		age: "",
 		gender: "",
 		zipCode: "",
@@ -67,10 +68,10 @@ const DoctorProfile = () => {
 					phone: data.phone || "",
 					registrationNumber: data.registrationNumber || "",
 					specialization: specString,
-					experience: data.experience || "",
-					price: data.price || "",
-					dietPlanFee: data.dietPlanFee !== undefined ? data.dietPlanFee : 299,
-					age: data.age || "",
+					experience: data.experience !== undefined && data.experience !== null ? data.experience : "",
+					price: data.price !== undefined && data.price !== null ? data.price : "",
+					dietPlanFee: data.dietPlanFee !== undefined && data.dietPlanFee !== null ? data.dietPlanFee : 299,
+					age: data.age !== undefined && data.age !== null ? data.age : "",
 					gender: data.gender || "",
 					zipCode: data.zipCode || "",
 					education: data.education || "",
@@ -94,7 +95,8 @@ const DoctorProfile = () => {
 	}, [auth, authLoading, navigate]);
 
 	const handleInputChange = (e) => {
-		setDoctorData({ ...doctorData, [e.target.name]: e.target.value });
+		const { name, value } = e.target;
+		setDoctorData((prev) => ({ ...prev, [name]: value }));
 	};
 
 	const handlePasswordChange = (e) => {
@@ -118,7 +120,7 @@ const DoctorProfile = () => {
 				specialization: specArray,
 				experience: doctorData.experience,
 				price: doctorData.price,
-				dietPlanFee: doctorData.dietPlanFee,
+				dietPlanFee: doctorData.dietPlanFee !== "" && doctorData.dietPlanFee !== undefined ? Number(doctorData.dietPlanFee) : 299,
 				age: doctorData.age,
 				gender: doctorData.gender,
 				zipCode: doctorData.zipCode,
@@ -137,14 +139,21 @@ const DoctorProfile = () => {
 			alert("Profile updated successfully!");
 
 			if (response.data.data) {
+				const updated = response.data.data;
+				setDoctorData((prev) => ({
+					...prev,
+					...updated,
+					specialization: Array.isArray(updated.specialization) ? updated.specialization.join(", ") : updated.specialization || prev.specialization,
+					dietPlanFee: updated.dietPlanFee !== undefined ? updated.dietPlanFee : prev.dietPlanFee,
+				}));
 				setAuth((prev) => ({
 					...prev,
 					user: {
 						...prev.user,
-						firstName: response.data.data.firstName,
-						lastName: response.data.data.lastName,
-						profileImage: response.data.data.profileImage,
-						phone: response.data.data.phone,
+						firstName: updated.firstName,
+						lastName: updated.lastName,
+						profileImage: updated.profileImage,
+						phone: updated.phone,
 					},
 				}));
 			}
@@ -453,7 +462,7 @@ const DoctorProfile = () => {
 									id="dietPlanFee"
 									type="number"
 									name="dietPlanFee"
-									value={doctorData.dietPlanFee}
+									value={doctorData.dietPlanFee !== undefined && doctorData.dietPlanFee !== null ? doctorData.dietPlanFee : ""}
 									onChange={handleInputChange}
 									disabled={!isEditing}
 								/>

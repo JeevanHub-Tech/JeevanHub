@@ -27,6 +27,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogTitle } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty-state";
+import { ExpandableText } from "@/components/ui/expandable-text";
 import { cn } from "@/lib/utils";
 import ShareRecordModal from "./ShareRecordModal";
 import { authFetch } from "../../../utils/authFetch";
@@ -256,11 +257,23 @@ const AppointmentTab = ({
 	const [uploadingScreenshot, setUploadingScreenshot] = useState(false);
 	const [payingViaRazorpay, setPayingViaRazorpay] = useState(false);
 
+	const getDietFee = (appointment) => {
+		if (!appointment) return 299;
+		const docFee = appointment.doctorId?.dietPlanFee;
+		if (docFee !== undefined && docFee !== null) {
+			return Number(docFee);
+		}
+		if (appointment.dietPlanFee && Number(appointment.dietPlanFee) > 0) {
+			return Number(appointment.dietPlanFee);
+		}
+		return 299;
+	};
+
 	const handleRazorpayDietPayment = async (appointment) => {
 		if (!appointment) return;
 		setPayingViaRazorpay(true);
 		try {
-			const fee = appointment.dietPlanFee || 299;
+			const fee = getDietFee(appointment);
 			const token = localStorage.getItem("token");
 
 			const orderRes = await authFetch(`${BACKEND}/api/payment/create-order`, {
@@ -534,7 +547,14 @@ const AppointmentTab = ({
 								/>
 							))}
 						</span>
-						{appointment.review ? <span className="text-sm italic text-muted-foreground">"{appointment.review}"</span> : null}
+						{appointment.review ? (
+							<ExpandableText
+								as="span"
+								text={`"${appointment.review}"`}
+								maxLength={120}
+								className="text-sm italic text-muted-foreground"
+							/>
+						) : null}
 					</div>
 				) : null}
 
@@ -592,7 +612,7 @@ const AppointmentTab = ({
 							className="inline-flex items-center gap-1.5 rounded-lg border border-primary/40 bg-card px-3 py-1.5 text-xs font-semibold text-primary shadow-xs transition-all hover:bg-primary hover:text-primary-foreground dark:border-primary/50 dark:hover:bg-primary"
 							onClick={() => setDietModalAppointment(appointment)}
 						>
-							<Salad size={14} className="text-primary" /> Request Diet Plan (+₹{appointment.dietPlanFee || 299})
+							<Salad size={14} className="text-primary" /> Request Diet Plan (+₹{getDietFee(appointment)})
 						</Button>
 					) : null}
 
@@ -720,7 +740,7 @@ const AppointmentTab = ({
 							</div>
 							<div className="flex items-center justify-between border-t border-border/60 pt-2 font-semibold">
 								<span className="text-foreground">Amount to Pay:</span>
-								<span className="text-base text-primary">₹{dietModalAppointment?.dietPlanFee || 299}</span>
+								<span className="text-base text-primary">₹{getDietFee(dietModalAppointment)}</span>
 							</div>
 						</div>
 
@@ -737,7 +757,7 @@ const AppointmentTab = ({
 									disabled={payingViaRazorpay}
 								>
 									{payingViaRazorpay ? <Loader2 className="size-4 animate-spin" /> : null}
-									{payingViaRazorpay ? "Opening payment gateway..." : `Pay Now (₹${dietModalAppointment?.dietPlanFee || 299})`}
+									{payingViaRazorpay ? "Opening payment gateway..." : `Pay Now (₹${getDietFee(dietModalAppointment)})`}
 								</Button>
 
 								<button
@@ -752,7 +772,7 @@ const AppointmentTab = ({
 							<div className="flex flex-col gap-4">
 								{(() => {
 									const upiId = dietModalAppointment?.doctorId?.upiId || dietModalAppointment?.doctorUpiId || "payments@jeevanhub";
-									const fee = dietModalAppointment?.dietPlanFee || 299;
+									const fee = getDietFee(dietModalAppointment);
 									const upiUrl = `upi://pay?pa=${upiId}&pn=Dr.%20${encodeURIComponent(dietModalAppointment?.doctorName || "")}&am=${fee}&cu=INR&tn=DietPlan-${dietModalAppointment?._id}`;
 									return (
 										<>

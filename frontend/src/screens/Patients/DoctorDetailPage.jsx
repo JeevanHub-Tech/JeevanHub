@@ -6,6 +6,7 @@ import { ArrowLeft, Clock, Loader2, Plus, Salad, Star, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogTitle } from "@/components/ui/dialog";
+import { ExpandableText } from "@/components/ui/expandable-text";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { formatDate } from "@/lib/date";
@@ -495,7 +496,7 @@ function DoctorDetail() {
 												{r.rating} <Star size={12} className="fill-current" />
 											</span>
 										</p>
-										<p className="mt-1 text-sm text-muted-foreground">{r.review}</p>
+										<ExpandableText text={r.review} maxLength={180} className="mt-1" />
 										<p className="mt-1 text-xs text-muted-foreground">{formatDate(r.dateOfAppointment)}</p>
 									</div>
 								))}
@@ -702,7 +703,7 @@ function DoctorDetail() {
 								</div>
 								{currentBooking?.dietPlanRequested ? (
 									<p className="text-xs text-muted-foreground">
-										(Includes ₹{currentBooking?.dietPlanFee || 299} for Personalized 7-Day Diet Plan)
+										(Includes ₹{currentBooking?.dietPlanFee !== undefined ? currentBooking.dietPlanFee : (doctor?.dietPlanFee !== undefined ? doctor.dietPlanFee : 299)} for Personalized 7-Day Diet Plan)
 									</p>
 								) : null}
 							</div>

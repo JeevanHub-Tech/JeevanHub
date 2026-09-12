@@ -4,6 +4,7 @@ import { Star } from "lucide-react";
 import { BACKEND_URL } from "../../config";
 import { DashboardShell, DashboardPageHeader } from "@/components/layout/DashboardShell";
 import { Card } from "@/components/ui/card";
+import { ExpandableText } from "@/components/ui/expandable-text";
 import { formatDate } from "@/lib/date";
 
 const DoctorReviewsPage = () => {
@@ -32,7 +33,7 @@ const DoctorReviewsPage = () => {
 								<p className="mt-1 flex items-center gap-1 text-sm font-medium text-primary">
 									<Star className="size-4 fill-primary text-primary" /> Rating: {r.rating}
 								</p>
-								<p className="mt-2 text-sm italic text-foreground/80">{r.review}</p>
+								<ExpandableText text={r.review} maxLength={180} className="mt-2 italic text-foreground/80" />
 								<p className="mt-2 text-xs text-muted-foreground">
 									Date: {formatDate(r.dateOfAppointment)}
 								</p>

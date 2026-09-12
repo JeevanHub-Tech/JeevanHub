@@ -324,7 +324,7 @@ exports.createBooking = async (req, res) => {
 
 		const resolvedAmountPaid = amountPaid !== undefined ? amountPaid : (doctor.price || 0);
 		const isDietRequested = Boolean(dietPlanRequested);
-		const resolvedDietFee = isDietRequested ? (dietPlanFee !== undefined ? Number(dietPlanFee) : (doctor.dietPlanFee || 299)) : 0;
+		const resolvedDietFee = isDietRequested ? (dietPlanFee !== undefined ? Number(dietPlanFee) : (doctor.dietPlanFee !== undefined ? Number(doctor.dietPlanFee) : 299)) : 0;
 
 		// Create a new booking
 		const newBooking = new Booking({
@@ -1621,6 +1621,12 @@ exports.getBookingsByPatientId = async (req, res) => {
 						if (override.newDuration) bookingObj.timeSlotDuration = override.newDuration;
 					}
 				}
+			}
+
+			if (doctor && doctor.dietPlanFee !== undefined && doctor.dietPlanFee !== null) {
+				bookingObj.dietPlanFee = (bookingObj.dietPlanRequested && bookingObj.dietPlanFee)
+					? Number(bookingObj.dietPlanFee)
+					: Number(doctor.dietPlanFee);
 			}
 
 			// A still-pending request whose slot time has already passed is

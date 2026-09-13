@@ -158,11 +158,14 @@ function DoctorsScreen() {
         const approvedDoctors = data.filter((doc) => doc.approvalStatus === "Approved");
 
         const mappedDoctors = approvedDoctors.map((doctor) => {
-          const specializations = Array.isArray(doctor.specialization)
-            ? doctor.specialization.filter(Boolean)
-            : doctor.specialization
+          const rawSpecs = Array.isArray(doctor.specialization)
+            ? doctor.specialization
+            : typeof doctor.specialization === "string"
               ? [doctor.specialization]
               : [];
+          const specializations = rawSpecs
+            .flatMap((s) => (typeof s === "string" ? s.split(",").map((x) => x.trim()) : s))
+            .filter(Boolean);
           return {
             ...doctor,
             id: doctor._id,

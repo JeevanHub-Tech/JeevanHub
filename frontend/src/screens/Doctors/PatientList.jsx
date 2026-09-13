@@ -162,7 +162,7 @@ function PatientList() {
 					{filteredPatients.length === 0 ? (
 						<p className="text-center text-muted-foreground py-8">No patients match your search.</p>
 					) : (
-						filteredPatients.map(({ key, patientId, latest, visitCount }) => (
+						filteredPatients.map(({ key, patientId, latest, visitCount, reviewedVisit }) => (
 							<Card
 								key={key}
 								className="cursor-pointer p-6 transition-colors hover:border-primary"

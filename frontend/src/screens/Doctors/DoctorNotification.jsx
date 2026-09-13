@@ -111,7 +111,7 @@ const formatNotificationTime = (dateStr) => {
 	});
 };
 
-export const getDoctorNotificationCategory = (n) => {
+const getDoctorNotificationCategory = (n) => {
 	const type = (n?.type || "").toLowerCase();
 	const msg = (n?.message || "").toLowerCase();
 

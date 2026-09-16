@@ -12,7 +12,8 @@ const orderSchema = new mongoose.Schema({
     // (MyOrders.js) fail Mongoose validation on save and the order silently
     // never progresses past "pending" -- see updateOrderStatus below.
     itemStatus: { type: String, enum: ['pending', 'accepted', 'rejected', 'processing', 'shipped', 'delivered', 'cancelled'], default: 'pending' },
-    retailerStatus: { type: String, enum: ['received', 'accepted', 'rejected', 'shipped'], default: 'received' }
+    retailerStatus: { type: String, enum: ['received', 'accepted', 'rejected', 'shipped'], default: 'received' },
+    razorpayTransferId: { type: String, default: null } // Stores the route transfer ID for this item's payout
   }],
   totalPrice: Number,
 
@@ -68,6 +69,40 @@ const orderSchema = new mongoose.Schema({
     default: 'received'
   },
   deliveredAt: { type: Date }, // Set when orderStatus first becomes 'delivered' -- starts the payout hold window
+  // Per-retailer shipments. Each retailer in the order gets their own shipment
+  // entry so multi-vendor orders can be fulfilled independently. A single-vendor
+  // order will have exactly one entry. The old `shipping` singular subdocument
+  // is replaced by this array.
+  shipments: [{
+    _id: false,
+    platform: { type: String, enum: ['delhivery', 'bluedart', 'dtdc', null], default: null },
+    trackingId: { type: String, default: null },  // the AWB / waybill number
+    retailerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Retailer', required: true },
+    shippedAt: { type: Date, default: null },
+    // 'auto' = JeevanHub created the shipment via API, 'manual' = retailer typed AWB from their dashboard
+    creationMethod: { type: String, enum: ['auto', 'manual', null], default: null },
+    labelUrl: { type: String, default: null },           // Stored shipping label PDF URL
+    pickupId: { type: String, default: null },           // Delivery partner pickup request ID
+    pickupDate: { type: Date, default: null },
+    packageWeightGrams: { type: Number, default: null },
+    // Cached copy of the last carrier response
+    lastPolledStatus: { type: String, default: null },
+    lastPolledStatusCode: { type: String, default: null },
+    lastPolledLocation: { type: String, default: null },
+    lastPolledAt: { type: Date, default: null },
+    lastPollError: { type: String, default: null },
+    trackingTimeline: [{
+      _id: false,
+      status: { type: String },
+      statusCode: { type: String },
+      location: { type: String },
+      timestamp: { type: Date },
+      remarks: { type: String }
+    }]
+  }],
+  // Estimated shipping charge collected from the patient at checkout.
+  // Sum of freight for all retailer groups in the order.
+  shippingCharge: { type: Number, default: 0 },
   // Fairness/escrow: the retailer's payout for this order is held until deliveredAt +
   // a grace window (or resolved by an admin), so a "paid but never shipped" order can
   // be disputed and refunded instead of the retailer being paid regardless.
@@ -93,5 +128,9 @@ const orderSchema = new mongoose.Schema({
 orderSchema.index({ 'buyer.buyerId': 1 });
 orderSchema.index({ 'items.medicineId': 1 });
 orderSchema.index({ createdAt: -1 });
+// Webhook lookups arrive keyed only by AWB. Sparse because most orders never get a tracking id.
+orderSchema.index({ 'shipments.trackingId': 1 }, { sparse: true });
+// The delivery-polling cron scans for in-flight courier shipments.
+orderSchema.index({ orderStatus: 1, 'shipments.platform': 1 });
 
 module.exports = mongoose.model('Order', orderSchema);

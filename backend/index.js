@@ -31,6 +31,9 @@ const paymentRoutes = require("./routes/paymentRoutes");
 const medicineDraftRoutes = require("./routes/medicineDraftRoutes");
 const callbackRequestRoutes = require("./routes/callbackRequestRoutes");
 const cronRoutes = require("./routes/cronRoutes");
+const webhookRoutes = require("./routes/webhookRoutes");
+const shippingRoutes = require("./routes/shippingRoutes");
+const { initShippingAdapters } = require("./services/shippingAdapterInit");
 
 if (process.env.NODE_ENV !== 'production') {
     mongoose.set('debug', true);
@@ -100,7 +103,13 @@ app.use("/api/knowledge", knowledgeBaseRoutes);
 app.use("/api/payment", paymentRoutes);
 app.use("/api/callback-requests", callbackRequestRoutes);
 app.use("/api/cron", cronRoutes);
+// Inbound courier push notifications (Delhivery scan events). Note the plural:
+// "/api/webhook" (singular) is already taken by the blog-generation callback.
+app.use("/api/webhooks", webhookRoutes);
+app.use("/api/shipping", shippingRoutes);
 
+// Initialize shipping platform adapters (Delhivery, future BlueDart/DTDC)
+initShippingAdapters();
 
 // Start the scheduler
 startScheduler();

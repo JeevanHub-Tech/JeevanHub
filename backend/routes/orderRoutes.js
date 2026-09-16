@@ -40,6 +40,12 @@ router.get('/payout/queue', auth, orderController.getOrderPayoutQueue);
 router.post('/:id/dispute', auth, orderController.raiseOrderDispute);
 router.put('/:id/dispute/resolve', auth, orderController.resolveOrderDispute);
 
+// Courier shipment: retailer attaches a Delhivery AWB, anyone on the order
+// reads the tracking timeline back. Declared before the generic '/:id' GET so
+// '/:id/tracking' isn't swallowed by it.
+router.put('/:id/ship', auth, orderController.shipOrder);
+router.get('/:id/tracking', auth, orderController.getOrderTracking);
+
 // ✅ This generic route should be last to avoid conflicts.
 router.get('/:id', auth, orderController.getOrderById);
 

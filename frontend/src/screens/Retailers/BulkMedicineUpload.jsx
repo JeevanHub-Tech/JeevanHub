@@ -19,6 +19,7 @@ const createEmptyRow = (id) => ({
 	description: "",
 	prescription: false,
 	diseasesTreated: "",
+	weightGrams: "",
 	images: [],
 	isValid: true,
 	isArchived: false,
@@ -614,6 +615,17 @@ const BulkMedicineUpload = () => {
 					/>
 				</td>
 				<td className="border-r border-border align-middle">
+					<input
+						type="number"
+						value={row.weightGrams}
+						onChange={(e) => handleCellChange(originalIndex, "weightGrams", e.target.value)}
+						onKeyDown={(e) => handleKeyDown(e, originalIndex)}
+						placeholder="200"
+						className={cellBase}
+						disabled={isDisabled}
+					/>
+				</td>
+				<td className="border-r border-border align-middle">
 					<CustomCategoryCombobox
 						value={row.category}
 						onChange={(val) => handleCellChange(originalIndex, "category", val)}
@@ -806,7 +818,7 @@ const BulkMedicineUpload = () => {
 				<table className="bulk-table min-w-225 w-full border-collapse">
 					<thead>
 						<tr>
-							{["#", "Medicine Name *", "Description *", "Price (₹) *", "Quantity *", "Category *", "Diseases Treated", "Prescription", "Images", "Actions"].map(
+							{["#", "Medicine Name *", "Description *", "Price (₹) *", "Quantity *", "Weight (g)", "Category *", "Diseases Treated", "Prescription", "Images", "Actions"].map(
 								(label) => (
 									<th
 										key={label}
@@ -885,7 +897,7 @@ const BulkMedicineUpload = () => {
 							<table className="bulk-table min-w-225 w-full border-collapse opacity-80">
 								<thead>
 									<tr>
-										{["#", "Medicine Name *", "Description *", "Price (₹) *", "Quantity *", "Category *", "Diseases Treated", "Prescription", "Images", "Actions"].map(
+										{["#", "Medicine Name *", "Description *", "Price (₹) *", "Quantity *", "Weight (g)", "Category *", "Diseases Treated", "Prescription", "Images", "Actions"].map(
 											(label) => (
 												<th
 													key={label}

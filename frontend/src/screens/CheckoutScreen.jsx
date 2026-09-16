@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, useMemo } from 'react';
+import React, { useState, useEffect, useContext, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CheckCircle2, Loader2, ShoppingCart, X } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
@@ -38,14 +38,14 @@ const STEP_LABELS = {
 
 const PAYMENT_METHODS = [
 	{
+		value: 'onlinePayment',
+		label: 'Online Payment',
+		description: 'Pay now using UPI, Net Banking, or other online methods.'
+	},
+	{
 		value: 'cashOnDelivery',
 		label: 'Cash on Delivery',
 		description: 'Pay with cash when your order is delivered.'
-	},
-	{
-		value: 'onlinePayment',
-		label: 'Online Payment',
-		description: 'Pay now using UPI, Net Banking, or other online methods (Razorpay).'
 	}
 ];
 
@@ -65,7 +65,7 @@ const CheckoutScreen = () => {
 		postalCode: '',
 		country: 'India'
 	});
-	const [paymentMethod, setPaymentMethod] = useState('cashOnDelivery');
+	const [paymentMethod, setPaymentMethod] = useState('onlinePayment');
 	const [prescriptionFiles, setPrescriptionFiles] = useState([]);
 	const [prescriptionUrls, setPrescriptionUrls] = useState([]);
 	const [prescriptionUploading, setPrescriptionUploading] = useState(false);
@@ -73,12 +73,25 @@ const CheckoutScreen = () => {
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState('');
 	const [notificationsAvailable, setNotificationsAvailable] = useState(false);
+	// Shipping charge estimation
+	const [freightEstimates, setFreightEstimates] = useState([]); // [{ retailerId, retailerName, originPin, destPin, weightGrams, totalAmount, zone, error }]
+	const [freightLoading, setFreightLoading] = useState(false);
+	const [serviceabilityErrors, setServiceabilityErrors] = useState([]); // [{ retailerId, retailerName, message }]
 
 	// Calculate total price from the real cart data (backend-priced, not client-supplied)
 	const totalPrice = cartItems.reduce(
 		(total, item) => total + (item.medicineId?.price || 0) * item.quantity,
 		0
 	);
+
+	// Total shipping charge from all retailer freight estimates
+	const shippingCharge = freightEstimates.reduce(
+		(sum, est) => sum + (est[paymentMethod]?.totalAmount || 0),
+		0
+	);
+
+	// Grand total = medicines + shipping
+	const grandTotal = totalPrice + shippingCharge;
 
 	const prescriptionNeeded = useMemo(
 		() => cartItems.some(item => item.medicineId?.prescription === true),
@@ -90,7 +103,7 @@ const CheckoutScreen = () => {
 	const steps = useMemo(() => {
 		const base = ['summary', 'shipping'];
 		if (prescriptionNeeded) base.push('prescription');
-		base.push('payment', 'confirmation');
+		base.push('confirmation');
 		return base;
 	}, [prescriptionNeeded]);
 
@@ -139,6 +152,14 @@ const CheckoutScreen = () => {
 		}
 	}, [address]);
 
+	// Auto-fetch freight estimates if a valid pin is present (handles pre-fill)
+	useEffect(() => {
+		if (currentStep === 'shipping' && address.postalCode?.trim().length === 6 && cartItems.length > 0) {
+			fetchFreightEstimates(address.postalCode.trim());
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [currentStep, address.postalCode, cartItems.length]);
+
 	const checkNotificationsAPI = async () => {
 		try {
 			await authFetch(`${BACKEND_URL}/api/notifications`, { method: 'HEAD' });
@@ -151,6 +172,103 @@ const CheckoutScreen = () => {
 	const handleAddressChange = (e) => {
 		const { name, value } = e.target;
 		setAddress(prev => ({ ...prev, [name]: value }));
+	};
+
+	const freightCache = useRef({});
+
+	const fetchFreightEstimates = async (postalCode) => {
+		if (!postalCode || postalCode.length !== 6 || cartItems.length === 0) return;
+
+		const cacheKey = `${postalCode}-${cartItems.map(i => `${i.medicineId._id}-${i.quantity}`).join(',')}`;
+		if (freightCache.current[cacheKey]) {
+			setFreightEstimates(freightCache.current[cacheKey].estimates);
+			setServiceabilityErrors(freightCache.current[cacheKey].errors);
+			return;
+		}
+
+		setFreightLoading(true);
+		setFreightEstimates([]);
+		setServiceabilityErrors([]);
+
+		// Group items by retailerId
+		const retailerGroups = {};
+		for (const item of cartItems) {
+			const rid = item.medicineId?.retailerId?._id || item.medicineId?.retailerId;
+			if (!rid) continue;
+			if (!retailerGroups[rid]) {
+				retailerGroups[rid] = {
+					retailerId: rid,
+					retailerName: item.medicineId?.retailerId?.BusinessName || item.medicineId?.retailerId?.firstName || 'Retailer',
+					items: []
+				};
+			}
+			retailerGroups[rid].items.push({ medicineId: item.medicineId._id, quantity: item.quantity });
+		}
+
+		const estimates = [];
+		const errors = [];
+
+		for (const group of Object.values(retailerGroups)) {
+			try {
+				const [resOnline, resCod] = await Promise.all([
+					authFetch(`${BACKEND_URL}/api/shipping/estimate-freight`, {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify({
+							platform: 'delhivery',
+							retailerId: group.retailerId,
+							destPin: postalCode,
+							items: group.items,
+							paymentMethod: 'onlinePayment'
+						})
+					}),
+					authFetch(`${BACKEND_URL}/api/shipping/estimate-freight`, {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify({
+							platform: 'delhivery',
+							retailerId: group.retailerId,
+							destPin: postalCode,
+							items: group.items,
+							paymentMethod: 'cashOnDelivery'
+						})
+					})
+				]);
+				
+				const dataOnline = await resOnline.json();
+				const dataCod = await resCod.json();
+				
+				const estimateData = {
+					retailerId: group.retailerId,
+					retailerName: group.retailerName,
+					originPin: dataOnline.originPin || dataCod.originPin,
+					destPin: dataOnline.destPin || dataCod.destPin,
+					weightGrams: dataOnline.weightGrams || dataCod.weightGrams,
+					zone: dataOnline.zone || dataCod.zone || '',
+					onlinePayment: {
+						totalAmount: resOnline.ok ? dataOnline.totalAmount || 0 : 0,
+						error: resOnline.ok ? null : dataOnline.message || 'Could not estimate'
+					},
+					cashOnDelivery: {
+						totalAmount: resCod.ok ? dataCod.totalAmount || 0 : 0,
+						error: resCod.ok ? null : dataCod.message || 'Could not estimate'
+					}
+				};
+				estimates.push(estimateData);
+			} catch (err) {
+				estimates.push({
+					retailerId: group.retailerId,
+					retailerName: group.retailerName,
+					onlinePayment: { totalAmount: 0, error: 'Shipping estimation unavailable' },
+					cashOnDelivery: { totalAmount: 0, error: 'Shipping estimation unavailable' }
+				});
+			}
+		}
+
+		freightCache.current[cacheKey] = { estimates, errors };
+		setFreightEstimates(estimates);
+		setServiceabilityErrors(errors);
+		setFreightLoading(false);
 	};
 
 	const handlePaymentMethodChange = (value) => {
@@ -233,6 +351,7 @@ const CheckoutScreen = () => {
 		},
 		shippingAddress: address,
 		paymentMethod,
+		shippingCharge,
 		...(prescriptionNeeded ? { prescriptionUrls } : {}),
 		...extra
 	});
@@ -460,8 +579,9 @@ const CheckoutScreen = () => {
 										name="postalCode"
 										value={address.postalCode}
 										onChange={handleAddressChange}
-										placeholder="Enter postal code"
+										placeholder="Enter 6-digit postal code"
 										required
+										maxLength={6}
 									/>
 								</Field>
 							</div>
@@ -479,6 +599,114 @@ const CheckoutScreen = () => {
 							</Field>
 						</form>
 
+						{/* Shipping cost estimation */}
+						{address.postalCode?.length === 6 && (
+							<div className="mt-5 rounded-lg border border-border p-4">
+								<h3 className="mb-3 text-sm font-semibold text-foreground">
+									Estimated Shipping Charges
+								</h3>
+								{freightLoading ? (
+									<div className="flex items-center gap-2 text-sm text-muted-foreground">
+										<Loader2 className="size-4 animate-spin" />
+										Calculating shipping costs…
+									</div>
+								) : freightEstimates.length > 0 ? (
+									<div className="flex flex-col gap-2">
+										{freightEstimates.map((est) => (
+											<div key={est.retailerId} className="flex items-center justify-between text-sm">
+												<div className="flex flex-col">
+													<span className="text-foreground">{est.retailerName}</span>
+													{est[paymentMethod]?.error ? (
+														<span className="text-xs text-muted-foreground">{est[paymentMethod]?.error}</span>
+													) : (
+														<span className="text-xs text-muted-foreground">
+															{est.weightGrams ? `${(est.weightGrams / 1000).toFixed(1)} kg` : ''}{est.zone ? ` · ${est.zone}` : ''}
+														</span>
+													)}
+												</div>
+												<span className="font-medium text-foreground">
+													{est[paymentMethod]?.error ? '—' : `₹${(est[paymentMethod]?.totalAmount || 0).toFixed(2)}`}
+												</span>
+											</div>
+										))}
+										{shippingCharge > 0 && (
+											<div className="mt-1 flex items-center justify-between border-t border-border pt-2 text-sm font-semibold text-foreground">
+												<span>Total shipping</span>
+												<span>₹{shippingCharge.toFixed(2)}</span>
+											</div>
+										)}
+									</div>
+								) : (
+									<p className="text-xs text-muted-foreground">
+										Shipping estimates will appear after entering your postal code.
+									</p>
+								)}
+
+								{serviceabilityErrors.length > 0 && (
+									<Alert variant="destructive" className="mt-3">
+										<AlertDescription>
+											{serviceabilityErrors.map(e => `${e.retailerName}: ${e.message}`).join('. ')}
+										</AlertDescription>
+									</Alert>
+								)}
+							</div>
+						)}
+
+						<div className="mt-8 border-t border-border pt-6">
+							<h3 className="font-display mb-4 text-lg font-semibold text-foreground">
+								Payment Method
+							</h3>
+							{(() => {
+								const totalOnline = freightEstimates.reduce((s, e) => s + (e.onlinePayment?.totalAmount || 0), 0);
+								const totalCod = freightEstimates.reduce((s, e) => s + (e.cashOnDelivery?.totalAmount || 0), 0);
+								const codDiff = totalCod - totalOnline;
+								
+								return (
+									<RadioGroup
+										value={paymentMethod}
+										onValueChange={handlePaymentMethodChange}
+										className="mb-5 gap-3"
+									>
+										{PAYMENT_METHODS.map((method) => (
+											<FieldLabel key={method.value} htmlFor={method.value}>
+												<Field orientation="horizontal">
+													<RadioGroupItem value={method.value} id={method.value} />
+													<FieldContent>
+														<FieldTitle className="flex items-center gap-2">
+															{method.label}
+															{method.value === 'cashOnDelivery' && freightEstimates.length > 0 && !freightLoading && (
+																<span className="text-sm font-normal text-muted-foreground">
+																	({codDiff >= 0 ? '+' : '-'} ₹{Math.abs(codDiff).toFixed(2)})
+																</span>
+															)}
+														</FieldTitle>
+														<FieldDescription>{method.description}</FieldDescription>
+													</FieldContent>
+												</Field>
+											</FieldLabel>
+										))}
+									</RadioGroup>
+								);
+							})()}
+
+							<div className="mb-5 rounded-lg bg-secondary/30 p-4">
+								<div className="flex items-center justify-between text-sm text-muted-foreground">
+									<span>Subtotal (medicines)</span>
+									<span>₹{totalPrice.toFixed(2)}</span>
+								</div>
+								{shippingCharge > 0 && (
+									<div className="mt-1 flex items-center justify-between text-sm text-muted-foreground">
+										<span>Shipping</span>
+										<span>₹{shippingCharge.toFixed(2)}</span>
+									</div>
+								)}
+								<div className="mt-3 flex items-center justify-between border-t border-border pt-3 text-lg font-semibold text-foreground">
+									<span>Order Total</span>
+									<span>₹{grandTotal.toFixed(2)}</span>
+								</div>
+							</div>
+						</div>
+
 						{error && (
 							<Alert variant="destructive" className="mt-4">
 								<AlertDescription>{error}</AlertDescription>
@@ -489,9 +717,15 @@ const CheckoutScreen = () => {
 							<Button type="button" variant="outline" onClick={prevStep}>
 								Back to Order Summary
 							</Button>
-							<Button type="button" onClick={handleNext}>
-								{prescriptionNeeded ? 'Next: Upload Prescription' : 'Next: Payment Method'}
-							</Button>
+							{prescriptionNeeded ? (
+								<Button type="button" onClick={handleNext}>
+									Next: Upload Prescription
+								</Button>
+							) : (
+								<Button type="button" onClick={placeOrder} disabled={loading}>
+									{loading ? 'Processing...' : paymentMethod === 'onlinePayment' ? 'Proceed to Pay' : 'Place Order'}
+								</Button>
+							)}
 						</div>
 					</div>
 				);
@@ -562,62 +796,14 @@ const CheckoutScreen = () => {
 									{prescriptionUploading ? 'Uploading...' : 'Upload Prescription'}
 								</Button>
 							) : (
-								<Button type="button" onClick={handleNext}>
-									Next: Payment Method
+								<Button type="button" onClick={placeOrder} disabled={loading}>
+									{loading ? 'Processing...' : paymentMethod === 'onlinePayment' ? 'Proceed to Pay' : 'Place Order'}
 								</Button>
 							)}
 						</div>
 					</div>
 				);
 
-			case 'payment':
-				return (
-					<div>
-						<h2 className="font-display mb-5 border-b border-border pb-3 text-xl font-semibold text-foreground">
-							Payment Method
-						</h2>
-						<RadioGroup
-							value={paymentMethod}
-							onValueChange={handlePaymentMethodChange}
-							className="mb-5 gap-3"
-						>
-							{PAYMENT_METHODS.map((method) => (
-								<FieldLabel key={method.value} htmlFor={method.value}>
-									<Field orientation="horizontal">
-										<RadioGroupItem value={method.value} id={method.value} />
-										<FieldContent>
-											<FieldTitle>{method.label}</FieldTitle>
-											<FieldDescription>{method.description}</FieldDescription>
-										</FieldContent>
-									</Field>
-								</FieldLabel>
-							))}
-						</RadioGroup>
-
-						<div className="mb-5 flex justify-end border-t border-border pt-4 text-lg font-semibold text-foreground">
-							Order Total: ₹{totalPrice.toFixed(2)}
-						</div>
-
-						{error && (
-							<Alert variant="destructive" className="mb-4">
-								<AlertDescription>{error}</AlertDescription>
-							</Alert>
-						)}
-
-						<div className="flex flex-wrap justify-between gap-3">
-							<Button type="button" variant="outline" onClick={prevStep}>
-								Back
-							</Button>
-							<Button
-								type="button"
-								onClick={placeOrder}
-								disabled={loading}
-							>
-								{loading ? 'Processing...' : paymentMethod === 'onlinePayment' ? 'Pay Now' : 'Place Order'}
-							</Button>
-						</div>
-					</div>
-				);
 
 			case 'confirmation':
 				return (

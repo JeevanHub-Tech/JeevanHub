@@ -24,6 +24,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import TrackingDialog from "@/components/shipping/TrackingDialog";
 import { AuthContext } from "../../context/AuthContext";
 import { BACKEND_URL } from "../../config";
 
@@ -33,18 +34,28 @@ const FALLBACK_IMAGE =
 
 const STATUS_META = {
 	pending: { label: "Pending", variant: "warning", icon: Clock },
+	// Both are "the seller has it, nothing has left the shop yet".
+	accepted: { label: "Accepted", variant: "secondary", icon: ListChecks },
+	processing: { label: "Processing", variant: "secondary", icon: ListChecks },
 	shipped: { label: "Shipped", variant: "default", icon: Truck },
 	delivered: { label: "Completed", variant: "success", icon: CheckCircle2 },
+	rejected: { label: "Rejected", variant: "destructive", icon: XCircle },
 	cancelled: { label: "Cancelled", variant: "destructive", icon: XCircle },
 };
 
-// Mockup groups statuses into 4 tabs; "shipped" rolls into Pending since it
-// isn't done yet, and "delivered" is displayed as Completed.
+// Mockup groups statuses into 4 tabs; anything not finished yet rolls into
+// Pending (including accepted/processing/shipped), and "delivered" is displayed
+// as Completed.
 const TABS = [
 	{ id: "all", label: "All Orders", icon: ListChecks, match: () => true },
-	{ id: "pending", label: "Pending", icon: Clock, match: (s) => s === "pending" || s === "shipped" },
+	{
+		id: "pending",
+		label: "Pending",
+		icon: Clock,
+		match: (s) => s === "pending" || s === "accepted" || s === "processing" || s === "shipped",
+	},
 	{ id: "completed", label: "Completed", icon: CheckCircle2, match: (s) => s === "delivered" },
-	{ id: "cancelled", label: "Cancelled", icon: XCircle, match: (s) => s === "cancelled" },
+	{ id: "cancelled", label: "Cancelled", icon: XCircle, match: (s) => s === "cancelled" || s === "rejected" },
 ];
 
 const OrderHistory = () => {
@@ -57,6 +68,7 @@ const OrderHistory = () => {
 	const userId = auth?.user?.id;
 	const navigate = useNavigate();
 	const [reportingId, setReportingId] = useState(null);
+	const [trackOrderId, setTrackOrderId] = useState(null);
 
 	// Fairness/escrow: the retailer's payout for a paid order is held for a
 	// window after delivery — this is the patient's chance to flag "paid but
@@ -279,6 +291,32 @@ const OrderHistory = () => {
 											})}
 										</ul>
 
+										{order.shipments?.length > 0 ? (
+											<div className="flex flex-col gap-3">
+												{order.shipments.map((shipment, idx) => (
+													<div key={idx} className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-(--jh-radius-md) border border-border bg-secondary/40 p-3">
+														<Truck className="size-4 text-(--jh-bark-brown)" aria-hidden="true" />
+														<div className="min-w-0 flex-1">
+															<p className="text-sm font-medium text-foreground">
+																{shipment.lastPolledStatus || "Handed to Delhivery"}
+																{shipment.lastPolledLocation ? (
+																	<span className="font-normal text-muted-foreground"> · {shipment.lastPolledLocation}</span>
+																) : null}
+															</p>
+															<p className="text-xs text-muted-foreground">
+																Delhivery AWB {shipment.trackingId}
+																{shipment.shippedAt ? ` · shipped ${formatDate(shipment.shippedAt)}` : ""}
+															</p>
+														</div>
+														<Button size="sm" variant="outline" onClick={() => setTrackOrderId({ orderId: order._id, retailerId: shipment.retailerId })}>
+															<PackageSearch className="size-3.5" aria-hidden="true" />
+															Track shipment
+														</Button>
+													</div>
+												))}
+											</div>
+										) : null}
+
 										{statusKey === "delivered" && order.review ? (
 											<div className="rounded-(--jh-radius-md) bg-secondary/60 p-3">
 												<h4 className="text-xs font-semibold text-muted-foreground">Your feedback</h4>
@@ -349,6 +387,14 @@ const OrderHistory = () => {
 					</div>
 				)}
 			</div>
+
+			<TrackingDialog
+				open={Boolean(trackOrderId)}
+				onOpenChange={(next) => !next && setTrackOrderId(null)}
+				orderId={trackOrderId?.orderId}
+				retailerId={trackOrderId?.retailerId}
+				token={auth.token}
+			/>
 		</main>
 	);
 };

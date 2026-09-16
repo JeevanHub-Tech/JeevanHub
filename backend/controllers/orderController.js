@@ -12,6 +12,9 @@ const fs = require('fs');
 const crypto = require('crypto');
 const getRazorpay = require('../services/razorpayService');
 const notificationController = require('./notificationController');
+const delhiveryService = require('../services/delhiveryService');
+const { applyTrackingToOrder, recomputeOrderStatus } = require('../services/shipmentSync');
+const { startPayoutHoldIfDelivered } = require('../utils/payoutHold');
 
 
 exports.updateOrderReview = async (req, res) => {
@@ -78,6 +81,7 @@ exports.createOrder = async (req, res) => {
             buyer,
             shippingAddress,
             paymentMethod,
+            shippingCharge,
             prescriptionUrl,
             prescriptionUrls,
             razorpayOrderId,
@@ -103,7 +107,7 @@ exports.createOrder = async (req, res) => {
         // or skip the Rx gate.
         const medicines = await Medicine.find({
             _id: { $in: items.map(item => item.medicineId) }
-        });
+        }).populate('retailerId'); // populate retailerId to access razorpayAccountId
         const medicineById = new Map(medicines.map(med => [med._id.toString(), med]));
 
         const formattedItems = items.map(item => {
@@ -114,7 +118,10 @@ exports.createOrder = async (req, res) => {
             return {
                 medicineId: medicine._id,
                 quantity: item.quantity,
-                subTotal: medicine.price * item.quantity
+                subTotal: medicine.price * item.quantity,
+                // temporarily hold retailerId for transfer logic
+                _retailerId: medicine.retailerId._id,
+                _razorpayAccountId: medicine.retailerId.razorpayAccountId
             };
         });
 
@@ -134,8 +141,13 @@ exports.createOrder = async (req, res) => {
         };
 
         const newOrder = new Order({
-            items: formattedItems,
+            items: formattedItems.map(item => ({
+                medicineId: item.medicineId,
+                quantity: item.quantity,
+                subTotal: item.subTotal
+            })),
             totalPrice,
+            shippingCharge: Number(shippingCharge) || 0,
             buyer: formattedBuyer,
             shippingAddress,
             paymentMethod,
@@ -147,6 +159,8 @@ exports.createOrder = async (req, res) => {
             newOrder.prescriptionUrls = formattedPrescriptionUrls;
             newOrder.prescriptionUrl = formattedPrescriptionUrls[0];
         }
+
+        let pendingTransfers = []; // Store transfers to be executed after DB save
 
         if (paymentMethod === 'onlinePayment') {
             if (!razorpayOrderId || !razorpayPaymentId || !razorpaySignature) {
@@ -166,12 +180,37 @@ exports.createOrder = async (req, res) => {
             // amount charged matches this cart -- confirm the Razorpay order amount
             // against the server-computed total before trusting the payment.
             const razorpayOrder = await getRazorpay().orders.fetch(razorpayOrderId);
-            if (razorpayOrder.amount !== Math.round(totalPrice * 100)) {
+            if (razorpayOrder.amount !== Math.round((totalPrice + (Number(shippingCharge) || 0)) * 100)) {
                 return res.status(400).json({ message: "Paid amount does not match order total" });
             }
             newOrder.razorpayOrderId = razorpayOrderId;
             newOrder.paymentId = razorpayPaymentId;
             newOrder.paymentStatus = 'paid';
+
+            // Calculate transfers
+            const PLATFORM_COMMISSION_PERCENT = 10;
+            const transfersByRetailer = new Map();
+
+            formattedItems.forEach((item, index) => {
+                if (item._razorpayAccountId) {
+                    const payoutAmount = item.subTotal * (1 - (PLATFORM_COMMISSION_PERCENT / 100));
+                    if (!transfersByRetailer.has(item._razorpayAccountId)) {
+                        transfersByRetailer.set(item._razorpayAccountId, {
+                            account: item._razorpayAccountId,
+                            amount: 0,
+                            currency: 'INR',
+                            on_hold: true,
+                            notes: { orderId: '' },
+                            itemIndices: []
+                        });
+                    }
+                    const transferData = transfersByRetailer.get(item._razorpayAccountId);
+                    transferData.amount += Math.round(payoutAmount * 100);
+                    transferData.itemIndices.push(index);
+                }
+            });
+
+            pendingTransfers = Array.from(transfersByRetailer.values());
         }
 
         const session = await mongoose.startSession();
@@ -203,6 +242,42 @@ exports.createOrder = async (req, res) => {
             await session.abortTransaction();
             session.endSession();
             throw error;
+        }
+
+        // Execute Razorpay Transfers
+        if (pendingTransfers.length > 0) {
+            try {
+                const razorpay = getRazorpay();
+                pendingTransfers.forEach(t => t.notes.orderId = newOrder._id.toString());
+                
+                // Group item indices to update transferId later
+                const transferRequests = pendingTransfers.map(t => ({
+                    account: t.account,
+                    amount: t.amount,
+                    currency: t.currency,
+                    on_hold: t.on_hold,
+                    notes: t.notes
+                }));
+
+                const transferResponse = await razorpay.payments.transfer(razorpayPaymentId, {
+                    transfers: transferRequests
+                });
+
+                // Link transfer ID to items (transferResponse.items contains the transfers)
+                // Note: razorpay returns an array of transfers in `items` property of the response
+                if (transferResponse && transferResponse.items) {
+                    pendingTransfers.forEach((t, index) => {
+                        const razorpayTransferId = transferResponse.items[index].id;
+                        t.itemIndices.forEach(itemIndex => {
+                            newOrder.items[itemIndex].razorpayTransferId = razorpayTransferId;
+                        });
+                    });
+                    await newOrder.save(); // Save transfer IDs
+                }
+            } catch (transferError) {
+                console.error("Razorpay Transfer Error:", transferError);
+                // Do not throw error here, order is already saved. Log for manual intervention.
+            }
         }
 
         // C4-8: Generate notification securely from the backend
@@ -323,20 +398,297 @@ exports.updateRetailerStatus = async (req, res) => {
     }
 };
 
-// How long after delivery a paid order's payout to the retailer stays "held"
-// before the settlement cron auto-releases it -- the patient's dispute window.
-const PAYOUT_HOLD_GRACE_MS = 48 * 60 * 60 * 1000;
+// ===========================================================================
+// Courier shipment: ship with an AWB, then read tracking back
+// ===========================================================================
 
-// Fairness/escrow: starts the payout hold the first time an order reaches
-// 'delivered'. Only online payments are held -- COD cash goes straight to the
-// retailer at the door, there's nothing platform-side to hold.
-const startPayoutHoldIfDelivered = (order, newOrderStatus) => {
-    if (newOrderStatus === 'delivered' && order.paymentMethod === 'onlinePayment' && order.paymentStatus === 'paid' && !order.deliveredAt) {
-        order.deliveredAt = new Date();
-        order.payoutStatus = 'held';
-        order.payoutHoldUntil = new Date(Date.now() + PAYOUT_HOLD_GRACE_MS);
+// How long a cached carrier response is served before we re-poll Delhivery.
+// Delhivery allows 750 requests / 5 min / IP, and scans only land every few
+// hours, so there is nothing to gain from polling on every page load.
+const TRACKING_CACHE_MS = 5 * 60 * 1000;
+
+const ownsAnyItem = (order, retailerId) => order.items.some((item) => {
+    const owner = item.medicineId?.retailerId;
+    if (!owner) return false;
+    return String(owner._id || owner) === String(retailerId);
+});
+
+// Shape the tracking response the frontend renders, so the cached and live
+// paths can't drift apart.
+const serializeTracking = (order, { source, currentStatus, currentStatusCode, currentLocation, timeline }) => ({
+    trackingId: order.shipping?.trackingId || null,
+    platform: order.shipping?.platform || null,
+    shippedAt: order.shipping?.shippedAt || null,
+    orderStatus: order.orderStatus,
+    currentStatus: currentStatus || null,
+    currentStatusCode: currentStatusCode || null,
+    currentLocation: currentLocation || null,
+    lastUpdated: order.shipping?.lastPolledAt || null,
+    timeline: timeline || [],
+    source
+});
+
+/**
+ * PUT /api/orders/:id/ship
+ *
+ * The retailer's "Ship Order" action. Replaces the old blind status toggle: an
+ * AWB is required, and for retailers whose credentials let us call Delhivery we
+ * verify the AWB actually exists before accepting it, so a typo fails here
+ * instead of silently producing an order nobody can track.
+ */
+exports.shipOrder = async (req, res) => {
+    try {
+        if (req.user.role !== 'retailer') {
+            return res.status(403).json({ message: "Only retailers can ship orders" });
+        }
+
+        const { id } = req.params;
+        const { platform, trackingId } = req.body || {};
+
+        if (platform !== 'delhivery') {
+            return res.status(400).json({ message: "Only 'delhivery' is supported as a shipping platform right now" });
+        }
+        const awb = typeof trackingId === 'string' ? trackingId.trim() : '';
+        if (awb.length < 5) {
+            return res.status(400).json({ message: "Enter the AWB / waybill number from your Delhivery shipment" });
+        }
+
+        const order = await Order.findById(id).populate('items.medicineId');
+        if (!order) {
+            return res.status(404).json({ message: 'Order not found' });
+        }
+        if (!ownsAnyItem(order, req.user._id)) {
+            return res.status(403).json({ message: 'You do not own any items in this order' });
+        }
+        if (!['accepted', 'processing'].includes(order.orderStatus)) {
+            return res.status(400).json({
+                message: `Cannot ship an order that is '${order.orderStatus}'. Accept the order first.`
+            });
+        }
+
+        // Refuse to reuse an AWB that is already attached to a different order --
+        // otherwise the webhook lookup by AWB becomes ambiguous.
+        const awbInUse = await Order.findOne({ 'shipments.trackingId': awb, _id: { $ne: order._id } }).select('_id');
+        if (awbInUse) {
+            return res.status(409).json({ message: `AWB ${awb} is already attached to another order.` });
+        }
+
+        const retailer = await delhiveryService.findRetailerWithCredentials(req.user._id);
+        if (!retailer?.shippingIntegrations?.delhivery?.isConfigured) {
+            return res.status(400).json({
+                message: "Link your Delhivery account before shipping. Choose a credential method in the Ship Order dialog."
+            });
+        }
+
+        const existingIdx = order.shipments.findIndex(s => s.retailerId?.toString() === req.user._id.toString());
+        const shipmentData = {
+            platform: 'delhivery',
+            trackingId: awb,
+            retailerId: req.user._id,
+            shippedAt: new Date(),
+            creationMethod: 'manual',
+            lastPolledStatus: null,
+            lastPolledStatusCode: null,
+            lastPolledLocation: null,
+            lastPolledAt: null,
+            lastPollError: null,
+            trackingTimeline: []
+        };
+
+        if (existingIdx !== -1) {
+            order.shipments[existingIdx] = shipmentData;
+        } else {
+            order.shipments.push(shipmentData);
+        }
+
+        const currentShipment = existingIdx !== -1 ? order.shipments[existingIdx] : order.shipments[order.shipments.length - 1];
+
+        // apiToken / oauth2 let us verify the waybill up front. Webhook-only
+        // retailers can't be checked -- we have no outbound credentials, so the
+        // first push from Delhivery is what confirms the AWB.
+        if (delhiveryService.canPoll(retailer)) {
+            const validation = await delhiveryService.validateAwb(retailer, awb);
+            if (!validation.valid) {
+                return res.status(400).json({
+                    message: `Delhivery could not confirm AWB ${awb}. ${validation.error}`
+                });
+            }
+            const { result } = validation;
+            currentShipment.lastPolledStatus = result.currentStatus;
+            currentShipment.lastPolledStatusCode = result.currentStatusCode;
+            currentShipment.lastPolledLocation = result.currentLocation;
+            currentShipment.lastPolledAt = new Date();
+            currentShipment.trackingTimeline = result.timeline;
+        }
+
+        // Mark this retailer's items shipped and recompute the order-wide status.
+        order.items.forEach((item) => {
+            const owner = item.medicineId?.retailerId;
+            if (owner && String(owner._id || owner) === String(req.user._id)) {
+                item.itemStatus = 'shipped';
+            }
+        });
+        order.orderStatus = recomputeOrderStatus(order);
+        order.retailerStatus = 'shipped';
+
+        // A label created on an already-delivered AWB (rare, but possible when a
+        // retailer ships first and records it later) should settle immediately.
+        if (currentShipment.lastPolledStatusCode) {
+            const mapped = delhiveryService.mapDelhiveryStatusToOrderStatus(
+                currentShipment.lastPolledStatusCode,
+                currentShipment.lastPolledStatus
+            );
+            if (mapped === 'delivered') {
+                order.items.forEach((item) => {
+                    const owner = item.medicineId?.retailerId;
+                    if (owner && String(owner._id || owner) === String(req.user._id)) {
+                        item.itemStatus = 'delivered';
+                    }
+                });
+                order.orderStatus = recomputeOrderStatus(order);
+                startPayoutHoldIfDelivered(order, order.orderStatus);
+            }
+        }
+
+        await order.save();
+
+        try {
+            await notificationController.createNotification(
+                order.buyer.buyerId,
+                order.buyer.type.toLowerCase(),
+                order._id,
+                `Your order #${order._id.toString().slice(-6)} has shipped with Delhivery. AWB: ${awb}`,
+                'order'
+            );
+        } catch (notifyError) {
+            // The shipment is already saved -- a failed notification must not
+            // make the retailer think shipping failed.
+            console.error('Ship notification failed:', notifyError.message);
+        }
+
+        return res.status(200).json({
+            message: 'Order marked as shipped',
+            order: {
+                _id: order._id,
+                orderStatus: order.orderStatus,
+                shipments: order.shipments
+            }
+        });
+    } catch (error) {
+        console.error('Error shipping order:', error);
+        return res.status(500).json({ message: error.message || 'Server error' });
     }
 };
+
+/**
+ * GET /api/orders/:id/tracking
+ *
+ * Returns the shipment timeline for the buyer, the selling retailer, or an
+ * admin. Serves the cached copy inside the cache window; otherwise re-polls
+ * Delhivery and, if the carrier now says delivered, settles the order (which
+ * starts the payout hold) as a side effect.
+ */
+exports.getOrderTracking = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { retailerId } = req.query;
+
+        const order = await Order.findById(id).populate('items.medicineId');
+        if (!order) {
+            return res.status(404).json({ message: 'Order not found' });
+        }
+
+        const isBuyer = order.buyer.buyerId.toString() === req.user._id.toString();
+        const isRetailer = req.user.role === 'retailer' && ownsAnyItem(order, req.user._id);
+        const isAdmin = req.user.role === 'admin';
+        if (!isBuyer && !isRetailer && !isAdmin) {
+            return res.status(403).json({ message: 'Access denied' });
+        }
+
+        if (!order.shipments || order.shipments.length === 0) {
+            return res.status(404).json({ message: 'This order has no shipment tracking yet.' });
+        }
+
+        if (!retailerId) {
+            // Return ALL shipments' tracking data
+            return res.status(200).json({
+                orderStatus: order.orderStatus,
+                shipments: order.shipments
+            });
+        }
+
+        const shipment = order.shipments.find(s => s.retailerId?.toString() === retailerId);
+        if (!shipment) {
+            return res.status(404).json({ message: 'No shipment found for this retailer' });
+        }
+
+        const cached = () => ({
+            orderStatus: order.orderStatus,
+            shipment,
+            source: 'cached'
+        });
+
+        const retailer = await delhiveryService.findRetailerWithCredentials(shipment.retailerId);
+
+        // Webhook-only (or since-disconnected) retailers: the cache is all there is.
+        if (!delhiveryService.canPoll(retailer)) {
+            return res.status(200).json(cached());
+        }
+
+        const freshEnough = shipment.lastPolledAt
+            && (Date.now() - new Date(shipment.lastPolledAt).getTime()) < TRACKING_CACHE_MS;
+        if (freshEnough) {
+            return res.status(200).json(cached());
+        }
+
+        let tracking;
+        try {
+            tracking = await delhiveryService.trackShipment(retailer, shipment.trackingId);
+        } catch (error) {
+            // Delhivery being down shouldn't blank out the timeline we already
+            // have -- record why and serve the cache.
+            console.error(`Tracking fetch failed for AWB ${shipment.trackingId}:`, error.message);
+            shipment.lastPollError = error.message;
+            await order.save();
+            return res.status(200).json({ ...cached(), error: error.message });
+        }
+
+        const result = applyTrackingToOrder(order, shipment, tracking);
+        await order.save();
+
+        if (result.becameDelivered) {
+            try {
+                await notificationController.createNotification(
+                    order.buyer.buyerId,
+                    order.buyer.type.toLowerCase(),
+                    order._id,
+                    `Your order #${order._id.toString().slice(-6)} has been delivered.`,
+                    'order'
+                );
+            } catch (notifyError) {
+                console.error('Delivery notification failed:', notifyError.message);
+            }
+        }
+
+        return res.status(200).json({
+            orderStatus: order.orderStatus,
+            shipment,
+            source: 'live'
+        });
+    } catch (error) {
+        console.error('Error fetching tracking:', error);
+        if (error.name === 'CastError') {
+            return res.status(400).json({ message: 'Invalid order ID' });
+        }
+        return res.status(500).json({ message: error.message || 'Failed to fetch tracking data' });
+    }
+};
+
+// How long after delivery a paid order's payout to the retailer stays "held"
+// before the settlement cron auto-releases it -- the patient's dispute window.
+// Both PAYOUT_HOLD_GRACE_MS and startPayoutHoldIfDelivered now live in
+// utils/payoutHold.js, because delivery can also be declared by the Delhivery
+// webhook and the polling cron, and all paths must start the hold identically.
 
 exports.updateOrderStatus = async (req, res) => {
     try {
@@ -472,6 +824,26 @@ exports.resolveOrderDispute = async (req, res) => {
         order.dispute.resolution = resolution;
         order.dispute.resolvedBy = req.user._id;
         await order.save();
+
+        const getRazorpay = require('../services/razorpayService');
+        const razorpay = getRazorpay();
+
+        if (resolution === 'released') {
+            const transferIds = [...new Set(order.items.map(i => i.razorpayTransferId).filter(Boolean))];
+            for (const tId of transferIds) {
+                try {
+                    await razorpay.transfers.edit(tId, { on_hold: false });
+                } catch (e) {
+                    console.error("Error releasing Razorpay transfer hold for:", tId, e);
+                }
+            }
+        } else if (resolution === 'refunded' && order.paymentId) {
+            try {
+                await razorpay.payments.refund(order.paymentId, { amount: Math.round(order.totalPrice * 100) });
+            } catch (e) {
+                console.error("Error refunding Razorpay payment:", order.paymentId, e);
+            }
+        }
 
         return res.status(200).json({ message: `Dispute resolved as ${resolution}.`, order });
     } catch (error) {
@@ -757,7 +1129,21 @@ exports.getOrdersByRetailerId = async (req, res) => {
                 orderTotal: order.totalPrice,
                 date: new Date(order.createdAt).toISOString(),
                 status: order.orderStatus,
-                shippingAddress: order.shippingAddress || null
+                shippingAddress: order.shippingAddress || null,
+                // Courier summary so the orders list can show the AWB and the
+                // last known scan without a per-order tracking request. Null
+                // until the retailer attaches a waybill.
+                shipping: order.shipping?.trackingId
+                    ? {
+                        platform: order.shipping.platform,
+                        trackingId: order.shipping.trackingId,
+                        shippedAt: order.shipping.shippedAt,
+                        lastPolledStatus: order.shipping.lastPolledStatus,
+                        lastPolledStatusCode: order.shipping.lastPolledStatusCode,
+                        lastPolledLocation: order.shipping.lastPolledLocation,
+                        lastPolledAt: order.shipping.lastPolledAt
+                    }
+                    : null
             });
 
             return acc;

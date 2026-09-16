@@ -13,6 +13,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@
 import { Input } from "@/components/ui/input";
 import ShipOrderDialog from "@/components/shipping/ShipOrderDialog";
 import TrackingDialog from "@/components/shipping/TrackingDialog";
+import { formatDate } from "@/lib/date";
 
 const STATUS_TABS = [
 	{ value: "pending", label: "Received" },
@@ -142,7 +143,7 @@ function MyOrders() {
 									<strong className="text-foreground">Buyer Name:</strong> {order.customerName}
 								</p>
 								<p className="mb-2">
-									<strong className="text-foreground">Order Receiving Date:</strong> {new Date(order.date).toLocaleDateString()}
+									<strong className="text-foreground">Order Receiving Date:</strong> {formatDate(order.date)}
 								</p>
 								<p className="mb-2">
 									<strong className="text-foreground">Shipping Address:</strong>{" "}

@@ -164,8 +164,16 @@ function DoctorsScreen() {
               ? [doctor.specialization]
               : [];
           return {
+            ...doctor,
             id: doctor._id,
-            name: `${doctor.firstName} ${doctor.lastName}`,
+            _id: doctor._id,
+            name: doctor.name || `${doctor.firstName || ""} ${doctor.lastName || ""}`.trim(),
+            firstName: doctor.firstName,
+            lastName: doctor.lastName,
+            education: doctor.education,
+            upiId: doctor.upiId,
+            price: doctor.price,
+            dietPlanFee: doctor.dietPlanFee !== undefined ? doctor.dietPlanFee : 299,
             specializations,
             specialization: specializations.join(", ") || "N/A",
             experience: doctor.experience ? `${doctor.experience} years` : "0 years",

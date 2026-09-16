@@ -9,6 +9,7 @@ import { DashboardShell, DashboardPageHeader } from "@/components/layout/Dashboa
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { formatDateReadable } from "@/lib/date";
 import { MedicalHistoryViewer } from "./doctorPrescribe/MedicalHistoryViewer";
 
 const format12HourTime = (timeStr) => {
@@ -33,6 +34,11 @@ function PatientDetail() {
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
 	const [showVisits, setShowVisits] = useState(false);
+	const [expandedMedicines, setExpandedMedicines] = useState({});
+
+	const toggleMedicines = (id) => {
+		setExpandedMedicines((prev) => ({ ...prev, [id]: !prev[id] }));
+	};
 
 	useEffect(() => {
 		const fetchAll = async () => {
@@ -79,7 +85,10 @@ function PatientDetail() {
 
 	return (
 		<DashboardShell>
-			<Button variant="ghost" size="sm" className="mb-4" onClick={() => navigate("/patient-list")}>
+			<Button
+				onClick={() => navigate("/patient-list")}
+				className="mb-4 bg-[var(--jh-olive-light)] text-[var(--jh-cream)] hover:bg-[var(--jh-olive-leaf)] transition-colors flex items-center gap-2"
+			>
 				<ChevronLeft className="size-4" /> Back to Patient List
 			</Button>
 
@@ -134,7 +143,7 @@ function PatientDetail() {
 										<div className="flex flex-col gap-1 text-sm text-foreground/80">
 											<span className="flex items-center gap-1.5">
 												<Calendar className="size-4 text-muted-foreground" />
-												{new Date(visit.dateOfAppointment).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+												{formatDateReadable(visit.dateOfAppointment)}
 											</span>
 											{visit.timeSlot ? (
 												<span className="flex items-center gap-1.5">
@@ -147,21 +156,63 @@ function PatientDetail() {
 										</Badge>
 									</div>
 
-									{visit.rating ? (
-										<div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
-											<Star className="size-3.5 fill-primary text-primary" /> {visit.rating}/5
-											{visit.review ? ` — "${visit.review}"` : ""}
-										</div>
-									) : null}
+									{/* 1. Reason for Visit */}
+									<p className="mt-3 text-xs text-muted-foreground">
+										<strong className="text-foreground">Reason for Visit:</strong>{" "}
+										{visit.patientIllness || <span className="italic text-muted-foreground/75">Not provided</span>}
+									</p>
 
+									{/* 2. Diagnosis */}
+									<p className="mt-1.5 text-xs text-muted-foreground">
+										<strong className="text-foreground">Diagnosis:</strong>{" "}
+										{visit.diagnosis ? visit.diagnosis : <span className="italic text-muted-foreground/75">Not provided</span>}
+									</p>
+
+									{/* 3. Medicines Prescribed (below Reason for Visit & Diagnosis) */}
 									{visit.recommendedSupplements?.length > 0 ? (
-										<p className="mt-2 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-											<Pill className="size-3.5" /> {visit.recommendedSupplements.length} medicine
-											{visit.recommendedSupplements.length > 1 ? "s" : ""} prescribed
-										</p>
-									) : null}
+										<div className="mt-2.5">
+											<button
+												type="button"
+												onClick={() => toggleMedicines(visit._id)}
+												className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-primary transition-colors cursor-pointer bg-transparent border-0 p-0"
+											>
+												<Pill className="size-3.5 text-muted-foreground" />
+												<span>
+													{visit.recommendedSupplements.length} medicine
+													{visit.recommendedSupplements.length > 1 ? "s" : ""} prescribed
+												</span>
+												<ChevronDown className={`size-3.5 text-muted-foreground transition-transform ${expandedMedicines[visit._id] ? "rotate-180" : ""}`} />
+											</button>
 
-									<Button size="sm" variant="outline" className="mt-3" onClick={() => navigate(`/doctorsprescribe/${visit._id}`)}>
+											{expandedMedicines[visit._id] ? (
+												<div className="mt-2.5 pl-4 flex flex-col gap-2.5 text-xs text-muted-foreground border-l-2 border-border ml-1.5">
+													{visit.recommendedSupplements.map((med, idx) => (
+														<div key={med._id || idx} className="flex flex-col gap-1 rounded-md bg-secondary/30 p-2.5 border border-border/60">
+															<div>
+																<strong className="text-foreground">Medicine Name:</strong>{" "}
+																<span className="font-semibold text-foreground">{med.medicineName || "Not provided"}</span>
+															</div>
+															<div>
+																<strong className="text-foreground">Dosage:</strong>{" "}
+																<span>{med.dosage || <span className="italic text-muted-foreground/75">Not provided</span>}</span>
+															</div>
+															<div>
+																<strong className="text-foreground">Instructions:</strong>{" "}
+																<span className="italic">{med.instructions || <span className="not-italic text-muted-foreground/75">Not provided</span>}</span>
+															</div>
+														</div>
+													))}
+												</div>
+											) : null}
+										</div>
+									) : (
+										<p className="mt-1.5 text-xs text-muted-foreground">
+											<strong className="text-foreground">Medicines:</strong>{" "}
+											<span className="italic text-muted-foreground/75">Not provided</span>
+										</p>
+									)}
+
+									<Button size="sm" variant="outline" className="mt-3.5" onClick={() => navigate(`/doctorsprescribe/${visit._id}`)}>
 										View / Edit Prescription
 									</Button>
 								</div>

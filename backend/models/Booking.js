@@ -115,6 +115,19 @@ const bookingSchema = new mongoose.Schema({
 		type: Number,
 		required: true,
 	},
+	dietPlanRequested: {
+		type: Boolean,
+		default: false,
+	},
+	dietPlanFee: {
+		type: Number,
+		default: 0,
+	},
+	dietPlanStatus: {
+		type: String,
+		enum: ['none', 'pending', 'completed'],
+		default: 'none',
+	},
 	paymentScreenshots: {
 		type: [String], // Array of paths to the uploaded screenshots
 		default: [], 

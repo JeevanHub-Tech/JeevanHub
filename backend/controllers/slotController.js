@@ -147,30 +147,58 @@ exports.deleteSlotTemplate = async (req, res) => {
 
 exports.addScheduleOverride = async (req, res) => {
     try {
-        const { date, type, targetSlotId, newStartTime, newDuration, newFee, newConsultationType, newSessionType, newMaxCapacity, newBufferTime } = req.body;
+        const { date, type, targetSlotId, newStartTime, newDuration, newFee, newConsultationType, newSessionType, newMaxCapacity, newBufferTime, overrideId, originalStartTime } = req.body;
         const doctorId = req.user._id;
 
         const doctor = await Doctor.findById(doctorId);
         if (!doctor) return res.status(404).json({ message: "Doctor not found" });
 
-        const override = {
-            date: new Date(date),
-            type,
-            targetSlotId,
-            newStartTime, newDuration, newFee, newConsultationType, newSessionType, newMaxCapacity, newBufferTime
-        };
-
         const existingIndex = doctor.scheduleOverrides.findIndex(o => {
             const isSameDate = new Date(o.date).toDateString() === new Date(date).toDateString();
             if (!isSameDate) return false;
-            if (type === 'added') return o.type === 'added' && o.newStartTime === newStartTime;
+            if (overrideId && o._id && o._id.toString() === overrideId.toString()) return true;
+            if (targetSlotId && o._id && o._id.toString() === targetSlotId.toString()) return true;
+            if (type === 'added') {
+                if (originalStartTime && o.newStartTime === originalStartTime) return true;
+                return o.type === 'added' && o.newStartTime === newStartTime;
+            }
             return o.targetSlotId && targetSlotId && o.targetSlotId.toString() === targetSlotId.toString();
         });
 
         if (existingIndex !== -1) {
-            doctor.scheduleOverrides[existingIndex] = override;
+            const existingOverride = doctor.scheduleOverrides[existingIndex];
+            if (type) existingOverride.type = type;
+            if (targetSlotId) existingOverride.targetSlotId = targetSlotId;
+            
+            // If the time is modified, mark as rescheduled
+            if (newStartTime && newStartTime !== existingOverride.newStartTime) {
+                existingOverride.isRescheduled = true;
+                if (!existingOverride.originalStartTime) {
+                    existingOverride.originalStartTime = originalStartTime || existingOverride.newStartTime;
+                }
+                existingOverride.newStartTime = newStartTime;
+            } else if (req.body.isRescheduled) {
+                existingOverride.isRescheduled = true;
+                if (!existingOverride.originalStartTime) {
+                    existingOverride.originalStartTime = originalStartTime || existingOverride.newStartTime;
+                }
+            }
+
+            if (newDuration !== undefined) existingOverride.newDuration = newDuration;
+            if (newFee !== undefined) existingOverride.newFee = newFee;
+            if (newConsultationType !== undefined) existingOverride.newConsultationType = newConsultationType;
+            if (newSessionType !== undefined) existingOverride.newSessionType = newSessionType;
+            if (newMaxCapacity !== undefined) existingOverride.newMaxCapacity = newMaxCapacity;
+            if (newBufferTime !== undefined) existingOverride.newBufferTime = newBufferTime;
         } else {
-            doctor.scheduleOverrides.push(override);
+            doctor.scheduleOverrides.push({
+                date: new Date(date),
+                type,
+                targetSlotId,
+                newStartTime, newDuration, newFee, newConsultationType, newSessionType, newMaxCapacity, newBufferTime,
+                originalStartTime: originalStartTime || (type === 'rescheduled' ? originalStartTime : undefined),
+                isRescheduled: !!req.body.isRescheduled
+            });
         }
 
         // Clean up old overrides while we're saving
@@ -230,7 +258,7 @@ exports.cancelDateSlots = async (req, res) => {
 
 exports.removeScheduleOverride = async (req, res) => {
     try {
-        const { date, targetSlotId, originalStartTime } = req.body;
+        const { date, targetSlotId, originalStartTime, overrideId } = req.body;
         const doctorId = req.user._id;
 
         const doctor = await Doctor.findById(doctorId);
@@ -239,8 +267,17 @@ exports.removeScheduleOverride = async (req, res) => {
         doctor.scheduleOverrides = doctor.scheduleOverrides.filter(o => {
             const isSameDate = new Date(o.date).toDateString() === new Date(date).toDateString();
             if (!isSameDate) return true;
-            if (o.type === 'added') return o.newStartTime !== originalStartTime; // added slots don't have targetSlotId initially
-            return o.targetSlotId?.toString() !== targetSlotId?.toString();
+
+            const matchesOverrideId = overrideId && o._id && o._id.toString() === overrideId.toString();
+            const matchesSlotIdAsOverride = targetSlotId && o._id && o._id.toString() === targetSlotId.toString();
+            const matchesTargetSlotId = targetSlotId && o.targetSlotId && o.targetSlotId.toString() === targetSlotId.toString();
+            const matchesAddedTime = o.type === 'added' && originalStartTime && o.newStartTime === originalStartTime;
+
+            if (matchesOverrideId || matchesSlotIdAsOverride || matchesTargetSlotId || matchesAddedTime) {
+                return false;
+            }
+
+            return true;
         });
 
         // Clean up old overrides while we're saving

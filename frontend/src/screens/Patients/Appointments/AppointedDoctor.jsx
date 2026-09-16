@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from 'react-router-dom';
 
 import { cn } from "@/lib/utils";
@@ -76,103 +76,82 @@ function AppointedDoctor() {
 		}
 	};
 
-	useEffect(() => {
-		const loadData = async () => {
-			try {
-				const data = await fetchDoctorData();
-				// Filter bookings for the logged-in patient
-				const patientBookings = data.bookings;
-				console.log("Patient Bookings:", patientBookings);
+	const loadData = useCallback(async () => {
+		try {
+			const data = await fetchDoctorData();
+			const patientBookings = data.bookings || [];
 
-				const currentDate = new Date();
+			const currentDate = new Date();
 
-				// Sort bookings into upcoming, past, pending, and denied
-				const sortedBookings = patientBookings.reduce(
-					(acc, booking) => {
-						// The meeting window runs from the slot's start time through
-						// start + duration -- comparing against the raw (midnight)
-						// dateOfAppointment would mark same-day appointments "past"
-						// from 00:00 onward, well before the patient could join.
-						const appointmentEnd = new Date(booking.dateOfAppointment);
-						if (booking.timeSlot && booking.timeSlot.includes(":")) {
-							const [hours, minutes] = booking.timeSlot.split(":").map(Number);
-							appointmentEnd.setHours(hours, minutes || 0, 0, 0);
-							appointmentEnd.setMinutes(appointmentEnd.getMinutes() + (booking.timeSlotDuration || 30));
+			const sortedBookings = patientBookings.reduce(
+				(acc, booking) => {
+					const appointmentEnd = new Date(booking.dateOfAppointment);
+					if (booking.timeSlot && booking.timeSlot.includes(":")) {
+						const [hours, minutes] = booking.timeSlot.split(":").map(Number);
+						appointmentEnd.setHours(hours, minutes || 0, 0, 0);
+						appointmentEnd.setMinutes(appointmentEnd.getMinutes() + (booking.timeSlotDuration || 30));
+					}
+					const isPastAppointment = appointmentEnd < currentDate;
+
+					const status = booking.requestAccept?.toLowerCase();
+
+					if (isPastAppointment) {
+						let appointmentWithSource = { ...booking };
+						if (status === "accepted") {
+							appointmentWithSource.source = "Completed";
+							acc.previous.push(appointmentWithSource);
+						} else if (status === "denied") {
+							appointmentWithSource.source = "Denied";
+							acc.denied.push(appointmentWithSource);
+						} else if (status === "pending") {
+							appointmentWithSource.source = "Pending";
+							acc.pending.push(appointmentWithSource);
 						}
-						const isPastAppointment = appointmentEnd < currentDate;
-						// const isWithinOneDayAfterAppointment =
-						// 	appointmentDate < currentDate &&
-						// 	currentDate - appointmentDate <= 24 * 60 * 60 * 1000;
-
-						const status = booking.requestAccept?.toLowerCase();
-						// values like "accepted" | "pending" | "denied"
-
-						// Past appointments (but not within 1 day after)
-						// if (isPastAppointment && !isWithinOneDayAfterAppointment) {
-						if (isPastAppointment) {
-
-							let appointmentWithSource = { ...booking };
-
-							if (status === "accepted") {
-								appointmentWithSource.source = "Completed";
-								acc.previous.push(appointmentWithSource);
-							} else if (status === "denied") {
-								appointmentWithSource.source = "Denied";
-								acc.denied.push(appointmentWithSource);
-							} else if (status === "pending") {
-								appointmentWithSource.source = "Pending";
-								acc.pending.push(appointmentWithSource);
-							}
-						}
-						// Upcoming / Pending / Denied
-						// else if (!isPastAppointment || isWithinOneDayAfterAppointment) {
-						else if (!isPastAppointment) {
-							let appointmentWithSource = { ...booking };
-							if (status === "pending") {
-								appointmentWithSource.source = "Pending";
-								acc.pending.push(appointmentWithSource);
-							} else if (status === "accepted") {
-								appointmentWithSource.source = "Upcoming";
-								acc.upcoming.push(appointmentWithSource);
-							} else if (status === "denied") {
-								appointmentWithSource.source = "Denied";
-								acc.denied.push(appointmentWithSource);
-							}
-						}
-
-
-						return acc;
-					},
-					{ pending: [], upcoming: [], denied: [], previous: [] }
-				);
-
-
-				setPendingDoctors(sortedBookings.pending);
-				setUpcomingAppointments(sortedBookings.upcoming);
-				setDeniedDoctors(sortedBookings.denied);
-				setPreviousAppointments(sortedBookings.previous);
-				setLoading(false);
-
-				// Fetch supplements for completed upcoming and previous appointments
-				[...sortedBookings.upcoming, ...sortedBookings.previous].forEach(
-					(appointment) => {
-						if (
-							appointment.source === "Completed" ||
-							appointment.requestAccept === "accepted"
-						) {
-							fetchSupplementsForAppointment(appointment._id);
+					} else {
+						let appointmentWithSource = { ...booking };
+						if (status === "pending") {
+							appointmentWithSource.source = "Pending";
+							acc.pending.push(appointmentWithSource);
+						} else if (status === "accepted") {
+							appointmentWithSource.source = "Upcoming";
+							acc.upcoming.push(appointmentWithSource);
+						} else if (status === "denied") {
+							appointmentWithSource.source = "Denied";
+							acc.denied.push(appointmentWithSource);
 						}
 					}
-				);
-			} catch (error) {
-				console.error("Error fetching doctor data:", error);
-				setError(error.message);
-				setLoading(false);
-			}
-		};
 
+					return acc;
+				},
+				{ pending: [], upcoming: [], denied: [], previous: [] }
+			);
+
+			setPendingDoctors(sortedBookings.pending);
+			setUpcomingAppointments(sortedBookings.upcoming);
+			setDeniedDoctors(sortedBookings.denied);
+			setPreviousAppointments(sortedBookings.previous);
+			setLoading(false);
+
+			[...sortedBookings.upcoming, ...sortedBookings.previous].forEach(
+				(appointment) => {
+					if (
+						appointment.source === "Completed" ||
+						appointment.requestAccept === "accepted"
+					) {
+						fetchSupplementsForAppointment(appointment._id);
+					}
+				}
+			);
+		} catch (error) {
+			console.error("Error fetching doctor data:", error);
+			setError(error.message);
+			setLoading(false);
+		}
+	}, []);
+
+	useEffect(() => {
 		loadData();
-	}, [email]);
+	}, [loadData, email]);
 
 	// The illness/reason-for-visit is only editable on upcoming appointments,
 	// so this only ever needs to patch that one array.
@@ -289,6 +268,7 @@ function AppointedDoctor() {
 						}}
 						onIllnessUpdated={handleIllnessUpdated}
 						onRequestCancelled={handleRequestCancelled}
+						onReload={loadData}
 					/>
 				</div>
 

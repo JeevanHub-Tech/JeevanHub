@@ -149,12 +149,28 @@ async function attachStaleness(plan, { includeHistory = false } = {}) {
         && new Date(dosha.updatedAt).getTime() !== new Date(plan.basedOn.doshaAssessmentUpdatedAt).getTime();
     const obj = plan.toObject();
     if (!includeHistory) delete obj.history;
+
+    if (obj.doctorReview?.reviewedBy && typeof obj.doctorReview.reviewedBy === "object") {
+        const doc = obj.doctorReview.reviewedBy;
+        const name = [doc.firstName, doc.lastName].filter(Boolean).join(" ");
+        obj.doctorReview.doctorName = name ? (name.startsWith("Dr.") ? name : `Dr. ${name}`) : "";
+    }
+    if (!obj.doctorReview?.doctorName && obj.doctorReview?.bookingId) {
+        try {
+            const Booking = require("../models/Booking");
+            const b = await Booking.findById(obj.doctorReview.bookingId).select("doctorName");
+            if (b?.doctorName) {
+                obj.doctorReview.doctorName = b.doctorName.startsWith("Dr.") ? b.doctorName : `Dr. ${b.doctorName}`;
+            }
+        } catch (e) {}
+    }
+
     return { ...obj, isStale: Boolean(profileChanged || doshaChanged), displayPlan: resolveDisplayYogaPlan(obj) };
 }
 
 exports.getYogaPlan = async (req, res) => {
     try {
-        const plan = await AyurvedaYogaPlan.findOne({ patientId: req.user._id });
+        const plan = await AyurvedaYogaPlan.findOne({ patientId: req.user._id }).populate("doctorReview.reviewedBy", "firstName lastName email");
         return res.status(200).json(await attachStaleness(plan));
     } catch (error) {
         console.error("Error fetching yoga plan:", error);
@@ -168,7 +184,7 @@ exports.getYogaPlanForPatient = async (req, res) => {
         const allowed = await assertDoctorRelationship(req, patientId);
         if (!allowed) return res.status(403).json({ error: "Access denied" });
 
-        const plan = await AyurvedaYogaPlan.findOne({ patientId });
+        const plan = await AyurvedaYogaPlan.findOne({ patientId }).populate("doctorReview.reviewedBy", "firstName lastName email");
         return res.status(200).json(await attachStaleness(plan, { includeHistory: true }));
     } catch (error) {
         console.error("Error fetching patient's yoga plan:", error);
@@ -214,6 +230,7 @@ exports.reviewYogaPlan = async (req, res) => {
         if (plan.history.length > 10) plan.history = plan.history.slice(-10);
 
         await plan.save();
+        await plan.populate("doctorReview.reviewedBy", "firstName lastName email");
         return res.status(200).json({ message: "Yoga plan draft saved", plan: await attachStaleness(plan, { includeHistory: true }) });
     } catch (error) {
         console.error("Error reviewing yoga plan:", error);

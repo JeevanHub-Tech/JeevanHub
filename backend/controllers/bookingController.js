@@ -49,29 +49,39 @@ const hasSlotTimePassed = (dateOfAppointment, timeSlot) => {
 // template + any same-day reschedule override -- the values are never
 // persisted on the Booking itself (see hasSlotTimePassed above).
 const resolveBookingSlotTime = (doctor, booking) => {
-	if (!doctor || !doctor.availableSlots || !booking.slotId) return null;
+	if (!doctor || !booking.slotId) return null;
 
-	const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][new Date(booking.dateOfAppointment).getDay()];
-	const baseSlots = doctor.availableSlots[dayName] || [];
-	const baseSlot = baseSlots.find(s => s._id.toString() === booking.slotId.toString());
-	if (!baseSlot) return null;
+	let startTime = null;
+	let duration = 30;
 
-	let startTime = baseSlot.startTime;
-	let duration = baseSlot.duration || 30;
+	if (doctor.availableSlots) {
+		const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][new Date(booking.dateOfAppointment).getDay()];
+		const baseSlots = doctor.availableSlots[dayName] || [];
+		const baseSlot = baseSlots.find(s => s._id && s._id.toString() === booking.slotId.toString());
+		if (baseSlot) {
+			startTime = baseSlot.startTime;
+			duration = baseSlot.duration || 30;
+		}
+	}
 
 	if (Array.isArray(doctor.scheduleOverrides)) {
 		const bookingDateStr = new Date(booking.dateOfAppointment).toDateString();
 		const override = doctor.scheduleOverrides.find(o =>
 			new Date(o.date).toDateString() === bookingDateStr &&
-			o.targetSlotId && o.targetSlotId.toString() === booking.slotId.toString() &&
-			o.type === 'rescheduled'
+			(
+				(o.targetSlotId && o.targetSlotId.toString() === booking.slotId.toString()) ||
+				(o._id && o._id.toString() === booking.slotId.toString())
+			)
 		);
 		if (override) {
-			startTime = override.newStartTime || startTime;
-			duration = override.newDuration || duration;
+			if (override.type === 'rescheduled' || override.type === 'added') {
+				startTime = override.newStartTime || startTime;
+				duration = override.newDuration || duration;
+			}
 		}
 	}
 
+	if (!startTime) return null;
 	return { startTime, duration };
 };
 
@@ -140,6 +150,19 @@ exports.updateRatingAndReview = async (req, res) => {
 			return res.status(404).json({ error: "Booking not found" });
 		}
 
+		try {
+			const stars = rating ? `${rating} ★` : '';
+			await notificationController.createNotification(
+				booking.doctorId,
+				'doctor',
+				booking._id.toString(),
+				`New ${stars} review submitted by ${booking.patientName || 'a patient'}: "${review || ''}"`,
+				'review'
+			);
+		} catch (e) {
+			console.error("Failed to create review notification for doctor:", e.message);
+		}
+
 		return res.status(200).json({
 			message: "Rating and review updated successfully",
 			booking: updatedBooking,
@@ -193,6 +216,8 @@ exports.createBooking = async (req, res) => {
 		patientIllness,
 		meetLink,
 		amountPaid,
+		dietPlanRequested,
+		dietPlanFee,
 	} = req.body; // Destructure the request body
 	const patientId = req.user._id; // Enforce ownership
 	const patientEmail = email || req.user.email;
@@ -298,6 +323,8 @@ exports.createBooking = async (req, res) => {
 		}
 
 		const resolvedAmountPaid = amountPaid !== undefined ? amountPaid : (doctor.price || 0);
+		const isDietRequested = Boolean(dietPlanRequested);
+		const resolvedDietFee = isDietRequested ? (dietPlanFee !== undefined ? Number(dietPlanFee) : (doctor.dietPlanFee || 299)) : 0;
 
 		// Create a new booking
 		const newBooking = new Booking({
@@ -314,6 +341,9 @@ exports.createBooking = async (req, res) => {
 			patientIllness,
 			meetLink,
 			amountPaid: resolvedAmountPaid,
+			dietPlanRequested: isDietRequested,
+			dietPlanFee: resolvedDietFee,
+			dietPlanStatus: isDietRequested ? 'pending' : 'none',
 			// Appointments confirm by default -- there's no doctor accept/deny step.
 			// A free consult is confirmed immediately; a paid one confirms as soon as
 			// payment lands (verifyBookingPayment / uploadPaymentScreenshot), so it
@@ -356,6 +386,19 @@ exports.createBooking = async (req, res) => {
 
 		// Notify doctor of new pending booking
 		notifyDoctor(doctor._id);
+		try {
+			const dateStr = new Date(newBooking.dateOfAppointment).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+			const timeStr = foundSlot?.startTime ? ` at ${foundSlot.startTime}` : '';
+			await notificationController.createNotification(
+				doctor._id,
+				'doctor',
+				newBooking._id.toString(),
+				`New appointment booked by ${newBooking.patientName || 'a patient'} scheduled for ${dateStr}${timeStr}.`,
+				'appointment'
+			);
+		} catch (e) {
+			console.error("Failed to create doctor booking notification:", e.message);
+		}
 
 		return res.status(201).json({
 			message: "Appointment booked successfully",
@@ -476,7 +519,16 @@ exports.uploadPaymentScreenshot = (req, res) => {
 					return `uploads/payments/${file.filename}`;
 				}
 			});
-			
+
+			if (req.body.dietPlanRequested === 'true' || req.body.dietPlanRequested === true) {
+				const doctor = await Doctor.findById(booking.doctorId);
+				const fee = doctor?.dietPlanFee !== undefined ? Number(doctor.dietPlanFee) : 299;
+				booking.dietPlanRequested = true;
+				booking.dietPlanFee = fee;
+				booking.dietPlanStatus = "pending";
+				booking.amountPaid = (booking.amountPaid || 0) + fee;
+			}
+
 			// C5-1: Server dictates status, not client. Unlike Razorpay this isn't
 			// cryptographically verified, so paymentStatus stays Pending -- but the
 			// appointment still confirms by default (no doctor review gate); the
@@ -490,6 +542,28 @@ exports.uploadPaymentScreenshot = (req, res) => {
 
 			// Notify doctor of new screenshot upload
 			notifyDoctor(booking.doctorId);
+			try {
+				const dateStr = new Date(booking.dateOfAppointment).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+				if (req.body.dietPlanRequested === 'true' || req.body.dietPlanRequested === true) {
+					await notificationController.createNotification(
+						booking.doctorId,
+						'doctor',
+						booking._id.toString(),
+						`${booking.patientName || 'A patient'} has requested a Personalized 7-Day Ayurvedic Diet Plan for appointment on ${dateStr}.`,
+						'diet_plan'
+					);
+				} else {
+					await notificationController.createNotification(
+						booking.doctorId,
+						'doctor',
+						booking._id.toString(),
+						`Payment screenshot uploaded by ${booking.patientName || 'patient'} for consultation scheduled for ${dateStr}.`,
+						'appointment'
+					);
+				}
+			} catch (e) {
+				console.error("Failed to create doctor screenshot notification:", e.message);
+			}
 
 			return res.status(200).json({
 				message: "Payment screenshot uploaded and booking updated",
@@ -560,6 +634,42 @@ exports.verifyBookingPayment = async (req, res) => {
 		await booking.save();
 
 		notifyDoctor(booking.doctorId);
+		try {
+			const dateStr = new Date(booking.dateOfAppointment).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+			// 1. Notify Doctor
+			await notificationController.createNotification(
+				booking.doctorId,
+				'doctor',
+				booking._id.toString(),
+				`Payment confirmed for consultation with ${booking.patientName || 'a patient'} scheduled for ${dateStr}.`,
+				'appointment'
+			);
+
+			if (booking.dietPlanRequested) {
+				await notificationController.createNotification(
+					booking.doctorId,
+					'doctor',
+					booking._id.toString(),
+					`New Paid Request: ${booking.patientName || 'A patient'} has requested a Personalized 7-Day Ayurvedic Diet Plan.`,
+					'diet_plan'
+				);
+			}
+
+			// 2. Notify Patient
+			const doctorDisplay = booking.doctorName && (booking.doctorName.toLowerCase().startsWith('dr.') || booking.doctorName.toLowerCase().startsWith('dr '))
+				? booking.doctorName
+				: `Dr. ${booking.doctorName || "your doctor"}`;
+
+			await notificationController.createNotification(
+				booking.patientId,
+				'patient',
+				booking._id.toString(),
+				`Payment of ₹${booking.amountPaid} confirmed for your consultation with ${doctorDisplay} scheduled for ${dateStr}.`,
+				'payment'
+			);
+		} catch (e) {
+			console.error("Failed to create payment notifications:", e.message);
+		}
 
 		return res.status(200).json({
 			message: "Payment verified successfully",
@@ -704,7 +814,7 @@ exports.getOwnBookingsForSharing = async (req, res) => {
 		}
 
 		const bookings = await Booking.find(filter)
-			.select('doctorName dateOfAppointment recommendedSupplements')
+			.select('doctorName dateOfAppointment recommendedSupplements diagnosis patientIllness')
 			.sort({ dateOfAppointment: -1 });
 
 		return res.status(200).json({ bookings });
@@ -992,6 +1102,18 @@ exports.raiseBookingDispute = async (req, res) => {
 		booking.dispute = { reason: reason.trim(), raisedAt: new Date() };
 		await booking.save();
 
+		try {
+			await notificationController.createNotification(
+				booking.doctorId,
+				'doctor',
+				booking._id.toString(),
+				`A dispute was raised for the appointment with ${booking.patientName || 'patient'}. Reason: "${reason.trim()}".`,
+				'dispute'
+			);
+		} catch (e) {
+			console.error("Failed to create doctor dispute notification:", e.message);
+		}
+
 		return res.status(200).json({ message: "Dispute raised. Our team will review this before any payout goes out.", booking });
 	} catch (error) {
 		console.error("Error raising booking dispute:", error);
@@ -1051,8 +1173,14 @@ exports.getBookingPayoutQueue = async (req, res) => {
 			doctorJoinedAt: null,
 			payoutHoldUntil: { $lte: new Date() }
 		}).sort({ payoutHoldUntil: 1 });
+		const unfulfilledDietPlans = await Booking.find({
+			payoutStatus: 'held',
+			dietPlanRequested: true,
+			dietPlanStatus: { $ne: 'completed' },
+			payoutHoldUntil: { $lte: new Date() }
+		}).sort({ payoutHoldUntil: 1 });
 
-		return res.status(200).json({ disputed, likelyNoShow });
+		return res.status(200).json({ disputed, likelyNoShow, unfulfilledDietPlans });
 	} catch (error) {
 		console.error("Error fetching booking payout queue:", error);
 		return res.status(500).json({ error: "Server error" });
@@ -1072,6 +1200,18 @@ exports.deleteBooking = async (req, res) => {
 		}
 		
 		notifyDoctor(deletedBooking.doctorId);
+		try {
+			const dateStr = new Date(deletedBooking.dateOfAppointment).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+			await notificationController.createNotification(
+				deletedBooking.doctorId,
+				'doctor',
+				deletedBooking._id.toString(),
+				`Consultation scheduled for ${dateStr} has been cancelled by ${deletedBooking.patientName || 'the patient'}.`,
+				'appointment'
+			);
+		} catch (e) {
+			console.error("Failed to create doctor cancellation notification:", e.message);
+		}
 
 		return res.status(200).json({ message: "Booking deleted successfully" });
 	} catch (error) {
@@ -1316,8 +1456,14 @@ exports.notifyPrescription = async (req, res) => {
 			const plan = await AyurvedaDietPlan.findOne({ patientId: booking.patientId });
 			if (plan?.doctorReview?.reviewedAt && !plan.doctorReview.published) {
 				plan.doctorReview.published = true;
+				plan.doctorReview.reviewedBy = plan.doctorReview.reviewedBy || booking.doctorId;
+				plan.doctorReview.bookingId = plan.doctorReview.bookingId || booking._id;
 				plan.status = "doctor_approved";
 				await plan.save();
+			}
+			if (booking.dietPlanRequested && booking.dietPlanStatus !== 'completed') {
+				booking.dietPlanStatus = 'completed';
+				await booking.save();
 			}
 		} catch (e) {
 			console.error("Error publishing diet plan draft:", e);
@@ -1338,14 +1484,37 @@ exports.notifyPrescription = async (req, res) => {
 			console.error("Error publishing legacy yoga draft:", e);
 		}
 
-		await new Notification({
+		const doctorDisplayName = (booking.doctorName && (booking.doctorName.toLowerCase().startsWith('dr.') || booking.doctorName.toLowerCase().startsWith('dr ')))
+			? booking.doctorName
+			: `Dr. ${booking.doctorName || "Your Doctor"}`;
+
+		const notifyMsg = booking.dietPlanRequested
+			? `${doctorDisplayName} has published your personalized 7-Day Ayurvedic Diet Plan and prescription. Tap to view.`
+			: `${doctorDisplayName} has updated your prescription and treatment plan. Tap to view.`;
+
+		// Debounce: If an unread notification for this booking already exists, update it rather than creating a duplicate
+		const existingRecent = await Notification.findOne({
 			userId: booking.patientId,
 			role: 'patient',
 			orderId: id,
 			type: 'system',
-			message: `Dr. ${booking.doctorName || "Your Doctor"} has updated your prescription and treatment plan. Tap to view.`,
 			isRead: false
-		}).save();
+		});
+
+		if (existingRecent) {
+			existingRecent.message = notifyMsg;
+			existingRecent.createdAt = new Date();
+			await existingRecent.save();
+		} else {
+			await new Notification({
+				userId: booking.patientId,
+				role: 'patient',
+				orderId: id,
+				type: 'system',
+				message: notifyMsg,
+				isRead: false
+			}).save();
+		}
 
 		return res.status(200).json({ message: "Prescription submitted and patient notified." });
 	} catch (error) {
@@ -1359,7 +1528,10 @@ exports.getRecommendedSupplements = async (req, res) => {
 	const { id } = req.params;
 
 	try {
-		const booking = await Booking.findById(id);
+		const booking = await Booking.findById(id).populate({
+			path: 'recommendedSupplements.medicineId',
+			select: 'images price name category quantity'
+		});
 
 		if (!booking) {
 			return res.status(404).json({ error: "Booking not found" });
@@ -1411,10 +1583,10 @@ exports.getBookingsByPatientId = async (req, res) => {
 			if (doctor && doctor.availableSlots && booking.slotId) {
 				const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][new Date(booking.dateOfAppointment).getDay()];
 				const baseSlots = doctor.availableSlots[dayName] || [];
-				const baseSlot = baseSlots.find(s => s._id.toString() === booking.slotId.toString());
+				const baseSlot = baseSlots.find(s => s._id && s._id.toString() === booking.slotId.toString());
 				if (baseSlot) {
 					bookingObj.timeSlot = baseSlot.startTime;
-					bookingObj.timeSlotDuration = baseSlot.duration;
+					bookingObj.timeSlotDuration = baseSlot.duration || 30;
 				}
 			}
 
@@ -1422,7 +1594,10 @@ exports.getBookingsByPatientId = async (req, res) => {
 				const bookingDateStr = new Date(booking.dateOfAppointment).toDateString();
 				const override = doctor.scheduleOverrides.find(o => {
 					return new Date(o.date).toDateString() === bookingDateStr &&
-						   o.targetSlotId && o.targetSlotId.toString() === booking.slotId.toString();
+						   (
+						       (o.targetSlotId && o.targetSlotId.toString() === booking.slotId.toString()) ||
+						       (o._id && o._id.toString() === booking.slotId.toString())
+						   );
 				});
 
 				if (override) {
@@ -1435,6 +1610,14 @@ exports.getBookingsByPatientId = async (req, res) => {
 						bookingObj.rescheduledTimeSlot = override.newStartTime;
 						bookingObj.originalTimeSlot = bookingObj.timeSlot;
 						bookingObj.timeSlot = override.newStartTime; // Dynamically show new time
+						if (override.newDuration) bookingObj.timeSlotDuration = override.newDuration;
+					} else if (override.type === 'added') {
+						if (override.isRescheduled) {
+							bookingObj.isRescheduledByDoctor = true;
+							bookingObj.rescheduledTimeSlot = override.newStartTime;
+							bookingObj.originalTimeSlot = override.originalStartTime || bookingObj.timeSlot;
+						}
+						bookingObj.timeSlot = override.newStartTime;
 						if (override.newDuration) bookingObj.timeSlotDuration = override.newDuration;
 					}
 				}
@@ -1503,18 +1686,22 @@ exports.getBookingsByDoctorId = async (req, res) => {
 				if (doctor.availableSlots && booking.slotId) {
 					const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][new Date(booking.dateOfAppointment).getDay()];
 					const baseSlots = doctor.availableSlots[dayName] || [];
-					const baseSlot = baseSlots.find(s => s._id.toString() === booking.slotId.toString());
+					const baseSlot = baseSlots.find(s => s._id && s._id.toString() === booking.slotId.toString());
 					if (baseSlot) {
 						bookingObj.timeSlot = baseSlot.startTime;
+						bookingObj.timeSlotDuration = baseSlot.duration || 30;
 					}
 				}
 
-				// Process bookings with doctor schedule overrides (cancellations and reschedules)
+				// Process bookings with doctor schedule overrides (cancellations, reschedules, added slots)
 				if (Array.isArray(doctor.scheduleOverrides) && booking.slotId) {
 					const bookingDateStr = new Date(booking.dateOfAppointment).toDateString();
 					const override = doctor.scheduleOverrides.find(o => {
 						return new Date(o.date).toDateString() === bookingDateStr &&
-							   o.targetSlotId && o.targetSlotId.toString() === booking.slotId.toString();
+							   (
+							       (o.targetSlotId && o.targetSlotId.toString() === booking.slotId.toString()) ||
+							       (o._id && o._id.toString() === booking.slotId.toString())
+							   );
 					});
 
 					if (override) {
@@ -1527,6 +1714,15 @@ exports.getBookingsByDoctorId = async (req, res) => {
 							bookingObj.rescheduledTimeSlot = override.newStartTime;
 							bookingObj.originalTimeSlot = bookingObj.timeSlot;
 							bookingObj.timeSlot = override.newStartTime; // Dynamically show new time
+							if (override.newDuration) bookingObj.timeSlotDuration = override.newDuration;
+						} else if (override.type === 'added') {
+							if (override.isRescheduled) {
+								bookingObj.isRescheduledByDoctor = true;
+								bookingObj.rescheduledTimeSlot = override.newStartTime;
+								bookingObj.originalTimeSlot = override.originalStartTime || bookingObj.timeSlot;
+							}
+							bookingObj.timeSlot = override.newStartTime;
+							if (override.newDuration) bookingObj.timeSlotDuration = override.newDuration;
 						}
 					}
 				}
@@ -1652,7 +1848,7 @@ exports.getBookingById = async (req, res) => {
 	try {
 		const booking = await Booking.findById(id)
 			.populate('patientId', 'firstName lastName email phone gender age zipCode address profileImage')
-			.populate('patientSharedRecords.referencedBookingId', 'doctorName dateOfAppointment recommendedSupplements');
+			.populate('patientSharedRecords.referencedBookingId', 'doctorName dateOfAppointment recommendedSupplements diagnosis patientIllness');
 
 		if (!booking) {
 			return res.status(404).json({ error: "Booking not found" });
@@ -1665,7 +1861,15 @@ exports.getBookingById = async (req, res) => {
 			return res.status(403).json({ error: "Not authorized to view this booking" });
 		}
 
-		return res.status(200).json({ booking });
+		const bookingObj = booking.toObject ? booking.toObject() : booking;
+		const doctor = await Doctor.findById(booking.doctorId);
+		const slotTime = resolveBookingSlotTime(doctor, booking);
+		if (slotTime) {
+			bookingObj.timeSlot = slotTime.startTime;
+			bookingObj.timeSlotDuration = slotTime.duration;
+		}
+
+		return res.status(200).json({ booking: bookingObj });
 	} catch (error) {
 		console.error("Error fetching booking by ID:", error);
 		return res.status(500).json({ error: "Server error" });
@@ -1690,16 +1894,124 @@ exports.getDoctorPatientHistory = async (req, res) => {
 			return res.status(400).json({ error: "Doctor ID is required" });
 		}
 
-		const bookings = await Booking.find({
-			doctorId,
-			patientId,
-			requestAccept: 'accepted'
-		}).sort({ dateOfAppointment: -1 });
+		const [bookings, doctor] = await Promise.all([
+			Booking.find({
+				doctorId,
+				patientId,
+				requestAccept: 'accepted',
+				dateOfAppointment: { $lt: new Date() }
+			}).sort({ dateOfAppointment: -1 }),
+			Doctor.findById(doctorId)
+		]);
 
-		return res.status(200).json({ bookings });
+		const processedBookings = bookings.map(booking => {
+			const bookingObj = booking.toObject ? booking.toObject() : booking;
+
+			if (doctor && doctor.availableSlots && booking.slotId) {
+				const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][new Date(booking.dateOfAppointment).getDay()];
+				const baseSlots = doctor.availableSlots[dayName] || [];
+				const baseSlot = baseSlots.find(s => s._id && s._id.toString() === booking.slotId.toString());
+				if (baseSlot) {
+					bookingObj.timeSlot = baseSlot.startTime;
+					bookingObj.timeSlotDuration = baseSlot.duration || 30;
+				}
+			}
+
+			if (doctor && Array.isArray(doctor.scheduleOverrides) && booking.slotId) {
+				const bookingDateStr = new Date(booking.dateOfAppointment).toDateString();
+				const override = doctor.scheduleOverrides.find(o => {
+					return new Date(o.date).toDateString() === bookingDateStr &&
+						   (
+						       (o.targetSlotId && o.targetSlotId.toString() === booking.slotId.toString()) ||
+						       (o._id && o._id.toString() === booking.slotId.toString())
+						   );
+				});
+
+				if (override && (override.type === 'rescheduled' || override.type === 'added')) {
+					bookingObj.timeSlot = override.newStartTime;
+					if (override.newDuration) bookingObj.timeSlotDuration = override.newDuration;
+				}
+			}
+
+			return bookingObj;
+		});
+
+		return res.status(200).json({ bookings: processedBookings });
 	} catch (error) {
 		console.error("Error fetching doctor-patient history:", error);
 		return res.status(500).json({ error: "Server error" });
+	}
+};
+
+exports.requestDietPlanPostBooking = async (req, res) => {
+	const { id } = req.params;
+	try {
+		const booking = await Booking.findById(id);
+		if (!booking) {
+			return res.status(404).json({ error: "Booking not found" });
+		}
+
+		if (req.user.role !== "admin" && booking.patientId.toString() !== req.user._id.toString()) {
+			return res.status(403).json({ error: "Unauthorized access to this booking" });
+		}
+
+		if (booking.dietPlanRequested && booking.dietPlanStatus === "completed") {
+			return res.status(400).json({ error: "Personalized diet plan has already been completed and published" });
+		}
+
+		const doctor = await Doctor.findById(booking.doctorId);
+		const fee = doctor?.dietPlanFee !== undefined ? Number(doctor.dietPlanFee) : 299;
+
+		booking.dietPlanRequested = true;
+		booking.dietPlanFee = fee;
+		booking.dietPlanStatus = "pending";
+		booking.amountPaid = (booking.amountPaid || 0) + fee;
+		// Post-booking diet plan payment escrow window:
+		// Always guarantee a fresh 48-hour escrow hold from the moment the diet plan is requested
+		// (or slotEnd + 48h, whichever is later), and re-engage escrow hold even if consultation payout was already released.
+		const minHoldUntil = new Date(Date.now() + PAYOUT_HOLD_GRACE_MS);
+		const initialHold = await computeBookingPayoutHold(booking);
+		const computedHoldUntil = initialHold?.payoutHoldUntil ? new Date(initialHold.payoutHoldUntil) : minHoldUntil;
+		
+		booking.payoutHoldUntil = computedHoldUntil > minHoldUntil ? computedHoldUntil : minHoldUntil;
+		if (!booking.payoutStatus || booking.payoutStatus === "released" || booking.payoutStatus === "not_applicable") {
+			booking.payoutStatus = "held";
+		}
+		await booking.save();
+
+		notifyDoctor(booking.doctorId);
+		try {
+			const dateStr = new Date(booking.dateOfAppointment).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+			await notificationController.createNotification(
+				booking.doctorId,
+				"doctor",
+				booking._id.toString(),
+				`New Paid Request: ${booking.patientName || "A patient"} has requested a Personalized 7-Day Ayurvedic Diet Plan for appointment on ${dateStr}.`,
+				"diet_plan"
+			);
+
+			const doctorDisplay = booking.doctorName && (booking.doctorName.toLowerCase().startsWith("dr.") || booking.doctorName.toLowerCase().startsWith("dr "))
+				? booking.doctorName
+				: `Dr. ${booking.doctorName || "your doctor"}`;
+
+			await notificationController.createNotification(
+				booking.patientId,
+				"patient",
+				booking._id.toString(),
+				`Your request for a Personalized Diet Plan (₹${fee}) with ${doctorDisplay} has been submitted. The doctor will customize your 7-day meal plan.`,
+				"appointment"
+			);
+		} catch (notifErr) {
+			console.error("Failed to send diet plan request notification:", notifErr);
+		}
+
+		return res.status(200).json({
+			message: "Personalized diet plan requested successfully",
+			booking,
+		});
+	} catch (error) {
+		console.error("Error requesting diet plan post-booking:", error);
+		return res.status(500).json({ error: "Server error requesting diet plan" });
 	}
 };
 

@@ -307,12 +307,27 @@ async function attachStaleness(plan, { includeHistory = false } = {}) {
         && new Date(dosha.updatedAt).getTime() !== new Date(plan.basedOn.doshaAssessmentUpdatedAt).getTime();
     const obj = plan.toObject();
     if (!includeHistory) delete obj.history;
+
+    if (obj.doctorReview?.reviewedBy && typeof obj.doctorReview.reviewedBy === "object") {
+        const doc = obj.doctorReview.reviewedBy;
+        const name = [doc.firstName, doc.lastName].filter(Boolean).join(" ");
+        obj.doctorReview.doctorName = name ? (name.startsWith("Dr.") ? name : `Dr. ${name}`) : "";
+    }
+    if (!obj.doctorReview?.doctorName && obj.doctorReview?.bookingId) {
+        try {
+            const b = await Booking.findById(obj.doctorReview.bookingId).select("doctorName");
+            if (b?.doctorName) {
+                obj.doctorReview.doctorName = b.doctorName.startsWith("Dr.") ? b.doctorName : `Dr. ${b.doctorName}`;
+            }
+        } catch (e) {}
+    }
+
     return { ...obj, isStale: Boolean(profileChanged || doshaChanged), displayPlan: resolveDisplayPlan(obj) };
 }
 
 exports.getDietPlan = async (req, res) => {
     try {
-        const plan = await AyurvedaDietPlan.findOne({ patientId: req.user._id });
+        const plan = await AyurvedaDietPlan.findOne({ patientId: req.user._id }).populate("doctorReview.reviewedBy", "firstName lastName email");
         return res.status(200).json(await attachStaleness(plan));
     } catch (error) {
         console.error("Error fetching diet plan:", error);
@@ -326,7 +341,7 @@ exports.getDietPlanForPatient = async (req, res) => {
         const allowed = await assertDoctorRelationship(req, patientId);
         if (!allowed) return res.status(403).json({ error: "Access denied" });
 
-        const plan = await AyurvedaDietPlan.findOne({ patientId });
+        const plan = await AyurvedaDietPlan.findOne({ patientId }).populate("doctorReview.reviewedBy", "firstName lastName email");
         return res.status(200).json(await attachStaleness(plan, { includeHistory: true }));
     } catch (error) {
         console.error("Error fetching patient's diet plan:", error);
@@ -384,6 +399,7 @@ exports.reviewDietPlan = async (req, res) => {
         if (plan.history.length > 10) plan.history = plan.history.slice(-10);
 
         await plan.save();
+        await plan.populate("doctorReview.reviewedBy", "firstName lastName email");
         return res.status(200).json({ message: "Diet plan draft saved", plan: await attachStaleness(plan, { includeHistory: true }) });
     } catch (error) {
         console.error("Error reviewing diet plan:", error);

@@ -54,6 +54,13 @@ const WriteBlog = lazy(() => import('./screens/Doctors/WriteBlog'));
 const TreatmentDetailsScreen = lazy(() => import('./screens/TreatmentDetailsScreen'));
 const CheckoutScreen = lazy(() => import('./screens/CheckoutScreen'));
 
+// Legal & Compliance screens (Razorpay activation)
+const ContactUs = lazy(() => import('./screens/ContactUs'));
+const TermsAndConditions = lazy(() => import('./screens/Legal/TermsAndConditions'));
+const PrivacyPolicy = lazy(() => import('./screens/Legal/PrivacyPolicy'));
+const CancellationRefundPolicy = lazy(() => import('./screens/Legal/CancellationRefundPolicy'));
+const ShippingPolicy = lazy(() => import('./screens/Legal/ShippingPolicy'));
+
 const AdminPage = lazy(() => import('./screens/admin/AdminPage'));
 const AdminUsers = lazy(() => import('./screens/admin/AdminUsers'));
 const AdminProfile = lazy(() => import('./screens/admin/AdminProfile'));
@@ -167,6 +174,17 @@ function App() {
           <Route path="/doctor-detail" element={<DoctorDetailPage />} />
           <Route path="/medicines" element={<MedicinesScreen />} />
           <Route path="/medicines/:id" element={<MedicineIdDetails />} />
+
+          {/* Razorpay Website Compliance & Legal Routes */}
+          <Route path="/contact-us" element={<ContactUs />} />
+          <Route path="/contact" element={<ContactUs />} />
+          <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
+          <Route path="/terms" element={<TermsAndConditions />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/cancellation-refund-policy" element={<CancellationRefundPolicy />} />
+          <Route path="/refund-policy" element={<CancellationRefundPolicy />} />
+          <Route path="/shipping-policy" element={<ShippingPolicy />} />
 
           <Route path="/signup-patient" element={<SignUpPatientScreen />} />
           <Route path="/signup-doctor" element={<SignUpDoctorScreen />} />

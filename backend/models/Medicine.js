@@ -11,6 +11,15 @@ const MedicineSchema = new mongoose.Schema({
       message: '{VALUE} is not an integer value for quantity'
     }
   },
+  // Weight per unit in grams. Used for shipping cost estimation and automated
+  // shipment creation. null = retailer hasn't set it yet → UI prompts them,
+  // and freight calculators use a 200g fallback per unit.
+  weightGrams: {
+    type: Number,
+    default: null,
+    min: [1, 'Weight must be at least 1 gram'],
+    max: [50000, 'Weight cannot exceed 50 kg']
+  },
   category: { type: String, required: true },
   description: { type: String, required: true },
   diseasesTreated: [{ type: String, trim: true }],

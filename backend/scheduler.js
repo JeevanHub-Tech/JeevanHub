@@ -6,13 +6,15 @@ const Booking = require('./models/Booking');
 const Patient = require('./models/Patient');
 const Doctor = require('./models/Doctor');
 const DietYoga = require('./models/DietYoga');
+const Order = require('./models/Order');
 const AyurvedaDietPlan = require('./models/AyurvedaDietPlan');
 const AyurvedaYogaPlan = require('./models/AyurvedaYogaPlan');
-
 const Notification = require('./models/Notification');
 
 const { createNotification } = require('./controllers/notificationController');
 const { sendWhatsAppMessage } = require('./controllers/whatsappController');
+const delhiveryService = require('./services/delhiveryService');
+const { applyTrackingToOrder } = require('./services/shipmentSync');
 
 // Best-effort reminder dispatch: in-app notification always saved, WhatsApp
 // send is fire-and-forget since no verified WhatsApp Business templates exist yet.
@@ -53,6 +55,12 @@ const MORNING_ROUTINE_TIME = process.env.MORNING_ROUTINE_TIME || '0 4 * * *';
 // Evening appointment reminders for tomorrow: 8:00 PM IST
 const APPOINTMENT_REMINDER_TIME = process.env.APPOINTMENT_REMINDER_TIME || '0 20 * * *';
 
+// Delhivery polling: every 6 hours (00:00, 06:00, 12:00, 18:00 IST). Scans land
+// a few times a day at most, so anything tighter just burns the 750-req/5-min
+// rate limit. Retailers on the webhook method are skipped -- Delhivery pushes
+// to /api/webhooks/delhivery for them in real time.
+const DELIVERY_POLL_TIME = process.env.DELIVERY_POLL_CRON || '0 */6 * * *';
+
 const startScheduler = () => {
 	console.log(`📅 Schedulers active:`);
 	console.log(`   - Morning Routines (Diet & Yoga): ${MORNING_ROUTINE_TIME} (Asia/Kolkata)`);
@@ -89,6 +97,17 @@ const startScheduler = () => {
 			console.error('❌ Appointment Reminders Error:', error);
 		}
 		console.log('🌙 --- APPOINTMENT REMINDERS SCHEDULER END ---\n');
+	}, { scheduled: true, timezone: "Asia/Kolkata" });
+
+	console.log(`📦 Delivery polling active. Running at: ${DELIVERY_POLL_TIME}`);
+	cron.schedule(DELIVERY_POLL_TIME, async () => {
+		console.log('\n📦 --- DELIVERY POLLING START ---');
+		try {
+			await pollDeliveryStatuses();
+		} catch (error) {
+			console.error('❌ Delivery polling error:', error);
+		}
+		console.log('📦 --- DELIVERY POLLING END ---\n');
 	}, { scheduled: true, timezone: "Asia/Kolkata" });
 };
 
@@ -336,6 +355,118 @@ async function sendYogaPlans() {
 }
 
 // ==========================================
+// 4. DELHIVERY DELIVERY STATUS POLLING
+// ==========================================
+//
+// Safety net for retailers on the apiToken/oauth2 methods: even if nobody opens
+// the tracking dialog, delivery gets detected (and the 48h payout hold starts)
+// within 6 hours of the carrier scan. Webhook-method retailers are skipped --
+// Delhivery pushes their scans to /api/webhooks/delhivery in real time, and we
+// hold no outbound credentials for them anyway.
+async function pollDeliveryStatuses() {
+	const orders = await Order.find({
+		orderStatus: { $in: ['shipped', 'processing'] },
+		'shipments.platform': 'delhivery',
+		'shipments.trackingId': { $ne: null }
+	}).populate('items.medicineId');
+
+	if (orders.length === 0) {
+		console.log('👉 No in-flight Delhivery shipments to poll.');
+		return { polled: 0, updated: 0, delivered: 0, skipped: 0, errors: 0 };
+	}
+
+	console.log(`👉 Polling ${orders.length} in-flight Delhivery order(s)...`);
+
+	// One retailer usually owns many in-flight orders, so cache the credential
+	// lookup per run instead of re-reading (and re-decrypting) the same doc.
+	const retailerCache = new Map();
+	const stats = { polled: 0, updated: 0, delivered: 0, skipped: 0, errors: 0 };
+
+	for (const order of orders) {
+		let orderChanged = false;
+
+		for (const shipment of order.shipments || []) {
+			if (shipment.platform !== 'delhivery' || !shipment.trackingId) continue;
+
+			const retailerId = shipment.retailerId;
+			if (!retailerId) {
+				// Pre-integration order, or the AWB was attached before we started
+				// recording who shipped it. Nothing to authenticate with.
+				stats.skipped += 1;
+				continue;
+			}
+
+			const cacheKey = String(retailerId);
+			if (!retailerCache.has(cacheKey)) {
+				try {
+					retailerCache.set(cacheKey, await delhiveryService.findRetailerWithCredentials(retailerId));
+				} catch (error) {
+					console.error(`   -> ❌ Could not load retailer ${cacheKey}:`, error.message);
+					retailerCache.set(cacheKey, null);
+				}
+			}
+			const retailer = retailerCache.get(cacheKey);
+
+			if (!delhiveryService.canPoll(retailer)) {
+				stats.skipped += 1;
+				continue;
+			}
+
+			stats.polled += 1;
+			let tracking;
+			try {
+				tracking = await delhiveryService.trackShipment(retailer, shipment.trackingId);
+			} catch (error) {
+				stats.errors += 1;
+				console.error(`   -> ❌ AWB ${shipment.trackingId}:`, error.message);
+				// Surface the failure on the order so the retailer sees why tracking
+				// looks stale, without wiping the last good timeline.
+				shipment.lastPollError = error.message;
+				shipment.lastPolledAt = new Date();
+				orderChanged = true;
+				continue;
+			}
+
+			try {
+				const result = applyTrackingToOrder(order, shipment, tracking);
+				orderChanged = true;
+
+				if (result.statusChanged) stats.updated += 1;
+				if (result.becameDelivered) stats.delivered += 1;
+
+				if (result.becameDelivered || result.becameCancelled) {
+					const shortId = order._id.toString().slice(-6);
+					await dispatchReminder({
+						userId: order.buyer.buyerId,
+						role: order.buyer.type.toLowerCase(),
+						refId: order._id.toString(),
+						type: 'order',
+						message: result.becameDelivered
+							? `Your order #${shortId} has been delivered.`
+							: `Your order #${shortId} is being returned to the seller by the courier.`
+					});
+					console.log(`   -> 📦 Order #${shortId}: ${result.previousStatus} -> ${order.orderStatus}${result.payoutHeld ? ' (payout hold started)' : ''}`);
+				}
+			} catch (error) {
+				stats.errors += 1;
+				console.error(`   -> ❌ Could not apply tracking to order ${order._id}:`, error.message);
+			}
+		}
+
+		if (orderChanged) {
+			try {
+				await order.save();
+			} catch (saveError) {
+				console.error(`   -> ❌ Could not save order ${order._id}:`, saveError.message);
+			}
+		}
+	}
+
+	console.log(`✅ Delivery poll done. polled=${stats.polled} updated=${stats.updated} delivered=${stats.delivered} skipped=${stats.skipped} errors=${stats.errors}`);
+	return stats;
+}
+
+// ==========================================
 // Password Reset OTP
 // ==========================================
 async function sendOTPWhatsApp(phone, firstName, otp) {
@@ -367,5 +498,8 @@ async function sendOTPWhatsApp(phone, firstName, otp) {
 
 module.exports = {
 	startScheduler,
-	sendOTPWhatsApp
+	sendOTPWhatsApp,
+	// Exported so it can also be triggered on demand (see cronController.pollDeliveries),
+	// which is how you test it without waiting for the 6-hourly tick.
+	pollDeliveryStatuses
 };

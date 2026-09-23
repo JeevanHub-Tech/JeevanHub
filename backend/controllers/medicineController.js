@@ -71,6 +71,7 @@ exports.addMedicinesFromZip = async (req, res) => {
         category: item.category,
         prescription: item.prescription === 'yes' || item.prescription === true,
         diseasesTreated: splitDiseasesTreated(item.diseasesTreated),
+        weightGrams: item.weightGrams,
         images: imagePath ? [imagePath] : [], // Save image path in array
         retailerId: retailerId, // Reference to the retailer
       });
@@ -113,6 +114,7 @@ exports.addBulkMedicines = async (req, res) => {
         description: item.description || 'No description provided',
         prescription: item.prescription,
         diseasesTreated: splitDiseasesTreated(item.diseasesTreated),
+        weightGrams: item.weightGrams,
         images: item.images || [],
         retailerId: req.user._id,
     }));
@@ -130,7 +132,7 @@ exports.addMedicine = async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ message: 'Medicine image is required' });
   }
-  const { name, price, quantity ,category, prescription, diseasesTreated} = req.body;
+  const { name, price, quantity ,category, prescription, diseasesTreated, weightGrams} = req.body;
   const image = req.file.path;
   if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
   if (req.user.role !== 'retailer') {
@@ -139,7 +141,7 @@ exports.addMedicine = async (req, res) => {
   const retailerId = req.user._id; // Get retailer ID from authenticated user
 
   try {
-    const newMedicine = new Medicine({ name, price, quantity ,category, prescription, diseasesTreated: splitDiseasesTreated(diseasesTreated), images: [image], retailerId });
+    const newMedicine = new Medicine({ name, price, quantity ,category, prescription, diseasesTreated: splitDiseasesTreated(diseasesTreated), weightGrams, images: [image], retailerId });
     await newMedicine.save();
     res.status(201).json({ message: 'Medicine added successfully', medicine: newMedicine });
   } catch (error) {
@@ -355,7 +357,7 @@ exports.updateMedicine = async (req, res) => {
     }
 
     // C5-8: Whitelist allowed fields to prevent mass assignment (e.g., hijacking retailerId)
-    const allowedUpdates = ["name", "price", "quantity", "category", "prescription", "description", "diseasesTreated", "isActive", "images"];
+    const allowedUpdates = ["name", "price", "quantity", "category", "prescription", "description", "diseasesTreated", "isActive", "images", "weightGrams"];
     const updates = {};
     for (const key of allowedUpdates) {
       if (req.body[key] !== undefined) {

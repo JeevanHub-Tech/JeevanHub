@@ -58,11 +58,45 @@ exports.settlePayouts = async (req, res) => {
 			order.payoutStatus = "released";
 			result.ordersReleased += 1;
 			await order.save();
+
+			// Release Razorpay Route transfers from hold
+			const getRazorpay = require('../services/razorpayService');
+			const razorpay = getRazorpay();
+			const transferIds = [...new Set(order.items.map(i => i.razorpayTransferId).filter(Boolean))];
+			for (const tId of transferIds) {
+				try {
+					await razorpay.transfers.edit(tId, { on_hold: false });
+				} catch (e) {
+					console.error("Error releasing Razorpay transfer hold for:", tId, e);
+				}
+			}
 		}
 
 		return res.status(200).json({ message: "Settlement sweep complete", ...result });
 	} catch (error) {
 		console.error("Error running settlement sweep:", error);
+		return res.status(500).json({ error: "Server error" });
+	}
+};
+
+// Manual trigger for the Delhivery delivery-status poll that otherwise runs on a
+// 6-hourly cron inside the app process. Same shared-secret protection as the
+// settlement sweep. Useful both for testing and as a backstop on hosts that
+// restart the process often enough to miss a tick.
+exports.pollDeliveries = async (req, res) => {
+	const secret = req.header("x-cron-secret");
+	if (!process.env.CRON_SECRET || secret !== process.env.CRON_SECRET) {
+		return res.status(401).json({ error: "Unauthorized" });
+	}
+
+	try {
+		// Required lazily: scheduler.js pulls in the notification/WhatsApp stack,
+		// and this keeps the module graph the same shape it was before.
+		const { pollDeliveryStatuses } = require("../scheduler");
+		const stats = await pollDeliveryStatuses();
+		return res.status(200).json({ message: "Delivery poll complete", ...stats });
+	} catch (error) {
+		console.error("Error running delivery poll:", error);
 		return res.status(500).json({ error: "Server error" });
 	}
 };

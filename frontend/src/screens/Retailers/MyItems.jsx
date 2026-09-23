@@ -86,6 +86,7 @@ function MyItems() {
 		prescription: false,
 		isActive: true,
 		diseasesTreated: "",
+		weightGrams: "",
 	});
 
 	const [inlineEditField, setInlineEditField] = useState({ id: null, field: null, value: "" });
@@ -223,6 +224,7 @@ function MyItems() {
 			prescription: item.prescription,
 			isActive: item.isActive !== false,
 			diseasesTreated: (item.diseasesTreated || []).join(", "),
+			weightGrams: item.weightGrams || "",
 		});
 		setIsDrawerOpen(true);
 	};
@@ -233,6 +235,7 @@ function MyItems() {
 			const payload = {
 				...editForm,
 				quantity: Math.floor(Number(editForm.quantity)),
+				weightGrams: editForm.weightGrams ? Number(editForm.weightGrams) : null,
 				diseasesTreated: editForm.diseasesTreated
 					.split(",")
 					.map((entry) => entry.trim())
@@ -706,6 +709,19 @@ function MyItems() {
 									value={editForm.quantity}
 									onChange={(e) => setEditForm({ ...editForm, quantity: e.target.value })}
 								/>
+							</Field>
+							<Field>
+								<FieldLabel htmlFor="weightGrams">Weight per unit (grams)</FieldLabel>
+								<Input
+									id="weightGrams"
+									type="number"
+									min="1"
+									max="50000"
+									placeholder="e.g. 200"
+									value={editForm.weightGrams}
+									onChange={(e) => setEditForm({ ...editForm, weightGrams: e.target.value })}
+								/>
+								<p className="text-xs text-muted-foreground mt-1">Used for shipping cost calculation. Leave empty to use default (200g).</p>
 							</Field>
 							<Field>
 								<FieldLabel htmlFor="category">Category</FieldLabel>

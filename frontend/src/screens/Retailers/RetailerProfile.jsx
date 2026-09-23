@@ -12,6 +12,8 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { FieldGroup, Field, FieldLabel } from "@/components/ui/field";
+import ShippingSettingsPanel from "./ShippingSettingsPanel";
+import BankDetailsPanel from "./BankDetailsPanel";
 
 const RetailerProfile = () => {
 	const { auth, setAuth, logout, loading: authLoading } = useContext(AuthContext);
@@ -320,6 +322,16 @@ const RetailerProfile = () => {
 							</FieldGroup>
 						</form>
 					</Card>
+
+					{/* Standalone Shipping Integration Settings */}
+					{auth.user?.id && auth.token && (
+						<ShippingSettingsPanel retailerId={auth.user.id} token={auth.token} />
+					)}
+
+					{/* Standalone Bank Details Panel */}
+					{auth.user?.id && auth.token && (
+						<BankDetailsPanel retailerId={auth.user.id} token={auth.token} />
+					)}
 				</div>
 			</div>
 		</DashboardShell>

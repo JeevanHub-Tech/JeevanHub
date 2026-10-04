@@ -3,12 +3,14 @@ const AyurvedaDoshaAssessment = require("../models/AyurvedaDoshaAssessment");
 const AyurvedaDietPlan = require("../models/AyurvedaDietPlan");
 const Patient = require("../models/Patient");
 const Booking = require("../models/Booking");
+const Doctor = require("../models/Doctor");
 const { getDoshaProfile } = require("../constants/doshaProfiles");
 const { generateDietPlan } = require("../services/ayurvedaDiet/dietPlanService");
 const { AYURVEDA_DIET_MODEL } = require("../services/ayurvedaDiet/config");
 
 async function assertDoctorRelationship(req, patientId) {
     if (req.user.role === "admin") return true;
+    if (req.user && req.user._id && patientId && req.user._id.toString() === patientId.toString()) return true;
     if (req.user.role !== "doctor") return false;
     return Booking.exists({ doctorId: req.user._id, patientId });
 }

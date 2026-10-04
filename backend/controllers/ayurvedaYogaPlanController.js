@@ -2,6 +2,7 @@ const AyurvedaWellnessProfile = require("../models/AyurvedaWellnessProfile");
 const AyurvedaDoshaAssessment = require("../models/AyurvedaDoshaAssessment");
 const AyurvedaYogaPlan = require("../models/AyurvedaYogaPlan");
 const Patient = require("../models/Patient");
+const Doctor = require("../models/Doctor");
 const { assertDoctorRelationship, isProfileFilled } = require("./ayurvedaController");
 const { generateYogaPlan: generateYogaPlanAi } = require("../services/ayurvedaYoga/yogaPlanService");
 const { AYURVEDA_YOGA_MODEL } = require("../services/ayurvedaYoga/config");

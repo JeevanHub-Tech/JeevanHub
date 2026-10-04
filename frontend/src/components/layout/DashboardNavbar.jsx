@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import GlobalSearchBox from "@/components/layout/GlobalSearchBox";
 import LocationPicker from "@/components/layout/LocationPicker";
+import LanguageToggle from "@/components/layout/LanguageToggle";
 import { exploreOptions as defaultExploreOptions } from "@/screens/publicNavigation";
 import { AuthContext } from "@/context/AuthContext";
 import { CartContext } from "@/context/CartContext";
@@ -110,6 +111,7 @@ function DashboardNavbar({ navItems, profileTo, notificationsTo, cartTo, logoTo 
 
 				<div className="ml-auto flex items-center gap-2">
 					<LocationPicker savedLocation={savedLocation} className="hidden xl:flex" />
+					<LanguageToggle className="hidden sm:inline-flex" />
 
 					{cartTo ? (
 						<NavLink to={cartTo} aria-label="Cart" className="relative hidden rounded-md p-2 text-primary-foreground/80 transition-colors hover:bg-primary-foreground/10 hover:text-primary-foreground sm:inline-flex">
@@ -148,6 +150,8 @@ function DashboardNavbar({ navItems, profileTo, notificationsTo, cartTo, logoTo 
 					<Button variant="ghost" size="icon" aria-label="Sign out" onClick={handleSignOut} className="hidden text-primary-foreground hover:bg-primary-foreground/10 sm:inline-flex">
 						<LogOut className="size-4" />
 					</Button>
+
+					<LanguageToggle className="sm:hidden" />
 
 					<NavLink to={profileTo} aria-label="Profile" className="sm:hidden">
 						<Avatar size="sm">

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import GlobalSearchBox from "@/components/layout/GlobalSearchBox";
 import { exploreOptions, publicNavigation } from "./publicNavigation";
 import LocationPicker from "../components/layout/LocationPicker";
+import LanguageToggle from "../components/layout/LanguageToggle";
 import defaultProfilePic from "../media/default-profile.png";
 import logo from "../media/logo2.png";
 
@@ -44,7 +45,9 @@ function Navbar() {
 
         <div className="ml-auto flex items-center gap-2">
           <LocationPicker className="hidden xl:flex" />
+          <LanguageToggle className="hidden sm:inline-flex" />
           <NavLink to="/signin" className="hidden h-9 items-center justify-center rounded-md bg-primary-foreground px-4 text-sm font-semibold text-primary transition-colors hover:bg-primary-foreground/90 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50 sm:inline-flex">Sign in</NavLink>
+          <LanguageToggle className="sm:hidden" />
           <NavLink to="/signin" aria-label="Sign in" className="sm:hidden">
             <img src={defaultProfilePic} alt="" className="size-9 rounded-full border border-primary-foreground/40 object-cover" />
           </NavLink>

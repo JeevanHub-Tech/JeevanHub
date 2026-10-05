@@ -1153,6 +1153,498 @@
       "passwordSuccess": "Password changed successfully! Please log in again.",
       "passwordFailed": "Failed to change password"
     }
+  },
+  "doctorsScreen": {
+    "title": "Find Your Ayurvedic Doctor",
+    "subtitle": "Describe your concern and let AI find your best-matched practitioners — or browse and filter profiles yourself.",
+    "aiMatch": "AI Match",
+    "aiHeading": "Describe your concern, meet your doctor",
+    "aiDescription": "Tell us your symptoms or condition in your own words. Our AI ranks the doctors best suited to help.",
+    "aiPlaceholder": "e.g. I've had chronic acidity and bloating after meals for a few months…",
+    "findMatch": "Find my match",
+    "analyzing": "Analyzing…",
+    "showingMatches": "Showing AI matches for:",
+    "clearAiMatch": "Clear AI match",
+    "aiScoreMatch": "{{score}}% match",
+    "filterTitle": "Filter doctors",
+    "filterSubtitle": "Narrow the list by specialization, budget, and more.",
+    "clearAll": "Clear all",
+    "specialization": "Specialization",
+    "allSpecializations": "All specializations",
+    "experience": "Experience",
+    "any": "Any",
+    "priceRange": "Price range",
+    "all": "All",
+    "location": "Location",
+    "allLocations": "All locations",
+    "language": "Language",
+    "allLanguages": "All languages",
+    "gender": "Gender",
+    "rating": "Rating",
+    "sortBy": "Sort by",
+    "defaultSort": "Default",
+    "aiSortNotice": "Sorting is set by AI match",
+    "doctorsFound_one": "{{count}} doctor found",
+    "doctorsFound_other": "{{count}} doctors found",
+    "doctorsMatched_one": "{{count}} doctor matched",
+    "doctorsMatched_other": "{{count}} doctors matched",
+    "expOptions": {
+      "one": "1 year or less",
+      "twoToFive": "2 - 5 years",
+      "fivePlus": "More than 5 years"
+    },
+    "priceOptions": {
+      "low": "Less than ₹500",
+      "medium": "₹500 - ₹1000",
+      "high": "More than ₹1000"
+    },
+    "genderOptions": {
+      "male": "Male",
+      "female": "Female"
+    },
+    "ratingOptions": {
+      "one": "1 star & up",
+      "two": "2 star & up",
+      "three": "3 star & up",
+      "four": "4 star & up",
+      "five": "5 star"
+    },
+    "sortOptions": {
+      "lowToHigh": "Rating: Low to High",
+      "highToLow": "Rating: High to Low"
+    },
+    "card": {
+      "specialization": "Specialization",
+      "experience": "Experience",
+      "location": "Location",
+      "languages": "Languages",
+      "gender": "Gender",
+      "bookConsultation": "Book Consultation",
+      "notSpecified": "Not specified",
+      "years": "years",
+      "yearsExp": "{{count}} years",
+      "english": "English"
+    },
+    "empty": {
+      "errorTitle": "Couldn't load doctors",
+      "errorDesc": "Please refresh the page and try again.",
+      "noMatchTitle": "No doctors matched your description",
+      "noFilterTitle": "No doctors match your filters",
+      "noMatchDesc": "Try describing your concern differently, or clear your filters to see more results.",
+      "noFilterDesc": "Try clearing a filter to see more results.",
+      "clearFilters": "Clear filters"
+    }
+  },
+  "doshaQuiz": {
+    "title": "Prakriti (Dosha) assessment",
+    "stepProgress": "Step {{current}} of {{total}}: {{categoryTitle}}",
+    "submitting": "Submitting...",
+    "btnBack": "Back",
+    "btnNext": "Next",
+    "btnSubmit": "Submit Assessment",
+    "categories": {
+      "physical": "Physical Characteristics",
+      "mental_behavioral": "Mental and Behavioral Characteristics",
+      "lifestyle": "Lifestyle Indicators"
+    },
+    "questions": {
+      "ph_v1": {
+        "text": "Body Frame & Weight Tendency (Vata)",
+        "opt0": "Solid, heavy frame; I gain weight very easily and find it hard to lose.",
+        "opt1": "Medium build; weight is stable and easy to manage.",
+        "opt2": "Light build; I occasionally lose weight when stressed but can regain it.",
+        "opt3": "Thin, light frame; I struggle to gain weight and lose it quickly.",
+        "opt4": "Extremely thin, delicate/tall frame with prominent joints; gaining weight is nearly impossible."
+      },
+      "ph_v2": {
+        "text": "Skin & Hair Texture (Vata)",
+        "opt0": "Smooth, oily, or thick skin and lustrous hair.",
+        "opt1": "Normal skin and hair with minimal dry spells.",
+        "opt2": "Mildly dry skin or frizzy hair, especially in dry weather.",
+        "opt3": "Noticeably dry, rough skin and brittle, split-end prone hair.",
+        "opt4": "Chronically dry, cracked skin and extremely thin, dry, coarse hair."
+      },
+      "ph_v3": {
+        "text": "Cold Sensitivity & Digestion (Vata)",
+        "opt0": "Warm hands/feet; strong, highly predictable appetite and digestion.",
+        "opt1": "Rarely feel unusually cold; digest most meals easily.",
+        "opt2": "Sometimes get cold extremities; appetite fluctuates occasionally with gas/bloating.",
+        "opt3": "Frequent cold hands/feet; unpredictable hunger and regular bloating or gas.",
+        "opt4": "Constant cold intolerance; highly erratic digestion (extreme bloating, gas, or constipation)."
+      },
+      "ph_v4": {
+        "text": "Sleep Pattern (Vata)",
+        "opt0": "Deep, heavy sleep for 8+ hours; hard to wake up.",
+        "opt1": "Sound, moderate sleep; wake up feeling well-rested.",
+        "opt2": "Moderate sleep; occasionally wake up but fall back asleep easily.",
+        "opt3": "Light sleep; easily awakened by minor noises or thoughts; struggle to sleep soundly.",
+        "opt4": "Highly fitful, restless sleep (insomnia) with frequent waking; sleep less than 5-6 hours."
+      },
+      "ph_p1": {
+        "text": "Body Build (Pitta)",
+        "opt0": "Thin/frail frame OR very broad/heavy frame.",
+        "opt1": "Moderately slim or stocky build without much muscle definition.",
+        "opt2": "Average build; can tone muscle with regular effort.",
+        "opt3": "Good muscle tone and athletic, medium-framed build.",
+        "opt4": "Well-defined, athletic, and symmetrical medium build; gain muscle easily."
+      },
+      "ph_p2": {
+        "text": "Skin Sensitivity & Hair (Pitta)",
+        "opt0": "Cool, dry skin; thick, dark, coarse hair.",
+        "opt1": "Normal skin tolerance; hair is moderately thick and maintains natural color.",
+        "opt2": "Slightly warm skin; hair is somewhat fine or has early hints of thinning/greying.",
+        "opt3": "Warm, sensitive skin (occasional redness/sunburn); fine hair with noticeable thinning/greying.",
+        "opt4": "Highly sensitive, warm skin (frequent rashes, acne, easily sunburned); very fine, red/blonde or prematurely grey/bald hair."
+      },
+      "ph_p3": {
+        "text": "Temperature & Hunger (Pitta)",
+        "opt0": "Prefer hot weather; slow digestion; rarely feel intense hunger.",
+        "opt1": "Moderate heat tolerance; normal appetite.",
+        "opt2": "Feel warm easily; get irritable if meals are delayed.",
+        "opt3": "Sweat easily; strong appetite; require regular meals to avoid acidity or anger.",
+        "opt4": "Intense heat intolerance; sweat heavily; sharp, intense hunger that must be satisfied immediately to prevent severe acidity/irritation."
+      },
+      "ph_p4": {
+        "text": "Sleep Quality (Pitta)",
+        "opt0": "Deep sleep unaffected by room temperature or hunger.",
+        "opt1": "Consistent sleep, rarely wake up during the night.",
+        "opt2": "Average sleep; occasionally wake up if the room is too hot.",
+        "opt3": "Moderate sleep; wake up feeling hot or hungry, but can resume sleep after cooling down.",
+        "opt4": "Light-to-moderate sleep; frequently disrupted by night sweats, feeling hot, or midnight hunger."
+      },
+      "ph_k1": {
+        "text": "Frame & Weight Gain (Kapha)",
+        "opt0": "Thin, bony frame; hard to gain any weight.",
+        "opt1": "Medium, balanced build; weight changes are moderate.",
+        "opt2": "Slightly heavy build; gain weight when inactive but can lose it with effort.",
+        "opt3": "Solid, broad frame; gain weight very easily and struggle to lose it.",
+        "opt4": "Very heavy, stocky, large frame; constant weight accumulation; extremely difficult to lose weight."
+      },
+      "ph_k2": {
+        "text": "Skin & Hair Quality (Kapha)",
+        "opt0": "Very dry, rough skin; thin, sparse hair.",
+        "opt1": "Normal skin and hair with balanced oil production.",
+        "opt2": "Slightly oily skin (T-zone); moderately thick hair.",
+        "opt3": "Smooth, soft, cool skin (prone to oiliness); thick, wavy, strong hair.",
+        "opt4": "Thick, oily skin (prone to cystic acne); extremely dense, lustrous, thick hair."
+      },
+      "ph_k3": {
+        "text": "Digestion & Appetite (Kapha)",
+        "opt0": "Cold extremities; sharp, frequent hunger; fast digestion.",
+        "opt1": "Normal body temperature; standard hunger patterns.",
+        "opt2": "Generally warm; occasionally feel heavy after eating.",
+        "opt3": "Stay warm easily; slow, sluggish digestion; can comfortably skip meals.",
+        "opt4": "Constant warmth; extremely slow digestion (food sits in stomach for hours); minimal appetite, yet still hold weight."
+      },
+      "ph_k4": {
+        "text": "Sleep Duration (Kapha)",
+        "opt0": "Very light sleep; wake up early after 5-6 hours.",
+        "opt1": "Moderate sleep (7 hours); wake up easily with an alarm.",
+        "opt2": "Sound sleep (7-8 hours); feel slightly groggy if waking early.",
+        "opt3": "Deep sleep (8-9 hours); struggle to wake up; feel heavy in the morning.",
+        "opt4": "Extremely heavy sleep (9+ hours); nearly impossible to disturb; feel very groggy and sluggish even after long sleep."
+      },
+      "m_v1": {
+        "text": "Energy & Learning Style (Vata)",
+        "opt0": "Steady energy throughout the day; learn slowly but never forget.",
+        "opt1": "Balanced energy levels; standard pace of learning and retention.",
+        "opt2": "Occasional bursts of energy; fast learner, but sometimes need a refresher to retain.",
+        "opt3": "Noticeable energy fluctuations; pick up new concepts very quickly but forget them soon after.",
+        "opt4": "Extreme energy spikes followed by sudden crashes; grasp concepts instantly but lose them almost immediately unless applied."
+      },
+      "m_v2": {
+        "text": "Stress Response & Mood (Vata)",
+        "opt0": "Calm, unbothered, and emotionally stable under pressure; slow to anger or worry.",
+        "opt1": "Generally stable; feel minor worry but resolve it quickly.",
+        "opt2": "Moody at times; feel anxious under heavy pressure.",
+        "opt3": "Highly sensitive; respond to stress with worry, anxiety, fear, or feeling overwhelmed.",
+        "opt4": "Prone to extreme anxiety, panic, or racing thoughts under stress; mood swings are frequent and intense."
+      },
+      "m_v3": {
+        "text": "Decision-Making (Vata)",
+        "opt0": "Take my time to decide; once a decision is made, I almost never change my mind.",
+        "opt1": "Moderate decision-maker; standard deliberation and consistency.",
+        "opt2": "Feel hesitant; might change my mind once or twice on important matters.",
+        "opt3": "Indecisive; frequently change opinions and struggle to stick to a choice.",
+        "opt4": "Constant second-guessing and high indecisiveness; change my mind constantly and find it very difficult to make any firm decision."
+      },
+      "m_p1": {
+        "text": "Focus & Memory (Pitta)",
+        "opt0": "Dreamy, easily distracted focus; remember things only through emotional association.",
+        "opt1": "General focus; normal memory retention.",
+        "opt2": "Fairly focused; remember details clearly when interested.",
+        "opt3": "Highly focused, sharp attention span; logical and analytical memory.",
+        "opt4": "Hyper-focused, laser-like concentration; extremely sharp, detail-oriented memory, and highly analytical."
+      },
+      "m_p2": {
+        "text": "Stress Response (Pitta)",
+        "opt0": "Withdraw, stay quiet, or remain peaceful when stressed.",
+        "opt1": "Occasionally annoyed, but usually keep my cool.",
+        "opt2": "Impatient or critical under moderate pressure.",
+        "opt3": "Easily angered, irritable, or impatient; react defensively under stress.",
+        "opt4": "Explosive anger, severe impatience, or highly critical/confrontational behavior under pressure."
+      },
+      "m_p3": {
+        "text": "Decision-Making & Leadership (Pitta)",
+        "opt0": "Prefer to follow; avoid leadership roles and dislike taking charge.",
+        "opt1": "Comfortable following; lead only when specifically asked.",
+        "opt2": "Decisive; comfortable sharing opinions and stepping up occasionally.",
+        "opt3": "Quick and confident decision-maker; naturally take charge and prefer to lead.",
+        "opt4": "Highly assertive and competitive; make decisions instantly and command leadership roles aggressively."
+      },
+      "m_k1": {
+        "text": "Energy & Retention (Kapha)",
+        "opt0": "Hyperactive, high-energy spikes; forget things almost instantly.",
+        "opt1": "Good physical stamina; moderate retention.",
+        "opt2": "Steady energy; remember details long-term with minor effort.",
+        "opt3": "Very steady, enduring stamina; learn slowly but have excellent long-term memory retention.",
+        "opt4": "Immense physical endurance but slow/lethargic start; learn very slowly but possess a near-permanent, photographic long-term memory."
+      },
+      "m_k2": {
+        "text": "Stress Response (Kapha)",
+        "opt0": "React with immediate anxiety, worry, or sharp anger when stressed.",
+        "opt1": "Mildly upset, but let go of stress quickly.",
+        "opt2": "Withdraw or seek comfort food under pressure.",
+        "opt3": "Avoid confrontation; react to stress by withdrawing, feeling low-energy, or holding onto things.",
+        "opt4": "Complete emotional shutdown, deep lethargy, depression, or heavy attachment/stubbornness under stress."
+      },
+      "m_k3": {
+        "text": "Decision-Making Style (Kapha)",
+        "opt0": "Change decisions constantly; highly spontaneous.",
+        "opt1": "Moderate speed of decision-making; open to change.",
+        "opt2": "Take a while to make up my mind, but open to logical adjustments.",
+        "opt3": "Very deliberate and slow to decide; extremely resistant to changing my mind once decided.",
+        "opt4": "Extremely slow, passive decision-making; absolute resistance to any change once a path is set."
+      },
+      "l_v1": {
+        "text": "Activity Preference (Vata)",
+        "opt0": "Prefer highly structured, calm, low-intensity, or repetitive physical movements.",
+        "opt1": "Enjoy moderate activity; standard workouts or sports.",
+        "opt2": "Enjoy active movement; get slightly restless with too much stillness.",
+        "opt3": "Prefer highly active, fast-paced, and varied/spontaneous workouts.",
+        "opt4": "Constantly on the move; crave change and feel intensely restless or bored with any repetitive routine or slow activity."
+      },
+      "l_v2": {
+        "text": "Food Craving Style (Vata)",
+        "opt0": "Prefer cold, bitter, dry, or light salads and raw foods.",
+        "opt1": "Enjoy standard warm meals; no intense texture cravings.",
+        "opt2": "Sometimes crave heavy comfort foods when feeling tired.",
+        "opt3": "Frequently crave warm, sweet, oily, or well-cooked warm dishes, especially when stressed.",
+        "opt4": "Strong, persistent cravings for warm, heavy, sweet, sour, and oily foods; dry/cold food makes me feel anxious or bloated."
+      },
+      "l_v3": {
+        "text": "Daily Routine Pattern (Vata)",
+        "opt0": "Extremely strict, clockwork schedule for sleeping and eating.",
+        "opt1": "Moderate consistency; sleep and meal times are generally stable.",
+        "opt2": "Occasional shifts in routine due to travel or work.",
+        "opt3": "Irregular daily schedule; meal times and sleeping hours fluctuate from day to day.",
+        "opt4": "Highly chaotic, unpredictable routine; eating and sleeping times vary constantly, and I struggle with fixed schedules."
+      },
+      "l_p1": {
+        "text": "Activity Preference (Pitta)",
+        "opt0": "Dislike competition; prefer peaceful, low-effort, or slow workouts.",
+        "opt1": "Enjoy casual exercises and friendly, non-competitive games.",
+        "opt2": "Moderately competitive; enjoy goal-setting in workouts.",
+        "opt3": "Highly competitive, structured, and target-driven physical workouts or sports.",
+        "opt4": "Intense competitor; thrive on high-intensity, goal-oriented, or rival-based challenges; pushing to my limits is essential."
+      },
+      "l_p2": {
+        "text": "Food Craving Style (Pitta)",
+        "opt0": "Prefer hot, spicy, sour, or highly salted foods.",
+        "opt1": "Normal tolerance; no specific flavor cravings.",
+        "opt2": "Occasionally crave cold desserts or refreshing drinks.",
+        "opt3": "Frequently crave cold drinks, ice creams, sweet fruits, and mild/cool foods to soothe body heat.",
+        "opt4": "Intense, urgent cravings for cold, sweet, bitter, and refreshing items; hot spicy food makes me feel instantly hot and irritable."
+      },
+      "l_p3": {
+        "text": "Daily Punctuality & Routine (Pitta)",
+        "opt0": "Highly spontaneous; dislike schedules and run late frequently.",
+        "opt1": "Generally on time; flexible with schedules.",
+        "opt2": "Organized; stick to schedule most of the time.",
+        "opt3": "Disciplined and punctual; schedule meals and meetings with high precision.",
+        "opt4": "Obsessively structured and punctual; feel highly stressed or irritable if meals are delayed or if someone else is late."
+      },
+      "l_k1": {
+        "text": "Activity Motivation (Kapha)",
+        "opt0": "Restless and hyperactive; find it impossible to stay still or relax.",
+        "opt1": "Keep an active lifestyle naturally; standard exercise routine.",
+        "opt2": "Enjoy calm workouts like walking; need a minor push to exercise.",
+        "opt3": "Highly prefer calm, sedentary, or slow movements; need strong external motivation to start exercising.",
+        "opt4": "Extremely sedentary; strong inertia; find it very difficult to start physical exercises and prefer complete rest or sitting."
+      },
+      "l_k2": {
+        "text": "Comfort Food Craving (Kapha)",
+        "opt0": "Prefer light, bitter, or dry foods; avoid heavy, sweet things.",
+        "opt1": "Balanced diet; rarely seek emotional comfort foods.",
+        "opt2": "Sometimes crave sweets or carbohydrates when bored.",
+        "opt3": "Frequently crave sweet, heavy, dairy, or rich oily comfort foods when feeling emotional.",
+        "opt4": "Powerful, constant cravings for heavy, sweet, sticky, and dairy items (chocolates, cakes, cheeses); eat to seek comfort or emotional stability."
+      },
+      "l_k3": {
+        "text": "Daily Routine Adaptability (Kapha)",
+        "opt0": "Constantly changing routines; hate doing the same thing twice.",
+        "opt1": "Flexible; adjust routines easily based on external factors.",
+        "opt2": "Prefer a steady routine but can adapt with minor discomfort.",
+        "opt3": "Deeply attached to a set routine; resist changes and prefer repeating the same structure.",
+        "opt4": "Complete resistance to change; stick strictly to the exact same daily structure for years; changing my routine causes deep mental stress."
+      }
+    }
+  },
+  "doshaResults": {
+    "titlePatient": "Your Prakriti assessment result",
+    "titleDoctor": "Patient's Prakriti assessment result",
+    "primary": "Primary: {{dosha}}",
+    "secondary": "Secondary: {{dosha}}",
+    "primaryHeading": "Primary — {{title}} ({{element}})",
+    "secondaryHeading": "Secondary — {{title}} ({{element}})",
+    "characteristics": "CHARACTERISTICS",
+    "whenOutOfBalance": "WHEN OUT OF BALANCE",
+    "lifestyleRecommendations": "LIFESTYLE RECOMMENDATIONS",
+    "retake": "Retake assessment",
+    "remainingDosha": {
+      "patient": "Your remaining dosha is {{status}}.",
+      "doctor": "Their remaining dosha is {{status}}."
+    },
+    "thirdDoshaStatus": {
+      "Balanced": "in balance",
+      "Low": "low relative to your other doshas",
+      "Elevated": "somewhat elevated alongside your dominant dosha"
+    },
+    "profiles": {
+      "VATA": {
+        "title": "Vata",
+        "element": "Air & Space",
+        "explanation": "Vata governs movement, breathing, circulation, and the nervous system. It is the driving force behind all bodily activity.",
+        "characteristics": [
+          "Thin or light body frame, tends to lose weight easily",
+          "Dry skin and hair",
+          "Cold hands and feet, prefers warmth",
+          "Variable appetite and digestion",
+          "Light or interrupted sleep",
+          "Quick thinker, learns fast but forgets fast",
+          "Enthusiastic and creative, but prone to anxiety when imbalanced"
+        ],
+        "possibleImbalances": [
+          "Anxiety, restlessness, or racing thoughts",
+          "Irregular digestion, bloating, gas, constipation",
+          "Dry skin, joint discomfort",
+          "Disturbed or insufficient sleep",
+          "Fatigue from overexertion"
+        ],
+        "lifestyleRecommendations": [
+          "Keep a regular daily routine, especially meal and sleep timings",
+          "Favor warm, cooked, moist, and lightly oiled foods",
+          "Stay warm; avoid excess cold, wind, and dry environments",
+          "Practice calming routines -- gentle yoga, meditation, warm oil self-massage",
+          "Avoid excessive fasting, overstimulation, and irregular schedules"
+        ]
+      },
+      "PITTA": {
+        "title": "Pitta",
+        "element": "Fire & Water",
+        "explanation": "Pitta governs digestion, metabolism, and transformation -- including how the body processes food and how the mind processes information.",
+        "characteristics": [
+          "Medium, athletic build",
+          "Warm body, sweats easily",
+          "Sharp appetite, strong digestion",
+          "Sensitive or rash-prone skin",
+          "Sharp intellect, good focus, natural leader",
+          "Ambitious and competitive, can become irritable under stress"
+        ],
+        "possibleImbalances": [
+          "Acidity, heartburn, or excess body heat",
+          "Skin irritation, rashes, or inflammation",
+          "Irritability, anger, or impatience",
+          "Excessive hunger or overeating when stressed"
+        ],
+        "lifestyleRecommendations": [
+          "Favor cooling, mildly spiced, and hydrating foods",
+          "Avoid excessive heat, sun exposure, and skipping meals",
+          "Build in downtime -- avoid overworking or overscheduling",
+          "Practice moderation; avoid excess alcohol, caffeine, and fried food",
+          "Cooling activities like swimming or evening walks help balance excess heat"
+        ]
+      },
+      "KAPHA": {
+        "title": "Kapha",
+        "element": "Earth & Water",
+        "explanation": "Kapha governs structure, stability, and lubrication in the body. It provides strength, immunity, and emotional calm.",
+        "characteristics": [
+          "Solid, well-built body frame, gains weight easily",
+          "Smooth, soft, slightly oily skin",
+          "Thick hair",
+          "Slow but steady digestion",
+          "Calm, steady, and affectionate temperament",
+          "Deep sleeper, good stamina, resistant to sudden change"
+        ],
+        "possibleImbalances": [
+          "Weight gain, sluggish digestion",
+          "Lethargy, low motivation, oversleeping",
+          "Congestion or heaviness",
+          "Attachment or resistance to change"
+        ],
+        "lifestyleRecommendations": [
+          "Favor light, warm, and spiced foods; minimize heavy, oily, sugary foods",
+          "Stay physically active -- regular vigorous exercise is important",
+          "Avoid daytime sleeping and excessive rest",
+          "Seek variety and stimulation to counter inertia",
+          "Wake early and keep an energizing morning routine"
+        ]
+      }
+    }
+  },
+  "wellnessProfile": {
+    "titlePatient": "Your wellness profile",
+    "titleDoctor": "Patient's wellness profile",
+    "edit": "Edit",
+    "basicDetails": "Basic details",
+    "healthInfo": "Health information",
+    "lifestyle": "Lifestyle",
+    "foodHabits": "Food habits",
+    "height": "Height",
+    "weight": "Weight",
+    "bmi": "BMI",
+    "bodyType": "Body type",
+    "conditions": "Conditions",
+    "medications": "Medications",
+    "allergies": "Allergies",
+    "activityLevel": "Activity level",
+    "sleep": "Sleep",
+    "stressLevel": "Stress level",
+    "exerciseHabits": "Exercise habits",
+    "workRoutine": "Work routine",
+    "dietType": "Diet type",
+    "preferredFoods": "Preferred foods",
+    "foodDislikes": "Food dislikes",
+    "eatingTimings": "Eating timings",
+    "waterIntake": "Water intake",
+    "noneReported": "None reported",
+    "notProvided": "Not provided",
+    "hrsQuality": "{{hours}} hrs, quality: {{quality}}",
+    "waterPerDay": "{{liters}} L/day",
+    "bodyTypes": {
+      "lean_thin": "Lean / Thin Frame",
+      "athletic_defined": "Athletic / Well Defined",
+      "medium_frame": "Medium Frame",
+      "soft_round": "Soft / Round Body"
+    },
+    "bmiCategories": {
+      "Underweight": "Underweight",
+      "Normal": "Normal",
+      "Overweight": "Overweight",
+      "Obese": "Obese",
+      "Unknown": "Unknown"
+    },
+    "conditionNames": {
+      "diabetes": "Diabetes",
+      "highBP": "High blood pressure",
+      "obesityFocus": "Weight management",
+      "skinDisease": "Skin disease (eczema/psoriasis)",
+      "jointPainArthritis": "Joint pain / arthritis",
+      "digestiveIssues": "Digestive issues (GERD/gastritis)",
+      "respiratoryIssues": "Respiratory issues"
+    }
   }
 }
+
 

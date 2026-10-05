@@ -2,6 +2,7 @@ import { useState, useEffect, useContext, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { Activity, CheckCircle2, ClipboardEdit, HeartPulse, Leaf, Ruler, Salad } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -67,30 +68,46 @@ const THIRD_DOSHA_LABEL = {
 	Elevated: "somewhat elevated alongside your dominant dosha",
 };
 
-function DoshaDetail({ heading, info }) {
+function DoshaDetail({ heading, info, doshaKey }) {
+	const { t } = useTranslation();
+	const key = doshaKey || (info.title ? info.title.toUpperCase() : "");
+	const profile = key ? t(`doshaResults.profiles.${key}`, { returnObjects: true }) : null;
+	const isObject = profile && typeof profile === "object" && !Array.isArray(profile);
+
+	const explanation = isObject && profile.explanation ? profile.explanation : info.explanation;
+	const characteristics = isObject && Array.isArray(profile.characteristics) ? profile.characteristics : (info.characteristics || []);
+	const possibleImbalances = isObject && Array.isArray(profile.possibleImbalances) ? profile.possibleImbalances : (info.possibleImbalances || []);
+	const lifestyleRecommendations = isObject && Array.isArray(profile.lifestyleRecommendations) ? profile.lifestyleRecommendations : (info.lifestyleRecommendations || []);
+
 	return (
 		<div className="flex flex-col gap-3 border-t border-border pt-4 first:border-t-0 first:pt-0">
 			<h4 className="font-display text-base text-foreground">{heading}</h4>
-			<p className="text-sm text-muted-foreground">{info.explanation}</p>
+			<p className="text-sm text-muted-foreground">{explanation}</p>
 
 			<div>
-				<h5 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Characteristics</h5>
+				<h5 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+					{t("doshaResults.characteristics", "CHARACTERISTICS")}
+				</h5>
 				<ul className="mt-1.5 list-disc space-y-1 pl-5 text-sm text-foreground">
-					{info.characteristics.map((item) => <li key={item}>{item}</li>)}
+					{characteristics.map((item) => <li key={item}>{item}</li>)}
 				</ul>
 			</div>
 
 			<div>
-				<h5 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">When out of balance</h5>
+				<h5 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+					{t("doshaResults.whenOutOfBalance", "WHEN OUT OF BALANCE")}
+				</h5>
 				<ul className="mt-1.5 list-disc space-y-1 pl-5 text-sm text-foreground">
-					{info.possibleImbalances.map((item) => <li key={item}>{item}</li>)}
+					{possibleImbalances.map((item) => <li key={item}>{item}</li>)}
 				</ul>
 			</div>
 
 			<div>
-				<h5 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Lifestyle recommendations</h5>
+				<h5 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+					{t("doshaResults.lifestyleRecommendations", "LIFESTYLE RECOMMENDATIONS")}
+				</h5>
 				<ul className="mt-1.5 list-disc space-y-1 pl-5 text-sm text-foreground">
-					{info.lifestyleRecommendations.map((item) => <li key={item}>{item}</li>)}
+					{lifestyleRecommendations.map((item) => <li key={item}>{item}</li>)}
 				</ul>
 			</div>
 		</div>
@@ -135,6 +152,7 @@ function DetailSection({ icon: Icon, title, children }) {
 }
 
 function WellnessProfileDetails({ profile }) {
+	const { t } = useTranslation();
 	const bd = profile?.basicDetails || {};
 	const hi = profile?.healthInfo || {};
 	const cond = hi.conditions || {};
@@ -143,54 +161,60 @@ function WellnessProfileDetails({ profile }) {
 	const bmi = computeBmi(bd.heightCm, bd.weightKg);
 
 	const conditionsList = [
-		cond.diabetes && "Diabetes",
-		cond.highBP && "High blood pressure",
-		cond.obesityFocus && "Weight management",
-		cond.skinDisease && "Skin disease (eczema/psoriasis)",
-		cond.jointPainArthritis && "Joint pain / arthritis",
-		cond.digestiveIssues && "Digestive issues (GERD/gastritis)",
-		cond.respiratoryIssues && "Respiratory issues",
+		cond.diabetes && t("wellnessProfile.conditionNames.diabetes", "Diabetes"),
+		cond.highBP && t("wellnessProfile.conditionNames.highBP", "High blood pressure"),
+		cond.obesityFocus && t("wellnessProfile.conditionNames.obesityFocus", "Weight management"),
+		cond.skinDisease && t("wellnessProfile.conditionNames.skinDisease", "Skin disease (eczema/psoriasis)"),
+		cond.jointPainArthritis && t("wellnessProfile.conditionNames.jointPainArthritis", "Joint pain / arthritis"),
+		cond.digestiveIssues && t("wellnessProfile.conditionNames.digestiveIssues", "Digestive issues (GERD/gastritis)"),
+		cond.respiratoryIssues && t("wellnessProfile.conditionNames.respiratoryIssues", "Respiratory issues"),
 		...(cond.other || []),
 	].filter(Boolean);
 
-	const na = (v) => (v === undefined || v === null || v === "" ? "Not provided" : v);
+	const na = (v) => (v === undefined || v === null || v === "" ? t("wellnessProfile.notProvided", "Not provided") : v);
+	const noneRep = t("wellnessProfile.noneReported", "None reported");
+	const notProv = t("wellnessProfile.notProvided", "Not provided");
+
+	const bodyTypeLabel = bd.bodyType ? t(`wellnessProfile.bodyTypes.${bd.bodyType}`, { defaultValue: BODY_TYPE_LABELS[bd.bodyType] || bd.bodyType }) : notProv;
+	const bmiCat = bmiCategory(bmi);
+	const bmiCatLabel = t(`wellnessProfile.bmiCategories.${bmiCat}`, { defaultValue: bmiCat });
 
 	return (
 		<div className="flex flex-col gap-4">
-			<DetailSection icon={Ruler} title="Basic details">
-				<DetailRow label="Height" value={bd.heightCm ? `${bd.heightCm} cm` : "Not provided"} />
-				<DetailRow label="Weight" value={bd.weightKg ? `${bd.weightKg} kg` : "Not provided"} />
+			<DetailSection icon={Ruler} title={t("wellnessProfile.basicDetails", "Basic details")}>
+				<DetailRow label={t("wellnessProfile.height", "Height")} value={bd.heightCm ? `${bd.heightCm} cm` : notProv} />
+				<DetailRow label={t("wellnessProfile.weight", "Weight")} value={bd.weightKg ? `${bd.weightKg} kg` : notProv} />
 				<DetailRow
-					label="BMI"
+					label={t("wellnessProfile.bmi", "BMI")}
 					value={bmi !== null ? (
 						<span className="inline-flex items-center gap-2">
-							{bmi} <Badge variant="secondary">{bmiCategory(bmi)}</Badge>
+							{bmi} <Badge variant="secondary">{bmiCatLabel}</Badge>
 						</span>
-					) : "Not provided"}
+					) : notProv}
 				/>
-				<DetailRow label="Body type" value={bd.bodyType ? (BODY_TYPE_LABELS[bd.bodyType] || bd.bodyType) : "Not provided"} />
+				<DetailRow label={t("wellnessProfile.bodyType", "Body type")} value={bodyTypeLabel} />
 			</DetailSection>
 
-			<DetailSection icon={HeartPulse} title="Health information">
-				<DetailBadgeRow label="Conditions" items={conditionsList} empty="None reported" variant="destructive" />
-				<DetailBadgeRow label="Medications" items={hi.medications || []} empty="Not provided" />
-				<DetailBadgeRow label="Allergies" items={hi.allergies || []} empty="Not provided" variant="destructive" />
+			<DetailSection icon={HeartPulse} title={t("wellnessProfile.healthInfo", "Health information")}>
+				<DetailBadgeRow label={t("wellnessProfile.conditions", "Conditions")} items={conditionsList} empty={noneRep} variant="destructive" />
+				<DetailBadgeRow label={t("wellnessProfile.medications", "Medications")} items={hi.medications || []} empty={notProv} />
+				<DetailBadgeRow label={t("wellnessProfile.allergies", "Allergies")} items={hi.allergies || []} empty={notProv} variant="destructive" />
 			</DetailSection>
 
-			<DetailSection icon={Activity} title="Lifestyle">
-				<DetailRow label="Activity level" value={na(ls.activityLevel)} />
-				<DetailRow label="Sleep" value={ls.sleepHours ? `${ls.sleepHours} hrs, quality: ${na(ls.sleepQuality)}` : "Not provided"} />
-				<DetailRow label="Stress level" value={na(ls.stressLevel)} />
-				<DetailRow label="Exercise habits" value={na(ls.exerciseHabits)} />
-				<DetailRow label="Work routine" value={na(ls.workRoutine)} />
+			<DetailSection icon={Activity} title={t("wellnessProfile.lifestyle", "Lifestyle")}>
+				<DetailRow label={t("wellnessProfile.activityLevel", "Activity level")} value={na(ls.activityLevel)} />
+				<DetailRow label={t("wellnessProfile.sleep", "Sleep")} value={ls.sleepHours ? t("wellnessProfile.hrsQuality", { hours: ls.sleepHours, quality: na(ls.sleepQuality) }) : notProv} />
+				<DetailRow label={t("wellnessProfile.stressLevel", "Stress level")} value={na(ls.stressLevel)} />
+				<DetailRow label={t("wellnessProfile.exerciseHabits", "Exercise habits")} value={na(ls.exerciseHabits)} />
+				<DetailRow label={t("wellnessProfile.workRoutine", "Work routine")} value={na(ls.workRoutine)} />
 			</DetailSection>
 
-			<DetailSection icon={Salad} title="Food habits">
-				<DetailRow label="Diet type" value={na(fh.dietType)} />
-				<DetailBadgeRow label="Preferred foods" items={fh.preferredFoods || []} empty="Not provided" variant="success" />
-				<DetailBadgeRow label="Food dislikes" items={fh.dislikedFoods || []} empty="Not provided" />
-				<DetailRow label="Eating timings" value={na(fh.eatingTimings)} />
-				<DetailRow label="Water intake" value={fh.waterIntakeLiters ? `${fh.waterIntakeLiters} L/day` : "Not provided"} />
+			<DetailSection icon={Salad} title={t("wellnessProfile.foodHabits", "Food habits")}>
+				<DetailRow label={t("wellnessProfile.dietType", "Diet type")} value={na(fh.dietType)} />
+				<DetailBadgeRow label={t("wellnessProfile.preferredFoods", "Preferred foods")} items={fh.preferredFoods || []} empty={notProv} variant="success" />
+				<DetailBadgeRow label={t("wellnessProfile.foodDislikes", "Food dislikes")} items={fh.dislikedFoods || []} empty={notProv} />
+				<DetailRow label={t("wellnessProfile.eatingTimings", "Eating timings")} value={na(fh.eatingTimings)} />
+				<DetailRow label={t("wellnessProfile.waterIntake", "Water intake")} value={fh.waterIntakeLiters ? t("wellnessProfile.waterPerDay", { liters: fh.waterIntakeLiters }) : notProv} />
 			</DetailSection>
 		</div>
 	);
@@ -247,6 +271,7 @@ function StatusTile({ icon: Icon, title, complete, statusText, actions }) {
  * elsewhere (e.g. the Weekly Meal Planner section) can refetch.
  */
 function AyurvedaDashboard({ patientId: patientIdProp, readOnly = false, embedded = false, onPlanChanged }) {
+	const { t } = useTranslation();
 	const { auth, loading: authLoading } = useContext(AuthContext);
 	const navigate = useNavigate();
 	const [profile, setProfile] = useState(null);
@@ -459,24 +484,47 @@ function AyurvedaDashboard({ patientId: patientIdProp, readOnly = false, embedde
 				<Dialog open={openPanel === "prakriti-view"} onOpenChange={(open) => !open && setOpenPanel(null)}>
 					<DialogContent className="max-w-2xl overflow-y-auto">
 						<DialogTitle className="font-display text-lg">
-							{isDoctorView ? "Patient's Prakriti assessment result" : "Your Prakriti assessment result"}
+							{isDoctorView ? t("doshaResults.titleDoctor", "Patient's Prakriti assessment result") : t("doshaResults.titlePatient", "Your Prakriti assessment result")}
 						</DialogTitle>
 						{dosha ? (
 							<div className="flex flex-col gap-6">
 								<div className="flex flex-wrap gap-2">
-									<Badge>Primary: {dosha.primaryDosha}</Badge>
-									{dosha.secondaryDosha ? <Badge variant="secondary">Secondary: {dosha.secondaryDosha}</Badge> : null}
+									<Badge>{t("doshaResults.primary", { dosha: dosha.primaryDosha })}</Badge>
+									{dosha.secondaryDosha ? <Badge variant="secondary">{t("doshaResults.secondary", { dosha: dosha.secondaryDosha })}</Badge> : null}
 								</div>
 								{dosha.doshaProfile?.primary ? (
-									<DoshaDetail heading={`${dosha.secondaryDosha ? "Primary — " : ""}${dosha.doshaProfile.primary.title} (${dosha.doshaProfile.primary.element})`} info={dosha.doshaProfile.primary} />
+									<DoshaDetail
+										heading={
+											dosha.secondaryDosha
+												? t("doshaResults.primaryHeading", {
+														title: t(`doshaResults.profiles.${dosha.primaryDosha}.title`, { defaultValue: dosha.doshaProfile.primary.title }),
+														element: t(`doshaResults.profiles.${dosha.primaryDosha}.element`, { defaultValue: dosha.doshaProfile.primary.element }),
+												  })
+												: `${t(`doshaResults.profiles.${dosha.primaryDosha}.title`, { defaultValue: dosha.doshaProfile.primary.title })} (${t(`doshaResults.profiles.${dosha.primaryDosha}.element`, { defaultValue: dosha.doshaProfile.primary.element })})`
+										}
+										info={dosha.doshaProfile.primary}
+										doshaKey={dosha.primaryDosha}
+									/>
 								) : null}
 								{dosha.doshaProfile?.secondary ? (
-									<DoshaDetail heading={`Secondary — ${dosha.doshaProfile.secondary.title} (${dosha.doshaProfile.secondary.element})`} info={dosha.doshaProfile.secondary} />
+									<DoshaDetail
+										heading={t("doshaResults.secondaryHeading", {
+											title: t(`doshaResults.profiles.${dosha.secondaryDosha}.title`, { defaultValue: dosha.doshaProfile.secondary.title }),
+											element: t(`doshaResults.profiles.${dosha.secondaryDosha}.element`, { defaultValue: dosha.doshaProfile.secondary.element }),
+										})}
+										info={dosha.doshaProfile.secondary}
+										doshaKey={dosha.secondaryDosha}
+									/>
 								) : null}
 								{dosha.thirdDoshaStatus ? (
 									<p className="text-sm text-muted-foreground">
-										{isDoctorView ? "Their" : "Your"} remaining dosha is{" "}
-										{THIRD_DOSHA_LABEL[dosha.thirdDoshaStatus] || dosha.thirdDoshaStatus.toLowerCase()}.
+										{isDoctorView
+											? t("doshaResults.remainingDosha.doctor", {
+													status: t(`doshaResults.thirdDoshaStatus.${dosha.thirdDoshaStatus}`, { defaultValue: dosha.thirdDoshaStatus.toLowerCase() }),
+											  })
+											: t("doshaResults.remainingDosha.patient", {
+													status: t(`doshaResults.thirdDoshaStatus.${dosha.thirdDoshaStatus}`, { defaultValue: dosha.thirdDoshaStatus.toLowerCase() }),
+											  })}
 									</p>
 								) : null}
 							</div>
@@ -488,7 +536,7 @@ function AyurvedaDashboard({ patientId: patientIdProp, readOnly = false, embedde
 								className="self-start"
 								onClick={() => setOpenPanel("prakriti")}
 							>
-								Retake assessment
+								{t("doshaResults.retake", "Retake assessment")}
 							</Button>
 						) : null}
 					</DialogContent>
@@ -497,11 +545,11 @@ function AyurvedaDashboard({ patientId: patientIdProp, readOnly = false, embedde
 					<DialogContent className="max-w-2xl overflow-y-auto">
 						<div className="flex items-center justify-between gap-3 pr-6">
 							<DialogTitle className="font-display text-lg">
-								{isDoctorView ? "Patient's wellness profile" : "Your wellness profile"}
+								{isDoctorView ? t("wellnessProfile.titleDoctor", "Patient's wellness profile") : t("wellnessProfile.titlePatient", "Your wellness profile")}
 							</DialogTitle>
 							{!isDoctorView ? (
 								<Button size="sm" onClick={() => setOpenPanel("profile")}>
-									<ClipboardEdit size={14} /> Edit
+									<ClipboardEdit size={14} /> {t("wellnessProfile.edit", "Edit")}
 								</Button>
 							) : null}
 						</div>

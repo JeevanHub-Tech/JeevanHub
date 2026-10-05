@@ -2,6 +2,7 @@ import { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { ArrowLeft, ArrowRight } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import { BackButton } from "@/components/ui/back-button";
 import { Button } from "@/components/ui/button";
@@ -422,6 +423,7 @@ function PageWrapper({ children }) {
 }
 
 function DoshaAssessmentQuiz({ embedded = false, onDone } = {}) {
+	const { t } = useTranslation();
 	const { auth, loading: authLoading } = useContext(AuthContext);
 	const navigate = useNavigate();
 	const [step, setStep] = useState(0);
@@ -496,12 +498,12 @@ function DoshaAssessmentQuiz({ embedded = false, onDone } = {}) {
 				<div className="flex items-center justify-between gap-3">
 					{!embedded ? <BackButton to="/ayurveda-wellness" /> : <div />}
 					<Button variant="outline" size="sm" onClick={() => { setResult(null); setStep(0); setAnswers({}); }}>
-						Retake assessment
+						{t("doshaResults.retake", "Retake assessment")}
 					</Button>
 				</div>
 				<Card>
 						<CardHeader>
-							<CardTitle className="font-display text-xl">Your Prakriti assessment result</CardTitle>
+							<CardTitle className="font-display text-xl">{t("doshaResults.titlePatient", "Your Prakriti assessment result")}</CardTitle>
 							<CardDescription>This reflects your Ayurvedic body constitution.</CardDescription>
 						</CardHeader>
 						<CardContent className="flex flex-col gap-4">
@@ -529,19 +531,19 @@ function DoshaAssessmentQuiz({ embedded = false, onDone } = {}) {
 										<p className="mt-1 text-muted-foreground">{result.doshaProfile.primary.explanation}</p>
 									</div>
 									<div>
-										<p className="font-medium text-foreground">Your characteristics</p>
+										<p className="font-medium text-foreground">{t("doshaResults.characteristics", "CHARACTERISTICS")}</p>
 										<ul className="mt-1 list-disc pl-5 text-muted-foreground">
 											{result.doshaProfile.primary.characteristics.map((c, i) => <li key={i}>{c}</li>)}
 										</ul>
 									</div>
 									<div>
-										<p className="font-medium text-foreground">Possible imbalance areas</p>
+										<p className="font-medium text-foreground">{t("doshaResults.whenOutOfBalance", "WHEN OUT OF BALANCE")}</p>
 										<ul className="mt-1 list-disc pl-5 text-muted-foreground">
 											{result.doshaProfile.primary.possibleImbalances.map((c, i) => <li key={i}>{c}</li>)}
 										</ul>
 									</div>
 									<div>
-										<p className="font-medium text-foreground">Lifestyle recommendations</p>
+										<p className="font-medium text-foreground">{t("doshaResults.lifestyleRecommendations", "LIFESTYLE RECOMMENDATIONS")}</p>
 										<ul className="mt-1 list-disc pl-5 text-muted-foreground">
 											{result.doshaProfile.primary.lifestyleRecommendations.map((c, i) => <li key={i}>{c}</li>)}
 										</ul>
@@ -554,7 +556,7 @@ function DoshaAssessmentQuiz({ embedded = false, onDone } = {}) {
 									{embedded ? "Done" : "Continue to dashboard"}
 								</Button>
 								<Button variant="outline" onClick={() => { setResult(null); setStep(0); setAnswers({}); }}>
-									Retake assessment
+									{t("doshaResults.retake", "Retake assessment")}
 								</Button>
 							</div>
 						</CardContent>
@@ -567,64 +569,70 @@ function DoshaAssessmentQuiz({ embedded = false, onDone } = {}) {
 		<Wrapper>
 			{!embedded ? <BackButton to="/ayurveda-wellness" /> : null}
 			<div>
-				<h1 className="font-display text-2xl text-foreground">Prakriti (Dosha) assessment</h1>
+				<h1 className="font-display text-2xl text-foreground">{t("doshaQuiz.title", "Prakriti (Dosha) assessment")}</h1>
 				<p className="text-sm text-muted-foreground">
-					Step {step + 1} of {CATEGORIES.length}: {category.title}
+					{t("doshaQuiz.stepProgress", {
+						current: step + 1,
+						total: CATEGORIES.length,
+						categoryTitle: t(`doshaQuiz.categories.${category.key}`, { defaultValue: category.title }),
+					})}
 				</p>
-				</div>
+			</div>
 
-				<Card>
-					<CardContent className="flex flex-col gap-6 pt-6">
-						{category.questions.map((q, qIdx) => (
-							<div key={q.id} className="flex flex-col gap-2">
-								<p className="text-sm font-semibold text-[#2e4a31]">Q{qIdx + 1}. {q.text}</p>
-								<div className="flex flex-col gap-3 pl-1 mt-1">
-									{(q.options || OPTIONS).map((opt) => (
-										<button
-											key={opt.value}
-											type="button"
-											onClick={() => handleAnswer(q.id, opt.value)}
-											className="flex items-start gap-3 w-full text-left px-2 py-1.5 rounded-lg hover:bg-primary/5 text-sm transition-all group cursor-pointer"
-										>
-											<div className={cn(
-												"w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5 transition-all",
-												answers[q.id] === opt.value
-													? "border-[#2e4a31] bg-transparent"
-													: "border-muted-foreground/40 bg-transparent group-hover:border-foreground/60"
-											)}>
-												{answers[q.id] === opt.value && (
-													<div className="w-2 h-2 rounded-full bg-[#2e4a31]" />
-												)}
-											</div>
-											<span className="text-foreground/80 font-medium text-sm leading-snug group-hover:text-foreground">
-												{opt.label}
-											</span>
-										</button>
-									))}
-								</div>
+			<Card>
+				<CardContent className="flex flex-col gap-6 pt-6">
+					{category.questions.map((q, qIdx) => (
+						<div key={q.id} className="flex flex-col gap-2">
+							<p className="text-sm font-semibold text-[#2e4a31]">
+								Q{qIdx + 1}. {t(`doshaQuiz.questions.${q.id}.text`, { defaultValue: q.text })}
+							</p>
+							<div className="flex flex-col gap-3 pl-1 mt-1">
+								{(q.options || OPTIONS).map((opt) => (
+									<button
+										key={opt.value}
+										type="button"
+										onClick={() => handleAnswer(q.id, opt.value)}
+										className="flex items-start gap-3 w-full text-left px-2 py-1.5 rounded-lg hover:bg-primary/5 text-sm transition-all group cursor-pointer"
+									>
+										<div className={cn(
+											"w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5 transition-all",
+											answers[q.id] === opt.value
+												? "border-[#2e4a31] bg-transparent"
+												: "border-muted-foreground/40 bg-transparent group-hover:border-foreground/60"
+										)}>
+											{answers[q.id] === opt.value && (
+												<div className="w-2 h-2 rounded-full bg-[#2e4a31]" />
+											)}
+										</div>
+										<span className="text-foreground/80 font-medium text-sm leading-snug group-hover:text-foreground">
+											{t(`doshaQuiz.questions.${q.id}.opt${opt.value}`, { defaultValue: opt.label })}
+										</span>
+									</button>
+								))}
 							</div>
-						))}
-					</CardContent>
-				</Card>
+						</div>
+					))}
+				</CardContent>
+			</Card>
 
-				<div className="flex justify-between">
-					<Button
-						variant="outline"
-						onClick={() => setStep((s) => Math.max(0, s - 1))}
-						disabled={step === 0}
-					>
-						<ArrowLeft size={16} /> Back
+			<div className="flex justify-between">
+				<Button
+					variant="outline"
+					onClick={() => setStep((s) => Math.max(0, s - 1))}
+					disabled={step === 0}
+				>
+					<ArrowLeft size={16} /> {t("doshaQuiz.btnBack", "Back")}
+				</Button>
+				{isLastStep ? (
+					<Button onClick={handleSubmit} disabled={!currentAnswered || submitting}>
+						{submitting ? t("doshaQuiz.submitting", "Submitting…") : t("doshaQuiz.btnSubmit", "Submit assessment")}
 					</Button>
-					{isLastStep ? (
-						<Button onClick={handleSubmit} disabled={!currentAnswered || submitting}>
-							{submitting ? "Submitting…" : "Submit assessment"}
-						</Button>
-					) : (
-						<Button onClick={() => setStep((s) => s + 1)} disabled={!currentAnswered}>
-							Continue <ArrowRight size={16} />
-						</Button>
-					)}
-				</div>
+				) : (
+					<Button onClick={() => setStep((s) => s + 1)} disabled={!currentAnswered}>
+						{t("doshaQuiz.btnNext", "Continue")} <ArrowRight size={16} />
+					</Button>
+				)}
+			</div>
 		</Wrapper>
 	);
 }

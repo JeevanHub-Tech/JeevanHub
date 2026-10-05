@@ -1,6 +1,7 @@
 import { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { Clock, Calendar, ChevronLeft, ChevronRight, ChevronDown } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import { AuthContext } from "../../context/AuthContext";
 import SlotManagement from "../../components/SlotManagement";
@@ -14,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 function AppointmentSlots() {
+	const { t } = useTranslation();
 	const [appointments, setAppointments] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
@@ -243,11 +245,11 @@ function AppointmentSlots() {
 	return (
 		<DashboardShell>
 			<DashboardPageHeader
-				title="My Appointment Slots"
-				description="Showing upcoming appointments and those from the past 30 minutes."
+				title={t("appointmentSlots.title", "My Appointment Slots")}
+				description={t("appointmentSlots.description", "Showing upcoming appointments and those from the past 30 minutes.")}
 				actions={
 					<Button onClick={() => setShowManageSlots(!showManageSlots)}>
-						{showManageSlots ? "Close Manage Slots" : "Manage Slots"}
+						{showManageSlots ? t("appointmentSlots.closeManageSlots", "Close Manage Slots") : t("appointmentSlots.manageSlots", "Manage Slots")}
 					</Button>
 				}
 			/>
@@ -259,7 +261,7 @@ function AppointmentSlots() {
 			) : null}
 
 			{appointments.length === 0 ? (
-				<p className="text-center text-muted-foreground">No upcoming appointments found.</p>
+				<p className="text-center text-muted-foreground">{t("appointmentSlots.noAppointments", "No upcoming appointments found.")}</p>
 			) : (
 				<div className="flex flex-col gap-5">
 					{appointments.map((request) => {
@@ -273,43 +275,43 @@ function AppointmentSlots() {
 										<div className="flex flex-wrap items-center gap-2">
 											<h3 className="text-lg font-semibold text-foreground">{request.patientName}</h3>
 											{isActive ? (
-												<Badge title="Appointment is currently ongoing">Active Now</Badge>
+												<Badge title={t("appointmentSlots.activeNowTitle", "Appointment is currently ongoing")}>{t("appointmentSlots.activeNow", "Active Now")}</Badge>
 											) : request.isReturningPatient ? (
-												<Badge variant="secondary" title="Has previously booked appointments with you">
-													Returning
+												<Badge variant="secondary" title={t("appointmentSlots.returningTitle", "Has previously booked appointments with you")}>
+													{t("appointmentSlots.returning", "Returning")}
 												</Badge>
 											) : (
-												<Badge title="First-time booking with you">New</Badge>
+												<Badge title={t("appointmentSlots.newTitle", "First-time booking with you")}>{t("appointmentSlots.new", "New")}</Badge>
 											)}
 										</div>
 										<p
 											className="mt-1 text-sm text-muted-foreground"
 											title={`Age: ${request.patientAge} yrs | Gender: ${request.patientGender} | Email: ${request.patientEmail}`}
 										>
-											{request.patientAge || "N/A"} yrs &bull; {request.patientGender || "N/A"} &bull;{" "}
+											{request.patientAge || "N/A"} {t("appointmentSlots.age", "yrs")} &bull; {request.patientGender || "N/A"} &bull;{" "}
 											{request.patientEmail || "N/A"}
 										</p>
 										<div className="mt-3 text-sm text-foreground/80">
-											<strong className="text-foreground">Illness:</strong>{" "}
+											<strong className="text-foreground">{t("appointmentSlots.illness", "Illness:")}</strong>{" "}
 											{request.patientIllness && request.patientIllness.length > 80 ? (
 												<>
 													{request.patientIllness.substring(0, 80)}...
 													<button
-														className="ml-1 text-primary underline hover:no-underline"
+														className="ml-1 text-primary underline hover:no-underline cursor-pointer"
 														onClick={() => setSelectedIllness(request.patientIllness)}
 													>
-														More
+														{t("appointmentSlots.more", "More")}
 													</button>
 												</>
 											) : (
-												request.patientIllness || "No illness information"
+												request.patientIllness || t("appointmentSlots.noIllness", "No illness information")
 											)}
 										</div>
 										<div
 											className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground"
 											title="Time since the appointment was requested"
 										>
-											<Clock className="size-3.5" /> Requested {timeElapsed(request.createdAt)}
+											<Clock className="size-3.5" /> {t("appointmentSlots.requested", "Requested {{time}}", { time: timeElapsed(request.createdAt) })}
 										</div>
 									</div>
 
@@ -331,17 +333,17 @@ function AppointmentSlots() {
 												</span>
 											</div>
 											<Badge variant={request.amountPaid === 0 ? "secondary" : "default"} title="Consultation Fee">
-												{request.amountPaid === 0 ? "Free" : `₹${request.amountPaid}`}
+												{request.amountPaid === 0 ? t("appointmentSlots.free", "Free") : `₹${request.amountPaid}`}
 											</Badge>
 										</div>
 										{request.amountPaid > 0 && request.paymentScreenshots && request.paymentScreenshots.length > 0 ? (
 											<div className="mt-4">
 												<button
 													type="button"
-													className="flex items-center gap-2 font-semibold text-primary"
+													className="flex items-center gap-2 font-semibold text-primary cursor-pointer"
 													onClick={() => toggleProofs(request._id)}
 												>
-													View Payment Proofs ({request.paymentScreenshots.length})
+													{t("appointmentSlots.viewProofs", "View Payment Proofs ({{count}})", { count: request.paymentScreenshots.length })}
 													<ChevronDown
 														className={
 															expandedProofs[request._id] ? "size-4 rotate-180 transition-transform" : "size-4 transition-transform"
@@ -376,52 +378,52 @@ function AppointmentSlots() {
 														className="mt-3 text-xs bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 hover:text-emerald-800"
 														onClick={() => approvePayment(request._id)}
 													>
-														Approve Payment
+														{t("appointmentSlots.approvePayment", "Approve Payment")}
 													</Button>
 												) : (
-													<p className="mt-3 text-xs font-semibold text-emerald-600">Payment Verified</p>
+													<p className="mt-3 text-xs font-semibold text-emerald-600">{t("appointmentSlots.paymentVerified", "Payment Verified")}</p>
 												)}
 											</div>
 										) : null}
 									</div>
 
 									<div className="flex flex-col gap-2">
-										<Button onClick={() => handleJoinMeet(request._id)}>Join Meet</Button>
+										<Button onClick={() => handleJoinMeet(request._id)}>{t("appointmentSlots.joinMeet", "Join Meet")}</Button>
 
 										{editingLinkId === request._id ? (
 											<div className="flex flex-col gap-1.5">
 												<p className="text-xs text-muted-foreground">
-													Share this with the patient only if Daily.co isn&apos;t connecting.
+													{t("appointmentSlots.backupHelp", "Share this with the patient only if Daily.co isn't connecting.")}
 												</p>
 												<Input
 													value={backupLinkValue}
 													onChange={(e) => setBackupLinkValue(e.target.value)}
-													placeholder="Backup meeting link (e.g. Zoom/Meet)"
+													placeholder={t("appointmentSlots.backupPlaceholder", "Backup meeting link (e.g. Zoom/Meet)")}
 												/>
 												<div className="flex gap-1.5">
 													<Button size="sm" disabled={savingLink} onClick={() => saveBackupLink(request._id)}>
-														{savingLink ? "Saving..." : "Save"}
+														{savingLink ? t("common.saving", "Saving...") : t("common.save", "Save")}
 													</Button>
 													<Button size="sm" variant="outline" onClick={() => setEditingLinkId(null)}>
-														Cancel
+														{t("common.cancel", "Cancel")}
 													</Button>
 												</div>
 											</div>
 										) : isActive || hasBackupLink ? (
 											<button
 												type="button"
-												className="bg-transparent p-0 text-left text-xs font-medium text-muted-foreground underline hover:text-foreground"
+												className="bg-transparent p-0 text-left text-xs font-medium text-muted-foreground underline hover:text-foreground cursor-pointer"
 												onClick={() => {
 													setEditingLinkId(request._id);
 													setBackupLinkValue(hasBackupLink ? request.meetLink : "");
 												}}
 											>
-												{hasBackupLink ? "Edit backup link" : "Trouble connecting via Daily.co? Add a backup link"}
+												{hasBackupLink ? t("appointmentSlots.editBackupLink", "Edit backup link") : t("appointmentSlots.addBackupLink", "Trouble connecting via Daily.co? Add a backup link")}
 											</button>
 										) : null}
 
 										<Button variant="outline" onClick={() => navigate(`/doctorsprescribe/${request._id}`)}>
-											Prescribe Medicine & Diet - Yoga Plan
+											{t("appointmentSlots.prescribe", "Prescribe Medicine & Diet - Yoga Plan")}
 										</Button>
 
 										<Button
@@ -430,7 +432,7 @@ function AppointmentSlots() {
 											disabled={cancellingId === request._id}
 											onClick={() => handleCancelAppointment(request)}
 										>
-											{cancellingId === request._id ? "Cancelling..." : "Cancel Appointment"}
+											{cancellingId === request._id ? t("appointmentSlots.cancelling", "Cancelling...") : t("appointmentSlots.cancelAppointment", "Cancel Appointment")}
 										</Button>
 									</div>
 								</div>
@@ -495,7 +497,7 @@ function AppointmentSlots() {
 			<Dialog open={!!selectedIllness} onOpenChange={(open) => !open && setSelectedIllness(null)}>
 				<DialogContent className="max-w-lg">
 					<DialogHeader>
-						<DialogTitle>Patient's Illness Details</DialogTitle>
+						<DialogTitle>{t("appointmentSlots.illnessModalTitle", "Patient's Illness Details")}</DialogTitle>
 					</DialogHeader>
 					<p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/80">{selectedIllness}</p>
 				</DialogContent>

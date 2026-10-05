@@ -1,6 +1,7 @@
 import { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { Star, ChevronRight, Search } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import { AuthContext } from "../../context/AuthContext";
 import { authFetch } from "../../utils/authFetch";
@@ -29,11 +30,8 @@ const parseAppointmentDateTime = (dateString, timeSlot) => {
 	return appointmentDate;
 };
 
-// A patient directory, not an appointment log -- each patient this doctor has
-// actually consulted (at least one completed accepted visit) appears exactly
-// once here, however many times they've booked. For a specific visit's
-// details/prescription, drill into the patient (see PatientDetail.jsx).
 function PatientList() {
+	const { t } = useTranslation();
 	const navigate = useNavigate();
 	const [patients, setPatients] = useState([]);
 	const [searchTerm, setSearchTerm] = useState("");
@@ -119,7 +117,7 @@ function PatientList() {
 	if (loading) {
 		return (
 			<DashboardShell>
-				<p className="text-muted-foreground">Loading...</p>
+				<p className="text-muted-foreground">{t("common.loading", "Loading...")}</p>
 			</DashboardShell>
 		);
 	}
@@ -127,7 +125,7 @@ function PatientList() {
 	if (error) {
 		return (
 			<DashboardShell>
-				<p className="text-destructive">Error: {error}</p>
+				<p className="text-destructive">{t("common.error", "Error")}: {error}</p>
 			</DashboardShell>
 		);
 	}
@@ -140,19 +138,19 @@ function PatientList() {
 	return (
 		<DashboardShell>
 			<DashboardPageHeader
-				title="Patient List"
-				description="Everyone you've previously consulted. Open a patient to see their profile, medical history, and past appointments."
+				title={t("patientList.title", "Patient List")}
+				description={t("patientList.description", "Everyone you've previously consulted. Open a patient to see their profile, medical history, and past appointments.")}
 			/>
 
 			{patients.length === 0 ? (
-				<p className="text-center text-muted-foreground">No previously consulted patients yet.</p>
+				<p className="text-center text-muted-foreground">{t("patientList.noPatients", "No previously consulted patients yet.")}</p>
 			) : (
 				<div className="flex flex-col gap-4">
 					<div className="relative flex items-center max-w-md w-full">
 						<Search className="absolute left-3 size-4 text-muted-foreground pointer-events-none" />
 						<Input
 							type="text"
-							placeholder="Search patients by name..."
+							placeholder={t("patientList.searchPlaceholder", "Search patients by name...")}
 							value={searchTerm}
 							onChange={(e) => setSearchTerm(e.target.value)}
 							className="pl-9 h-10 w-full"
@@ -160,7 +158,7 @@ function PatientList() {
 					</div>
 
 					{filteredPatients.length === 0 ? (
-						<p className="text-center text-muted-foreground py-8">No patients match your search.</p>
+						<p className="text-center text-muted-foreground py-8">{t("patientList.noMatch", "No patients match your search.")}</p>
 					) : (
 						filteredPatients.map(({ key, patientId, latest, visitCount, reviewedVisit }) => (
 							<Card
@@ -173,22 +171,23 @@ function PatientList() {
 										<div className="flex flex-wrap items-center gap-2">
 											<h3 className="text-lg font-semibold text-foreground">{latest.patientName}</h3>
 											<Badge variant="secondary" title="Total consultations with you">
-												{visitCount} visit{visitCount > 1 ? "s" : ""}
+												{t(visitCount === 1 ? "patientList.visit_one" : "patientList.visit_other", "{{count}} visits", { count: visitCount })}
 											</Badge>
 										</div>
 										<p className="mt-1 text-sm text-muted-foreground">
-											{latest.patientAge || "N/A"} yrs &bull; {latest.patientGender || "N/A"} &bull; {latest.patientEmail || "N/A"}
+											{latest.patientAge || "N/A"} {t("appointmentSlots.age", "yrs")} &bull; {latest.patientGender || "N/A"} &bull; {latest.patientEmail || "N/A"}
 										</p>
 										<p className="mt-2 text-xs text-muted-foreground">
-											Last consulted{" "}
-											{new Date(latest.dateOfAppointment).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+											{t("patientList.lastConsulted", "Last consulted {{date}}", {
+												date: new Date(latest.dateOfAppointment).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }),
+											})}
 										</p>
 										{reviewedVisit ? (
 											<div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
 												<Star className="size-3.5 fill-(--jh-turmeric-gold) text-(--jh-turmeric-gold)" />{" "}
 												{reviewedVisit.rating ? `${reviewedVisit.rating}/5` : ""}{" "}
 												{reviewedVisit._id === latest._id
-													? "(latest visit)"
+													? t("patientList.latestVisit", "(latest visit)")
 													: `(${formatDate(reviewedVisit.dateOfAppointment)})`}
 											</div>
 										) : null}
@@ -201,7 +200,7 @@ function PatientList() {
 											patientId && navigate(`/patient-list/${patientId}`);
 										}}
 									>
-										View Patient <ChevronRight className="size-4" />
+										{t("patientList.viewPatient", "View Patient")} <ChevronRight className="size-4" />
 									</Button>
 								</div>
 							</Card>

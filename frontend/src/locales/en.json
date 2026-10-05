@@ -12,6 +12,121 @@
     "logout": "Logout",
     "profile": "Profile"
   },
+  "doctorHome": {
+    "greeting": "Hi Dr. {{name}}",
+    "description": "Welcome back! Let's manage appointments and patient records efficiently.",
+    "todayAppointments": "Today's Appointments",
+    "cards": {
+      "appointmentSlots": "Appointment Slots",
+      "appointmentSlotsDesc": "Manage your availability",
+      "patientList": "Patient List",
+      "patientListDesc": "View patients under your care",
+      "analytics": "Analytics",
+      "analyticsDesc": "Track consultations and growth",
+      "healthBlogs": "My Health Blogs",
+      "healthBlogsDesc": "Publish and manage articles",
+      "patientReviews": "Patient's Reviews",
+      "patientReviewsDesc": "See feedback from patients"
+    }
+  },
+  "appointmentSlots": {
+    "title": "My Appointment Slots",
+    "description": "Showing upcoming appointments and those from the past 30 minutes.",
+    "manageSlots": "Manage Slots",
+    "closeManageSlots": "Close Manage Slots",
+    "noAppointments": "No upcoming appointments found.",
+    "activeNow": "Active Now",
+    "activeNowTitle": "Appointment is currently ongoing",
+    "returning": "Returning",
+    "returningTitle": "Has previously booked appointments with you",
+    "new": "New",
+    "newTitle": "First-time booking with you",
+    "age": "yrs",
+    "illness": "Illness:",
+    "noIllness": "No illness information",
+    "more": "More",
+    "requested": "Requested {{time}}",
+    "free": "Free",
+    "viewProofs": "View Payment Proofs ({{count}})",
+    "approvePayment": "Approve Payment",
+    "paymentVerified": "Payment Verified",
+    "joinMeet": "Join Meet",
+    "backupHelp": "Share this with the patient only if Daily.co isn't connecting.",
+    "backupPlaceholder": "Backup meeting link (e.g. Zoom/Meet)",
+    "addBackupLink": "Trouble connecting via Daily.co? Add a backup link",
+    "editBackupLink": "Edit backup link",
+    "prescribe": "Prescribe Medicine & Diet - Yoga Plan",
+    "cancelAppointment": "Cancel Appointment",
+    "cancelling": "Cancelling...",
+    "illnessModalTitle": "Patient's Illness Details"
+  },
+  "patientList": {
+    "title": "Patient List",
+    "description": "Everyone you've previously consulted. Open a patient to see their profile, medical history, and past appointments.",
+    "noPatients": "No previously consulted patients yet.",
+    "searchPlaceholder": "Search patients by name...",
+    "noMatch": "No patients match your search.",
+    "visit_one": "{{count}} visit",
+    "visit_other": "{{count}} visits",
+    "lastConsulted": "Last consulted {{date}}",
+    "latestVisit": "(latest visit)",
+    "viewPatient": "View Patient"
+  },
+  "patientDetail": {
+    "backToList": "Back to Patient List",
+    "description": "Patient profile, medical history, and consultation record.",
+    "profile": "Profile",
+    "ageNA": "Age N/A",
+    "prevVisits": "Previous Appointments with You ({{count}})",
+    "noPrevVisits": "No accepted appointments with this patient yet."
+  },
+  "appointmentHistory": {
+    "title": "Appointment History",
+    "description": "Review your past consultations, completed appointments, and denied requests.",
+    "tabPrevious": "Completed Consultations",
+    "tabDenied": "Denied Requests",
+    "allAppointments": "All Appointments",
+    "today": "Today",
+    "last7Days": "Last 7 Days",
+    "last30Days": "Last 30 Days",
+    "searchPlaceholder": "Search by patient name or illness...",
+    "noHistory": "No appointment history found.",
+    "noDenied": "No denied appointment requests.",
+    "free": "Free"
+  },
+  "doctorReviews": {
+    "title": "My Reviews",
+    "rating": "Rating: {{rating}}",
+    "noReviews": "No reviews yet.",
+    "date": "Date: {{date}}"
+  },
+  "doctorNotifications": {
+    "title": "Doctor Notifications",
+    "description": "Stay updated with consultations, appointment bookings, cancellations, and patient reviews.",
+    "newBadge": "{{count}} new",
+    "markAll": "Mark all as read",
+    "marking": "Marking...",
+    "tabAll": "All ({{count}})",
+    "tabDietPlans": "Diet Plans ({{count}})",
+    "tabAppointments": "Appointments ({{count}})",
+    "tabDisputes": "Disputes & Issues ({{count}})",
+    "tabReviews": "Reviews ({{count}})",
+    "tabSystem": "System ({{count}})",
+    "noNotifications": "No new notifications",
+    "allCaughtUp": "You're all caught up! Patient updates and appointment alerts will appear here.",
+    "startConsultation": "Start Consultation",
+    "viewDetails": "View Details"
+  },
+  "healthBlogs": {
+    "title": "My Health Blogs",
+    "writeBlog": "Blog",
+    "loading": "Loading your blogs...",
+    "noBlogs": "You haven't published any blogs yet.",
+    "deleteTitle": "Delete this blog?",
+    "deleteDesc": "\"{{title}}\" will be permanently removed.",
+    "edit": "Edit",
+    "delete": "Delete"
+  },
   "analytics": {
     "title": "Analytics Dashboard",
     "description": "Track your performance, payments, and patient statistics.",
@@ -111,6 +226,7 @@
     "cancel": "Cancel",
     "confirm": "Confirm",
     "status": "Status",
-    "actions": "Actions"
+    "actions": "Actions",
+    "saving": "Saving..."
   }
 }

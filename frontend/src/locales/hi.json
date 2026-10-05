@@ -6,11 +6,126 @@
     "appointmentHistory": "अपॉइंटमेंट इतिहास",
     "patientReviews": "मरीजों की समीक्षाएं",
     "analytics": "एनालिटिक्स",
-    "myHealthBlogs": "स्वास्थ्य ब्लॉग",
+    "myHealthBlogs": "मेरे स्वास्थ्य ब्लॉग",
     "login": "लॉग इन",
     "signup": "साइन अप",
     "logout": "लॉग आउट",
-    "profile": "प्रोफ़ाइल"
+    "profile": "प्रोफाइल"
+  },
+  "doctorHome": {
+    "greeting": "नमस्ते डॉ. {{name}}",
+    "description": "वापसी पर स्वागत है! आइए अपॉइंटमेंट्स और मरीजों के रिकॉर्ड को कुशलतापूर्वक प्रबंधित करें।",
+    "todayAppointments": "आज के अपॉइंटमेंट्स",
+    "cards": {
+      "appointmentSlots": "अपॉइंटमेंट स्लॉट",
+      "appointmentSlotsDesc": "अपनी उपलब्धता प्रबंधित करें",
+      "patientList": "मरीजों की सूची",
+      "patientListDesc": "अपनी देखरेख में मरीजों को देखें",
+      "analytics": "एनालिटिक्स",
+      "analyticsDesc": "परामर्श और विकास को ट्रैक करें",
+      "healthBlogs": "मेरे स्वास्थ्य ब्लॉग",
+      "healthBlogsDesc": "स्वास्थ्य लेख प्रकाशित और प्रबंधित करें",
+      "patientReviews": "मरीजों की समीक्षाएं",
+      "patientReviewsDesc": "मरीजों से रेटिंग और प्रतिक्रिया देखें"
+    }
+  },
+  "appointmentSlots": {
+    "title": "मेरे अपॉइंटमेंट स्लॉट",
+    "description": "आगामी अपॉइंटमेंट्स और पिछले 30 मिनट के अपॉइंटमेंट्स दिखाए जा रहे हैं।",
+    "manageSlots": "स्लॉट प्रबंधित करें",
+    "closeManageSlots": "स्लॉट प्रबंधन बंद करें",
+    "noAppointments": "कोई आगामी अपॉइंटमेंट नहीं मिला।",
+    "activeNow": "अभी सक्रिय",
+    "activeNowTitle": "अपॉइंटमेंट वर्तमान में चल रहा है",
+    "returning": "पुराने मरीज",
+    "returningTitle": "पहले भी आपसे अपॉइंटमेंट ले चुके हैं",
+    "new": "नए मरीज",
+    "newTitle": "पहली बार आपसे परामर्श ले रहे हैं",
+    "age": "वर्ष",
+    "illness": "बीमारी / लक्षण:",
+    "noIllness": "बीमारी की कोई जानकारी नहीं",
+    "more": "और देखें",
+    "requested": "अनुरोध: {{time}}",
+    "free": "निःशुल्क",
+    "viewProofs": "भुगतान प्रमाण देखें ({{count}})",
+    "approvePayment": "भुगतान स्वीकृत करें",
+    "paymentVerified": "भुगतान सत्यापित",
+    "joinMeet": "मीटिंग में जुड़ें",
+    "backupHelp": "यह मरीज के साथ तभी साझा करें यदि Daily.co कनेक्ट नहीं हो रहा है।",
+    "backupPlaceholder": "वैकल्पिक मीटिंग लिंक (जैसे Zoom/Google Meet)",
+    "addBackupLink": "कनेक्ट करने में समस्या? वैकल्पिक लिंक जोड़ें",
+    "editBackupLink": "वैकल्पिक लिंक संपादित करें",
+    "prescribe": "दवा और डाइट-योग योजना लिखें",
+    "cancelAppointment": "अपॉइंटमेंट रद्द करें",
+    "cancelling": "रद्द किया जा रहा है...",
+    "illnessModalTitle": "मरीज की बीमारी का विवरण"
+  },
+  "patientList": {
+    "title": "मरीजों की सूची",
+    "description": "वे सभी मरीज जिन्हें आपने पहले परामर्श दिया है। प्रोफाइल, मेडिकल इतिहास और पिछले अपॉइंटमेंट्स देखने के लिए मरीज पर क्लिक करें।",
+    "noPatients": "अभी तक कोई परामर्श प्राप्त मरीज नहीं हैं।",
+    "searchPlaceholder": "नाम से मरीज खोजें...",
+    "noMatch": "आपकी खोज से कोई मरीज मेल नहीं खाता।",
+    "visit_one": "{{count}} परामर्श",
+    "visit_other": "{{count}} परामर्श",
+    "lastConsulted": "अंतिम परामर्श {{date}}",
+    "latestVisit": "(नवीनतम परामर्श)",
+    "viewPatient": "मरीज का विवरण देखें"
+  },
+  "patientDetail": {
+    "backToList": "मरीजों की सूची पर वापस जाएं",
+    "description": "मरीज का प्रोफाइल, मेडिकल इतिहास और परामर्श रिकॉर्ड।",
+    "profile": "प्रोफाइल",
+    "ageNA": "आयु अनुपलब्ध",
+    "prevVisits": "आपके साथ पिछले अपॉइंटमेंट्स ({{count}})",
+    "noPrevVisits": "इस मरीज के साथ अभी तक कोई स्वीकृत अपॉइंटमेंट नहीं है।"
+  },
+  "appointmentHistory": {
+    "title": "अपॉइंटमेंट इतिहास",
+    "description": "अपने पिछले परामर्श, पूर्ण अपॉइंटमेंट्स और अस्वीकृत अनुरोधों की समीक्षा करें।",
+    "tabPrevious": "पूर्ण परामर्श",
+    "tabDenied": "अस्वीकृत अनुरोध",
+    "allAppointments": "सभी अपॉइंटमेंट्स",
+    "today": "आज",
+    "last7Days": "पिछले 7 दिन",
+    "last30Days": "पिछले 30 दिन",
+    "searchPlaceholder": "मरीज के नाम या बीमारी से खोजें...",
+    "noHistory": "कोई अपॉइंटमेंट इतिहास नहीं मिला।",
+    "noDenied": "कोई अस्वीकृत अनुरोध नहीं है।",
+    "free": "निःशुल्क"
+  },
+  "doctorReviews": {
+    "title": "मरीजों की समीक्षाएं",
+    "rating": "रेटिंग: {{rating}}",
+    "noReviews": "अभी तक कोई समीक्षा नहीं मिली है।",
+    "date": "दिनांक: {{date}}"
+  },
+  "doctorNotifications": {
+    "title": "डॉक्टर सूचनाएं",
+    "description": "परामर्श, अपॉइंटमेंट बुकिंग, रद्दीकरण और मरीज समीक्षाओं से अपडेट रहें।",
+    "newBadge": "{{count}} नई",
+    "markAll": "सभी को पढ़ा हुआ चिह्नित करें",
+    "marking": "चिह्नित किया जा रहा है...",
+    "tabAll": "सभी ({{count}})",
+    "tabDietPlans": "डाइट प्लान ({{count}})",
+    "tabAppointments": "अपॉइंटमेंट्स ({{count}})",
+    "tabDisputes": "विवाद और समस्याएं ({{count}})",
+    "tabReviews": "समीक्षाएं ({{count}})",
+    "tabSystem": "सिस्टम ({{count}})",
+    "noNotifications": "कोई नई सूचना नहीं है",
+    "allCaughtUp": "आप पूरी तरह अपडेट हैं! मरीज के अपडेट और अपॉइंटमेंट अलर्ट यहाँ दिखाई देंगे।",
+    "startConsultation": "परामर्श शुरू करें",
+    "viewDetails": "विवरण देखें"
+  },
+  "healthBlogs": {
+    "title": "मेरे स्वास्थ्य ब्लॉग",
+    "writeBlog": "ब्लॉग लिखें",
+    "loading": "आपके ब्लॉग लोड हो रहे हैं...",
+    "noBlogs": "आपने अभी तक कोई ब्लॉग प्रकाशित नहीं किया है।",
+    "deleteTitle": "क्या इस ब्लॉग को हटाना चाहते हैं?",
+    "deleteDesc": "\"{{title}}\" स्थायी रूप से हटा दिया जाएगा।",
+    "edit": "संपादित करें",
+    "delete": "हटाएं"
   },
   "analytics": {
     "title": "एनालिटिक्स डैशबोर्ड",
@@ -20,11 +135,11 @@
       "gender": "लिंग वितरण",
       "age": "आयु वितरण",
       "appointments": "मासिक अपॉइंटमेंट्स",
-      "ratings": "मरीज रेटिंग्स"
+      "ratings": "मरीजों की रेटिंग"
     },
     "paymentHistory": {
       "title": "भुगतान इतिहास",
-      "searchDate": "तिथि खोजें:",
+      "searchDate": "तारीख खोजें:",
       "serviceFilter": "सेवा:",
       "filter": "फ़िल्टर:",
       "allServices": "सभी सेवाएं",
@@ -36,8 +151,8 @@
       "last30Days": "पिछले 30 दिन",
       "noPayments": "इस समयावधि के लिए कोई भुगतान नहीं मिला।",
       "colPatient": "मरीज",
-      "colDate": "तिथि",
-      "colRefId": "संदर्भ आईडी",
+      "colDate": "तारीख",
+      "colRefId": "संदर्भ संख्या (Ref ID)",
       "colService": "सेवा",
       "colMethod": "भुगतान विधि",
       "colAmount": "राशि",
@@ -48,7 +163,7 @@
       "totalEarnings": "कुल कमाई",
       "vsLastMonth": "पिछले महीने की तुलना में",
       "thisMonth": "इस महीने",
-      "insightsTitle": "कमाई की अंतर्दृष्टि",
+      "insightsTitle": "कमाई का विश्लेषण",
       "highestMonth": "सर्वाधिक कमाई वाला महीना",
       "avgMonthly": "औसत मासिक कमाई",
       "projected": "अनुमानित (अगले 30 दिन)",
@@ -56,13 +171,13 @@
       "trendStrong": "मजबूत",
       "trendStable": "स्थिर",
       "trendModerate": "मध्यम",
-      "trendNeutral": "तटस्थ"
+      "trendNeutral": "सामान्य"
     },
     "breakdown": {
       "title": "कमाई का विवरण",
       "fromAppointments": "अपॉइंटमेंट्स से",
       "fromDietPlans": "डाइट प्लान से",
-      "banner": "डाइट प्लान ने कुल कमाई का {{pct}}% योगदान दिया"
+      "banner": "डाइट प्लान का कुल कमाई में {{pct}}% योगदान रहा"
     },
     "topServices": {
       "title": "शीर्ष सेवाएं (मात्रा अनुसार)",
@@ -72,9 +187,9 @@
       "dietPlansLabel": "डाइट प्लान"
     },
     "peakTime": {
-      "title": "व्यस्त समय की अंतर्दृष्टि",
+      "title": "व्यस्त समय का विश्लेषण",
       "busiestDay": "सबसे व्यस्त दिन",
-      "busiestSlot": "सबसे व्यस्त समय स्लॉट",
+      "busiestSlot": "सबसे व्यस्त समय",
       "morning": "सुबह",
       "morningSub": "(6 AM - 12 PM)",
       "afternoon": "दोपहर",
@@ -86,21 +201,21 @@
     },
     "gender": {
       "title": "मरीजों का लिंग वितरण",
-      "noData": "कोई लिंग डेटा उपलब्ध नहीं है।",
+      "noData": "लिंग संबंधी कोई डेटा उपलब्ध नहीं है।",
       "patients": "मरीज"
     },
     "age": {
       "title": "मरीजों का आयु वितरण"
     },
     "appointmentsOverview": {
-      "title": "अपॉइंटमेंट अवलोकन",
+      "title": "अपॉइंटमेंट्स का अवलोकन",
       "last30Days": "अपॉइंटमेंट्स (पिछले 30 दिन)",
       "vsPrev30Days": "पिछले 30 दिनों की तुलना में",
       "today": "आज",
-      "doneToday": "आज संपन्न"
+      "doneToday": "आज पूर्ण हुए"
     },
     "ratingsTrend": {
-      "title": "मरीज रेटिंग रुझान (मासिक औसत)",
+      "title": "मरीजों की रेटिंग का रुझान (मासिक औसत)",
       "noData": "अभी तक कोई रेटिंग प्राप्त नहीं हुई है।"
     }
   },
@@ -111,6 +226,7 @@
     "cancel": "रद्द करें",
     "confirm": "पुष्टि करें",
     "status": "स्थिति",
-    "actions": "कार्रवाई"
+    "actions": "कार्रवाई",
+    "saving": "सहेजा जा रहा है..."
   }
 }

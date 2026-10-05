@@ -1,6 +1,7 @@
 import { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { Clock, Calendar, ChevronLeft, ChevronRight, ChevronDown, Star, CheckCircle2, Hourglass, Pill, Search, X } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import { AuthContext } from "../../context/AuthContext";
 import { authFetch } from "../../utils/authFetch";
@@ -64,6 +65,7 @@ const TIME_FILTER_OPTIONS = [
 ];
 
 function AppointmentHistory() {
+	const { t } = useTranslation();
 	const [activeTab, setActiveTab] = useState("Previous");
 	const navigate = useNavigate();
 	const [previousAppointments, setPreviousAppointments] = useState([]);
@@ -229,7 +231,7 @@ function AppointmentHistory() {
 	if (loading) {
 		return (
 			<DashboardShell>
-				<p className="text-muted-foreground">Loading...</p>
+				<p className="text-muted-foreground">{t("common.loading", "Loading...")}</p>
 			</DashboardShell>
 		);
 	}
@@ -237,21 +239,24 @@ function AppointmentHistory() {
 	if (error) {
 		return (
 			<DashboardShell>
-				<p className="text-destructive">Error: {error}</p>
+				<p className="text-destructive">{t("common.error", "Error")}: {error}</p>
 			</DashboardShell>
 		);
 	}
 
 	return (
 		<DashboardShell>
-			<DashboardPageHeader title="Appointment History" description="Past consultations and denied requests." />
+			<DashboardPageHeader
+				title={t("appointmentHistory.title", "Appointment History")}
+				description={t("appointmentHistory.description", "Past consultations and denied requests.")}
+			/>
 
 			{/* Filters Panel */}
 			<Card className="mb-6 p-4 flex flex-col md:flex-row items-center gap-4 bg-card">
 				<div className="relative w-full md:w-72">
 					<Search className="absolute left-3 top-3 size-4 text-muted-foreground" />
 					<Input
-						placeholder="Search patient by name..."
+						placeholder={t("appointmentHistory.searchPlaceholder", "Search patient by name...")}
 						value={searchTerm}
 						onChange={(e) => setSearchTerm(e.target.value)}
 						className="pl-9 pr-8"
@@ -259,7 +264,7 @@ function AppointmentHistory() {
 					{searchTerm && (
 						<button
 							onClick={() => setSearchTerm("")}
-							className="absolute right-2.5 top-3 text-muted-foreground hover:text-foreground"
+							className="absolute right-2.5 top-3 text-muted-foreground hover:text-foreground cursor-pointer"
 						>
 							<X className="size-4" />
 						</button>
@@ -273,17 +278,15 @@ function AppointmentHistory() {
 							setTimeFilter(val);
 							setCustomDate(""); // Clear custom date when quick range changes
 						}}
-						items={TIME_FILTER_OPTIONS}
 					>
-						<SelectTrigger className="w-full md:w-48">
-							<SelectValue placeholder="All Appointments" />
+						<SelectTrigger className="w-full md:w-48 cursor-pointer">
+							<SelectValue placeholder={t("appointmentHistory.allAppointments", "All Appointments")} />
 						</SelectTrigger>
 						<SelectContent>
-							{TIME_FILTER_OPTIONS.map((opt) => (
-								<SelectItem key={opt.value} value={opt.value}>
-									{opt.label}
-								</SelectItem>
-							))}
+							<SelectItem value="all">{t("appointmentHistory.allAppointments", "All Appointments")}</SelectItem>
+							<SelectItem value="today">{t("appointmentHistory.today", "Today")}</SelectItem>
+							<SelectItem value="week">{t("appointmentHistory.last7Days", "Last 7 Days")}</SelectItem>
+							<SelectItem value="month">{t("appointmentHistory.last30Days", "Last 30 Days")}</SelectItem>
 						</SelectContent>
 					</Select>
 				</div>
@@ -313,7 +316,7 @@ function AppointmentHistory() {
 						{customDate && (
 							<button
 								onClick={() => setCustomDate("")}
-								className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground"
+								className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground cursor-pointer"
 							>
 								<X className="size-4" />
 							</button>
@@ -324,13 +327,13 @@ function AppointmentHistory() {
 
 			<Tabs value={activeTab} onValueChange={setActiveTab}>
 				<TabsList className="mb-6">
-					<TabsTrigger value="Previous" className="cursor-pointer">Previous Appointments</TabsTrigger>
-					<TabsTrigger value="Denied" className="cursor-pointer">Denied / Cancelled</TabsTrigger>
+					<TabsTrigger value="Previous" className="cursor-pointer">{t("appointmentHistory.tabPrevious", "Completed Consultations")}</TabsTrigger>
+					<TabsTrigger value="Denied" className="cursor-pointer">{t("appointmentHistory.tabDenied", "Denied / Cancelled")}</TabsTrigger>
 				</TabsList>
 
 				<TabsContent value="Previous">
 					{patients.length === 0 ? (
-						<p className="text-center text-muted-foreground">No previous patients found.</p>
+						<p className="text-center text-muted-foreground">{t("appointmentHistory.noHistory", "No previous patients found.")}</p>
 					) : (
 						<div className="flex flex-col gap-5">
 							{patients.map(({ key, latest, visits, prescriptions, reviewedVisit }) => {

@@ -2,6 +2,7 @@ import { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { Plus, Pencil, Trash2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import { AuthContext } from "../../context/AuthContext";
 import { BACKEND_URL } from "../../config";
@@ -14,6 +15,7 @@ import { useConfirm } from "@/context/PromptDialogContext";
 import { formatDate } from "@/lib/date";
 
 function HealthBlogs() {
+	const { t } = useTranslation();
 	const { auth } = useContext(AuthContext);
 	const doctorId = auth.user ? auth.user.id : null;
 	const navigate = useNavigate();
@@ -44,8 +46,8 @@ function HealthBlogs() {
 
 	const handleDelete = async (blog) => {
 		const confirmed = await confirm({
-			title: "Delete this blog?",
-			description: `"${blog.title}" will be permanently removed.`,
+			title: t("healthBlogs.deleteTitle", "Delete this blog?"),
+			description: t("healthBlogs.deleteDesc", "\"{{title}}\" will be permanently removed.", { title: blog.title }),
 			danger: true,
 		});
 		if (!confirmed) return;
@@ -65,11 +67,11 @@ function HealthBlogs() {
 	return (
 		<DashboardShell>
 			<DashboardPageHeader
-				title="My Health Blogs"
+				title={t("healthBlogs.title", "My Health Blogs")}
 				actions={
 					<Button onClick={() => navigate("/health-blogs/new")}>
 						<Plus data-icon="inline-start" />
-						Blog
+						{t("healthBlogs.writeBlog", "Blog")}
 					</Button>
 				}
 			/>
@@ -80,9 +82,9 @@ function HealthBlogs() {
 				</Alert>
 			) : null}
 
-			{isLoading ? <p className="text-center text-muted-foreground">Loading your blogs...</p> : null}
+			{isLoading ? <p className="text-center text-muted-foreground">{t("healthBlogs.loading", "Loading your blogs...")}</p> : null}
 			{!isLoading && blogs.length === 0 ? (
-				<p className="text-center text-muted-foreground">You haven't published any blogs yet.</p>
+				<p className="text-center text-muted-foreground">{t("healthBlogs.noBlogs", "You haven't published any blogs yet.")}</p>
 			) : null}
 
 			<div className="flex flex-col gap-3">

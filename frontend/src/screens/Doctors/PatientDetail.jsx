@@ -1,6 +1,7 @@
 import { useState, useEffect, useContext } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ChevronLeft, ChevronDown, Mail, Phone, Calendar, Clock, Star, Pill } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import { AuthContext } from "../../context/AuthContext";
 import { authFetch } from "../../utils/authFetch";
@@ -26,6 +27,7 @@ const format12HourTime = (timeStr) => {
 };
 
 function PatientDetail() {
+	const { t } = useTranslation();
 	const { patientId } = useParams();
 	const navigate = useNavigate();
 	const { auth } = useContext(AuthContext);
@@ -71,7 +73,7 @@ function PatientDetail() {
 	if (loading) {
 		return (
 			<DashboardShell>
-				<p className="text-muted-foreground">Loading...</p>
+				<p className="text-muted-foreground">{t("common.loading", "Loading...")}</p>
 			</DashboardShell>
 		);
 	}
@@ -79,7 +81,7 @@ function PatientDetail() {
 	if (error || !patient) {
 		return (
 			<DashboardShell>
-				<p className="text-destructive">{error || "Patient not found."}</p>
+				<p className="text-destructive">{error || t("patientDetail.error", "Patient not found.")}</p>
 			</DashboardShell>
 		);
 	}
@@ -88,19 +90,19 @@ function PatientDetail() {
 		<DashboardShell>
 			<Button
 				onClick={() => navigate("/patient-list")}
-				className="mb-4 bg-[var(--jh-olive-light)] text-[var(--jh-cream)] hover:bg-[var(--jh-olive-leaf)] transition-colors flex items-center gap-2"
+				className="mb-4 bg-[var(--jh-olive-light)] text-[var(--jh-cream)] hover:bg-[var(--jh-olive-leaf)] transition-colors flex items-center gap-2 cursor-pointer"
 			>
-				<ChevronLeft className="size-4" /> Back to Patient List
+				<ChevronLeft className="size-4" /> {t("patientDetail.backToList", "Back to Patient List")}
 			</Button>
 
 			<DashboardPageHeader
 				title={`${patient.firstName} ${patient.lastName}`}
-				description="Patient profile, medical history, and consultation record."
+				description={t("patientDetail.description", "Patient profile, medical history, and consultation record.")}
 			/>
 
 			<div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
 				<Card className="p-6 lg:col-span-1">
-					<h3 className="mb-3 border-b border-border pb-2 text-base font-semibold text-foreground">Profile</h3>
+					<h3 className="mb-3 border-b border-border pb-2 text-base font-semibold text-foreground">{t("patientDetail.profile", "Profile")}</h3>
 					<div className="flex flex-col gap-2.5 text-sm text-foreground/80">
 						<span className="flex items-center gap-2">
 							<Mail className="size-4 text-muted-foreground" /> {patient.email}
@@ -111,7 +113,7 @@ function PatientDetail() {
 							</span>
 						) : null}
 						<span>
-							{patient.age != null ? `${patient.age} yrs` : "Age N/A"} &bull; {patient.gender || "N/A"}
+							{patient.age != null ? `${patient.age} ${t("appointmentSlots.age", "yrs")}` : t("patientDetail.ageNA", "Age N/A")} &bull; {patient.gender || "N/A"}
 						</span>
 					</div>
 				</Card>
@@ -125,10 +127,10 @@ function PatientDetail() {
 				<button
 					type="button"
 					onClick={() => setShowVisits((prev) => !prev)}
-					className="flex w-full items-center justify-between gap-2 bg-transparent p-5 text-left"
+					className="flex w-full items-center justify-between gap-2 bg-transparent p-5 text-left cursor-pointer"
 				>
 					<h3 className="text-base font-semibold text-foreground">
-						Previous Appointments with You ({visits.length})
+						{t("patientDetail.prevVisits", "Previous Appointments with You ({{count}})", { count: visits.length })}
 					</h3>
 					<ChevronDown className={`size-4 text-muted-foreground transition-transform ${showVisits ? "rotate-180" : ""}`} />
 				</button>
@@ -136,7 +138,7 @@ function PatientDetail() {
 				{showVisits ? (
 					<div className="flex flex-col gap-4 border-t border-border p-5">
 						{visits.length === 0 ? (
-							<p className="text-sm text-muted-foreground">No accepted appointments with this patient yet.</p>
+							<p className="text-sm text-muted-foreground">{t("patientDetail.noPrevVisits", "No accepted appointments with this patient yet.")}</p>
 						) : (
 							visits.map((visit) => (
 								<div key={visit._id} className="rounded-lg border border-border p-4">

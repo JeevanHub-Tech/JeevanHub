@@ -10,7 +10,8 @@ function aiRateLimit({ windowMs, max, message }) {
         windowMs,
         max,
         message: { message: message || "Too many AI requests. Please wait before trying again." },
-        keyGenerator: (req) => (req.user?._id ? String(req.user._id) : req.ip),
+        keyGenerator: (req) => (req.user?._id ? String(req.user._id) : (req.ip || "global")),
+        validate: { keyGeneratorIpFallback: false },
     });
 }
 

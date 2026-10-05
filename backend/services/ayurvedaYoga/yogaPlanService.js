@@ -152,6 +152,27 @@ function sanitizePlan(raw) {
 }
 
 /**
+ * @param {object} args { profile: AyurvedaWellnessProfile, dosha: AyurvedaDoshaAssessment|null, patient: {age, gender}, conditions: string[] }
+ * @returns {Promise<object>} sanitized { morning, evening, summary } ready for video-link fill-in and persistence
+ */
+async function generateYogaPlan({ profile, dosha, patient, conditions }) {
+  if (!AYURVEDA_YOGA_ENABLED) { const e = new Error('AI yoga planning is disabled'); e.code = 'DISABLED'; throw e; }
+
+  const prompt = buildPrompt({ profile, dosha, patient, conditions });
+
+  let raw;
+  if (AYURVEDA_YOGA_PROVIDER === 'gemini') {
+    raw = await generateWithGemini(prompt);
+  } else {
+    const e = new Error(`Ayurveda yoga provider '${AYURVEDA_YOGA_PROVIDER}' is not implemented`);
+    e.code = 'PROVIDER_UNIMPLEMENTED';
+    throw e;
+  }
+
+  return sanitizePlan(raw);
+}
+
+/**
  * Translates an existing yoga plan to Hindi while preserving video links.
  */
 async function translateYogaPlanToHindi(yogaPlan) {

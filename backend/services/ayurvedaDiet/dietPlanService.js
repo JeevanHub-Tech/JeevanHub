@@ -300,6 +300,28 @@ function sanitizePlan(raw) {
 }
 
 /**
+ * @param {object} args { profile: AyurvedaWellnessProfile, dosha: AyurvedaDoshaAssessment, patient: {age, gender} }
+ * @returns {Promise<object>} sanitized plan fields ready to persist on AyurvedaDietPlan (minus model/generatedAt/ids)
+ */
+async function generateDietPlan({ profile, dosha, patient }) {
+  if (!AYURVEDA_DIET_ENABLED) { const e = new Error('AI diet planning is disabled'); e.code = 'DISABLED'; throw e; }
+  if (!dosha || !dosha.primaryDosha) { const e = new Error('Dosha assessment is required'); e.code = 'MISSING_DOSHA'; throw e; }
+
+  const prompt = buildPrompt({ profile, dosha, patient });
+
+  let raw;
+  if (AYURVEDA_DIET_PROVIDER === 'gemini') {
+    raw = await generateWithGemini(prompt);
+  } else {
+    const e = new Error(`Ayurveda diet provider '${AYURVEDA_DIET_PROVIDER}' is not implemented`);
+    e.code = 'PROVIDER_UNIMPLEMENTED';
+    throw e;
+  }
+
+  return sanitizePlan(raw);
+}
+
+/**
  * Translates an existing diet plan JSON into authentic Hindi while maintaining schema compatibility.
  */
 async function translateDietPlanToHindi(dietPlan) {

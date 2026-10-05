@@ -37,11 +37,15 @@ export function SelectField({ label, name, value, onChange, onBlur, error, optio
 					<SelectValue placeholder={placeholder} />
 				</SelectTrigger>
 				<SelectContent>
-					{options.map((opt) => (
-						<SelectItem key={opt} value={opt}>
-							{opt}
-						</SelectItem>
-					))}
+					{options.map((opt) => {
+						const optVal = typeof opt === "object" ? opt.value : opt;
+						const optLabel = typeof opt === "object" ? opt.label : opt;
+						return (
+							<SelectItem key={optVal} value={optVal}>
+								{optLabel}
+							</SelectItem>
+						);
+					})}
 				</SelectContent>
 			</Select>
 			<FieldError>{error}</FieldError>
@@ -49,11 +53,11 @@ export function SelectField({ label, name, value, onChange, onBlur, error, optio
 	);
 }
 
-export function PasswordField({ label, name, value, onChange, onBlur, error }) {
+export function PasswordField({ label = "Password", name, value, onChange, onBlur, error, placeholder }) {
 	return (
 		<Field data-invalid={!!error} className="mb-3.5">
 			<FieldLabel htmlFor={name}>{label}</FieldLabel>
-			<PasswordInput name={name} value={value} onChange={onChange} onBlur={onBlur} hasError={!!error} />
+			<PasswordInput name={name} value={value} onChange={onChange} onBlur={onBlur} placeholder={placeholder} hasError={!!error} />
 			<FieldError>{error}</FieldError>
 		</Field>
 	);
@@ -66,6 +70,10 @@ export function PasswordField({ label, name, value, onChange, onBlur, error }) {
 // column, and `rightSlot` - typically the zip/PIN field - fills the right
 // column instead of leaving it blank.
 export function PasswordPairField({
+	passwordLabel = "Password",
+	confirmLabel = "Confirm Password",
+	passwordPlaceholder,
+	confirmPlaceholder,
 	passwordValue,
 	onPasswordChange,
 	passwordError,
@@ -80,7 +88,8 @@ export function PasswordPairField({
 		return (
 			<div className="col-span-full grid grid-cols-1 gap-x-7 gap-y-2 sm:grid-cols-2">
 				<PasswordField
-					label="Password"
+					label={passwordLabel}
+					placeholder={passwordPlaceholder}
 					name="password"
 					value={passwordValue}
 					onChange={onPasswordChange}
@@ -88,7 +97,8 @@ export function PasswordPairField({
 					error={passwordError}
 				/>
 				<PasswordField
-					label="Confirm Password"
+					label={confirmLabel}
+					placeholder={confirmPlaceholder}
 					name="confirmPassword"
 					value={confirmValue}
 					onChange={onConfirmChange}
@@ -103,7 +113,8 @@ export function PasswordPairField({
 		<div className="col-span-full grid grid-cols-1 gap-x-7 gap-y-2 sm:grid-cols-2">
 			<div className="col-span-1 flex flex-col">
 				<PasswordField
-					label="Password"
+					label={passwordLabel}
+					placeholder={passwordPlaceholder}
 					name="password"
 					value={passwordValue}
 					onChange={onPasswordChange}
@@ -111,7 +122,8 @@ export function PasswordPairField({
 					error={passwordError}
 				/>
 				<PasswordField
-					label="Confirm Password"
+					label={confirmLabel}
+					placeholder={confirmPlaceholder}
 					name="confirmPassword"
 					value={confirmValue}
 					onChange={onConfirmChange}
@@ -124,10 +136,10 @@ export function PasswordPairField({
 	);
 }
 
-export function PhoneField({ countryCode, onCountryChange, phone, onPhoneChange, onBlur, countryError, phoneError }) {
+export function PhoneField({ label = "Phone Number", countryCode, onCountryChange, phone, onPhoneChange, onBlur, countryError, phoneError, placeholder }) {
 	return (
 		<Field data-invalid={!!(countryError || phoneError)} className="mb-3.5">
-			<FieldLabel htmlFor="phone">Phone Number</FieldLabel>
+			<FieldLabel htmlFor="phone">{label}</FieldLabel>
 			<div className="flex gap-2">
 				<CountryCodeSelect value={countryCode} onChange={onCountryChange} onBlur={onBlur} hasError={!!countryError} />
 				<Input
@@ -137,7 +149,7 @@ export function PhoneField({ countryCode, onCountryChange, phone, onPhoneChange,
 					value={phone}
 					onChange={onPhoneChange}
 					onBlur={onBlur}
-					placeholder={countryCode === "+91" ? "10-digit number" : "Phone number"}
+					placeholder={placeholder || (countryCode === "+91" ? "10-digit number" : "Phone number")}
 					aria-invalid={!!phoneError}
 					className="min-w-0 flex-1"
 				/>
@@ -147,12 +159,12 @@ export function PhoneField({ countryCode, onCountryChange, phone, onPhoneChange,
 	);
 }
 
-export function FileField({ label, name, file, onChange, error, helperText, required: isRequired, accept }) {
+export function FileField({ label, name, file, onChange, error, helperText, required: isRequired, accept, optionalText = "(optional)", selectedText = "Selected:" }) {
 	return (
 		<Field data-invalid={!!error} className="mb-3.5 rounded-lg bg-secondary p-4">
 			<FieldLabel htmlFor={name}>
 				{label}
-				{!isRequired ? <span className="font-normal text-muted-foreground"> (optional)</span> : null}
+				{!isRequired ? <span className="font-normal text-muted-foreground"> {optionalText}</span> : null}
 			</FieldLabel>
 			<input
 				id={name}
@@ -163,7 +175,7 @@ export function FileField({ label, name, file, onChange, error, helperText, requ
 				aria-invalid={!!error}
 				className="text-sm text-foreground file:mr-3.5 file:cursor-pointer file:rounded-full file:border-0 file:bg-primary file:px-5 file:py-2 file:text-sm file:font-semibold file:text-primary-foreground"
 			/>
-			{file ? <p className="mt-2 text-sm font-semibold text-primary">Selected: {file.name}</p> : null}
+			{file ? <p className="mt-2 text-sm font-semibold text-primary">{selectedText} {file.name}</p> : null}
 			{helperText ? <p className="mt-1.5 text-xs text-muted-foreground">{helperText}</p> : null}
 			<FieldError>{error}</FieldError>
 		</Field>

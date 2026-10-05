@@ -590,5 +590,53 @@
         "serverUnreachable": "सर्वर से संपर्क नहीं हो सका। कृपया अपना इंटरनेट कनेक्शन जांचें।"
       }
     }
+  },
+  "orderHistory": {
+    "title": "आपके ऑर्डर",
+    "ordersPlaced_one": "{{count}} ऑर्डर दिया गया",
+    "ordersPlaced_other": "{{count}} ऑर्डर दिए गए",
+    "searchPlaceholder": "ऑर्डर खोजें...",
+    "tabs": {
+      "all": "सभी ऑर्डर",
+      "pending": "प्रगति में",
+      "completed": "पूर्ण",
+      "cancelled": "रद्द"
+    },
+    "status": {
+      "pending": "प्रगति में",
+      "accepted": "स्वीकृत",
+      "processing": "प्रक्रिया में",
+      "shipped": "भेज दिया गया (Shipped)",
+      "delivered": "पूर्ण (डिलीवर हो गया)",
+      "rejected": "अस्वीकृत",
+      "cancelled": "रद्द"
+    },
+    "loading": "आपके ऑर्डर लोड हो रहे हैं...",
+    "errorDefault": "आपके ऑर्डर लोड करने में असमर्थ। कृपया बाद में पुनः प्रयास करें।",
+    "noOrdersTitle": "अभी तक कोई ऑर्डर नहीं है",
+    "noOrdersDesc": "आपके द्वारा मंगाई गई दवाइयां यहां दिखाई देंगी ताकि आप खरीद से डिलीवरी तक ट्रैक कर सकें।",
+    "shopNow": "दवाइयां खरीदें",
+    "noMatchingOrdersTitle": "कोई मेल खाता ऑर्डर नहीं मिला",
+    "noMatchingOrdersDesc": "कोई अन्य शब्द खोजें या दूसरा टैब चुनें।",
+    "orderPlaced": "ऑर्डर दिनांक",
+    "total": "कुल राशि",
+    "orderNumber": "ऑर्डर संख्या #",
+    "soldBy": "विक्रेता: {{retailers}}",
+    "handedToDelhivery": "डिलीवरी पार्टनर को सौंपा गया",
+    "shipped": "भेजा गया",
+    "trackShipment": "शिपमेंट ट्रैक करें",
+    "yourFeedback": "आपकी प्रतिक्रिया",
+    "deliveredOn": "डिलीवरी दिनांक: {{date}}",
+    "paymentMethod": "भुगतान विधि:",
+    "cod": "कैश ऑन डिलीवरी (COD)",
+    "online": "ऑनलाइन भुगतान",
+    "paymentStatus": "भुगतान स्थिति:",
+    "reportIssue": "समस्या दर्ज करें",
+    "reporting": "दर्ज किया जा रहा है…",
+    "updateOrderStatus": "ऑर्डर स्थिति अपडेट करें",
+    "viewOrder": "ऑर्डर देखें",
+    "disputePrompt": "इस ऑर्डर के साथ क्या समस्या हुई? (उदा. दवाइयां प्राप्त नहीं हुईं)",
+    "disputeSuccess": "धन्यवाद — हमने इसे समीक्षा के लिए चिह्नित कर दिया है।",
+    "disputeError": "समस्या दर्ज करने में विफल। कृपया पुनः प्रयास करें।"
   }
 }

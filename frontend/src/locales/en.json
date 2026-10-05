@@ -590,5 +590,53 @@
         "serverUnreachable": "Could not reach the server. Please check your connection and try again."
       }
     }
+  },
+  "orderHistory": {
+    "title": "Your Orders",
+    "ordersPlaced_one": "{{count}} order placed",
+    "ordersPlaced_other": "{{count}} orders placed",
+    "searchPlaceholder": "Search orders...",
+    "tabs": {
+      "all": "All Orders",
+      "pending": "Pending",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    },
+    "status": {
+      "pending": "Pending",
+      "accepted": "Accepted",
+      "processing": "Processing",
+      "shipped": "Shipped",
+      "delivered": "Completed",
+      "rejected": "Rejected",
+      "cancelled": "Cancelled"
+    },
+    "loading": "Loading your orders...",
+    "errorDefault": "Failed to load your orders. Please try again later.",
+    "noOrdersTitle": "No orders yet",
+    "noOrdersDesc": "Medicines you order will show up here so you can track them from purchase to delivery.",
+    "shopNow": "Shop now",
+    "noMatchingOrdersTitle": "No matching orders",
+    "noMatchingOrdersDesc": "Try a different search term or switch tabs.",
+    "orderPlaced": "Order placed",
+    "total": "Total",
+    "orderNumber": "Order #",
+    "soldBy": "Sold by {{retailers}}",
+    "handedToDelhivery": "Handed to Delhivery",
+    "shipped": "shipped",
+    "trackShipment": "Track shipment",
+    "yourFeedback": "Your feedback",
+    "deliveredOn": "Delivered on {{date}}",
+    "paymentMethod": "Payment method:",
+    "cod": "Cash on delivery",
+    "online": "Online payment",
+    "paymentStatus": "Payment status:",
+    "reportIssue": "Report an Issue",
+    "reporting": "Reporting…",
+    "updateOrderStatus": "Update order status",
+    "viewOrder": "View order",
+    "disputePrompt": "What went wrong with this order? (e.g. never received the medicines)",
+    "disputeSuccess": "Thanks — we've flagged this and will review it before any payout goes out.",
+    "disputeError": "Could not report this issue. Please try again."
   }
 }

@@ -1644,6 +1644,137 @@
       "digestiveIssues": "Digestive issues (GERD/gastritis)",
       "respiratoryIssues": "Respiratory issues"
     }
+  },
+  "ayurvedaDashboard": {
+    "title": "Ayurveda wellness",
+    "subtitle": "Personalized Prakriti profile and AI-generated diet plan.",
+    "statusTiles": {
+      "prakritiAssessment": "Prakriti Assessment",
+      "wellnessProfile": "Wellness Profile",
+      "notCompletedYet": "Not completed yet",
+      "notFilledYet": "Not filled yet",
+      "filled": "Filled",
+      "viewResult": "View result",
+      "retake": "Retake",
+      "fillAssessment": "Fill assessment",
+      "viewDetails": "View details",
+      "refill": "Refill",
+      "fillProfile": "Fill profile"
+    },
+    "overview": {
+      "noPlanTitle": "No plan yet",
+      "noPlanDoctorDesc": "This patient hasn't generated a plan yet. You can generate one now (from their Prakriti + wellness profile).",
+      "noPlanPatientDesc": "Generate a personalized Ayurvedic diet and yoga plan based on your dosha, health, and lifestyle.",
+      "completePrereqs": "Complete {{prereqs}} first.",
+      "generatePlan": "Generate plan",
+      "generating": "Generating…",
+      "patientAlreadyGenerated": "Patient already generated",
+      "planOutdated": "Plan may be outdated -- profile or assessment changed since it was generated",
+      "generatedOn": "Generated {{date}}",
+      "regeneratePlan": "Regenerate plan",
+      "regenerating": "Regenerating…",
+      "deletePlan": "Delete plan",
+      "deleteConfirm": "Delete your current plan? This will remove the current diet and yoga plan so you can generate a fresh one."
+    }
+  },
+  "weeklyMealPlanner": {
+    "title": "Weekly Meal Planner",
+    "doctorApproved": "Doctor Approved",
+    "madeByOnDate": "Made by {{doctorName}} on {{date}}",
+    "madeBy": "Made by {{doctorName}}",
+    "generatedOnDate": "Generated on {{date}}",
+    "promoTitle": "Want a Doctor-Certified Personalized Diet Plan?",
+    "promoSubtitle": "Have your consulting Ayurvedic doctor review and tailor this 7-day routine specifically for your Dosha & illness.",
+    "requestWithDoctor": "Request with Doctor →",
+    "emptyTitle": "No weekly plan yet",
+    "emptyDesc": "Generate a diet plan from the Overview tab to see the 7-day meal planner.",
+    "notSpecified": "Not specified",
+    "days": {
+      "mon": "MON",
+      "tue": "TUE",
+      "wed": "WED",
+      "thu": "THU",
+      "fri": "FRI",
+      "sat": "SAT",
+      "sun": "SUN"
+    },
+    "meals": {
+      "breakfast": "Breakfast",
+      "midMorning": "Mid Morning",
+      "lunch": "Lunch",
+      "eveningSnack": "Evening Snack",
+      "dinner": "Dinner"
+    }
+  },
+  "wellnessProfileForm": {
+    "title": "Ayurveda wellness profile",
+    "subtitle": "Share as much or as little as you'd like — everything here is optional and only used to personalize your Ayurvedic diet plan.",
+    "basicDetails": "Basic details",
+    "heightCm": "Height (cm)",
+    "weightKg": "Weight (kg)",
+    "bodyType": "Body type",
+    "optional": "(optional)",
+    "selectBodyType": "Select body type",
+    "bmi": "BMI:",
+    "healthInfo": "Health information",
+    "conditions": {
+      "diabetes": "Diabetes",
+      "highBP": "High blood pressure",
+      "obesityFocus": "Weight management focus",
+      "skinDisease": "Skin disease (eczema/psoriasis/chronic rashes)",
+      "jointPainArthritis": "Joint pain / arthritis",
+      "digestiveIssues": "Digestive issues (GERD/gastritis)",
+      "respiratoryIssues": "Respiratory issues"
+    },
+    "otherConditions": "Other conditions",
+    "medications": "Current medications",
+    "allergies": "Allergies / food restrictions",
+    "commaSeparated": "Comma-separated",
+    "lifestyle": "Lifestyle",
+    "activityLevel": "Daily activity level",
+    "select": "Select",
+    "activityLevels": {
+      "sedentary": "Sedentary",
+      "light": "Light",
+      "moderate": "Moderate",
+      "active": "Active"
+    },
+    "sleepHours": "Sleep hours",
+    "sleepQuality": "Sleep quality",
+    "sleepQualities": {
+      "poor": "Poor",
+      "fair": "Fair",
+      "good": "Good"
+    },
+    "stressLevel": "Stress level",
+    "stressLevels": {
+      "low": "Low",
+      "moderate": "Moderate",
+      "high": "High"
+    },
+    "exerciseHabits": "Exercise habits",
+    "exerciseHabitsPlaceholder": "e.g. Yoga 3x/week",
+    "workRoutine": "Work routine",
+    "workRoutinePlaceholder": "e.g. Desk job, 9-6",
+    "foodHabits": "Food habits",
+    "dietType": "Diet type",
+    "dietTypes": {
+      "vegetarian": "Vegetarian",
+      "non_vegetarian": "Non-vegetarian",
+      "eggetarian": "Eggetarian",
+      "vegan": "Vegan"
+    },
+    "waterIntakeLiters": "Water intake (liters/day)",
+    "preferredFoods": "Preferred foods",
+    "dislikedFoods": "Food dislikes",
+    "eatingTimings": "Eating timings",
+    "eatingTimingsPlaceholder": "e.g. Breakfast 8am, Lunch 1pm, Dinner 8pm",
+    "retakeAssessment": "Retake Prakriti assessment",
+    "cancel": "Cancel",
+    "saveProfile": "Save profile",
+    "saving": "Saving…",
+    "savedSuccess": "Wellness profile saved.",
+    "saveFailed": "Failed to save wellness profile."
   }
 }
 

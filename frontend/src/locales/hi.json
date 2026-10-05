@@ -1644,6 +1644,137 @@
       "digestiveIssues": "पाचन संबंधी समस्याएं (एसिडिटी/गैस्ट्राइटिस)",
       "respiratoryIssues": "श्वसन संबंधी समस्याएं"
     }
+  },
+  "ayurvedaDashboard": {
+    "title": "आयुर्वेद वेलनेस",
+    "subtitle": "व्यक्तिगत प्रकृति प्रोफ़ाइल और एआई-निर्मित आहार योजना।",
+    "statusTiles": {
+      "prakritiAssessment": "प्रकृति मूल्यांकन",
+      "wellnessProfile": "वेलनेस प्रोफ़ाइल",
+      "notCompletedYet": "अभी पूरा नहीं हुआ",
+      "notFilledYet": "अभी भरा नहीं गया",
+      "filled": "भरा हुआ",
+      "viewResult": "परिणाम देखें",
+      "retake": "पुनः लें",
+      "fillAssessment": "मूल्यांकन भरें",
+      "viewDetails": "विवरण देखें",
+      "refill": "पुनः भरें",
+      "fillProfile": "प्रोफ़ाइल भरें"
+    },
+    "overview": {
+      "noPlanTitle": "अभी कोई योजना नहीं है",
+      "noPlanDoctorDesc": "इस मरीज़ ने अभी तक कोई योजना नहीं बनाई है। आप इसे उनकी प्रकृति और वेलनेस प्रोफ़ाइल के आधार पर बना सकते हैं।",
+      "noPlanPatientDesc": "अपने दोष, स्वास्थ्य और जीवनशैली के आधार पर एक व्यक्तिगत आयुर्वेदिक आहार और योग योजना तैयार करें।",
+      "completePrereqs": "पहले {{prereqs}} पूरा करें।",
+      "generatePlan": "योजना बनाएं",
+      "generating": "योजना बनाई जा रही है…",
+      "patientAlreadyGenerated": "मरीज़ द्वारा पहले ही बनाई जा चुकी है",
+      "planOutdated": "योजना पुरानी हो सकती है -- इसे बनाए जाने के बाद प्रोफ़ाइल या मूल्यांकन में बदलाव हुआ है",
+      "generatedOn": "{{date}} को तैयार की गई",
+      "regeneratePlan": "पुनः योजना बनाएं",
+      "regenerating": "पुनः बनाई जा रही है…",
+      "deletePlan": "योजना हटाएं",
+      "deleteConfirm": "क्या आप वर्तमान योजना हटाना चाहते हैं? यह वर्तमान आहार और योग योजना को हटा देगा ताकि आप नई योजना बना सकें।"
+    }
+  },
+  "weeklyMealPlanner": {
+    "title": "साप्ताहिक आहार योजना",
+    "doctorApproved": "डॉक्टर द्वारा स्वीकृत",
+    "madeByOnDate": "{{doctorName}} द्वारा {{date}} को तैयार",
+    "madeBy": "{{doctorName}} द्वारा तैयार",
+    "generatedOnDate": "{{date}} को तैयार की गई",
+    "promoTitle": "क्या आप डॉक्टर द्वारा प्रमाणित व्यक्तिगत आहार योजना चाहते हैं?",
+    "promoSubtitle": "अपने आयुर्वेदिक डॉक्टर से समीक्षा करवाएं और इस 7-दिवसीय दिनचर्या को अपने दोष और स्वास्थ्य के अनुसार तैयार करवाएं।",
+    "requestWithDoctor": "डॉक्टर से अनुरोध करें →",
+    "emptyTitle": "अभी कोई साप्ताहिक योजना नहीं है",
+    "emptyDesc": "7-दिवसीय भोजन योजनाकार देखने के लिए अवलोकन टैब से आहार योजना तैयार करें।",
+    "notSpecified": "निर्दिष्ट नहीं",
+    "days": {
+      "mon": "सोम",
+      "tue": "मंगल",
+      "wed": "बुध",
+      "thu": "गुरु",
+      "fri": "शुक्र",
+      "sat": "शनि",
+      "sun": "रवि"
+    },
+    "meals": {
+      "breakfast": "सुबह का नाश्ता",
+      "midMorning": "दोपहर पूर्व अल्पाहार",
+      "lunch": "दोपहर का भोजन",
+      "eveningSnack": "शाम का नाश्ता",
+      "dinner": "रात का खाना"
+    }
+  },
+  "wellnessProfileForm": {
+    "title": "आयुर्वेद वेलनेस प्रोफ़ाइल",
+    "subtitle": "जितना चाहें उतना साझा करें — यहाँ सब कुछ वैकल्पिक है और इसका उपयोग केवल आपकी व्यक्तिगत आयुर्वेदिक आहार योजना बनाने के लिए किया जाता है।",
+    "basicDetails": "बुनियादी विवरण",
+    "heightCm": "ऊंचाई (सेमी)",
+    "weightKg": "वजन (किग्रा)",
+    "bodyType": "शारीरिक संरचना",
+    "optional": "(वैकल्पिक)",
+    "selectBodyType": "शारीरिक संरचना चुनें",
+    "bmi": "बीएमआई (BMI):",
+    "healthInfo": "स्वास्थ्य संबंधी जानकारी",
+    "conditions": {
+      "diabetes": "मधुमेह (Diabetes)",
+      "highBP": "उच्च रक्तचाप (High BP)",
+      "obesityFocus": "वजन प्रबंधन (Weight management)",
+      "skinDisease": "त्वचा रोग (एक्जिमा/सोरायसिस/दाने)",
+      "jointPainArthritis": "जोड़ों का दर्द / गठिया (Arthritis)",
+      "digestiveIssues": "पाचन संबंधी समस्याएं (एसिडिटी/गैस्ट्राइटिस)",
+      "respiratoryIssues": "श्वसन संबंधी समस्याएं"
+    },
+    "otherConditions": "अन्य स्वास्थ्य स्थितियां",
+    "medications": "वर्तमान दवाइयां",
+    "allergies": "एलर्जी / खाद्य प्रतिबंध",
+    "commaSeparated": "अल्पविराम (comma) से अलग करें",
+    "lifestyle": "जीवनशैली",
+    "activityLevel": "दैनिक गतिविधि स्तर",
+    "select": "चुनें",
+    "activityLevels": {
+      "sedentary": "आरामदायक / गतिहीन (Sedentary)",
+      "light": "हल्की (Light)",
+      "moderate": "मध्यम (Moderate)",
+      "active": "सक्रिय (Active)"
+    },
+    "sleepHours": "नींद के घंटे",
+    "sleepQuality": "नींद की गुणवत्ता",
+    "sleepQualities": {
+      "poor": "खराब (Poor)",
+      "fair": "मध्यम (Fair)",
+      "good": "अच्छी (Good)"
+    },
+    "stressLevel": "तनाव स्तर",
+    "stressLevels": {
+      "low": "कम (Low)",
+      "moderate": "मध्यम (Moderate)",
+      "high": "अधिक (High)"
+    },
+    "exerciseHabits": "व्यायाम की आदतें",
+    "exerciseHabitsPlaceholder": "उदा. योग सप्ताह में 3 बार",
+    "workRoutine": "कार्य दिनचर्या",
+    "workRoutinePlaceholder": "उदा. डेस्क जॉब, सुबह 9 से शाम 6",
+    "foodHabits": "खान-पान की आदतें",
+    "dietType": "आहार प्रकार",
+    "dietTypes": {
+      "vegetarian": "शाकाहारी (Vegetarian)",
+      "non_vegetarian": "मांसाहारी (Non-vegetarian)",
+      "eggetarian": "अंडा युक्त शाकाहारी (Eggetarian)",
+      "vegan": "वीगन (Vegan)"
+    },
+    "waterIntakeLiters": "पानी का सेवन (लीटर/दिन)",
+    "preferredFoods": "पसंदीदा खाद्य पदार्थ",
+    "dislikedFoods": "नापसंद खाद्य पदार्थ",
+    "eatingTimings": "भोजन का समय",
+    "eatingTimingsPlaceholder": "उदा. सुबह 8 बजे नाश्ता, दोपहर 1 बजे खाना, रात 8 बजे खाना",
+    "retakeAssessment": "प्रकृति मूल्यांकन पुनः लें",
+    "cancel": "रद्द करें",
+    "saveProfile": "प्रोफ़ाइल सहेजें",
+    "saving": "सहेजा जा रहा है…",
+    "savedSuccess": "वेलनेस प्रोफ़ाइल सहेज ली गई है।",
+    "saveFailed": "वेलनेस प्रोफ़ाइल सहेजने में विफल।"
   }
 }
 

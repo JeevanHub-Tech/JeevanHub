@@ -414,37 +414,43 @@ function AyurvedaDashboard({ patientId: patientIdProp, readOnly = false, embedde
 				<div className="grid gap-4 sm:grid-cols-2">
 					<StatusTile
 						icon={Leaf}
-						title="Prakriti Assessment"
+						title={t("ayurvedaDashboard.statusTiles.prakritiAssessment", "Prakriti Assessment")}
 						complete={Boolean(dosha)}
 						statusText={dosha
-							? `${dosha.primaryDosha}${dosha.secondaryDosha ? ` · ${dosha.secondaryDosha}` : ""}`
-							: "Not completed yet"}
+							? (() => {
+									const pKey = (dosha.primaryDosha || "").toUpperCase();
+									const sKey = (dosha.secondaryDosha || "").toUpperCase();
+									const pLabel = t(`doshaResults.profiles.${pKey}.title`, { defaultValue: dosha.primaryDosha });
+									const sLabel = sKey ? t(`doshaResults.profiles.${sKey}.title`, { defaultValue: dosha.secondaryDosha }) : null;
+									return sLabel ? `${pLabel} · ${sLabel}` : pLabel;
+							  })()
+							: t("ayurvedaDashboard.statusTiles.notCompletedYet", "Not completed yet")}
 						actions={dosha
 							? isDoctorView
-								? [{ label: "View result", variant: "outline", onClick: () => setOpenPanel("prakriti-view") }]
+								? [{ label: t("ayurvedaDashboard.statusTiles.viewResult", "View result"), variant: "outline", onClick: () => setOpenPanel("prakriti-view") }]
 								: [
-									{ label: "View result", variant: "outline", onClick: () => setOpenPanel("prakriti-view") },
-									{ label: "Retake", variant: "outline", onClick: () => setOpenPanel("prakriti") },
+									{ label: t("ayurvedaDashboard.statusTiles.viewResult", "View result"), variant: "outline", onClick: () => setOpenPanel("prakriti-view") },
+									{ label: t("ayurvedaDashboard.statusTiles.retake", "Retake"), variant: "outline", onClick: () => setOpenPanel("prakriti") },
 								]
 							: isDoctorView
 								? []
-								: [{ label: "Fill assessment", variant: "default", onClick: () => setOpenPanel("prakriti") }]}
+								: [{ label: t("ayurvedaDashboard.statusTiles.fillAssessment", "Fill assessment"), variant: "default", onClick: () => setOpenPanel("prakriti") }]}
 					/>
 					<StatusTile
 						icon={ClipboardEdit}
-						title="Wellness Profile"
+						title={t("ayurvedaDashboard.statusTiles.wellnessProfile", "Wellness Profile")}
 						complete={profileFilled}
-						statusText={profileFilled ? "Filled" : "Not filled yet"}
+						statusText={profileFilled ? t("ayurvedaDashboard.statusTiles.filled", "Filled") : t("ayurvedaDashboard.statusTiles.notFilledYet", "Not filled yet")}
 						actions={profileFilled
 							? isDoctorView
-								? [{ label: "View details", variant: "outline", onClick: () => setOpenPanel("profile-view") }]
+								? [{ label: t("ayurvedaDashboard.statusTiles.viewDetails", "View details"), variant: "outline", onClick: () => setOpenPanel("profile-view") }]
 								: [
-									{ label: "View details", variant: "outline", onClick: () => setOpenPanel("profile-view") },
-									{ label: "Refill", variant: "outline", onClick: () => setOpenPanel("profile") },
+									{ label: t("ayurvedaDashboard.statusTiles.viewDetails", "View details"), variant: "outline", onClick: () => setOpenPanel("profile-view") },
+									{ label: t("ayurvedaDashboard.statusTiles.refill", "Refill"), variant: "outline", onClick: () => setOpenPanel("profile") },
 								]
 							: isDoctorView
 								? []
-								: [{ label: "Fill profile", variant: "default", onClick: () => setOpenPanel("profile") }]}
+								: [{ label: t("ayurvedaDashboard.statusTiles.fillProfile", "Fill profile"), variant: "default", onClick: () => setOpenPanel("profile") }]}
 					/>
 				</div>
 

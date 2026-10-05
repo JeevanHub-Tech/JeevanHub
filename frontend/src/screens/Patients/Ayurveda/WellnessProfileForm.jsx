@@ -1,6 +1,7 @@
 import { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { useTranslation } from "react-i18next";
 
 import { BackButton } from "@/components/ui/back-button";
 import { Button } from "@/components/ui/button";
@@ -15,11 +16,11 @@ import { BACKEND_URL } from "../../../config";
 
 const API = BACKEND_URL || "http://localhost:8080";
 
-function Field({ label, htmlFor, children, hint }) {
+function Field({ label, htmlFor, children, hint, optionalText }) {
 	return (
 		<div className="flex flex-col gap-1.5">
 			<Label htmlFor={htmlFor}>
-				{label} <span className="font-normal text-muted-foreground">(optional)</span>
+				{label} <span className="font-normal text-muted-foreground">{optionalText || "(optional)"}</span>
 			</Label>
 			{children}
 			{hint ? <p className="text-xs text-muted-foreground">{hint}</p> : null}
@@ -76,11 +77,14 @@ const emptyForm = {
 };
 
 function WellnessProfileForm({ embedded = false, onSaved } = {}) {
+	const { t } = useTranslation();
 	const { auth, loading: authLoading } = useContext(AuthContext);
 	const navigate = useNavigate();
 	const [form, setForm] = useState(emptyForm);
 	const [loading, setLoading] = useState(false);
 	const [saving, setSaving] = useState(false);
+
+	const opt = t("wellnessProfileForm.optional", "(optional)");
 
 	useEffect(() => {
 		if (authLoading) return;
@@ -185,12 +189,12 @@ function WellnessProfileForm({ embedded = false, onSaved } = {}) {
 			if (embedded) {
 				onSaved?.();
 			} else {
-				alert("Wellness profile saved.");
+				alert(t("wellnessProfileForm.savedSuccess", "Wellness profile saved."));
 				navigate("/ayurveda-wellness");
 			}
 		} catch (error) {
 			console.error("Error saving wellness profile:", error);
-			alert(error.response?.data?.error || "Failed to save wellness profile.");
+			alert(error.response?.data?.error || t("wellnessProfileForm.saveFailed", "Failed to save wellness profile."));
 		} finally {
 			setSaving(false);
 		}
@@ -199,12 +203,12 @@ function WellnessProfileForm({ embedded = false, onSaved } = {}) {
 	if (loading) {
 		return embedded ? (
 			<div className="flex flex-col gap-6">
-				<p className="text-center text-muted-foreground">Loading…</p>
+				<p className="text-center text-muted-foreground">{t("common.loading", "Loading…")}</p>
 			</div>
 		) : (
 			<main className="bg-background">
 				<div className="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-10 sm:px-6 lg:px-8">
-					<p className="text-center text-muted-foreground">Loading…</p>
+					<p className="text-center text-muted-foreground">{t("common.loading", "Loading…")}</p>
 				</div>
 			</main>
 		);
@@ -214,183 +218,203 @@ function WellnessProfileForm({ embedded = false, onSaved } = {}) {
 		<>
 			{!embedded ? <BackButton to="/ayurveda-wellness" /> : null}
 			<div>
-				<h1 className="font-display text-2xl text-foreground">Ayurveda wellness profile</h1>
+				<h1 className="font-display text-2xl text-foreground">{t("wellnessProfileForm.title", "Ayurveda wellness profile")}</h1>
 				<p className="text-sm text-muted-foreground">
-					Share as much or as little as you'd like — everything here is optional and only used to personalize your Ayurvedic diet plan.
+					{t("wellnessProfileForm.subtitle", "Share as much or as little as you'd like — everything here is optional and only used to personalize your Ayurvedic diet plan.")}
 				</p>
-				</div>
+			</div>
 
-				<Card>
-					<CardHeader>
-						<CardTitle className="font-display text-lg">Basic details</CardTitle>
-					</CardHeader>
-					<CardContent className="grid gap-4 sm:grid-cols-2">
-						<Field label="Height (cm)" htmlFor="heightCm">
-							<Input id="heightCm" type="number" value={form.heightCm} onChange={setInput("heightCm")} />
-						</Field>
-						<Field label="Weight (kg)" htmlFor="weightKg">
-							<Input id="weightKg" type="number" value={form.weightKg} onChange={setInput("weightKg")} />
-						</Field>
-						<div className="sm:col-span-2">
-							<Field label="Body type" htmlFor="bodyType">
-								<Select value={form.bodyType} onValueChange={set("bodyType")}>
-									<SelectTrigger id="bodyType"><SelectValue placeholder="Select body type" /></SelectTrigger>
-									<SelectContent>
-										<SelectItem value="lean_thin">Lean / Thin Frame</SelectItem>
-										<SelectItem value="athletic_defined">Athletic / Well Defined</SelectItem>
-										<SelectItem value="medium_frame">Medium Frame</SelectItem>
-										<SelectItem value="soft_round">Soft / Round Body</SelectItem>
-									</SelectContent>
-								</Select>
-							</Field>
-						</div>
-						{bmi !== null ? (
-							<div className="sm:col-span-2 flex items-center gap-2 text-sm">
-								<span className="text-muted-foreground">BMI:</span>
-								<span className="font-medium text-foreground">{bmi}</span>
-								<Badge variant="secondary">{category}</Badge>
-							</div>
-						) : null}
-					</CardContent>
-				</Card>
-
-				<Card>
-					<CardHeader>
-						<CardTitle className="font-display text-lg">Health information</CardTitle>
-					</CardHeader>
-					<CardContent className="flex flex-col gap-4">
-						<div className="flex flex-wrap gap-4">
-							<label className="flex items-center gap-2 text-sm text-foreground">
-								<input type="checkbox" checked={form.diabetes} onChange={setCheckbox("diabetes")} />
-								Diabetes
-							</label>
-							<label className="flex items-center gap-2 text-sm text-foreground">
-								<input type="checkbox" checked={form.highBP} onChange={setCheckbox("highBP")} />
-								High blood pressure
-							</label>
-							<label className="flex items-center gap-2 text-sm text-foreground">
-								<input type="checkbox" checked={form.obesityFocus} onChange={setCheckbox("obesityFocus")} />
-								Weight management focus
-							</label>
-							<label className="flex items-center gap-2 text-sm text-foreground">
-								<input type="checkbox" checked={form.skinDisease} onChange={setCheckbox("skinDisease")} />
-								Skin disease (eczema/psoriasis/chronic rashes)
-							</label>
-							<label className="flex items-center gap-2 text-sm text-foreground">
-								<input type="checkbox" checked={form.jointPainArthritis} onChange={setCheckbox("jointPainArthritis")} />
-								Joint pain / arthritis
-							</label>
-							<label className="flex items-center gap-2 text-sm text-foreground">
-								<input type="checkbox" checked={form.digestiveIssues} onChange={setCheckbox("digestiveIssues")} />
-								Digestive issues (GERD/gastritis)
-							</label>
-							<label className="flex items-center gap-2 text-sm text-foreground">
-								<input type="checkbox" checked={form.respiratoryIssues} onChange={setCheckbox("respiratoryIssues")} />
-								Respiratory issues
-							</label>
-						</div>
-						<Field label="Other conditions" htmlFor="otherConditions" hint="Comma-separated">
-							<Input id="otherConditions" value={form.otherConditions} onChange={setInput("otherConditions")} />
-						</Field>
-						<Field label="Current medications" htmlFor="medications" hint="Comma-separated">
-							<Input id="medications" value={form.medications} onChange={setInput("medications")} />
-						</Field>
-						<Field label="Allergies / food restrictions" htmlFor="allergies" hint="Comma-separated">
-							<Input id="allergies" value={form.allergies} onChange={setInput("allergies")} />
-						</Field>
-					</CardContent>
-				</Card>
-
-				<Card>
-					<CardHeader>
-						<CardTitle className="font-display text-lg">Lifestyle</CardTitle>
-					</CardHeader>
-					<CardContent className="grid gap-4 sm:grid-cols-2">
-						<Field label="Daily activity level" htmlFor="activityLevel">
-							<Select value={form.activityLevel} onValueChange={set("activityLevel")}>
-								<SelectTrigger id="activityLevel"><SelectValue placeholder="Select" /></SelectTrigger>
+			<Card>
+				<CardHeader>
+					<CardTitle className="font-display text-lg">{t("wellnessProfileForm.basicDetails", "Basic details")}</CardTitle>
+				</CardHeader>
+				<CardContent className="grid gap-4 sm:grid-cols-2">
+					<Field label={t("wellnessProfileForm.heightCm", "Height (cm)")} htmlFor="heightCm" optionalText={opt}>
+						<Input id="heightCm" type="number" value={form.heightCm} onChange={setInput("heightCm")} />
+					</Field>
+					<Field label={t("wellnessProfileForm.weightKg", "Weight (kg)")} htmlFor="weightKg" optionalText={opt}>
+						<Input id="weightKg" type="number" value={form.weightKg} onChange={setInput("weightKg")} />
+					</Field>
+					<div className="sm:col-span-2">
+						<Field label={t("wellnessProfileForm.bodyType", "Body type")} htmlFor="bodyType" optionalText={opt}>
+							<Select value={form.bodyType} onValueChange={set("bodyType")}>
+								<SelectTrigger id="bodyType">
+									<SelectValue placeholder={t("wellnessProfileForm.selectBodyType", "Select body type")}>
+										{form.bodyType ? t(`wellnessProfile.bodyTypes.${form.bodyType}`, form.bodyType) : undefined}
+									</SelectValue>
+								</SelectTrigger>
 								<SelectContent>
-									<SelectItem value="sedentary">Sedentary</SelectItem>
-									<SelectItem value="light">Light</SelectItem>
-									<SelectItem value="moderate">Moderate</SelectItem>
-									<SelectItem value="active">Active</SelectItem>
+									<SelectItem value="lean_thin">{t("wellnessProfile.bodyTypes.lean_thin", "Lean / Thin Frame")}</SelectItem>
+									<SelectItem value="athletic_defined">{t("wellnessProfile.bodyTypes.athletic_defined", "Athletic / Well Defined")}</SelectItem>
+									<SelectItem value="medium_frame">{t("wellnessProfile.bodyTypes.medium_frame", "Medium Frame")}</SelectItem>
+									<SelectItem value="soft_round">{t("wellnessProfile.bodyTypes.soft_round", "Soft / Round Body")}</SelectItem>
 								</SelectContent>
 							</Select>
 						</Field>
-						<Field label="Sleep hours" htmlFor="sleepHours">
-							<Input id="sleepHours" type="number" value={form.sleepHours} onChange={setInput("sleepHours")} />
-						</Field>
-						<Field label="Sleep quality" htmlFor="sleepQuality">
-							<Select value={form.sleepQuality} onValueChange={set("sleepQuality")}>
-								<SelectTrigger id="sleepQuality"><SelectValue placeholder="Select" /></SelectTrigger>
-								<SelectContent>
-									<SelectItem value="poor">Poor</SelectItem>
-									<SelectItem value="fair">Fair</SelectItem>
-									<SelectItem value="good">Good</SelectItem>
-								</SelectContent>
-							</Select>
-						</Field>
-						<Field label="Stress level" htmlFor="stressLevel">
-							<Select value={form.stressLevel} onValueChange={set("stressLevel")}>
-								<SelectTrigger id="stressLevel"><SelectValue placeholder="Select" /></SelectTrigger>
-								<SelectContent>
-									<SelectItem value="low">Low</SelectItem>
-									<SelectItem value="moderate">Moderate</SelectItem>
-									<SelectItem value="high">High</SelectItem>
-								</SelectContent>
-							</Select>
-						</Field>
-						<Field label="Exercise habits" htmlFor="exerciseHabits">
-							<Input id="exerciseHabits" value={form.exerciseHabits} onChange={setInput("exerciseHabits")} placeholder="e.g. Yoga 3x/week" />
-						</Field>
-						<Field label="Work routine" htmlFor="workRoutine">
-							<Input id="workRoutine" value={form.workRoutine} onChange={setInput("workRoutine")} placeholder="e.g. Desk job, 9-6" />
-						</Field>
-					</CardContent>
-				</Card>
-
-				<Card>
-					<CardHeader>
-						<CardTitle className="font-display text-lg">Food habits</CardTitle>
-					</CardHeader>
-					<CardContent className="grid gap-4 sm:grid-cols-2">
-						<Field label="Diet type" htmlFor="dietType">
-							<Select value={form.dietType} onValueChange={set("dietType")}>
-								<SelectTrigger id="dietType"><SelectValue placeholder="Select" /></SelectTrigger>
-								<SelectContent>
-									<SelectItem value="vegetarian">Vegetarian</SelectItem>
-									<SelectItem value="non_vegetarian">Non-vegetarian</SelectItem>
-									<SelectItem value="eggetarian">Eggetarian</SelectItem>
-									<SelectItem value="vegan">Vegan</SelectItem>
-								</SelectContent>
-							</Select>
-						</Field>
-						<Field label="Water intake (liters/day)" htmlFor="waterIntakeLiters">
-							<Input id="waterIntakeLiters" type="number" value={form.waterIntakeLiters} onChange={setInput("waterIntakeLiters")} />
-						</Field>
-						<Field label="Preferred foods" htmlFor="preferredFoods" hint="Comma-separated">
-							<Textarea id="preferredFoods" value={form.preferredFoods} onChange={setInput("preferredFoods")} />
-						</Field>
-						<Field label="Food dislikes" htmlFor="dislikedFoods" hint="Comma-separated">
-							<Textarea id="dislikedFoods" value={form.dislikedFoods} onChange={setInput("dislikedFoods")} />
-						</Field>
-						<div className="sm:col-span-2">
-							<Field label="Eating timings" htmlFor="eatingTimings">
-								<Input id="eatingTimings" value={form.eatingTimings} onChange={setInput("eatingTimings")} placeholder="e.g. Breakfast 8am, Lunch 1pm, Dinner 8pm" />
-							</Field>
-						</div>
-					</CardContent>
-				</Card>
-
-				<div className="flex flex-wrap items-center justify-between gap-2">
-					{!embedded ? (
-						<Button variant="ghost" size="sm" onClick={() => navigate("/ayurveda-wellness/assessment")}>Retake Prakriti assessment</Button>
-					) : <div />}
-					<div className="flex gap-2">
-						<Button variant="outline" onClick={() => (embedded ? onSaved?.() : navigate("/ayurveda-wellness"))}>Cancel</Button>
-						<Button onClick={handleSave} disabled={saving}>{saving ? "Saving…" : "Save profile"}</Button>
 					</div>
+					{bmi !== null ? (
+						<div className="sm:col-span-2 flex items-center gap-2 text-sm">
+							<span className="text-muted-foreground">{t("wellnessProfileForm.bmi", "BMI:")}</span>
+							<span className="font-medium text-foreground">{bmi}</span>
+							<Badge variant="secondary">{category ? t(`wellnessProfile.bmiCategories.${category}`, category) : ""}</Badge>
+						</div>
+					) : null}
+				</CardContent>
+			</Card>
+
+			<Card>
+				<CardHeader>
+					<CardTitle className="font-display text-lg">{t("wellnessProfileForm.healthInfo", "Health information")}</CardTitle>
+				</CardHeader>
+				<CardContent className="flex flex-col gap-4">
+					<div className="flex flex-wrap gap-4">
+						<label className="flex items-center gap-2 text-sm text-foreground">
+							<input type="checkbox" checked={form.diabetes} onChange={setCheckbox("diabetes")} />
+							{t("wellnessProfileForm.conditions.diabetes", "Diabetes")}
+						</label>
+						<label className="flex items-center gap-2 text-sm text-foreground">
+							<input type="checkbox" checked={form.highBP} onChange={setCheckbox("highBP")} />
+							{t("wellnessProfileForm.conditions.highBP", "High blood pressure")}
+						</label>
+						<label className="flex items-center gap-2 text-sm text-foreground">
+							<input type="checkbox" checked={form.obesityFocus} onChange={setCheckbox("obesityFocus")} />
+							{t("wellnessProfileForm.conditions.obesityFocus", "Weight management focus")}
+						</label>
+						<label className="flex items-center gap-2 text-sm text-foreground">
+							<input type="checkbox" checked={form.skinDisease} onChange={setCheckbox("skinDisease")} />
+							{t("wellnessProfileForm.conditions.skinDisease", "Skin disease (eczema/psoriasis/chronic rashes)")}
+						</label>
+						<label className="flex items-center gap-2 text-sm text-foreground">
+							<input type="checkbox" checked={form.jointPainArthritis} onChange={setCheckbox("jointPainArthritis")} />
+							{t("wellnessProfileForm.conditions.jointPainArthritis", "Joint pain / arthritis")}
+						</label>
+						<label className="flex items-center gap-2 text-sm text-foreground">
+							<input type="checkbox" checked={form.digestiveIssues} onChange={setCheckbox("digestiveIssues")} />
+							{t("wellnessProfileForm.conditions.digestiveIssues", "Digestive issues (GERD/gastritis)")}
+						</label>
+						<label className="flex items-center gap-2 text-sm text-foreground">
+							<input type="checkbox" checked={form.respiratoryIssues} onChange={setCheckbox("respiratoryIssues")} />
+							{t("wellnessProfileForm.conditions.respiratoryIssues", "Respiratory issues")}
+						</label>
+					</div>
+					<Field label={t("wellnessProfileForm.otherConditions", "Other conditions")} htmlFor="otherConditions" hint={t("wellnessProfileForm.commaSeparated", "Comma-separated")} optionalText={opt}>
+						<Input id="otherConditions" value={form.otherConditions} onChange={setInput("otherConditions")} />
+					</Field>
+					<Field label={t("wellnessProfileForm.medications", "Current medications")} htmlFor="medications" hint={t("wellnessProfileForm.commaSeparated", "Comma-separated")} optionalText={opt}>
+						<Input id="medications" value={form.medications} onChange={setInput("medications")} />
+					</Field>
+					<Field label={t("wellnessProfileForm.allergies", "Allergies / food restrictions")} htmlFor="allergies" hint={t("wellnessProfileForm.commaSeparated", "Comma-separated")} optionalText={opt}>
+						<Input id="allergies" value={form.allergies} onChange={setInput("allergies")} />
+					</Field>
+				</CardContent>
+			</Card>
+
+			<Card>
+				<CardHeader>
+					<CardTitle className="font-display text-lg">{t("wellnessProfileForm.lifestyle", "Lifestyle")}</CardTitle>
+				</CardHeader>
+				<CardContent className="grid gap-4 sm:grid-cols-2">
+					<Field label={t("wellnessProfileForm.activityLevel", "Daily activity level")} htmlFor="activityLevel" optionalText={opt}>
+						<Select value={form.activityLevel} onValueChange={set("activityLevel")}>
+							<SelectTrigger id="activityLevel">
+								<SelectValue placeholder={t("wellnessProfileForm.select", "Select")}>
+									{form.activityLevel ? t(`wellnessProfileForm.activityLevels.${form.activityLevel}`, form.activityLevel) : undefined}
+								</SelectValue>
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="sedentary">{t("wellnessProfileForm.activityLevels.sedentary", "Sedentary")}</SelectItem>
+								<SelectItem value="light">{t("wellnessProfileForm.activityLevels.light", "Light")}</SelectItem>
+								<SelectItem value="moderate">{t("wellnessProfileForm.activityLevels.moderate", "Moderate")}</SelectItem>
+								<SelectItem value="active">{t("wellnessProfileForm.activityLevels.active", "Active")}</SelectItem>
+							</SelectContent>
+						</Select>
+					</Field>
+					<Field label={t("wellnessProfileForm.sleepHours", "Sleep hours")} htmlFor="sleepHours" optionalText={opt}>
+						<Input id="sleepHours" type="number" value={form.sleepHours} onChange={setInput("sleepHours")} />
+					</Field>
+					<Field label={t("wellnessProfileForm.sleepQuality", "Sleep quality")} htmlFor="sleepQuality" optionalText={opt}>
+						<Select value={form.sleepQuality} onValueChange={set("sleepQuality")}>
+							<SelectTrigger id="sleepQuality">
+								<SelectValue placeholder={t("wellnessProfileForm.select", "Select")}>
+									{form.sleepQuality ? t(`wellnessProfileForm.sleepQualities.${form.sleepQuality}`, form.sleepQuality) : undefined}
+								</SelectValue>
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="poor">{t("wellnessProfileForm.sleepQualities.poor", "Poor")}</SelectItem>
+								<SelectItem value="fair">{t("wellnessProfileForm.sleepQualities.fair", "Fair")}</SelectItem>
+								<SelectItem value="good">{t("wellnessProfileForm.sleepQualities.good", "Good")}</SelectItem>
+							</SelectContent>
+						</Select>
+					</Field>
+					<Field label={t("wellnessProfileForm.stressLevel", "Stress level")} htmlFor="stressLevel" optionalText={opt}>
+						<Select value={form.stressLevel} onValueChange={set("stressLevel")}>
+							<SelectTrigger id="stressLevel">
+								<SelectValue placeholder={t("wellnessProfileForm.select", "Select")}>
+									{form.stressLevel ? t(`wellnessProfileForm.stressLevels.${form.stressLevel}`, form.stressLevel) : undefined}
+								</SelectValue>
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="low">{t("wellnessProfileForm.stressLevels.low", "Low")}</SelectItem>
+								<SelectItem value="moderate">{t("wellnessProfileForm.stressLevels.moderate", "Moderate")}</SelectItem>
+								<SelectItem value="high">{t("wellnessProfileForm.stressLevels.high", "High")}</SelectItem>
+							</SelectContent>
+						</Select>
+					</Field>
+					<Field label={t("wellnessProfileForm.exerciseHabits", "Exercise habits")} htmlFor="exerciseHabits" optionalText={opt}>
+						<Input id="exerciseHabits" value={form.exerciseHabits} onChange={setInput("exerciseHabits")} placeholder={t("wellnessProfileForm.exerciseHabitsPlaceholder", "e.g. Yoga 3x/week")} />
+					</Field>
+					<Field label={t("wellnessProfileForm.workRoutine", "Work routine")} htmlFor="workRoutine" optionalText={opt}>
+						<Input id="workRoutine" value={form.workRoutine} onChange={setInput("workRoutine")} placeholder={t("wellnessProfileForm.workRoutinePlaceholder", "e.g. Desk job, 9-6")} />
+					</Field>
+				</CardContent>
+			</Card>
+
+			<Card>
+				<CardHeader>
+					<CardTitle className="font-display text-lg">{t("wellnessProfileForm.foodHabits", "Food habits")}</CardTitle>
+				</CardHeader>
+				<CardContent className="grid gap-4 sm:grid-cols-2">
+					<Field label={t("wellnessProfileForm.dietType", "Diet type")} htmlFor="dietType" optionalText={opt}>
+						<Select value={form.dietType} onValueChange={set("dietType")}>
+							<SelectTrigger id="dietType">
+								<SelectValue placeholder={t("wellnessProfileForm.select", "Select")}>
+									{form.dietType ? t(`wellnessProfileForm.dietTypes.${form.dietType}`, form.dietType) : undefined}
+								</SelectValue>
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="vegetarian">{t("wellnessProfileForm.dietTypes.vegetarian", "Vegetarian")}</SelectItem>
+								<SelectItem value="non_vegetarian">{t("wellnessProfileForm.dietTypes.non_vegetarian", "Non-vegetarian")}</SelectItem>
+								<SelectItem value="eggetarian">{t("wellnessProfileForm.dietTypes.eggetarian", "Eggetarian")}</SelectItem>
+								<SelectItem value="vegan">{t("wellnessProfileForm.dietTypes.vegan", "Vegan")}</SelectItem>
+							</SelectContent>
+						</Select>
+					</Field>
+					<Field label={t("wellnessProfileForm.waterIntakeLiters", "Water intake (liters/day)")} htmlFor="waterIntakeLiters" optionalText={opt}>
+						<Input id="waterIntakeLiters" type="number" value={form.waterIntakeLiters} onChange={setInput("waterIntakeLiters")} />
+					</Field>
+					<Field label={t("wellnessProfileForm.preferredFoods", "Preferred foods")} htmlFor="preferredFoods" hint={t("wellnessProfileForm.commaSeparated", "Comma-separated")} optionalText={opt}>
+						<Textarea id="preferredFoods" value={form.preferredFoods} onChange={setInput("preferredFoods")} />
+					</Field>
+					<Field label={t("wellnessProfileForm.dislikedFoods", "Food dislikes")} htmlFor="dislikedFoods" hint={t("wellnessProfileForm.commaSeparated", "Comma-separated")} optionalText={opt}>
+						<Textarea id="dislikedFoods" value={form.dislikedFoods} onChange={setInput("dislikedFoods")} />
+					</Field>
+					<div className="sm:col-span-2">
+						<Field label={t("wellnessProfileForm.eatingTimings", "Eating timings")} htmlFor="eatingTimings" optionalText={opt}>
+							<Input id="eatingTimings" value={form.eatingTimings} onChange={setInput("eatingTimings")} placeholder={t("wellnessProfileForm.eatingTimingsPlaceholder", "e.g. Breakfast 8am, Lunch 1pm, Dinner 8pm")} />
+						</Field>
+					</div>
+				</CardContent>
+			</Card>
+
+			<div className="flex flex-wrap items-center justify-between gap-2">
+				{!embedded ? (
+					<Button variant="ghost" size="sm" onClick={() => navigate("/ayurveda-wellness/assessment")}>{t("wellnessProfileForm.retakeAssessment", "Retake Prakriti assessment")}</Button>
+				) : <div />}
+				<div className="flex gap-2">
+					<Button variant="outline" onClick={() => (embedded ? onSaved?.() : navigate("/ayurveda-wellness"))}>{t("wellnessProfileForm.cancel", "Cancel")}</Button>
+					<Button onClick={handleSave} disabled={saving}>{saving ? t("wellnessProfileForm.saving", "Saving…") : t("wellnessProfileForm.saveProfile", "Save profile")}</Button>
 				</div>
+			</div>
 		</>
 	);
 

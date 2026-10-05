@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import axios from "axios";
 import { format } from "date-fns";
 import { CircleCheck, CircleAlert, ExternalLink, Pencil, Plus, Trash2 } from "lucide-react";
@@ -19,6 +20,7 @@ const formatDate = (isoString) => {
 };
 
 const AdminBlogs = () => {
+	const { t } = useTranslation();
 	const navigate = useNavigate();
 	const confirm = useConfirm();
 
@@ -50,8 +52,8 @@ const AdminBlogs = () => {
 
 	const deleteBlog = async (blog) => {
 		const confirmed = await confirm({
-			title: "Delete this blog?",
-			description: `"${blog.title}" will be permanently removed.`,
+			title: t("adminBlogs.deleteConfirmTitle"),
+			description: t("adminBlogs.deleteConfirmDesc", { title: blog.title }),
 			danger: true,
 		});
 		if (!confirmed) return;
@@ -62,7 +64,7 @@ const AdminBlogs = () => {
 				headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
 			});
 			setBlogs((prev) => prev.filter((b) => b._id !== blog._id));
-			setSuccessAlert("Blog deleted successfully!");
+			setSuccessAlert(t("adminBlogs.deleteSuccess"));
 			setTimeout(() => setSuccessAlert(null), 3000);
 			setError(null);
 		} catch (err) {
@@ -76,11 +78,11 @@ const AdminBlogs = () => {
 	return (
 		<DashboardShell>
 			<DashboardPageHeader
-				title="Admin Blog Management"
+				title={t("adminBlogs.title")}
 				actions={
 					<Button onClick={() => navigate("/admin/blogs/new")}>
 						<Plus data-icon="inline-start" />
-						Blog
+						{t("adminBlogs.addBlog")}
 					</Button>
 				}
 			/>
@@ -100,14 +102,14 @@ const AdminBlogs = () => {
 
 			<Tabs value={activeTab} onValueChange={setActiveTab}>
 				<TabsList className="mb-6">
-					<TabsTrigger value="view">View All Blogs</TabsTrigger>
-					<TabsTrigger value="generate">Generate Content</TabsTrigger>
+					<TabsTrigger value="view">{t("adminBlogs.tabs.viewAll")}</TabsTrigger>
+					<TabsTrigger value="generate">{t("adminBlogs.tabs.generate")}</TabsTrigger>
 				</TabsList>
 
 				<TabsContent value="view">
-					{isLoading ? <p className="text-center text-muted-foreground">Loading blogs...</p> : null}
+					{isLoading ? <p className="text-center text-muted-foreground">{t("adminBlogs.loading")}</p> : null}
 					{!isLoading && blogs.length === 0 ? (
-						<p className="text-center text-muted-foreground">No blogs available.</p>
+						<p className="text-center text-muted-foreground">{t("adminBlogs.noBlogs")}</p>
 					) : null}
 					<div className="flex flex-col gap-3">
 						{blogs.map((blog) => {
@@ -146,9 +148,9 @@ const AdminBlogs = () => {
 
 				<TabsContent value="generate">
 					<Card className="max-w-2xl p-6">
-						<h2 className="mb-3 text-lg font-semibold text-foreground">Generate Blog Content</h2>
+						<h2 className="mb-3 text-lg font-semibold text-foreground">{t("adminBlogs.generateSection.title")}</h2>
 						<p className="text-sm text-foreground/80">
-							This feature currently works via an external tool. Clicking the button below will open{" "}
+							{t("adminBlogs.generateSection.desc1")}
 							<a
 								href="https://agiagentworld.com/"
 								target="_blank"
@@ -156,19 +158,19 @@ const AdminBlogs = () => {
 								className="text-primary underline hover:no-underline"
 							>
 								AGI Agent World
-							</a>{" "}
-							in a new tab.
+							</a>
+							{t("adminBlogs.generateSection.desc2")}
 						</p>
 						<p className="mt-3 text-sm text-foreground/80">
-							Once your content is ready, copy it back here and add it using the "+ Blog" button above.
+							{t("adminBlogs.generateSection.desc3")}
 						</p>
-						<p className="mt-3 text-sm text-foreground/80">Happy creating!</p>
+						<p className="mt-3 text-sm text-foreground/80">{t("adminBlogs.generateSection.desc4")}</p>
 
 						<Button
 							className="mt-4"
 							onClick={() => window.open("https://agiagentworld.com/", "_blank", "noopener,noreferrer")}
 						>
-							Go to AGI Agent World <ExternalLink data-icon="inline-end" />
+							{t("adminBlogs.generateSection.btnText")} <ExternalLink data-icon="inline-end" />
 						</Button>
 					</Card>
 				</TabsContent>

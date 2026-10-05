@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { ArrowLeft } from "lucide-react";
 
 import BlogComposer from "@/components/blog/BlogComposer";
@@ -12,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { useBlogDraft } from "@/hooks/useBlogDraft";
 
 export default function AdminBlogsEditor() {
+	const { t } = useTranslation();
 	const location = useLocation();
 	const navigate = useNavigate();
 	const { id: blogId } = useParams();
@@ -38,7 +40,7 @@ export default function AdminBlogsEditor() {
 
 	const handleSave = async () => {
 		if (!title.trim() || !description.trim()) {
-			setError("Title and content are required.");
+			setError(t("adminBlogEditor.requiredError"));
 			return;
 		}
 		setIsSubmitting(true);
@@ -72,7 +74,7 @@ export default function AdminBlogsEditor() {
 
 				if (!response.ok) {
 					const errorData = await response.json();
-					throw new Error(errorData.message || "Failed to update blog");
+					throw new Error(errorData.message || t("adminBlogEditor.updateError"));
 				}
 			} else {
 				const response = await fetch(`${BACKEND_URL}/api/blogs`, {
@@ -91,7 +93,7 @@ export default function AdminBlogsEditor() {
 
 				if (!response.ok) {
 					const errorData = await response.json();
-					throw new Error(errorData.error || errorData.message || "Failed to create blog");
+					throw new Error(errorData.error || errorData.message || t("adminBlogEditor.createError"));
 				}
 			}
 
@@ -99,7 +101,7 @@ export default function AdminBlogsEditor() {
 			navigate("/admin/blogs");
 		} catch (err) {
 			console.error("Error saving blog:", err);
-			setError(isEditMode ? "Failed to update blog. Please try again." : "Failed to create blog. Please try again.");
+			setError(isEditMode ? t("adminBlogEditor.updateError") : t("adminBlogEditor.createError"));
 			setIsSubmitting(false);
 		}
 	};
@@ -110,10 +112,10 @@ export default function AdminBlogsEditor() {
 				<div className="flex items-center justify-between">
 					<Button variant="ghost" onClick={() => navigate("/admin/blogs")}>
 						<ArrowLeft data-icon="inline-start" />
-						Back to blogs
+						{t("adminBlogEditor.back")}
 					</Button>
 					<Button onClick={handleSave} disabled={isSubmitting}>
-						{isSubmitting ? "Saving..." : isEditMode ? "Save changes" : "Publish"}
+						{isSubmitting ? t("adminBlogEditor.saving") : isEditMode ? t("adminBlogEditor.saveChanges") : t("adminBlogEditor.publish")}
 					</Button>
 				</div>
 
@@ -125,8 +127,8 @@ export default function AdminBlogsEditor() {
 
 				{isEditMode ? (
 					<Field>
-						<FieldLabel htmlFor="url">URL</FieldLabel>
-						<Input id="url" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="blog-post-url" />
+						<FieldLabel htmlFor="url">{t("adminBlogEditor.url")}</FieldLabel>
+						<Input id="url" value={url} onChange={(e) => setUrl(e.target.value)} placeholder={t("adminBlogEditor.urlPlaceholder")} />
 					</Field>
 				) : null}
 
@@ -135,7 +137,7 @@ export default function AdminBlogsEditor() {
 					onTitleChange={setTitle}
 					category={category}
 					onCategoryChange={setCategory}
-					categoryPlaceholder={isEditMode ? "Tags — comma separated" : "Category — e.g., Nutrition, Mental Health, Fitness"}
+					categoryPlaceholder={isEditMode ? t("adminBlogEditor.tagsPlaceholder") : t("adminBlogEditor.categoryPlaceholder")}
 					description={description}
 					onDescriptionChange={setDescription}
 					coverImage={coverImage}
@@ -145,3 +147,4 @@ export default function AdminBlogsEditor() {
 		</DashboardShell>
 	);
 }
+

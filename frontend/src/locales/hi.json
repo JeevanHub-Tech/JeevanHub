@@ -771,5 +771,388 @@
     },
     "edit": "संपादित करें",
     "delete": "हटाएं"
+  },
+  "adminSignIn": {
+    "consoleHeading1": "जीवनहब के संचालन हेतु",
+    "consoleHeading2": "व्यवस्थापक कंसोल।",
+    "consoleDescription": "प्लेटफ़ॉर्म व्यवस्थापकों के लिए एक समर्पित एवं सुरक्षित प्रवेश द्वार।",
+    "restrictedAccess": "प्रतिबंधित पहुंच · केवल अधिकृत कर्मियों के लिए।",
+    "adminAccess": "व्यवस्थापक पहुंच",
+    "signInTitle": "कंसोल में साइन इन करें",
+    "email": "ईमेल",
+    "password": "पासवर्ड",
+    "signInButton": "साइन इन करें",
+    "hidePassword": "पासवर्ड छिपाएं",
+    "showPassword": "पासवर्ड दिखाएं",
+    "invalidCredentials": "अमान्य क्रेडेंशियल्स"
+  },
+  "adminNav": {
+    "dashboard": "डैशबोर्ड",
+    "home": "होम",
+    "treatments": "उपचार",
+    "doctors": "चिकित्सक",
+    "medicines": "दवाएं",
+    "blogsAndVideos": "ब्लॉग और वीडियो"
+  },
+  "adminDashboard": {
+    "title": "व्यवस्थापक डैशबोर्ड",
+    "description": "मरीज़ों, चिकित्सकों, विक्रेताओं और प्लेटफ़ॉर्म सामग्री का प्रबंधन करें।",
+    "patientManagement": "मरीज़ प्रबंधन",
+    "patientManagementDesc": "मरीज़ खातों को देखें और प्रबंधित करें",
+    "doctorManagement": "चिकित्सक प्रबंधन",
+    "doctorManagementDesc": "चिकित्सकों और परामर्शों की समीक्षा करें",
+    "retailerManagement": "विक्रेता प्रबंधन",
+    "retailerManagementDesc": "विक्रेताओं और दवा के ऑर्डरों का प्रबंधन करें",
+    "transactions": "लेनदेन",
+    "transactionsDesc": "प्लेटफ़ॉर्म भुगतानों को ट्रैक करें",
+    "blogs": "ब्लॉग",
+    "blogsDesc": "प्रकाशित लेखों का प्रबंधन करें",
+    "adminManagement": "व्यवस्थापक प्रबंधन",
+    "adminManagementDesc": "व्यवस्थापक खातों और भूमिकाओं का प्रबंधन करें",
+    "auditLogs": "ऑडिट लॉग",
+    "auditLogsDesc": "व्यवस्थापक गतिविधि इतिहास की समीक्षा करें"
+  },
+  "adminManagement": {
+    "title": "व्यवस्थापक प्रबंधन",
+    "searchPlaceholder": "नाम या ईमेल द्वारा खोजें...",
+    "filterAndSort": "फ़िल्टर और क्रमबद्ध करें",
+    "registerNewAdmin": "नया व्यवस्थापक जोड़ें",
+    "sortBy": "क्रमबद्ध करें:",
+    "sortOptions": {
+      "dateDesc": "जोड़ने की तिथि (नवीनतम)",
+      "dateAsc": "जोड़ने की तिथि (पुरातन)",
+      "loginDesc": "अंतिम लॉगिन (हाल ही में)",
+      "loginAsc": "अंतिम लॉगिन (पुराना)",
+      "nameAsc": "नाम (A-Z)",
+      "nameDesc": "नाम (Z-A)"
+    },
+    "accountStatus": "खाता स्थिति:",
+    "all": "सभी",
+    "activeOnly": "केवल सक्रिय",
+    "inactiveOnly": "केवल निष्क्रिय",
+    "resetRequests": "रीसेट अनुरोध:",
+    "resetRequested": "रीसेट अनुरोधित",
+    "noResetPending": "कोई रीसेट लंबित नहीं",
+    "filterByPermissions": "आवश्यक अनुमतियों द्वारा फ़िल्टर करें:",
+    "clearPermissionsFilter": "अनुमति फ़िल्टर हटाएं",
+    "permissions": {
+      "manageAdmins": "व्यवस्थापक प्रबंधन",
+      "manageUsers": "उपयोगकर्ता प्रबंधन",
+      "manageDoctors": "चिकित्सक प्रबंधन",
+      "manageRetailers": "विक्रेता प्रबंधन",
+      "manageTransactions": "लेनदेन प्रबंधन",
+      "manageBlogs": "ब्लॉग प्रबंधन"
+    },
+    "table": {
+      "name": "नाम",
+      "email": "ईमेल",
+      "status": "स्थिति",
+      "lastLogin": "अंतिम लॉगिन",
+      "actions": "कार्रवाइयां"
+    },
+    "status": {
+      "active": "सक्रिय",
+      "inactive": "निष्क्रिय",
+      "never": "कभी नहीं"
+    },
+    "actions": {
+      "permissions": "अनुमतियां",
+      "activate": "सक्रिय करें",
+      "deactivate": "निष्क्रिय करें",
+      "forceReset": "रीसेट अनिवार्य करें",
+      "cancelReset": "रीसेट रद्द करें",
+      "delete": "हटाएं"
+    },
+    "noAdminsFound": "आपके मानदंडों से मेल खाने वाला कोई व्यवस्थापक नहीं मिला।",
+    "loading": "व्यवस्थापक लोड हो रहे हैं...",
+    "registerModal": {
+      "title": "नया व्यवस्थापक जोड़ें",
+      "firstName": "पहला नाम",
+      "lastName": "अंतिम नाम",
+      "email": "ईमेल",
+      "phone": "फ़ोन नंबर (वैकल्पिक)",
+      "temporaryPassword": "अस्थायी पासवर्ड",
+      "initialPermissions": "प्रारंभिक अनुमतियां:",
+      "toggleAll": "सभी चुनें/हटाएं",
+      "existingAccountNotice": "मौजूदा {{role}} खाता मिला। उन्हें व्यवस्थापक में पदोन्नत किया जाएगा।",
+      "emailAlreadyAdmin": "यह ईमेल पहले से ही एक व्यवस्थापक है!",
+      "cancel": "रद्द करें",
+      "register": "पंजीकृत करें",
+      "copied": "पासवर्ड क्लिपबोर्ड पर कॉपी हो गया!",
+      "promoteSuccess": "उपयोगकर्ता को सफलतापूर्वक व्यवस्थापक में पदोन्नत किया गया!",
+      "createSuccess": "व्यवस्थापक सफलतापूर्वक बनाया गया!"
+    },
+    "editModal": {
+      "title": "अनुमतियां संपादित करें",
+      "description": "{{name}} के लिए एक्सेस अनुमतियों का प्रबंधन करें",
+      "cancel": "रद्द करें",
+      "saveChanges": "परिवर्तन सहेजें"
+    },
+    "confirmModal": {
+      "cancel": "रद्द करें",
+      "confirm": "पुष्टि करें",
+      "activateTitle": "व्यवस्थापक सक्रिय करें",
+      "deactivateTitle": "व्यवस्थापक निष्क्रिय करें",
+      "activateMsg": "क्या आप वाकई {{email}} को सक्रिय करना चाहते हैं?",
+      "deactivateMsg": "क्या आप वाकई {{email}} को निष्क्रिय करना चाहते हैं?",
+      "toggleResetTitle": "पासवर्ड रीसेट टॉगल करें",
+      "toggleResetMsg": "क्या आप वाकई {{email}} के लिए अनिवार्य पासवर्ड रीसेट टॉगल करना चाहते हैं?",
+      "deleteTitle": "व्यवस्थापक हटाएं",
+      "deleteMsg": "क्या आप वाकई {{email}} को स्थायी रूप से हटाना चाहते हैं? इस कार्रवाई को वापस नहीं लिया जा सकता।"
+    }
+  },
+  "adminUsers": {
+    "title": "उपयोगकर्ता प्रबंधन",
+    "loading": "उपयोगकर्ता लोड हो रहे हैं...",
+    "table": {
+      "name": "नाम",
+      "email": "ईमेल",
+      "phone": "फ़ोन नं.",
+      "gender": "लिंग",
+      "age": "आयु",
+      "zipCode": "पिन कोड",
+      "actions": "कार्रवाइयां"
+    },
+    "delete": "हटाएं",
+    "update": "अपडेट करें",
+    "confirmDelete": "क्या आप वाकई इस उपयोगकर्ता को हटाना चाहते हैं?"
+  },
+  "adminDoctors": {
+    "back": "वापस जाएं",
+    "title": "चिकित्सक प्रबंधन",
+    "description": "प्लेटफ़ॉर्म पर चिकित्सकों की समीक्षा, सत्यापन और प्रबंधन करें।",
+    "metrics": {
+      "all": "कुल चिकित्सक",
+      "pending": "समीक्षा लंबित",
+      "approved": "स्वीकृत",
+      "activeToday": "आज सक्रिय"
+    },
+    "searchPlaceholder": "नाम, ईमेल या विशेषज्ञता द्वारा खोजें...",
+    "status": {
+      "all": "सभी स्थितियां",
+      "pending": "लंबित",
+      "approved": "स्वीकृत",
+      "rejected": "अस्वीकृत",
+      "activeToday": "आज सक्रिय"
+    },
+    "genders": {
+      "all": "सभी लिंग",
+      "male": "पुरुष",
+      "female": "महिला",
+      "other": "अन्य"
+    },
+    "prices": {
+      "all": "सभी शुल्क",
+      "under500": "₹500 से कम",
+      "500to1000": "₹500 - ₹1000",
+      "above1000": "₹1000 से अधिक"
+    },
+    "sortOptions": {
+      "dateDesc": "नवीनतम पहले",
+      "nameAsc": "नाम (A-Z)",
+      "nameDesc": "नाम (Z-A)",
+      "expDesc": "अनुभव (अधिक से कम)",
+      "expAsc": "अनुभव (कम से अधिक)",
+      "activityDesc": "सर्वाधिक सक्रिय",
+      "activityAsc": "न्यूनतम सक्रिय",
+      "ratingDesc": "उच्चतम रेटिंग",
+      "priceAsc": "शुल्क (कम से अधिक)",
+      "priceDesc": "शुल्क (अधिक से कम)"
+    },
+    "bulk": {
+      "selected": "{{count}} चयनित",
+      "selectPrompt": "सामूहिक कार्रवाई करने हेतु चिकित्सकों का चयन करें",
+      "approve": "स्वीकृत करें",
+      "reject": "अस्वीकृत करें",
+      "delete": "हटाएं",
+      "clear": "हटाएं (चयन)",
+      "confirmVerify": "क्या आप चयनित {{count}} चिकित्सकों को {{status}} के रूप में चिह्नित करना चाहते हैं?",
+      "confirmDelete": "क्या आप वाकई चयनित {{count}} चिकित्सकों को स्थायी रूप से हटाना चाहते हैं?"
+    },
+    "exportCsv": "CSV निर्यात करें",
+    "uploadExcel": "एक्सेल अपलोड करें",
+    "uploadGuideTitle": "अपलोड निर्देश देखें",
+    "table": {
+      "name": "नाम",
+      "specialization": "विशेषज्ञता",
+      "expPrice": "अनुभव / शुल्क",
+      "ratingActivity": "रेटिंग / गतिविधि",
+      "status": "स्थिति",
+      "actions": "कार्रवाइयां",
+      "years": "वर्ष",
+      "notSpecified": "निर्दिष्ट नहीं",
+      "never": "कभी नहीं",
+      "noDoctorsFound": "मानदंडों से मेल खाने वाला कोई चिकित्सक नहीं मिला।",
+      "edit": "संपादित करें",
+      "delete": "हटाएं"
+    },
+    "pagination": {
+      "showing": "{{total}} में से {{start}} से {{end}} चिकित्सक दिखाए जा रहे हैं",
+      "prev": "पिछला",
+      "next": "अगला"
+    },
+    "editModal": {
+      "title": "चिकित्सक प्रोफ़ाइल संपादित करें",
+      "firstName": "पहला नाम",
+      "lastName": "अंतिम नाम",
+      "email": "ईमेल",
+      "phone": "फ़ोन नंबर",
+      "specialization": "विशेषज्ञता (अल्पविराम से अलग करें)",
+      "experience": "अनुभव (वर्ष)",
+      "cancel": "रद्द करें",
+      "saveChanges": "परिवर्तन सहेजें"
+    },
+    "guideModal": {
+      "title": "एक्सेल अपलोड मार्गदर्शिका",
+      "subtitle": "एक साथ कई चिकित्सकों को अपलोड करने के लिए इस प्रारूप का पालन करें।",
+      "requiredFields": "आवश्यक फ़ील्ड्स",
+      "optionalFields": "वैकल्पिक फ़ील्ड्स",
+      "feature1Title": "स्वतः पासवर्ड निर्माण",
+      "feature1Text": "यदि पासवर्ड कॉलम खाली है या 8 अक्षरों से छोटा है, तो हम स्वचालित रूप से एक सुरक्षित 8-अंकीय पासवर्ड जनरेट करते हैं।",
+      "feature2Title": "CSV डाउनलोड",
+      "feature2Text": "सफल अपलोड के बाद, आपको बनाए गए पासवर्ड की CSV प्राप्त होगी। इसे चिकित्सकों को वितरित करें।",
+      "feature3Title": "अनिवार्य सुरक्षा रीसेट",
+      "feature3Text": "प्रथम लॉगिन पर, प्रत्येक चिकित्सक को अपना पासवर्ड बदलने के लिए निर्देशित किया जाता है।"
+    },
+    "reportModal": {
+      "title": "अपलोड परिणाम रिपोर्ट",
+      "csvNotice": "{{count}} स्वतः निर्मित क्रेडेंशियल्स वाली एक CSV फ़ाइल डाउनलोड हो गई है। कृपया इन्हें संबंधित चिकित्सकों को वितरित करें।",
+      "failedTitle": "पंजीकरण में विफल: {{count}} चिकित्सक",
+      "row": "एक्सेल पंक्ति",
+      "reason": "विफलता का कारण",
+      "allSuccess": "एक्सेल फ़ाइल के सभी चिकित्सकों को सफलतापूर्वक पंजीकृत किया गया!",
+      "done": "पूर्ण"
+    }
+  },
+  "adminRetailers": {
+    "back": "वापस जाएं",
+    "title": "विक्रेता प्रबंधन",
+    "searchPlaceholder": "नाम, व्यवसाय, ईमेल या फ़ोन द्वारा खोजें...",
+    "table": {
+      "businessName": "व्यवसाय का नाम",
+      "status": "स्थिति",
+      "email": "ईमेल",
+      "phone": "फ़ोन",
+      "zipCode": "पिन कोड",
+      "actions": "कार्रवाइयां"
+    },
+    "noRetailersFound": "आपके मानदंडों से मेल खाने वाला कोई विक्रेता नहीं मिला।",
+    "loading": "विक्रेता लोड हो रहे हैं...",
+    "edit": "संपादित करें",
+    "editModal": {
+      "title": "विक्रेता विवरण संपादित करें",
+      "businessName": "व्यवसाय का नाम",
+      "email": "ईमेल",
+      "phone": "फ़ोन",
+      "status": "स्थिति",
+      "active": "सक्रिय",
+      "inactive": "निष्क्रिय",
+      "zipCode": "पिन कोड",
+      "cancel": "रद्द करें",
+      "saveChanges": "परिवर्तन सहेजें"
+    }
+  },
+  "adminTransactions": {
+    "title": "लेनदेन",
+    "description": "समस्त आयुर्वेदिक लेन-देन इतिहास देखें और प्रबंधित करें",
+    "disputesTitle": "समीक्षा हेतु लंबित भुगतान विवाद",
+    "consultationDispute": "परामर्श — {{patient}} व डॉ. {{doctor}} · ₹{{amount}}",
+    "orderDispute": "ऑर्डर {{id}} — {{buyer}} · ₹{{amount}}",
+    "refundPatient": "मरीज़ को धनवापसी करें",
+    "releaseToDoctor": "चिकित्सक को भुगतान जारी करें",
+    "releaseToRetailer": "विक्रेता को भुगतान जारी करें",
+    "category": "श्रेणी",
+    "quickSearch": "त्वरित खोज",
+    "searchPlaceholder": "दिनांक, राशि या नाम से खोजें...",
+    "allTransactions": "सभी लेनदेन",
+    "patientDoctor": "मरीज़-चिकित्सक",
+    "patientRetailer": "मरीज़-विक्रेता",
+    "doctorRetailer": "चिकित्सक-विक्रेता",
+    "table": {
+      "id": "लेनदेन आईडी",
+      "type": "प्रकार",
+      "date": "दिनांक",
+      "amount": "राशि",
+      "from": "प्रेषक",
+      "to": "प्राप्तकर्ता"
+    },
+    "noResults": "कोई परिणाम नहीं मिला",
+    "noResultsDesc": "कृपया अपने फ़िल्टर या खोज शब्दों को समायोजित करके पुनः प्रयास करें।",
+    "retry": "पुनः प्रयास करें",
+    "somethingWentWrong": "कुछ गलत हो गया"
+  },
+  "adminAuditLogs": {
+    "title": "व्यवस्थापक ऑडिट लॉग",
+    "loading": "लॉग लोड हो रहे हैं...",
+    "table": {
+      "timestamp": "समय-मुहर",
+      "admin": "व्यवस्थापक",
+      "action": "कार्रवाई",
+      "details": "विवरण"
+    },
+    "unknown": "अज्ञात",
+    "noLogsFound": "कोई लॉग नहीं मिला।"
+  },
+  "adminBlogs": {
+    "title": "व्यवस्थापक ब्लॉग प्रबंधन",
+    "addBlog": "नया ब्लॉग",
+    "tabs": {
+      "viewAll": "सभी ब्लॉग देखें",
+      "generate": "सामग्री तैयार करें"
+    },
+    "loading": "ब्लॉग लोड हो रहे हैं...",
+    "noBlogs": "कोई ब्लॉग उपलब्ध नहीं है।",
+    "generateSection": {
+      "title": "ब्लॉग सामग्री जनरेट करें",
+      "desc1": "यह सुविधा वर्तमान में एक बाहरी टूल के माध्यम से काम करती है। नीचे दिए गए बटन पर क्लिक करने पर एक नए टैब में ",
+      "desc2": " खुलेगा।",
+      "desc3": "एक बार सामग्री तैयार हो जाने के बाद, इसे यहां कॉपी करें और ऊपर दिए गए \"+ नया ब्लॉग\" बटन का उपयोग करके जोड़ें।",
+      "desc4": "शुभ निर्माण!",
+      "btnText": "AGI Agent World पर जाएं"
+    },
+    "deleteConfirmTitle": "क्या आप इस ब्लॉग को हटाना चाहते हैं?",
+    "deleteConfirmDesc": "\"{{title}}\" को स्थायी रूप से हटा दिया जाएगा।",
+    "deleteSuccess": "ब्लॉग सफलतापूर्वक हटा दिया गया!"
+  },
+  "adminBlogEditor": {
+    "back": "ब्लॉग सूची पर वापस जाएं",
+    "saveChanges": "परिवर्तन सहेजें",
+    "publish": "प्रकाशित करें",
+    "saving": "सहेजा जा रहा है...",
+    "url": "यूआरएल (URL)",
+    "urlPlaceholder": "blog-post-url",
+    "tagsPlaceholder": "टैग — अल्पविराम द्वारा अलग करें",
+    "categoryPlaceholder": "श्रेणी — जैसे, पोषण, मानसिक स्वास्थ्य, फिटनेस",
+    "requiredError": "शीर्षक और सामग्री दोनों आवश्यक हैं।",
+    "updateError": "ब्लॉग अपडेट करने में विफल। कृपया पुनः प्रयास करें।",
+    "createError": "ब्लॉग बनाने में विफल। कृपया पुनः प्रयास करें।"
+  },
+  "adminProfile": {
+    "title": "व्यवस्थापक प्रोफ़ाइल",
+    "updateDetails": "विवरण अपडेट करें",
+    "firstName": "पहला नाम",
+    "lastName": "अंतिम नाम",
+    "phone": "फ़ोन नंबर",
+    "email": "ईमेल पता",
+    "saveDetails": "विवरण सहेजें",
+    "updating": "अपडेट हो रहा है...",
+    "changePassword": "पासवर्ड बदलें",
+    "hidePassword": "पासवर्ड फ़ॉर्म छिपाएं",
+    "signOut": "साइन आउट करें",
+    "currentPassword": "वर्तमान पासवर्ड",
+    "newPassword": "नया पासवर्ड",
+    "confirmPassword": "नए पासवर्ड की पुष्टि करें",
+    "changing": "बदला जा रहा है...",
+    "confirmSignOutTitle": "साइन आउट",
+    "confirmSignOutDesc": "क्या आप वाकई साइन आउट करना चाहते हैं?",
+    "cancel": "रद्द करें",
+    "alerts": {
+      "profileSuccess": "प्रोफ़ाइल सफलतापूर्वक अपडेट हो गई!",
+      "profileFailed": "प्रोफ़ाइल अपडेट करने में विफल",
+      "passwordMismatch": "नए पासवर्ड मेल नहीं खाते!",
+      "passwordSuccess": "पासवर्ड सफलतापूर्वक बदल दिया गया! कृपया पुनः लॉगिन करें।",
+      "passwordFailed": "पासवर्ड बदलने में विफल"
+    }
   }
 }
+

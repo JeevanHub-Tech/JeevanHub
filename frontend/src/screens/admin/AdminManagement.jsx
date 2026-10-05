@@ -1,5 +1,6 @@
 import { useState, useEffect, useContext, useCallback } from "react";
 import { ListFilter, Plus, Trash2, Eye, EyeOff, Copy } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import { AuthContext } from "../../context/AuthContext";
 import { authFetch } from "../../utils/authFetch";
@@ -24,12 +25,15 @@ const defaultPermissions = {
 	manageBlogs: false,
 };
 
-const permissionLabel = (key) => key.replace(/([A-Z])/g, " $1").replace(/^./, (str) => str.toUpperCase());
+const permissionFallbackLabel = (key) => key.replace(/([A-Z])/g, " $1").replace(/^./, (str) => str.toUpperCase());
 
 const AdminManagement = () => {
+	const { t } = useTranslation();
 	useContext(AuthContext);
 	const [admins, setAdmins] = useState([]);
 	const [loading, setLoading] = useState(true);
+
+	const getPermissionLabel = (key) => t(`adminManagement.permissions.${key}`, { defaultValue: permissionFallbackLabel(key) });
 
 	// Search/status/reset/sort live in the URL so leaving this admin section
 	// (lazy route swap unmounts it) and coming back restores the filters
@@ -101,7 +105,7 @@ const AdminManagement = () => {
 			const data = await response.json();
 			if (data.exists) {
 				setAdminExistsInfo(data);
-				if (data.role === "admin") alert("This email is already an Admin!");
+				if (data.role === "admin") alert(t("adminManagement.registerModal.emailAlreadyAdmin"));
 			} else {
 				setAdminExistsInfo(null);
 			}
@@ -124,7 +128,7 @@ const AdminManagement = () => {
 			});
 			const data = await response.json();
 			if (response.ok) {
-				alert(data.promoted ? "User successfully promoted to Admin!" : "Admin created successfully!");
+				alert(data.promoted ? t("adminManagement.registerModal.promoteSuccess") : t("adminManagement.registerModal.createSuccess"));
 				setShowRegisterModal(false);
 				setAdminForm({
 					firstName: "",
@@ -162,7 +166,7 @@ const AdminManagement = () => {
 		e.preventDefault();
 		if (adminForm.password) {
 			navigator.clipboard.writeText(adminForm.password);
-			alert("Password copied to clipboard!");
+			alert(t("adminManagement.registerModal.copied"));
 		}
 	};
 
@@ -270,7 +274,7 @@ const AdminManagement = () => {
 	if (loading) {
 		return (
 			<DashboardShell>
-				<p className="text-center text-muted-foreground">Loading admins...</p>
+				<p className="text-center text-muted-foreground">{t("adminManagement.loading")}</p>
 			</DashboardShell>
 		);
 	}
@@ -278,20 +282,20 @@ const AdminManagement = () => {
 	return (
 		<DashboardShell>
 			<DashboardPageHeader
-				title="Admin Management"
+				title={t("adminManagement.title")}
 				actions={
 					<div className="flex flex-wrap items-center gap-2">
 						<Input
-							placeholder="Search by name or email..."
+							placeholder={t("adminManagement.searchPlaceholder")}
 							value={searchQuery}
 							onChange={(e) => setSearchQuery(e.target.value)}
 							className="w-60"
 						/>
 						<Button variant={showFilters ? "secondary" : "outline"} onClick={() => setShowFilters(!showFilters)}>
-							<ListFilter data-icon="inline-start" /> Filter & Sort
+							<ListFilter data-icon="inline-start" /> {t("adminManagement.filterAndSort")}
 						</Button>
 						<Button onClick={() => setShowRegisterModal(true)}>
-							<Plus data-icon="inline-start" /> Register New Admin
+							<Plus data-icon="inline-start" /> {t("adminManagement.registerNewAdmin")}
 						</Button>
 					</div>
 				}
@@ -301,73 +305,73 @@ const AdminManagement = () => {
 				<Card className="mb-6 p-5">
 					<div className="flex flex-wrap gap-8">
 						<div className="flex flex-col gap-2">
-							<span className="text-sm font-semibold text-foreground">Sort By:</span>
+							<span className="text-sm font-semibold text-foreground">{t("adminManagement.sortBy")}</span>
 							<Select
 								value={sortBy}
 								onValueChange={setSortBy}
 								items={[
-									{ value: "date_desc", label: "Date Added (Newest)" },
-									{ value: "date_asc", label: "Date Added (Oldest)" },
-									{ value: "login_desc", label: "Last Login (Recent)" },
-									{ value: "login_asc", label: "Last Login (Oldest)" },
-									{ value: "name_asc", label: "Name (A-Z)" },
-									{ value: "name_desc", label: "Name (Z-A)" },
+									{ value: "date_desc", label: t("adminManagement.sortOptions.dateDesc") },
+									{ value: "date_asc", label: t("adminManagement.sortOptions.dateAsc") },
+									{ value: "login_desc", label: t("adminManagement.sortOptions.loginDesc") },
+									{ value: "login_asc", label: t("adminManagement.sortOptions.loginAsc") },
+									{ value: "name_asc", label: t("adminManagement.sortOptions.nameAsc") },
+									{ value: "name_desc", label: t("adminManagement.sortOptions.nameDesc") },
 								]}
 							>
 								<SelectTrigger className="w-56">
 									<SelectValue />
 								</SelectTrigger>
 								<SelectContent>
-									<SelectItem value="date_desc">Date Added (Newest)</SelectItem>
-									<SelectItem value="date_asc">Date Added (Oldest)</SelectItem>
-									<SelectItem value="login_desc">Last Login (Recent)</SelectItem>
-									<SelectItem value="login_asc">Last Login (Oldest)</SelectItem>
-									<SelectItem value="name_asc">Name (A-Z)</SelectItem>
-									<SelectItem value="name_desc">Name (Z-A)</SelectItem>
+									<SelectItem value="date_desc">{t("adminManagement.sortOptions.dateDesc")}</SelectItem>
+									<SelectItem value="date_asc">{t("adminManagement.sortOptions.dateAsc")}</SelectItem>
+									<SelectItem value="login_desc">{t("adminManagement.sortOptions.loginDesc")}</SelectItem>
+									<SelectItem value="login_asc">{t("adminManagement.sortOptions.loginAsc")}</SelectItem>
+									<SelectItem value="name_asc">{t("adminManagement.sortOptions.nameAsc")}</SelectItem>
+									<SelectItem value="name_desc">{t("adminManagement.sortOptions.nameDesc")}</SelectItem>
 								</SelectContent>
 							</Select>
 						</div>
 
 						<div className="flex flex-col gap-2">
-							<span className="text-sm font-semibold text-foreground">Account Status:</span>
+							<span className="text-sm font-semibold text-foreground">{t("adminManagement.accountStatus")}</span>
 							<Select
 								value={filterStatus}
 								onValueChange={setFilterStatus}
 								items={[
-									{ value: "all", label: "All" },
-									{ value: "active", label: "Active Only" },
-									{ value: "inactive", label: "Inactive Only" },
+									{ value: "all", label: t("adminManagement.all") },
+									{ value: "active", label: t("adminManagement.activeOnly") },
+									{ value: "inactive", label: t("adminManagement.inactiveOnly") },
 								]}
 							>
 								<SelectTrigger className="w-44">
 									<SelectValue />
 								</SelectTrigger>
 								<SelectContent>
-									<SelectItem value="all">All</SelectItem>
-									<SelectItem value="active">Active Only</SelectItem>
-									<SelectItem value="inactive">Inactive Only</SelectItem>
+									<SelectItem value="all">{t("adminManagement.all")}</SelectItem>
+									<SelectItem value="active">{t("adminManagement.activeOnly")}</SelectItem>
+									<SelectItem value="inactive">{t("adminManagement.inactiveOnly")}</SelectItem>
 								</SelectContent>
 							</Select>
 						</div>
 
 						<div className="flex flex-col gap-2">
-							<span className="text-sm font-semibold text-foreground">Reset Requests:</span>
+							<span className="text-sm font-semibold text-foreground">{t("adminManagement.resetRequests")}</span>
 							<Select
 								value={filterReset}
 								onValueChange={setFilterReset}
 								items={[
-									{ value: "all", label: "All" },
-									{ value: "requested", label: "Reset Requested" },
-									{ value: "not_requested", label: "No Reset Pending" },
+									{ value: "all", label: t("adminManagement.all") },
+									{ value: "requested", label: t("adminManagement.resetRequested") },
+									{ value: "not_requested", label: t("adminManagement.noResetPending") },
 								]}
 							>
 								<SelectTrigger className="w-52">
 									<SelectValue />
 								</SelectTrigger>
 								<SelectContent>
-									<SelectItem value="all">All</SelectItem>
-									<SelectItem value="requested">Reset Requested</SelectItem>
-									<SelectItem value="not_requested">No Reset Pending</SelectItem>
+									<SelectItem value="all">{t("adminManagement.all")}</SelectItem>
+									<SelectItem value="requested">{t("adminManagement.resetRequested")}</SelectItem>
+									<SelectItem value="not_requested">{t("adminManagement.noResetPending")}</SelectItem>
 								</SelectContent>
 							</Select>
 						</div>
@@ -375,14 +379,14 @@ const AdminManagement = () => {
 
 					<div className="mt-5">
 						<div className="mb-3 flex items-center justify-between">
-							<span className="text-sm font-semibold text-foreground">Filter by Required Permissions:</span>
+							<span className="text-sm font-semibold text-foreground">{t("adminManagement.filterByPermissions")}</span>
 							<Button
 								variant="ghost"
 								size="sm"
 								className="text-destructive hover:text-destructive"
 								onClick={() => setFilterPermissions({ ...defaultPermissions })}
 							>
-								Clear Permissions Filter
+								{t("adminManagement.clearPermissionsFilter")}
 							</Button>
 						</div>
 						<div className="flex flex-wrap gap-2">
@@ -397,7 +401,7 @@ const AdminManagement = () => {
 											: "rounded-full border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:border-primary/40"
 									}
 								>
-									{permissionLabel(key)}
+									{getPermissionLabel(key)}
 								</button>
 							))}
 						</div>
@@ -410,11 +414,11 @@ const AdminManagement = () => {
 					<Table>
 						<TableHeader>
 							<TableRow>
-								<TableHead>Name</TableHead>
-								<TableHead>Email</TableHead>
-								<TableHead>Status</TableHead>
-								<TableHead>Last Login</TableHead>
-								<TableHead>Actions</TableHead>
+								<TableHead>{t("adminManagement.table.name")}</TableHead>
+								<TableHead>{t("adminManagement.table.email")}</TableHead>
+								<TableHead>{t("adminManagement.table.status")}</TableHead>
+								<TableHead>{t("adminManagement.table.lastLogin")}</TableHead>
+								<TableHead>{t("adminManagement.table.actions")}</TableHead>
 							</TableRow>
 						</TableHeader>
 						<TableBody>
@@ -427,51 +431,53 @@ const AdminManagement = () => {
 										<TableCell className="break-all">{admin.email}</TableCell>
 										<TableCell>
 											<Badge variant={admin.isActive ? "default" : "destructive"}>
-												{admin.isActive ? "Active" : "Inactive"}
+												{admin.isActive ? t("adminManagement.status.active") : t("adminManagement.status.inactive")}
 											</Badge>
 										</TableCell>
 										<TableCell className="text-sm text-muted-foreground">
-											{admin.lastLogin ? new Date(admin.lastLogin).toLocaleString() : "Never"}
+											{admin.lastLogin ? new Date(admin.lastLogin).toLocaleString() : t("adminManagement.status.never")}
 										</TableCell>
 										<TableCell>
 											<div className="flex flex-wrap items-center gap-2">
 												<Button variant="outline" size="sm" onClick={() => openEditModal(admin)}>
-													Permissions
+													{t("adminManagement.actions.permissions")}
 												</Button>
 												<Button
 													size="sm"
 													variant={admin.isActive ? "destructive" : "default"}
 													onClick={() =>
 														openConfirmModal(
-															`${admin.isActive ? "Deactivate" : "Activate"} Admin`,
-															`Are you sure you want to ${admin.isActive ? "deactivate" : "activate"} ${admin.email}?`,
+															admin.isActive ? t("adminManagement.confirmModal.deactivateTitle") : t("adminManagement.confirmModal.activateTitle"),
+															admin.isActive
+																? t("adminManagement.confirmModal.deactivateMsg", { email: admin.email })
+																: t("adminManagement.confirmModal.activateMsg", { email: admin.email }),
 															() => executeUpdateStatus(admin._id, { isActive: !admin.isActive })
 														)
 													}
 												>
-													{admin.isActive ? "Deactivate" : "Activate"}
+													{admin.isActive ? t("adminManagement.actions.deactivate") : t("adminManagement.actions.activate")}
 												</Button>
 												<Button
 													size="sm"
 													variant="secondary"
 													onClick={() =>
 														openConfirmModal(
-															admin.forcePasswordReset ? "Cancel Reset" : "Force Reset",
-															`Are you sure you want to toggle forced password reset for ${admin.email}?`,
+															admin.forcePasswordReset ? t("adminManagement.actions.cancelReset") : t("adminManagement.actions.forceReset"),
+															t("adminManagement.confirmModal.toggleResetMsg", { email: admin.email }),
 															() => executeUpdateStatus(admin._id, { forcePasswordReset: !admin.forcePasswordReset })
 														)
 													}
 												>
-													{admin.forcePasswordReset ? "Cancel Reset" : "Force Reset"}
+													{admin.forcePasswordReset ? t("adminManagement.actions.cancelReset") : t("adminManagement.actions.forceReset")}
 												</Button>
 												<Button
 													size="icon"
 													variant="destructive"
-													title="Permanently delete this admin account"
+													title={t("adminManagement.actions.delete")}
 													onClick={() =>
 														openConfirmModal(
-															"Delete Admin",
-															`Are you sure you want to PERMANENTLY DELETE ${admin.email}? This action cannot be undone.`,
+															t("adminManagement.confirmModal.deleteTitle"),
+															t("adminManagement.confirmModal.deleteMsg", { email: admin.email }),
 															() => handleDeleteAdmin(admin._id)
 														)
 													}
@@ -485,7 +491,7 @@ const AdminManagement = () => {
 							) : (
 								<TableRow>
 									<TableCell colSpan={5} className="py-8 text-center text-muted-foreground">
-										No admins found matching your criteria.
+										{t("adminManagement.noAdminsFound")}
 									</TableCell>
 								</TableRow>
 							)}
@@ -498,18 +504,18 @@ const AdminManagement = () => {
 			<Dialog open={showRegisterModal} onOpenChange={setShowRegisterModal}>
 				<DialogContent className="max-h-[90vh] max-w-md overflow-y-auto">
 					<DialogHeader>
-						<DialogTitle>Register New Admin</DialogTitle>
+						<DialogTitle>{t("adminManagement.registerModal.title")}</DialogTitle>
 					</DialogHeader>
 					<form onSubmit={handleAdminRegister} className="flex flex-col gap-4">
 						<div className="grid grid-cols-2 gap-3">
 							<Input
-								placeholder="First Name"
+								placeholder={t("adminManagement.registerModal.firstName")}
 								value={adminForm.firstName}
 								onChange={(e) => setAdminForm({ ...adminForm, firstName: e.target.value })}
 								required
 							/>
 							<Input
-								placeholder="Last Name"
+								placeholder={t("adminManagement.registerModal.lastName")}
 								value={adminForm.lastName}
 								onChange={(e) => setAdminForm({ ...adminForm, lastName: e.target.value })}
 								required
@@ -517,7 +523,7 @@ const AdminManagement = () => {
 						</div>
 						<Input
 							type="email"
-							placeholder="Email"
+							placeholder={t("adminManagement.registerModal.email")}
 							value={adminForm.email}
 							onBlur={handleAdminEmailBlur}
 							onChange={(e) => setAdminForm({ ...adminForm, email: e.target.value })}
@@ -526,12 +532,12 @@ const AdminManagement = () => {
 
 						{adminExistsInfo && adminExistsInfo.role !== "admin" ? (
 							<div className="rounded-lg bg-primary/10 p-3 text-sm text-primary">
-								<strong>Note:</strong> An existing {adminExistsInfo.role} account was found. They will be promoted.
+								<strong>Note:</strong> {t("adminManagement.registerModal.existingAccountNotice", { role: adminExistsInfo.role })}
 							</div>
 						) : null}
 
 						<Input
-							placeholder="Phone (Optional)"
+							placeholder={t("adminManagement.registerModal.phone")}
 							value={adminForm.phone}
 							onChange={(e) => {
 								const val = e.target.value;
@@ -545,7 +551,7 @@ const AdminManagement = () => {
 							<div className="flex items-center rounded-lg border border-input overflow-hidden">
 								<Input
 									type={showPassword ? "text" : "password"}
-									placeholder="Temporary Password"
+									placeholder={t("adminManagement.registerModal.temporaryPassword")}
 									value={adminForm.password}
 									onChange={(e) => setAdminForm({ ...adminForm, password: e.target.value })}
 									className="border-0 shadow-none focus-visible:ring-0"
@@ -572,9 +578,9 @@ const AdminManagement = () => {
 
 						<div>
 							<div className="mb-2 flex items-center justify-between">
-								<span className="text-sm font-semibold text-foreground">Initial Permissions:</span>
+								<span className="text-sm font-semibold text-foreground">{t("adminManagement.registerModal.initialPermissions")}</span>
 								<Button type="button" variant="outline" size="sm" onClick={toggleAllAdminFormPermissions}>
-									Toggle All
+									{t("adminManagement.registerModal.toggleAll")}
 								</Button>
 							</div>
 							<div className="grid grid-cols-2 gap-2">
@@ -585,7 +591,7 @@ const AdminManagement = () => {
 											checked={adminForm.permissions[key]}
 											onChange={() => toggleAdminFormPermission(key)}
 										/>
-										{permissionLabel(key)}
+										{getPermissionLabel(key)}
 									</label>
 								))}
 							</div>
@@ -593,10 +599,10 @@ const AdminManagement = () => {
 
 						<DialogFooter>
 							<Button type="button" variant="outline" onClick={() => setShowRegisterModal(false)}>
-								Cancel
+								{t("adminManagement.registerModal.cancel")}
 							</Button>
 							<Button type="submit" disabled={adminExistsInfo && adminExistsInfo.role === "admin"}>
-								Register
+								{t("adminManagement.registerModal.register")}
 							</Button>
 						</DialogFooter>
 					</form>
@@ -609,16 +615,16 @@ const AdminManagement = () => {
 					{editingAdmin ? (
 						<>
 							<DialogHeader>
-								<DialogTitle>Edit Permissions</DialogTitle>
+								<DialogTitle>{t("adminManagement.editModal.title")}</DialogTitle>
 								<DialogDescription>
-									Manage access for {editingAdmin.firstName} {editingAdmin.lastName}
+									{t("adminManagement.editModal.description", { name: `${editingAdmin.firstName} ${editingAdmin.lastName}` })}
 								</DialogDescription>
 							</DialogHeader>
 
 							<FieldGroup>
 								{Object.keys(editPermissions).map((key) => (
 									<Field key={key} orientation="horizontal" className="justify-between">
-										<FieldLabel htmlFor={`perm-${key}`}>{permissionLabel(key)}</FieldLabel>
+										<FieldLabel htmlFor={`perm-${key}`}>{getPermissionLabel(key)}</FieldLabel>
 										<input
 											id={`perm-${key}`}
 											type="checkbox"
@@ -632,10 +638,10 @@ const AdminManagement = () => {
 
 							<DialogFooter>
 								<Button variant="outline" onClick={() => setShowEditModal(false)}>
-									Cancel
+									{t("adminManagement.editModal.cancel")}
 								</Button>
 								<Button onClick={() => executeUpdateStatus(editingAdmin._id, { permissions: editPermissions })}>
-									Save Changes
+									{t("adminManagement.editModal.saveChanges")}
 								</Button>
 							</DialogFooter>
 						</>
@@ -655,13 +661,13 @@ const AdminManagement = () => {
 							variant="outline"
 							onClick={() => setConfirmModal({ show: false, title: "", message: "", onConfirm: null })}
 						>
-							Cancel
+							{t("adminManagement.confirmModal.cancel")}
 						</Button>
 						<Button
-							variant={confirmModal.title.includes("Delete") ? "destructive" : "default"}
+							variant={confirmModal.title.includes("Delete") || confirmModal.title.includes("हटाएं") ? "destructive" : "default"}
 							onClick={confirmModal.onConfirm}
 						>
-							Confirm
+							{t("adminManagement.confirmModal.confirm")}
 						</Button>
 					</DialogFooter>
 				</DialogContent>

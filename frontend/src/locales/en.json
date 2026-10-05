@@ -771,5 +771,388 @@
     },
     "edit": "Edit",
     "delete": "Delete"
+  },
+  "adminSignIn": {
+    "consoleHeading1": "The console for",
+    "consoleHeading2": "running JeevanHub.",
+    "consoleDescription": "A dedicated, unlisted entry point for platform administrators.",
+    "restrictedAccess": "Restricted access · staff only.",
+    "adminAccess": "Admin access",
+    "signInTitle": "Sign in to the console",
+    "email": "Email",
+    "password": "Password",
+    "signInButton": "Sign in",
+    "hidePassword": "Hide password",
+    "showPassword": "Show password",
+    "invalidCredentials": "Invalid credentials"
+  },
+  "adminNav": {
+    "dashboard": "Dashboard",
+    "home": "Home",
+    "treatments": "Treatments",
+    "doctors": "Doctors",
+    "medicines": "Medicines",
+    "blogsAndVideos": "Blogs and Videos"
+  },
+  "adminDashboard": {
+    "title": "Admin Dashboard",
+    "description": "Manage patients, doctors, retailers, and platform content.",
+    "patientManagement": "Patient Management",
+    "patientManagementDesc": "View and manage patient accounts",
+    "doctorManagement": "Doctor Management",
+    "doctorManagementDesc": "Review doctors and consultations",
+    "retailerManagement": "Retailer Management",
+    "retailerManagementDesc": "Manage retailers and medicine orders",
+    "transactions": "Transactions",
+    "transactionsDesc": "Track platform payments",
+    "blogs": "Blogs",
+    "blogsDesc": "Manage published articles",
+    "adminManagement": "Admin Management",
+    "adminManagementDesc": "Manage admin accounts and roles",
+    "auditLogs": "Audit Logs",
+    "auditLogsDesc": "Review admin activity history"
+  },
+  "adminManagement": {
+    "title": "Admin Management",
+    "searchPlaceholder": "Search by name or email...",
+    "filterAndSort": "Filter & Sort",
+    "registerNewAdmin": "Register New Admin",
+    "sortBy": "Sort By:",
+    "sortOptions": {
+      "dateDesc": "Date Added (Newest)",
+      "dateAsc": "Date Added (Oldest)",
+      "loginDesc": "Last Login (Recent)",
+      "loginAsc": "Last Login (Oldest)",
+      "nameAsc": "Name (A-Z)",
+      "nameDesc": "Name (Z-A)"
+    },
+    "accountStatus": "Account Status:",
+    "all": "All",
+    "activeOnly": "Active Only",
+    "inactiveOnly": "Inactive Only",
+    "resetRequests": "Reset Requests:",
+    "resetRequested": "Reset Requested",
+    "noResetPending": "No Reset Pending",
+    "filterByPermissions": "Filter by Required Permissions:",
+    "clearPermissionsFilter": "Clear Permissions Filter",
+    "permissions": {
+      "manageAdmins": "Manage Admins",
+      "manageUsers": "Manage Users",
+      "manageDoctors": "Manage Doctors",
+      "manageRetailers": "Manage Retailers",
+      "manageTransactions": "Manage Transactions",
+      "manageBlogs": "Manage Blogs"
+    },
+    "table": {
+      "name": "Name",
+      "email": "Email",
+      "status": "Status",
+      "lastLogin": "Last Login",
+      "actions": "Actions"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive",
+      "never": "Never"
+    },
+    "actions": {
+      "permissions": "Permissions",
+      "activate": "Activate",
+      "deactivate": "Deactivate",
+      "forceReset": "Force Reset",
+      "cancelReset": "Cancel Reset",
+      "delete": "Delete"
+    },
+    "noAdminsFound": "No admins found matching your criteria.",
+    "loading": "Loading admins...",
+    "registerModal": {
+      "title": "Register New Admin",
+      "firstName": "First Name",
+      "lastName": "Last Name",
+      "email": "Email",
+      "phone": "Phone (Optional)",
+      "temporaryPassword": "Temporary Password",
+      "initialPermissions": "Initial Permissions:",
+      "toggleAll": "Toggle All",
+      "existingAccountNotice": "An existing {{role}} account was found. They will be promoted.",
+      "emailAlreadyAdmin": "This email is already an Admin!",
+      "cancel": "Cancel",
+      "register": "Register",
+      "copied": "Password copied to clipboard!",
+      "promoteSuccess": "User successfully promoted to Admin!",
+      "createSuccess": "Admin created successfully!"
+    },
+    "editModal": {
+      "title": "Edit Permissions",
+      "description": "Manage access for {{name}}",
+      "cancel": "Cancel",
+      "saveChanges": "Save Changes"
+    },
+    "confirmModal": {
+      "cancel": "Cancel",
+      "confirm": "Confirm",
+      "activateTitle": "Activate Admin",
+      "deactivateTitle": "Deactivate Admin",
+      "activateMsg": "Are you sure you want to activate {{email}}?",
+      "deactivateMsg": "Are you sure you want to deactivate {{email}}?",
+      "toggleResetTitle": "Toggle Reset",
+      "toggleResetMsg": "Are you sure you want to toggle forced password reset for {{email}}?",
+      "deleteTitle": "Delete Admin",
+      "deleteMsg": "Are you sure you want to PERMANENTLY DELETE {{email}}? This action cannot be undone."
+    }
+  },
+  "adminUsers": {
+    "title": "Manage Users",
+    "loading": "Loading users...",
+    "table": {
+      "name": "Name",
+      "email": "Email",
+      "phone": "Phone No.",
+      "gender": "Gender",
+      "age": "Age",
+      "zipCode": "ZipCode",
+      "actions": "Actions"
+    },
+    "delete": "Delete",
+    "update": "Update",
+    "confirmDelete": "Are you sure you want to delete this user?"
+  },
+  "adminDoctors": {
+    "back": "Back",
+    "title": "Doctor Management",
+    "description": "Review, verify, and manage doctors on the platform.",
+    "metrics": {
+      "all": "Total Doctors",
+      "pending": "Pending Review",
+      "approved": "Approved",
+      "activeToday": "Active Today"
+    },
+    "searchPlaceholder": "Search by name, email, or specialization...",
+    "status": {
+      "all": "All Statuses",
+      "pending": "Pending",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "activeToday": "Active Today"
+    },
+    "genders": {
+      "all": "All Genders",
+      "male": "Male",
+      "female": "Female",
+      "other": "Other"
+    },
+    "prices": {
+      "all": "All Prices",
+      "under500": "Under ₹500",
+      "500to1000": "₹500 - ₹1000",
+      "above1000": "Above ₹1000"
+    },
+    "sortOptions": {
+      "dateDesc": "Newest First",
+      "nameAsc": "Name (A-Z)",
+      "nameDesc": "Name (Z-A)",
+      "expDesc": "Experience (High to Low)",
+      "expAsc": "Experience (Low to High)",
+      "activityDesc": "Highest Activity",
+      "activityAsc": "Lowest Activity",
+      "ratingDesc": "Highest Rated",
+      "priceAsc": "Price (Low to High)",
+      "priceDesc": "Price (High to Low)"
+    },
+    "bulk": {
+      "selected": "{{count}} selected",
+      "selectPrompt": "Select doctors to perform bulk actions",
+      "approve": "Approve",
+      "reject": "Reject",
+      "delete": "Delete",
+      "clear": "Clear",
+      "confirmVerify": "Mark {{count}} selected doctors as {{status}}?",
+      "confirmDelete": "Are you sure you want to permanently delete {{count}} selected doctors?"
+    },
+    "exportCsv": "Export CSV",
+    "uploadExcel": "Upload Excel",
+    "uploadGuideTitle": "View Upload Instructions",
+    "table": {
+      "name": "Name",
+      "specialization": "Specialization",
+      "expPrice": "Exp / Price",
+      "ratingActivity": "Rating / Activity",
+      "status": "Status",
+      "actions": "Actions",
+      "years": "years",
+      "notSpecified": "Not specified",
+      "never": "Never",
+      "noDoctorsFound": "No doctors found matching the criteria.",
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "pagination": {
+      "showing": "Showing {{start}} to {{end}} of {{total}} doctors",
+      "prev": "Previous",
+      "next": "Next"
+    },
+    "editModal": {
+      "title": "Edit Doctor Profile",
+      "firstName": "First Name",
+      "lastName": "Last Name",
+      "email": "Email",
+      "phone": "Phone",
+      "specialization": "Specialization (comma separated)",
+      "experience": "Experience (Years)",
+      "cancel": "Cancel",
+      "saveChanges": "Save Changes"
+    },
+    "guideModal": {
+      "title": "Excel Upload Guide",
+      "subtitle": "Follow this exact structure to seamlessly upload multiple doctors. We will securely handle the rest!",
+      "requiredFields": "REQUIRED FIELDS",
+      "optionalFields": "OPTIONAL FIELDS",
+      "feature1Title": "Auto-Generated Credentials",
+      "feature1Text": "If the password column is missing or shorter than 8 characters, we automatically generate a secure 8-character password.",
+      "feature2Title": "CSV Download",
+      "feature2Text": "After a successful upload, you'll receive a CSV of generated credentials. Keep this safe to distribute to your new doctors.",
+      "feature3Title": "Forced Security Reset",
+      "feature3Text": "On first login, every doctor is redirected to a secure screen and forced to change their password."
+    },
+    "reportModal": {
+      "title": "Upload Results Report",
+      "csvNotice": "A CSV file containing {{count}} auto-generated credentials has been downloaded. Please distribute these to the respective doctors.",
+      "failedTitle": "Failed to Register: {{count}} Doctors",
+      "row": "Excel Row",
+      "reason": "Reason for Failure",
+      "allSuccess": "All doctors in the Excel file were successfully registered! No rows were skipped.",
+      "done": "Done"
+    }
+  },
+  "adminRetailers": {
+    "back": "Back",
+    "title": "Retailer Management",
+    "searchPlaceholder": "Search by name, business, email, or phone...",
+    "table": {
+      "businessName": "Business Name",
+      "status": "Status",
+      "email": "Email",
+      "phone": "Phone",
+      "zipCode": "Zip Code",
+      "actions": "Actions"
+    },
+    "noRetailersFound": "No retailers found matching your criteria.",
+    "loading": "Loading Retailers...",
+    "edit": "Edit",
+    "editModal": {
+      "title": "Edit Retailer Details",
+      "businessName": "Business Name",
+      "email": "Email",
+      "phone": "Phone",
+      "status": "Status",
+      "active": "Active",
+      "inactive": "Inactive",
+      "zipCode": "Zip Code",
+      "cancel": "Cancel",
+      "saveChanges": "Save Changes"
+    }
+  },
+  "adminTransactions": {
+    "title": "Transactions",
+    "description": "View and manage all Ayurvedic commerce history",
+    "disputesTitle": "Payout Disputes Awaiting Review",
+    "consultationDispute": "Consultation — {{patient}} with Dr. {{doctor}} · ₹{{amount}}",
+    "orderDispute": "Order {{id}} — {{buyer}} · ₹{{amount}}",
+    "refundPatient": "Refund Patient",
+    "releaseToDoctor": "Release to Doctor",
+    "releaseToRetailer": "Release to Retailer",
+    "category": "Category",
+    "quickSearch": "Quick Search",
+    "searchPlaceholder": "Search by date, amount, or name...",
+    "allTransactions": "All Transactions",
+    "patientDoctor": "Patient-Doctor",
+    "patientRetailer": "Patient-Retailer",
+    "doctorRetailer": "Doctor-Retailer",
+    "table": {
+      "id": "Transaction ID",
+      "type": "Type",
+      "date": "Date",
+      "amount": "Amount",
+      "from": "From",
+      "to": "To"
+    },
+    "noResults": "No results found",
+    "noResultsDesc": "Try adjusting your filters or search keywords.",
+    "retry": "Retry",
+    "somethingWentWrong": "Something went wrong"
+  },
+  "adminAuditLogs": {
+    "title": "Admin Audit Logs",
+    "loading": "Loading logs...",
+    "table": {
+      "timestamp": "Timestamp",
+      "admin": "Admin",
+      "action": "Action",
+      "details": "Details"
+    },
+    "unknown": "Unknown",
+    "noLogsFound": "No logs found."
+  },
+  "adminBlogs": {
+    "title": "Admin Blog Management",
+    "addBlog": "Blog",
+    "tabs": {
+      "viewAll": "View All Blogs",
+      "generate": "Generate Content"
+    },
+    "loading": "Loading blogs...",
+    "noBlogs": "No blogs available.",
+    "generateSection": {
+      "title": "Generate Blog Content",
+      "desc1": "This feature currently works via an external tool. Clicking the button below will open ",
+      "desc2": " in a new tab.",
+      "desc3": "Once your content is ready, copy it back here and add it using the \"+ Blog\" button above.",
+      "desc4": "Happy creating!",
+      "btnText": "Go to AGI Agent World"
+    },
+    "deleteConfirmTitle": "Delete this blog?",
+    "deleteConfirmDesc": "\"{{title}}\" will be permanently removed.",
+    "deleteSuccess": "Blog deleted successfully!"
+  },
+  "adminBlogEditor": {
+    "back": "Back to blogs",
+    "saveChanges": "Save changes",
+    "publish": "Publish",
+    "saving": "Saving...",
+    "url": "URL",
+    "urlPlaceholder": "blog-post-url",
+    "tagsPlaceholder": "Tags — comma separated",
+    "categoryPlaceholder": "Category — e.g., Nutrition, Mental Health, Fitness",
+    "requiredError": "Title and content are required.",
+    "updateError": "Failed to update blog. Please try again.",
+    "createError": "Failed to create blog. Please try again."
+  },
+  "adminProfile": {
+    "title": "Admin Profile",
+    "updateDetails": "Update Details",
+    "firstName": "First Name",
+    "lastName": "Last Name",
+    "phone": "Phone Number",
+    "email": "Email Address",
+    "saveDetails": "Save Details",
+    "updating": "Updating...",
+    "changePassword": "Change Password",
+    "hidePassword": "Hide Password Form",
+    "signOut": "Sign Out",
+    "currentPassword": "Current Password",
+    "newPassword": "New Password",
+    "confirmPassword": "Confirm New Password",
+    "changing": "Changing...",
+    "confirmSignOutTitle": "Sign Out",
+    "confirmSignOutDesc": "Are you sure you want to sign out?",
+    "cancel": "Cancel",
+    "alerts": {
+      "profileSuccess": "Profile updated successfully!",
+      "profileFailed": "Failed to update profile",
+      "passwordMismatch": "New passwords do not match!",
+      "passwordSuccess": "Password changed successfully! Please log in again.",
+      "passwordFailed": "Failed to change password"
+    }
   }
 }
+

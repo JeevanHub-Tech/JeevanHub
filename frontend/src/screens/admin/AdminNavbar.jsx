@@ -1,17 +1,20 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 
 import DashboardNavbar from "@/components/layout/DashboardNavbar";
 
-const navItems = [
-	{ label: "Dashboard", to: "/admin-home" },
-	{ label: "Home", to: "/" },
-	{ label: "Treatments", to: "/treatments" },
-	{ label: "Doctors", to: "/doctors" },
-	{ label: "Medicines", to: "/medicines" },
-	{ label: "Blogs and Videos", to: "/blogs-videos" },
-];
-
 function AdminNavBar() {
+	const { t } = useTranslation();
+
+	const navItems = [
+		{ label: t("adminNav.dashboard"), to: "/admin-home" },
+		{ label: t("adminNav.home"), to: "/" },
+		{ label: t("adminNav.treatments"), to: "/treatments" },
+		{ label: t("adminNav.doctors"), to: "/doctors" },
+		{ label: t("adminNav.medicines"), to: "/medicines" },
+		{ label: t("adminNav.blogsAndVideos"), to: "/blogs-videos" },
+	];
+
 	return (
 		<DashboardNavbar
 			navItems={navItems}

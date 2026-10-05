@@ -1,29 +1,31 @@
 import { useContext } from "react";
 import { Users, Stethoscope, Store, Receipt, Newspaper, ShieldCheck, FileClock } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import { DashboardShell, DashboardPageHeader } from "@/components/layout/DashboardShell";
 import { DashboardNavCard } from "@/components/layout/DashboardNavCard";
 import { AuthContext } from "@/context/AuthContext";
 
 const AdminDashboard = () => {
+	const { t } = useTranslation();
 	const { auth } = useContext(AuthContext);
 
 	const sections = [
-		{ to: "/admin/users", icon: Users, label: "Patient Management", description: "View and manage patient accounts" },
-		{ to: "/admin/consultations", icon: Stethoscope, label: "Doctor Management", description: "Review doctors and consultations" },
-		{ to: "/admin/medicine-orders", icon: Store, label: "Retailer Management", description: "Manage retailers and medicine orders" },
-		{ to: "/admin/transactions", icon: Receipt, label: "Transactions", description: "Track platform payments" },
-		{ to: "/admin/blogs", icon: Newspaper, label: "Blogs", description: "Manage published articles" },
+		{ to: "/admin/users", icon: Users, label: t("adminDashboard.patientManagement"), description: t("adminDashboard.patientManagementDesc") },
+		{ to: "/admin/consultations", icon: Stethoscope, label: t("adminDashboard.doctorManagement"), description: t("adminDashboard.doctorManagementDesc") },
+		{ to: "/admin/medicine-orders", icon: Store, label: t("adminDashboard.retailerManagement"), description: t("adminDashboard.retailerManagementDesc") },
+		{ to: "/admin/transactions", icon: Receipt, label: t("adminDashboard.transactions"), description: t("adminDashboard.transactionsDesc") },
+		{ to: "/admin/blogs", icon: Newspaper, label: t("adminDashboard.blogs"), description: t("adminDashboard.blogsDesc") },
 	];
 
 	if (auth.user?.permissions?.manageAdmins) {
-		sections.push({ to: "/admin/management", icon: ShieldCheck, label: "Admin Management", description: "Manage admin accounts and roles" });
-		sections.push({ to: "/admin/audit-logs", icon: FileClock, label: "Audit Logs", description: "Review admin activity history" });
+		sections.push({ to: "/admin/management", icon: ShieldCheck, label: t("adminDashboard.adminManagement"), description: t("adminDashboard.adminManagementDesc") });
+		sections.push({ to: "/admin/audit-logs", icon: FileClock, label: t("adminDashboard.auditLogs"), description: t("adminDashboard.auditLogsDesc") });
 	}
 
 	return (
 		<DashboardShell>
-			<DashboardPageHeader title="Admin Dashboard" description="Manage patients, doctors, retailers, and platform content." />
+			<DashboardPageHeader title={t("adminDashboard.title")} description={t("adminDashboard.description")} />
 			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
 				{sections.map((section) => (
 					<DashboardNavCard key={section.to} {...section} />

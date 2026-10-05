@@ -1,6 +1,7 @@
 import React, { useState, useContext, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Eye, EyeOff, ShieldCheck } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +14,7 @@ import logo from "../media/logo.png";
 // public role dropdown. Stand-in for the eventual admin.jeevanhub.com split
 // (separate domain/subdomain is an infra change, out of frontend scope).
 function AdminSignInScreen() {
+	const { t } = useTranslation();
 	const { auth, setAuth } = useContext(AuthContext);
 	const navigate = useNavigate();
 	const [formData, setFormData] = useState({ email: "", password: "" });
@@ -43,7 +45,7 @@ function AdminSignInScreen() {
 				setAuth({ token: result.token, user: result.user, role: "admin" });
 				navigate(result.forcePasswordReset ? "/admin/profile" : "/admin-home");
 			} else {
-				alert(result.message || result.error || "Invalid credentials");
+				alert(result.message || result.error || t("adminSignIn.invalidCredentials"));
 			}
 		} catch (error) {
 			console.error("Admin sign-in error:", error);
@@ -61,33 +63,33 @@ function AdminSignInScreen() {
 
 				<div className="relative flex flex-col gap-4">
 					<h1 className="font-display text-4xl leading-tight text-(--jh-cream)">
-						The console for
+						{t("adminSignIn.consoleHeading1")}
 						<br />
-						running JeevanHub.
+						{t("adminSignIn.consoleHeading2")}
 					</h1>
 					<p className="max-w-sm text-(--jh-cream)/70">
-						A dedicated, unlisted entry point for platform administrators.
+						{t("adminSignIn.consoleDescription")}
 					</p>
 				</div>
 
-				<p className="relative text-sm text-(--jh-cream)/50">Restricted access &middot; staff only.</p>
+				<p className="relative text-sm text-(--jh-cream)/50">{t("adminSignIn.restrictedAccess")}</p>
 			</div>
 
 			<div className="flex items-center justify-center px-6 py-16 sm:px-10">
 				<div className="w-full max-w-sm">
 					<div className="flex items-center gap-2 text-primary">
 						<ShieldCheck size={20} />
-						<span className="text-sm font-semibold uppercase tracking-wide">Admin access</span>
+						<span className="text-sm font-semibold uppercase tracking-wide">{t("adminSignIn.adminAccess")}</span>
 					</div>
-					<h1 className="mt-3 font-display text-3xl text-foreground">Sign in to the console</h1>
+					<h1 className="mt-3 font-display text-3xl text-foreground">{t("adminSignIn.signInTitle")}</h1>
 
 					<form className="mt-8 flex flex-col gap-4" onSubmit={handleSubmit}>
 					<div className="flex flex-col gap-1.5">
-						<Label htmlFor="admin-email">Email</Label>
+						<Label htmlFor="admin-email">{t("adminSignIn.email")}</Label>
 						<Input id="admin-email" type="email" name="email" value={formData.email} onChange={handleChange} required className="h-11" />
 					</div>
 					<div className="flex flex-col gap-1.5">
-						<Label htmlFor="admin-password">Password</Label>
+						<Label htmlFor="admin-password">{t("adminSignIn.password")}</Label>
 						<div className="relative">
 							<Input
 								id="admin-password"
@@ -102,7 +104,7 @@ function AdminSignInScreen() {
 								type="button"
 								tabIndex={-1}
 								onClick={() => setShowPassword((s) => !s)}
-								aria-label={showPassword ? "Hide password" : "Show password"}
+								aria-label={showPassword ? t("adminSignIn.hidePassword") : t("adminSignIn.showPassword")}
 								className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
 							>
 								{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -110,7 +112,7 @@ function AdminSignInScreen() {
 						</div>
 					</div>
 					<Button type="submit" size="lg" className="mt-2 w-full">
-						Sign in
+						{t("adminSignIn.signInButton")}
 					</Button>
 				</form>
 			</div>

@@ -1,5 +1,6 @@
 import { useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Eye, EyeOff } from "lucide-react";
 
 import { AuthContext } from "../../context/AuthContext";
@@ -27,6 +28,7 @@ const PasswordInput = ({ show, toggle, ...props }) => (
 );
 
 const AdminProfile = () => {
+	const { t } = useTranslation();
 	const { auth, setAuth, logout } = useContext(AuthContext);
 	const navigate = useNavigate();
 
@@ -71,14 +73,14 @@ const AdminProfile = () => {
 			});
 			const data = await response.json();
 			if (response.ok) {
-				alert("Profile updated successfully!");
+				alert(t("adminProfile.alerts.profileSuccess"));
 				setAuth({ ...auth, user: data.user });
 			} else {
-				alert(data.message || "Failed to update profile");
+				alert(data.message || t("adminProfile.alerts.profileFailed"));
 			}
 		} catch (err) {
 			console.error(err);
-			alert("Error updating profile");
+			alert(t("adminProfile.alerts.profileFailed"));
 		} finally {
 			setProfileLoading(false);
 		}
@@ -87,7 +89,7 @@ const AdminProfile = () => {
 	const handlePasswordUpdate = async (e) => {
 		e.preventDefault();
 		if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-			return alert("New passwords do not match!");
+			return alert(t("adminProfile.alerts.passwordMismatch"));
 		}
 		setPasswordLoading(true);
 		try {
@@ -105,17 +107,17 @@ const AdminProfile = () => {
 			});
 			const data = await response.json();
 			if (response.ok) {
-				alert("Password changed successfully! Please log in again.");
+				alert(t("adminProfile.alerts.passwordSuccess"));
 				setAuth({ token: null, user: null, role: "guest" });
 				localStorage.removeItem("token");
 				localStorage.removeItem("role");
 				navigate("/signin");
 			} else {
-				alert(data.message || "Failed to change password");
+				alert(data.message || t("adminProfile.alerts.passwordFailed"));
 			}
 		} catch (err) {
 			console.error(err);
-			alert("Error changing password");
+			alert(t("adminProfile.alerts.passwordFailed"));
 		} finally {
 			setPasswordLoading(false);
 		}
@@ -126,30 +128,30 @@ const AdminProfile = () => {
 			<Dialog open={showSignOutPopup} onOpenChange={setShowSignOutPopup}>
 				<DialogContent className="max-w-sm">
 					<DialogHeader>
-						<DialogTitle>Sign Out</DialogTitle>
-						<DialogDescription>Are you sure you want to sign out?</DialogDescription>
+						<DialogTitle>{t("adminProfile.confirmSignOutTitle")}</DialogTitle>
+						<DialogDescription>{t("adminProfile.confirmSignOutDesc")}</DialogDescription>
 					</DialogHeader>
 					<DialogFooter>
 						<Button variant="outline" onClick={() => setShowSignOutPopup(false)}>
-							Cancel
+							{t("adminProfile.cancel")}
 						</Button>
 						<Button variant="destructive" onClick={handleSignOut}>
-							Sign Out
+							{t("adminProfile.signOut")}
 						</Button>
 					</DialogFooter>
 				</DialogContent>
 			</Dialog>
 
-			<DashboardPageHeader title="Admin Profile" />
+			<DashboardPageHeader title={t("adminProfile.title")} />
 
 			<div className="flex flex-wrap justify-center gap-6">
 				<Card className="min-w-80 flex-1 p-6">
-					<h3 className="mb-4 text-base font-semibold text-foreground">Update Details</h3>
+					<h3 className="mb-4 text-base font-semibold text-foreground">{t("adminProfile.updateDetails")}</h3>
 					<form onSubmit={handleProfileUpdate}>
 						<FieldGroup>
 							<div className="grid grid-cols-2 gap-4">
 								<Field>
-									<FieldLabel htmlFor="firstName">First Name</FieldLabel>
+									<FieldLabel htmlFor="firstName">{t("adminProfile.firstName")}</FieldLabel>
 									<Input
 										id="firstName"
 										value={profileForm.firstName}
@@ -158,7 +160,7 @@ const AdminProfile = () => {
 									/>
 								</Field>
 								<Field>
-									<FieldLabel htmlFor="lastName">Last Name</FieldLabel>
+									<FieldLabel htmlFor="lastName">{t("adminProfile.lastName")}</FieldLabel>
 									<Input
 										id="lastName"
 										value={profileForm.lastName}
@@ -168,7 +170,7 @@ const AdminProfile = () => {
 								</Field>
 							</div>
 							<Field>
-								<FieldLabel htmlFor="phone">Phone Number</FieldLabel>
+								<FieldLabel htmlFor="phone">{t("adminProfile.phone")}</FieldLabel>
 								<Input
 									id="phone"
 									value={profileForm.phone}
@@ -182,32 +184,32 @@ const AdminProfile = () => {
 								/>
 							</Field>
 							<Field>
-								<FieldLabel htmlFor="email">Email Address</FieldLabel>
+								<FieldLabel htmlFor="email">{t("adminProfile.email")}</FieldLabel>
 								<Input id="email" type="email" value={auth.user?.email || ""} disabled />
 							</Field>
 							<Button disabled={profileLoading} type="submit">
-								{profileLoading ? "Updating..." : "Save Details"}
+								{profileLoading ? t("adminProfile.updating") : t("adminProfile.saveDetails")}
 							</Button>
 						</FieldGroup>
 					</form>
 
 					<div className="mt-4 flex gap-3">
 						<Button variant="secondary" className="flex-1" onClick={() => setShowPasswordForm(!showPasswordForm)}>
-							{showPasswordForm ? "Hide Password Form" : "Change Password"}
+							{showPasswordForm ? t("adminProfile.hidePassword") : t("adminProfile.changePassword")}
 						</Button>
 						<Button variant="destructive" className="flex-1" onClick={() => setShowSignOutPopup(true)}>
-							Sign Out
+							{t("adminProfile.signOut")}
 						</Button>
 					</div>
 				</Card>
 
 				{showPasswordForm ? (
 					<Card className="min-w-72 flex-1 p-6">
-						<h3 className="mb-4 text-base font-semibold text-foreground">Change Password</h3>
+						<h3 className="mb-4 text-base font-semibold text-foreground">{t("adminProfile.changePassword")}</h3>
 						<form onSubmit={handlePasswordUpdate}>
 							<FieldGroup>
 								<Field>
-									<FieldLabel htmlFor="currentPassword">Current Password</FieldLabel>
+									<FieldLabel htmlFor="currentPassword">{t("adminProfile.currentPassword")}</FieldLabel>
 									<PasswordInput
 										id="currentPassword"
 										show={showCurrentPassword}
@@ -218,7 +220,7 @@ const AdminProfile = () => {
 									/>
 								</Field>
 								<Field>
-									<FieldLabel htmlFor="newPassword">New Password</FieldLabel>
+									<FieldLabel htmlFor="newPassword">{t("adminProfile.newPassword")}</FieldLabel>
 									<PasswordInput
 										id="newPassword"
 										show={showNewPassword}
@@ -229,7 +231,7 @@ const AdminProfile = () => {
 									/>
 								</Field>
 								<Field>
-									<FieldLabel htmlFor="confirmPassword">Confirm New Password</FieldLabel>
+									<FieldLabel htmlFor="confirmPassword">{t("adminProfile.confirmPassword")}</FieldLabel>
 									<PasswordInput
 										id="confirmPassword"
 										show={showConfirmPassword}
@@ -240,7 +242,7 @@ const AdminProfile = () => {
 									/>
 								</Field>
 								<Button disabled={passwordLoading} type="submit">
-									{passwordLoading ? "Changing..." : "Change Password"}
+									{passwordLoading ? t("adminProfile.changing") : t("adminProfile.changePassword")}
 								</Button>
 							</FieldGroup>
 						</form>

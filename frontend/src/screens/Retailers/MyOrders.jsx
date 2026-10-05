@@ -1,5 +1,6 @@
 import { useState, useEffect, useContext, useCallback } from "react";
 import axios from "axios";
+import { useTranslation } from "react-i18next";
 import { Truck, FileText, Package, XCircle } from "lucide-react";
 
 import { AuthContext } from "../../context/AuthContext";
@@ -15,15 +16,8 @@ import ShipOrderDialog from "@/components/shipping/ShipOrderDialog";
 import TrackingDialog from "@/components/shipping/TrackingDialog";
 import { formatDate } from "@/lib/date";
 
-const STATUS_TABS = [
-	{ value: "pending", label: "Received" },
-	{ value: "accepted", label: "Accepted" },
-	{ value: "delivered", label: "Delivered" },
-	{ value: "shipped", label: "Shipped" },
-	{ value: "rejected", label: "Rejected" },
-];
-
 function MyOrders() {
+	const { t } = useTranslation();
 	const [orders, setOrders] = useState([]);
 	const [status, setStatus] = useState("pending");
 	const [shipOrder, setShipOrder] = useState(null);
@@ -32,6 +26,14 @@ function MyOrders() {
 	const [pickupDate, setPickupDate] = useState("");
 	const { auth } = useContext(AuthContext);
 	const retailerId = auth?.user?.id;
+
+	const statusTabs = [
+		{ value: "pending", label: t("retailerOrders.tabs.pending", "Received") },
+		{ value: "accepted", label: t("retailerOrders.tabs.accepted", "Accepted") },
+		{ value: "delivered", label: t("retailerOrders.tabs.delivered", "Delivered") },
+		{ value: "shipped", label: t("retailerOrders.tabs.shipped", "Shipped") },
+		{ value: "rejected", label: t("retailerOrders.tabs.rejected", "Rejected") },
+	];
 
 	// Lifted out of the effect so the ship dialog can refetch after attaching an AWB.
 	const fetchOrders = useCallback(async () => {
@@ -116,11 +118,11 @@ function MyOrders() {
 
 	return (
 		<DashboardShell>
-			<DashboardPageHeader title="My Orders" />
+			<DashboardPageHeader title={t("retailerOrders.title", "My Orders")} />
 
 			<Tabs value={status} onValueChange={setStatus}>
 				<TabsList className="mb-6 h-auto flex-wrap">
-					{STATUS_TABS.map((tab) => (
+					{statusTabs.map((tab) => (
 						<TabsTrigger key={tab.value} value={tab.value}>
 							{tab.label}
 						</TabsTrigger>
@@ -130,7 +132,7 @@ function MyOrders() {
 
 			{filteredOrders.length === 0 ? (
 				<p className="mt-10 text-center text-lg text-muted-foreground">
-					No orders found in the <strong className="text-foreground">{status}</strong> category.
+					{t("retailerOrders.noOrders", "No orders found in the {{status}} category.", { status })}
 				</p>
 			) : (
 				<div className="flex flex-col gap-6">
@@ -140,29 +142,29 @@ function MyOrders() {
 						return (
 							<Card key={order._id} className="p-6 transition-transform hover:-translate-y-1">
 								<p className="mb-2">
-									<strong className="text-foreground">Buyer Name:</strong> {order.customerName}
+									<strong className="text-foreground">{t("retailerOrders.buyerName", "Buyer Name:")}</strong> {order.customerName}
 								</p>
 								<p className="mb-2">
-									<strong className="text-foreground">Order Receiving Date:</strong> {formatDate(order.date)}
+									<strong className="text-foreground">{t("retailerOrders.orderDate", "Order Receiving Date:")}</strong> {formatDate(order.date)}
 								</p>
 								<p className="mb-2">
-									<strong className="text-foreground">Shipping Address:</strong>{" "}
+									<strong className="text-foreground">{t("retailerOrders.shippingAddress", "Shipping Address:")}</strong>{" "}
 									{order.shippingAddress
 										? `${order.shippingAddress.street}, ${order.shippingAddress.city}, ${order.shippingAddress.state}, ${order.shippingAddress.postalCode}, ${order.shippingAddress.country}`
 										: "N/A"}
 								</p>
 								<p className="mb-2">
-									<strong className="text-foreground">Items:</strong>
+									<strong className="text-foreground">{t("retailerOrders.items", "Items:")}</strong>
 								</p>
 
 								<div className="mb-3 overflow-x-auto rounded-lg border border-border">
 									<Table>
 										<TableHeader>
 											<TableRow>
-												<TableHead>Medicine</TableHead>
-												<TableHead>Unit Price</TableHead>
-												<TableHead>Quantity</TableHead>
-												<TableHead>Subtotal</TableHead>
+												<TableHead>{t("retailerOrders.table.medicine", "Medicine")}</TableHead>
+												<TableHead>{t("retailerOrders.table.unitPrice", "Unit Price")}</TableHead>
+												<TableHead>{t("retailerOrders.table.quantity", "Quantity")}</TableHead>
+												<TableHead>{t("retailerOrders.table.subtotal", "Subtotal")}</TableHead>
 											</TableRow>
 										</TableHeader>
 										<TableBody>
@@ -179,10 +181,10 @@ function MyOrders() {
 								</div>
 
 								<p className="mb-2">
-									<strong className="text-foreground">Order Total:</strong> {order.orderTotal}
+									<strong className="text-foreground">{t("retailerOrders.orderTotal", "Order Total:")}</strong> {order.orderTotal}
 								</p>
 								<p>
-									<strong className="text-foreground">Status:</strong> {order.status}
+									<strong className="text-foreground">{t("retailerOrders.statusLabel", "Status:")}</strong> {order.status}
 								</p>
 
 								{shipment?.trackingId ? (
@@ -196,31 +198,31 @@ function MyOrders() {
 												<Badge variant="secondary">{shipment.lastPolledStatus}</Badge>
 											) : null}
 											<Button size="sm" variant="outline" onClick={() => setTrackOrderId(order._id)}>
-												Track
+												{t("retailerOrders.actions.track", "Track")}
 											</Button>
 										</div>
 										<div className="flex flex-wrap items-center gap-2">
 											<Button size="sm" variant="outline" onClick={() => downloadLabel(order._id)}>
-												<FileText className="mr-2 size-3.5" /> Label
+												<FileText className="mr-2 size-3.5" /> {t("retailerOrders.actions.label", "Label")}
 											</Button>
 
 											{!shipment.pickupId ? (
 												showPickupPicker === order._id ? (
 													<div className="flex items-center gap-2">
 														<Input type="date" value={pickupDate} onChange={e => setPickupDate(e.target.value)} className="h-9 w-auto" />
-														<Button size="sm" onClick={() => submitPickup(order._id)}>Submit</Button>
-														<Button size="sm" variant="ghost" onClick={() => setShowPickupPicker(null)}>Cancel</Button>
+														<Button size="sm" onClick={() => submitPickup(order._id)}>{t("retailerOrders.actions.submit", "Submit")}</Button>
+														<Button size="sm" variant="ghost" onClick={() => setShowPickupPicker(null)}>{t("retailerOrders.actions.cancel", "Cancel")}</Button>
 													</div>
 												) : (
 													<Button size="sm" variant="outline" onClick={() => setShowPickupPicker(order._id)}>
-														<Package className="mr-2 size-3.5" /> Request Pickup
+														<Package className="mr-2 size-3.5" /> {t("retailerOrders.actions.requestPickup", "Request Pickup")}
 													</Button>
 												)
 											) : null}
 
 											{shipment.lastPolledStatusCode === 'M' ? (
 												<Button size="sm" variant="destructive" onClick={() => cancelShipment(order._id)}>
-													<XCircle className="mr-2 size-3.5" /> Cancel Shipment
+													<XCircle className="mr-2 size-3.5" /> {t("retailerOrders.actions.cancelShipment", "Cancel Shipment")}
 												</Button>
 											) : null}
 										</div>
@@ -229,21 +231,21 @@ function MyOrders() {
 
 								{(status === "pending" || status === "accepted") && (
 									<div className="mt-5 flex flex-wrap items-center gap-3">
-										<span className="text-sm text-muted-foreground">Update Status:</span>
+										<span className="text-sm text-muted-foreground">{t("retailerOrders.actions.updateStatus", "Update Status:")}</span>
 										{status === "pending" ? (
 											<>
 												<Button size="sm" onClick={() => updateOrderStatus(order._id, "accepted")}>
-													Accept
+													{t("retailerOrders.actions.accept", "Accept")}
 												</Button>
 												<Button size="sm" variant="destructive" onClick={() => updateOrderStatus(order._id, "rejected")}>
-													Reject
+													{t("retailerOrders.actions.reject", "Reject")}
 												</Button>
 											</>
 										) : null}
 										{status === "accepted" ? (
 											<Button size="sm" onClick={() => setShipOrder(order)}>
 												<Truck className="mr-2 size-3.5" />
-												Ship order
+												{t("retailerOrders.actions.shipOrder", "Ship order")}
 											</Button>
 										) : null}
 									</div>

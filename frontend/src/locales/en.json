@@ -638,5 +638,138 @@
     "disputePrompt": "What went wrong with this order? (e.g. never received the medicines)",
     "disputeSuccess": "Thanks — we've flagged this and will review it before any payout goes out.",
     "disputeError": "Could not report this issue. Please try again."
+  },
+  "retailerNav": {
+    "home": "Home",
+    "addItems": "Add items",
+    "myItems": "My items",
+    "products": "Products",
+    "orders": "Orders",
+    "analytics": "Analytics",
+    "customerSupport": "Customer Support"
+  },
+  "retailerDashboard": {
+    "greeting": "Hi {{name}}!",
+    "description": "Welcome back! Let's showcase your products and connect with potential buyers effortlessly.",
+    "cards": {
+      "profile": "Your Profile",
+      "profileDesc": "View and edit your retailer profile",
+      "manageProducts": "Manage Products",
+      "manageProductsDesc": "Add and update your listings",
+      "analytics": "Analytics",
+      "analyticsDesc": "Track sales and performance",
+      "myOrders": "My Orders",
+      "myOrdersDesc": "Review incoming orders",
+      "customerSupport": "Customer Support",
+      "customerSupportDesc": "Get help with your account"
+    }
+  },
+  "retailerCustomerSupport": {
+    "title": "Customer Support",
+    "description": "We are building a dedicated support center to assist you with your queries and concerns. Our team is working hard to bring this feature to you very soon!",
+    "comingSoon": "Coming Soon"
+  },
+  "retailerAnalytics": {
+    "title": "Retailer Analytics",
+    "totalOrders": "Total Orders",
+    "totalRevenue": "Total Revenue",
+    "recentOrders": "Recent Orders",
+    "table": {
+      "buyer": "Buyer",
+      "items": "Items",
+      "amount": "Amount",
+      "date": "Date"
+    }
+  },
+  "retailerOrders": {
+    "title": "My Orders",
+    "tabs": {
+      "pending": "Received",
+      "accepted": "Accepted",
+      "delivered": "Delivered",
+      "shipped": "Shipped",
+      "rejected": "Rejected"
+    },
+    "noOrders": "No orders found in the {{status}} category.",
+    "buyerName": "Buyer Name:",
+    "orderDate": "Order Receiving Date:",
+    "shippingAddress": "Shipping Address:",
+    "items": "Items:",
+    "orderTotal": "Order Total:",
+    "statusLabel": "Status:",
+    "table": {
+      "medicine": "Medicine",
+      "unitPrice": "Unit Price",
+      "quantity": "Quantity",
+      "subtotal": "Subtotal"
+    },
+    "actions": {
+      "updateStatus": "Update Status:",
+      "accept": "Accept",
+      "reject": "Reject",
+      "shipOrder": "Ship order",
+      "track": "Track",
+      "label": "Label",
+      "requestPickup": "Request Pickup",
+      "cancelShipment": "Cancel Shipment",
+      "submit": "Submit",
+      "cancel": "Cancel"
+    }
+  },
+  "retailerNotifications": {
+    "title": "Notifications",
+    "markAllRead": "Mark all as read",
+    "loading": "Loading notifications...",
+    "emptyTitle": "No notifications",
+    "emptyDesc": "You don't have any notifications yet."
+  },
+  "retailerProfile": {
+    "signOut": "Sign Out",
+    "infoTitle": "Retailer Information",
+    "editProfile": "Edit Profile",
+    "saveProfile": "Save Profile",
+    "cancel": "Cancel",
+    "saving": "Saving...",
+    "firstName": "First Name",
+    "lastName": "Last Name",
+    "phone": "Phone",
+    "address": "Business Address",
+    "changePassword": "Change Password",
+    "currentPassword": "Current Password",
+    "newPassword": "New Password",
+    "confirmPassword": "Confirm New Password",
+    "updatePassword": "Update Password",
+    "alerts": {
+      "loadFailed": "Failed to load profile details.",
+      "updateSuccess": "Profile updated successfully!",
+      "updateFailed": "Failed to update profile.",
+      "passwordMismatch": "New passwords do not match!",
+      "passwordSuccess": "Password changed successfully!",
+      "imageSuccess": "Profile image updated successfully!",
+      "imageFailed": "Failed to upload image."
+    }
+  },
+  "retailerInventory": {
+    "title": "My Products",
+    "subtitle": "Manage your inventory, pricing, and stock levels.",
+    "searchPlaceholder": "Search products...",
+    "allCategories": "All Categories",
+    "allStatuses": "All Statuses",
+    "active": "Active",
+    "inactive": "Inactive",
+    "inStock": "In Stock",
+    "outOfStock": "Out of Stock",
+    "addNewItem": "Add New Product",
+    "bulkUpload": "Bulk Upload",
+    "table": {
+      "product": "Product",
+      "category": "Category",
+      "price": "Price",
+      "stock": "Stock",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "edit": "Edit",
+    "delete": "Delete"
   }
 }

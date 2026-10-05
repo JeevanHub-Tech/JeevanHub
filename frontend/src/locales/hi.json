@@ -638,5 +638,138 @@
     "disputePrompt": "इस ऑर्डर के साथ क्या समस्या हुई? (उदा. दवाइयां प्राप्त नहीं हुईं)",
     "disputeSuccess": "धन्यवाद — हमने इसे समीक्षा के लिए चिह्नित कर दिया है।",
     "disputeError": "समस्या दर्ज करने में विफल। कृपया पुनः प्रयास करें।"
+  },
+  "retailerNav": {
+    "home": "होम",
+    "addItems": "दवा जोड़ें",
+    "myItems": "मेरी दवाइयां",
+    "products": "उत्पाद",
+    "orders": "ऑर्डर",
+    "analytics": "एनालिटिक्स",
+    "customerSupport": "ग्राहक सहायता"
+  },
+  "retailerDashboard": {
+    "greeting": "नमस्ते {{name}}!",
+    "description": "वापसी पर स्वागत है! अपने आयुर्वेदिक उत्पादों को आसानी से प्रदर्शित करें और खरीदारों से जुड़ें।",
+    "cards": {
+      "profile": "आपकी प्रोफ़ाइल",
+      "profileDesc": "अपनी विक्रेता प्रोफ़ाइल देखें और संपादित करें",
+      "manageProducts": "उत्पाद प्रबंधन",
+      "manageProductsDesc": "नई दवाइयां जोड़ें और इन्वेंट्री अपडेट करें",
+      "analytics": "एनालिटिक्स",
+      "analyticsDesc": "बिक्री और व्यापार प्रदर्शन ट्रैक करें",
+      "myOrders": "मेरे ऑर्डर",
+      "myOrdersDesc": "आने वाले ऑर्डरों की समीक्षा करें और प्रोसेस करें",
+      "customerSupport": "ग्राहक सहायता",
+      "customerSupportDesc": "अपने खाते और सहायता के लिए संपर्क करें"
+    }
+  },
+  "retailerCustomerSupport": {
+    "title": "ग्राहक सहायता केंद्र",
+    "description": "हम आपके प्रश्नों और सहायता के लिए एक समर्पित सहायता केंद्र बना रहे हैं। हमारी टीम जल्द ही यह सुविधा उपलब्ध कराएगी!",
+    "comingSoon": "शीघ्र उपलब्ध"
+  },
+  "retailerAnalytics": {
+    "title": "विक्रेता एनालिटिक्स",
+    "totalOrders": "कुल ऑर्डर",
+    "totalRevenue": "कुल राजस्व (कमाई)",
+    "recentOrders": "हाल के ऑर्डर",
+    "table": {
+      "buyer": "खरीदार",
+      "items": "दवाइयां / वस्तुएं",
+      "amount": "राशि",
+      "date": "दिनांक"
+    }
+  },
+  "retailerOrders": {
+    "title": "मेरे ऑर्डर",
+    "tabs": {
+      "pending": "प्राप्त हुए",
+      "accepted": "स्वीकृत",
+      "delivered": "डिलीवर हो गए",
+      "shipped": "भेजे गए (Shipped)",
+      "rejected": "अस्वीकृत"
+    },
+    "noOrders": "{{status}} श्रेणी में कोई ऑर्डर नहीं मिला।",
+    "buyerName": "खरीदार का नाम:",
+    "orderDate": "ऑर्डर प्राप्ति दिनांक:",
+    "shippingAddress": "डिलीवरी का पता:",
+    "items": "मंगवाई गई दवाइयां:",
+    "orderTotal": "ऑर्डर कुल राशि:",
+    "statusLabel": "स्थिति:",
+    "table": {
+      "medicine": "दवा का नाम",
+      "unitPrice": "इकाई मूल्य",
+      "quantity": "मात्रा",
+      "subtotal": "उप-योग"
+    },
+    "actions": {
+      "updateStatus": "स्थिति अपडेट करें:",
+      "accept": "स्वीकार करें",
+      "reject": "अस्वीकार करें",
+      "shipOrder": "ऑर्डर शिप करें",
+      "track": "ट्रैक करें",
+      "label": "शिपिंग लेबल",
+      "requestPickup": "पिकअप का अनुरोध करें",
+      "cancelShipment": "शिपमेंट रद्द करें",
+      "submit": "जमा करें",
+      "cancel": "रद्द करें"
+    }
+  },
+  "retailerNotifications": {
+    "title": "सूचनाएं",
+    "markAllRead": "सभी को पढ़ा हुआ चिह्नित करें",
+    "loading": "सूचनाएं लोड हो रही हैं...",
+    "emptyTitle": "कोई सूचना नहीं है",
+    "emptyDesc": "आपके पास अभी तक कोई नई सूचना नहीं है।"
+  },
+  "retailerProfile": {
+    "signOut": "साइन आउट करें",
+    "infoTitle": "विक्रेता की जानकारी",
+    "editProfile": "प्रोफ़ाइल संपादित करें",
+    "saveProfile": "प्रोफ़ाइल सहेजें",
+    "cancel": "रद्द करें",
+    "saving": "सहेजा जा रहा है...",
+    "firstName": "पहला नाम",
+    "lastName": "अंतिम नाम",
+    "phone": "फ़ोन नंबर",
+    "address": "व्यवसाय का पता",
+    "changePassword": "पासवर्ड बदलें",
+    "currentPassword": "वर्तमान पासवर्ड",
+    "newPassword": "नया पासवर्ड",
+    "confirmPassword": "नए पासवर्ड की पुष्टि करें",
+    "updatePassword": "पासवर्ड अपडेट करें",
+    "alerts": {
+      "loadFailed": "प्रोफ़ाइल विवरण लोड करने में विफल।",
+      "updateSuccess": "प्रोफ़ाइल सफलतापूर्वक अपडेट हो गई!",
+      "updateFailed": "प्रोफ़ाइल अपडेट करने में विफल।",
+      "passwordMismatch": "नए पासवर्ड मेल नहीं खाते!",
+      "passwordSuccess": "पासवर्ड सफलतापूर्वक बदल दिया गया!",
+      "imageSuccess": "प्रोफ़ाइल फ़ोटो सफलतापूर्वक अपडेट हो गई!",
+      "imageFailed": "फ़ोटो अपलोड करने में विफल।"
+    }
+  },
+  "retailerInventory": {
+    "title": "मेरी दवाइयां और उत्पाद",
+    "subtitle": "अपनी इन्वेंट्री, कीमतें और स्टॉक स्तर प्रबंधित करें।",
+    "searchPlaceholder": "दवाइयां या उत्पाद खोजें...",
+    "allCategories": "सभी श्रेणियां",
+    "allStatuses": "सभी स्थितियां",
+    "active": "सक्रिय",
+    "inactive": "निष्क्रिय",
+    "inStock": "स्टॉक में उपलब्ध",
+    "outOfStock": "स्टॉक समाप्त",
+    "addNewItem": "नया उत्पाद जोड़ें",
+    "bulkUpload": "एक साथ कई दवाइयां जोड़ें (बल्क अपलोड)",
+    "table": {
+      "product": "उत्पाद",
+      "category": "श्रेणी",
+      "price": "मूल्य",
+      "stock": "स्टॉक",
+      "status": "स्थिति",
+      "actions": "क्रियाएं"
+    },
+    "edit": "संपादित करें",
+    "delete": "हटाएं"
   }
 }

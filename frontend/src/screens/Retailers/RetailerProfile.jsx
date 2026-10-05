@@ -1,6 +1,7 @@
 import { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { useTranslation } from "react-i18next";
 import { Camera } from "lucide-react";
 
 import { AuthContext } from "../../context/AuthContext";
@@ -16,6 +17,7 @@ import ShippingSettingsPanel from "./ShippingSettingsPanel";
 import BankDetailsPanel from "./BankDetailsPanel";
 
 const RetailerProfile = () => {
+	const { t } = useTranslation();
 	const { auth, setAuth, logout, loading: authLoading } = useContext(AuthContext);
 	const navigate = useNavigate();
 
@@ -56,7 +58,7 @@ const RetailerProfile = () => {
 				});
 			} catch (error) {
 				console.error("Error fetching retailer data:", error);
-				alert("Failed to load profile details.");
+				alert(t("retailerProfile.alerts.loadFailed", "Failed to load profile details."));
 			}
 		};
 
@@ -67,7 +69,7 @@ const RetailerProfile = () => {
 		} else {
 			navigate("/signin");
 		}
-	}, [auth, authLoading, navigate]);
+	}, [auth, authLoading, navigate, t]);
 
 	const handleInputChange = (e) => {
 		setRetailerData({ ...retailerData, [e.target.name]: e.target.value });
@@ -95,7 +97,7 @@ const RetailerProfile = () => {
 				{ headers: { Authorization: `Bearer ${auth.token}` } }
 			);
 
-			alert("Profile updated successfully!");
+			alert(t("retailerProfile.alerts.updateSuccess", "Profile updated successfully!"));
 
 			if (response.data.data) {
 				setAuth((prev) => ({
@@ -113,7 +115,7 @@ const RetailerProfile = () => {
 			setIsEditing(false);
 		} catch (error) {
 			console.error("Error updating profile:", error);
-			alert("Failed to update profile.");
+			alert(t("retailerProfile.alerts.updateFailed", "Failed to update profile."));
 		} finally {
 			setLoading(false);
 		}
@@ -122,7 +124,7 @@ const RetailerProfile = () => {
 	const handlePasswordSubmit = async (e) => {
 		e.preventDefault();
 		if (passwords.newPassword !== passwords.confirmPassword) {
-			return alert("New passwords do not match!");
+			return alert(t("retailerProfile.alerts.passwordMismatch", "New passwords do not match!"));
 		}
 
 		try {
@@ -135,7 +137,7 @@ const RetailerProfile = () => {
 				{ headers: { Authorization: `Bearer ${auth.token}` } }
 			);
 
-			alert("Password changed successfully!");
+			alert(t("retailerProfile.alerts.passwordSuccess", "Password changed successfully!"));
 			setPasswords({ currentPassword: "", newPassword: "", confirmPassword: "" });
 		} catch (error) {
 			console.error("Error changing password:", error);
@@ -174,11 +176,11 @@ const RetailerProfile = () => {
 					user: { ...prev.user, profileImage: newImageUrl },
 				}));
 
-				alert("Profile image updated successfully!");
+				alert(t("retailerProfile.alerts.imageSuccess", "Profile image updated successfully!"));
 			}
 		} catch (error) {
 			console.error("Error uploading image:", error);
-			alert("Failed to upload image.");
+			alert(t("retailerProfile.alerts.imageFailed", "Failed to upload image."));
 		} finally {
 			setLoading(false);
 		}
@@ -218,27 +220,27 @@ const RetailerProfile = () => {
 					</h3>
 					<p className="text-sm text-muted-foreground">{retailerData.email}</p>
 					<Button variant="destructive" className="mt-4 w-full" onClick={handleSignOut}>
-						Sign Out
+						{t("retailerProfile.signOut", "Sign Out")}
 					</Button>
 				</Card>
 
 				<div className="flex flex-col gap-6">
 					<Card className="p-6">
 						<div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-							<h2 className="text-lg font-semibold text-foreground">Retailer Information</h2>
+							<h2 className="text-lg font-semibold text-foreground">{t("retailerProfile.infoTitle", "Retailer Information")}</h2>
 							<div className="flex gap-2">
 								{isEditing ? (
 									<>
 										<Button onClick={handleSaveProfile} disabled={loading}>
-											{loading ? "Saving..." : "Save Profile"}
+											{loading ? t("retailerProfile.saving", "Saving...") : t("retailerProfile.saveProfile", "Save Profile")}
 										</Button>
 										<Button variant="outline" onClick={() => setIsEditing(false)}>
-											Cancel
+											{t("retailerProfile.cancel", "Cancel")}
 										</Button>
 									</>
 								) : (
 									<Button variant="outline" onClick={() => setIsEditing(true)}>
-										Edit Profile
+										{t("retailerProfile.editProfile", "Edit Profile")}
 									</Button>
 								)}
 							</div>
@@ -246,7 +248,7 @@ const RetailerProfile = () => {
 
 						<FieldGroup className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 							<Field>
-								<FieldLabel htmlFor="firstName">First Name</FieldLabel>
+								<FieldLabel htmlFor="firstName">{t("retailerProfile.firstName", "First Name")}</FieldLabel>
 								<Input
 									id="firstName"
 									name="firstName"
@@ -256,7 +258,7 @@ const RetailerProfile = () => {
 								/>
 							</Field>
 							<Field>
-								<FieldLabel htmlFor="lastName">Last Name</FieldLabel>
+								<FieldLabel htmlFor="lastName">{t("retailerProfile.lastName", "Last Name")}</FieldLabel>
 								<Input
 									id="lastName"
 									name="lastName"
@@ -266,58 +268,58 @@ const RetailerProfile = () => {
 								/>
 							</Field>
 							<Field>
-								<FieldLabel htmlFor="phone">Phone</FieldLabel>
+								<FieldLabel htmlFor="phone">{t("retailerProfile.phone", "Phone")}</FieldLabel>
 								<Input id="phone" name="phone" value={retailerData.phone} onChange={handleInputChange} disabled={!isEditing} />
 							</Field>
 							<Field className="sm:col-span-2">
-								<FieldLabel htmlFor="address">Business Address</FieldLabel>
+								<FieldLabel htmlFor="address">{t("retailerProfile.address", "Business Address")}</FieldLabel>
 								<Input id="address" name="address" value={retailerData.address} onChange={handleInputChange} disabled={!isEditing} />
 							</Field>
 						</FieldGroup>
 					</Card>
 
 					<Card className="p-6">
-						<h3 className="mb-4 text-lg font-semibold text-foreground">Change Password</h3>
+						<h3 className="mb-4 text-lg font-semibold text-foreground">{t("retailerProfile.changePassword", "Change Password")}</h3>
 						<form onSubmit={handlePasswordSubmit}>
 							<FieldGroup>
 								<Field>
-									<FieldLabel htmlFor="currentPassword">Current Password</FieldLabel>
+									<FieldLabel htmlFor="currentPassword">{t("retailerProfile.currentPassword", "Current Password")}</FieldLabel>
 									<Input
 										id="currentPassword"
 										type="password"
 										name="currentPassword"
 										value={passwords.currentPassword}
 										onChange={handlePasswordChange}
-										placeholder="Enter current password"
+										placeholder={t("retailerProfile.currentPassword", "Current Password")}
 										required
 									/>
 								</Field>
 								<Field>
-									<FieldLabel htmlFor="newPassword">New Password</FieldLabel>
+									<FieldLabel htmlFor="newPassword">{t("retailerProfile.newPassword", "New Password")}</FieldLabel>
 									<Input
 										id="newPassword"
 										type="password"
 										name="newPassword"
 										value={passwords.newPassword}
 										onChange={handlePasswordChange}
-										placeholder="Enter new password"
+										placeholder={t("retailerProfile.newPassword", "New Password")}
 										required
 									/>
 								</Field>
 								<Field>
-									<FieldLabel htmlFor="confirmPassword">Confirm New Password</FieldLabel>
+									<FieldLabel htmlFor="confirmPassword">{t("retailerProfile.confirmPassword", "Confirm New Password")}</FieldLabel>
 									<Input
 										id="confirmPassword"
 										type="password"
 										name="confirmPassword"
 										value={passwords.confirmPassword}
 										onChange={handlePasswordChange}
-										placeholder="Confirm new password"
+										placeholder={t("retailerProfile.confirmPassword", "Confirm New Password")}
 										required
 									/>
 								</Field>
 								<Button type="submit" className="w-fit">
-									Update Password
+									{t("retailerProfile.updatePassword", "Update Password")}
 								</Button>
 							</FieldGroup>
 						</form>

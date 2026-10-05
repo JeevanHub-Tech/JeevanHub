@@ -1,5 +1,6 @@
 import { useEffect, useState, useContext } from "react";
 import axios from "axios";
+import { useTranslation } from "react-i18next";
 
 import { AuthContext } from "../../context/AuthContext";
 import { BACKEND_URL } from "../../config";
@@ -9,6 +10,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@
 import { formatDate } from "@/lib/date";
 
 function RetailerAnalytics() {
+	const { t } = useTranslation();
 	const { auth } = useContext(AuthContext);
 	const [orders, setOrders] = useState([]);
 	const [stats, setStats] = useState({ total: 0, revenue: 0 });
@@ -40,29 +42,31 @@ function RetailerAnalytics() {
 
 	return (
 		<DashboardShell>
-			<DashboardPageHeader title="Retailer Analytics" />
+			<DashboardPageHeader title={t("retailerAnalytics.title", "Retailer Analytics")} />
 
 			<div className="mb-6 grid grid-cols-1 gap-5 sm:grid-cols-2">
 				<Card className="p-6 text-center">
-					<h3 className="text-sm font-semibold text-muted-foreground">Total Orders</h3>
+					<h3 className="text-sm font-semibold text-muted-foreground">{t("retailerAnalytics.totalOrders", "Total Orders")}</h3>
 					<p className="mt-2 text-3xl font-bold text-foreground">{stats.total}</p>
 				</Card>
 				<Card className="p-6 text-center">
-					<h3 className="text-sm font-semibold text-muted-foreground">Total Revenue</h3>
+					<h3 className="text-sm font-semibold text-muted-foreground">{t("retailerAnalytics.totalRevenue", "Total Revenue")}</h3>
 					<p className="mt-2 text-3xl font-bold text-foreground">₹ {stats.revenue.toFixed(2)}</p>
 				</Card>
 			</div>
 
 			<Card className="overflow-hidden p-0">
-				<h3 className="border-b border-border px-6 py-4 text-base font-semibold text-foreground">Recent Orders</h3>
+				<h3 className="border-b border-border px-6 py-4 text-base font-semibold text-foreground">
+					{t("retailerAnalytics.recentOrders", "Recent Orders")}
+				</h3>
 				<div className="overflow-x-auto">
 					<Table>
 						<TableHeader>
 							<TableRow>
-								<TableHead>Buyer</TableHead>
-								<TableHead>Items</TableHead>
-								<TableHead>Amount</TableHead>
-								<TableHead>Date</TableHead>
+								<TableHead>{t("retailerAnalytics.table.buyer", "Buyer")}</TableHead>
+								<TableHead>{t("retailerAnalytics.table.items", "Items")}</TableHead>
+								<TableHead>{t("retailerAnalytics.table.amount", "Amount")}</TableHead>
+								<TableHead>{t("retailerAnalytics.table.date", "Date")}</TableHead>
 							</TableRow>
 						</TableHeader>
 						<TableBody>

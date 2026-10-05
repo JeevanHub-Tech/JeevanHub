@@ -1775,6 +1775,25 @@
     "saving": "सहेजा जा रहा है…",
     "savedSuccess": "वेलनेस प्रोफ़ाइल सहेज ली गई है।",
     "saveFailed": "वेलनेस प्रोफ़ाइल सहेजने में विफल।"
+  },
+  "prescriptions": {
+    "medicinesTitle": "दवाइयां, जड़ी-बूटियां और सप्लीमेंट्स",
+    "medicineName": "दवा का नाम:",
+    "dosage": "खुराक:",
+    "instructions": "निर्देश:",
+    "doctorName": "डॉक्टर का नाम:",
+    "prescriptionDate": "पर्चे की तिथि:",
+    "notAvailable": "उपलब्ध नहीं",
+    "notPrescribedTitle": "कोई दवा नहीं दी गई",
+    "notPrescribedDesc": "आपके डॉक्टर ने अभी तक कोई दवाई, जड़ी-बूटी या सप्लीमेंट नहीं लिखा है।",
+    "unableToLoadTitle": "लोड करने में असमर्थ",
+    "unableToLoadDesc": "हम इस समय आपकी निर्धारित दवाइयां लोड नहीं कर सके। कृपया थोड़ी देर बाद पुनः प्रयास करें।",
+    "yourDoctor": "आपके डॉक्टर",
+    "otherWellnessTitle": "अन्य स्वास्थ्य सुझाव",
+    "cookingInstructions": "पकाने के निर्देश",
+    "foodsToAvoid": "परहेज करने योग्य खाद्य पदार्थ",
+    "notAddedTitle": "जोड़ा नहीं गया",
+    "notAddedDesc": "पकाने के निर्देश और परहेज देखने के लिए साप्ताहिक आहार योजना टैब से आहार योजना तैयार करें।"
   }
 }
 

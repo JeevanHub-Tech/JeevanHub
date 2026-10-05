@@ -1775,6 +1775,25 @@
     "saving": "Saving…",
     "savedSuccess": "Wellness profile saved.",
     "saveFailed": "Failed to save wellness profile."
+  },
+  "prescriptions": {
+    "medicinesTitle": "Medicines, Herbs & Supplements",
+    "medicineName": "Medicine Name:",
+    "dosage": "Dosage:",
+    "instructions": "Instructions:",
+    "doctorName": "Doctor Name:",
+    "prescriptionDate": "Prescription Date:",
+    "notAvailable": "Not available",
+    "notPrescribedTitle": "Not prescribed",
+    "notPrescribedDesc": "Your doctor hasn't prescribed any medicines, herbs, or supplements yet.",
+    "unableToLoadTitle": "Unable to load",
+    "unableToLoadDesc": "We couldn't load your prescribed medicines right now. Please try again shortly.",
+    "yourDoctor": "Your Doctor",
+    "otherWellnessTitle": "Other Wellness Recommendations",
+    "cookingInstructions": "Cooking Instructions",
+    "foodsToAvoid": "Foods To Avoid",
+    "notAddedTitle": "Not added",
+    "notAddedDesc": "Generate a diet plan from the Weekly Meal Planner tab to see cooking instructions and foods to avoid here."
   }
 }
 

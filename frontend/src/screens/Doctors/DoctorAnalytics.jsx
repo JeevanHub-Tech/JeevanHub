@@ -1,4 +1,5 @@
 import { useState, useEffect, useContext } from "react";
+import { useTranslation } from "react-i18next";
 import {
 	PieChart,
 	Pie,
@@ -75,6 +76,7 @@ const tooltipContentStyle = {
 };
 
 function DoctorAnalytics() {
+	const { t } = useTranslation();
 	const [bookings, setBookings] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
@@ -534,18 +536,18 @@ function DoctorAnalytics() {
 	}
 
 	const tabs = [
-		{ id: "payments", label: "Payments & Earnings", icon: CreditCard },
-		{ id: "gender", label: "Gender Distribution", icon: Users },
-		{ id: "age", label: "Age Distribution", icon: UserCheck },
-		{ id: "appointments", label: "Monthly Appointments", icon: CalendarDays },
-		{ id: "ratings", label: "Patient Ratings", icon: Star },
+		{ id: "payments", label: t("analytics.tabs.payments", "Payments & Earnings"), icon: CreditCard },
+		{ id: "gender", label: t("analytics.tabs.gender", "Gender Distribution"), icon: Users },
+		{ id: "age", label: t("analytics.tabs.age", "Age Distribution"), icon: UserCheck },
+		{ id: "appointments", label: t("analytics.tabs.appointments", "Monthly Appointments"), icon: CalendarDays },
+		{ id: "ratings", label: t("analytics.tabs.ratings", "Patient Ratings"), icon: Star },
 	];
 
 	return (
 		<DashboardShell>
 			<DashboardPageHeader
-				title="Analytics Dashboard"
-				description="Track your performance, payments, and patient statistics."
+				title={t("analytics.title", "Analytics Dashboard")}
+				description={t("analytics.description", "Track your performance, payments, and patient statistics.")}
 			/>
 
 			{/* Sub-navigation tabs */}
@@ -578,11 +580,11 @@ function DoctorAnalytics() {
 						<Card className="overflow-hidden p-0">
 							<div className="border-b border-border p-6 pb-4 flex flex-wrap items-center justify-between gap-4">
 								<h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
-									<CreditCard className="h-5 w-5 text-primary" /> Payment History
+									<CreditCard className="h-5 w-5 text-primary" /> {t("analytics.paymentHistory.title", "Payment History")}
 								</h2>
 								<div className="flex flex-wrap items-center gap-4">
 									<div className="flex items-center gap-2">
-										<label htmlFor="search-date" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Search Date:</label>
+										<label htmlFor="search-date" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t("analytics.paymentHistory.searchDate", "Search Date:")}</label>
 										<input
 											id="search-date"
 											type="date"
@@ -603,52 +605,52 @@ function DoctorAnalytics() {
 												onClick={() => setSearchDate("")}
 												className="text-xs text-destructive hover:underline font-semibold"
 											>
-												Clear
+												{t("analytics.paymentHistory.clear", "Clear")}
 											</button>
 										)}
 									</div>
 									<div className="flex items-center gap-2">
-										<label htmlFor="service-filter" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Service:</label>
+										<label htmlFor="service-filter" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t("analytics.paymentHistory.serviceFilter", "Service:")}</label>
 										<select
 											id="service-filter"
 											value={serviceFilter}
 											onChange={(e) => setServiceFilter(e.target.value)}
 											className="rounded-md border border-border bg-background px-3 py-1.5 text-xs font-semibold text-foreground shadow-sm focus:border-primary focus:outline-none"
 										>
-											<option value="all">All Services</option>
-											<option value="appointment">Appointment</option>
-											<option value="diet_plan">Diet Plan</option>
+											<option value="all">{t("analytics.paymentHistory.allServices", "All Services")}</option>
+											<option value="appointment">{t("analytics.paymentHistory.appointment", "Appointment")}</option>
+											<option value="diet_plan">{t("analytics.paymentHistory.dietPlan", "Diet Plan")}</option>
 										</select>
 									</div>
 									<div className="flex items-center gap-2">
-										<label htmlFor="payment-filter" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Filter:</label>
+										<label htmlFor="payment-filter" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t("analytics.paymentHistory.filter", "Filter:")}</label>
 										<select
 											id="payment-filter"
 											value={filterRange}
 											onChange={(e) => setFilterRange(e.target.value)}
 											className="rounded-md border border-border bg-background px-3 py-1.5 text-xs font-semibold text-foreground shadow-sm focus:border-primary focus:outline-none"
 										>
-											<option value="all">All Payments</option>
-											<option value="today">Today</option>
-											<option value="week">Last 7 Days</option>
-											<option value="month">Last 30 Days</option>
+											<option value="all">{t("analytics.paymentHistory.allPayments", "All Payments")}</option>
+											<option value="today">{t("analytics.paymentHistory.today", "Today")}</option>
+											<option value="week">{t("analytics.paymentHistory.last7Days", "Last 7 Days")}</option>
+											<option value="month">{t("analytics.paymentHistory.last30Days", "Last 30 Days")}</option>
 										</select>
 									</div>
 								</div>
 							</div>
 							{filteredPaidBookings.length === 0 ? (
-								<p className="p-6 text-center text-muted-foreground">No payments found for this timeframe.</p>
+								<p className="p-6 text-center text-muted-foreground">{t("analytics.paymentHistory.noPayments", "No payments found for this timeframe.")}</p>
 							) : (
 								<div className="overflow-x-auto">
 									<Table>
 										<TableHeader>
 											<TableRow>
-												<TableHead className="pl-6">Patient</TableHead>
-												<TableHead>Date</TableHead>
-												<TableHead>Reference ID</TableHead>
-												<TableHead>Service</TableHead>
-												<TableHead>Payment Method</TableHead>
-												<TableHead className="pr-6 text-right">Amount</TableHead>
+												<TableHead className="pl-6">{t("analytics.paymentHistory.colPatient", "Patient")}</TableHead>
+												<TableHead>{t("analytics.paymentHistory.colDate", "Date")}</TableHead>
+												<TableHead>{t("analytics.paymentHistory.colRefId", "Reference ID")}</TableHead>
+												<TableHead>{t("analytics.paymentHistory.colService", "Service")}</TableHead>
+												<TableHead>{t("analytics.paymentHistory.colMethod", "Payment Method")}</TableHead>
+												<TableHead className="pr-6 text-right">{t("analytics.paymentHistory.colAmount", "Amount")}</TableHead>
 											</TableRow>
 										</TableHeader>
 										<TableBody>
@@ -670,11 +672,11 @@ function DoctorAnalytics() {
 														<TableCell>
 															{item.serviceType === "diet_plan" ? (
 																<span className="inline-flex items-center gap-1.5 rounded-md bg-amber-500/10 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:text-amber-400">
-																	<Utensils className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" /> Diet Plan
+																	<Utensils className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" /> {t("analytics.paymentHistory.dietPlan", "Diet Plan")}
 																</span>
 															) : (
 																<span className="inline-flex items-center gap-1.5 rounded-md bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
-																	<CalendarDays className="h-3.5 w-3.5" /> Appointment
+																	<CalendarDays className="h-3.5 w-3.5" /> {t("analytics.paymentHistory.appointment", "Appointment")}
 																</span>
 															)}
 														</TableCell>
@@ -704,7 +706,7 @@ function DoctorAnalytics() {
 										<Wallet className="h-5 w-5" />
 									</div>
 									<h2 className="text-lg font-semibold text-foreground">
-										Monthly Earnings ({currentYear})
+										{t("analytics.monthlyEarnings.title", "Monthly Earnings")} ({currentYear})
 									</h2>
 								</div>
 							</div>
@@ -713,7 +715,7 @@ function DoctorAnalytics() {
 							<div className="mt-5 flex flex-wrap items-start justify-between gap-4">
 								<div>
 									<p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-										Total Earnings
+										{t("analytics.monthlyEarnings.totalEarnings", "Total Earnings")}
 									</p>
 									<div className="mt-1 text-3xl font-extrabold tracking-tight text-foreground">
 										₹{totalEarningsYear.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -724,14 +726,14 @@ function DoctorAnalytics() {
 										) : (
 											<TrendingDown className="h-3.5 w-3.5" />
 										)}
-										<span>{earningsGrowthPctText} vs last month</span>
+										<span>{earningsGrowthPctText} {t("analytics.monthlyEarnings.vsLastMonth", "vs last month")}</span>
 									</div>
 								</div>
 
 								{/* Month Indicator Card */}
 								<div className="rounded-xl border border-border bg-muted/30 px-4 py-2 text-right shadow-xs">
 									<div className="flex items-center justify-end gap-1 text-xs font-medium text-muted-foreground">
-										This Month <ChevronDown className="h-3.5 w-3.5" />
+										{t("analytics.monthlyEarnings.thisMonth", "This Month")} <ChevronDown className="h-3.5 w-3.5" />
 									</div>
 									<div className="text-base font-bold text-foreground">
 										₹{thisMonthEarnings.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -786,7 +788,7 @@ function DoctorAnalytics() {
 
 								{/* Right: Insights Panel */}
 								<div className="lg:col-span-4 xl:col-span-3 flex flex-col justify-center space-y-4 border-t lg:border-t-0 lg:border-l border-border pt-4 lg:pt-0 lg:pl-6">
-									<h3 className="text-sm font-bold text-foreground">Earnings Insights</h3>
+									<h3 className="text-sm font-bold text-foreground">{t("analytics.monthlyEarnings.insightsTitle", "Earnings Insights")}</h3>
 
 									{/* 1. Highest Earnings Month */}
 									<div className="flex items-center gap-3">
@@ -794,7 +796,7 @@ function DoctorAnalytics() {
 											<Calendar className="h-5 w-5" />
 										</div>
 										<div>
-											<p className="text-xs text-muted-foreground font-medium leading-tight">Highest Earnings Month</p>
+											<p className="text-xs text-muted-foreground font-medium leading-tight">{t("analytics.monthlyEarnings.highestMonth", "Highest Earnings Month")}</p>
 											<p className="text-xs font-semibold text-foreground">{highestMonthLabel}</p>
 											<p className="text-sm font-bold text-foreground">{highestMonthAmount}</p>
 										</div>
@@ -806,7 +808,7 @@ function DoctorAnalytics() {
 											<Clock className="h-5 w-5" />
 										</div>
 										<div>
-											<p className="text-xs text-muted-foreground font-medium leading-tight">Avg. Monthly Earnings</p>
+											<p className="text-xs text-muted-foreground font-medium leading-tight">{t("analytics.monthlyEarnings.avgMonthly", "Avg. Monthly Earnings")}</p>
 											<p className="text-sm font-bold text-foreground">₹{avgMonthlyEarnings.toFixed(2)}</p>
 										</div>
 									</div>
@@ -817,7 +819,7 @@ function DoctorAnalytics() {
 											<CalendarCheck className="h-5 w-5" />
 										</div>
 										<div>
-											<p className="text-xs text-muted-foreground font-medium leading-tight">Projected (Next 30 Days)</p>
+											<p className="text-xs text-muted-foreground font-medium leading-tight">{t("analytics.monthlyEarnings.projected", "Projected (Next 30 Days)")}</p>
 											<p className="text-sm font-bold text-foreground">{projectedEarningsText}</p>
 										</div>
 									</div>
@@ -828,7 +830,7 @@ function DoctorAnalytics() {
 											<TrendingUp className="h-5 w-5" />
 										</div>
 										<div>
-											<p className="text-xs text-muted-foreground font-medium leading-tight">Growth Trend</p>
+											<p className="text-xs text-muted-foreground font-medium leading-tight">{t("analytics.monthlyEarnings.growthTrend", "Growth Trend")}</p>
 											<p className="text-sm font-bold text-foreground">{earningsGrowthTrend}</p>
 										</div>
 									</div>
@@ -848,7 +850,7 @@ function DoctorAnalytics() {
 												<PieChartIcon className="h-5 w-5" />
 											</div>
 											<h2 className="text-lg font-semibold text-foreground">
-												Earnings Breakdown
+												{t("analytics.breakdown.title", "Earnings Breakdown")}
 											</h2>
 										</div>
 									</div>
@@ -882,7 +884,7 @@ function DoctorAnalytics() {
 											<div>
 												<div className="flex items-center gap-2">
 													<div className="h-3.5 w-3.5 rounded-full bg-[#3f4f22]" />
-													<span className="text-xs font-semibold text-muted-foreground">From Appointments</span>
+													<span className="text-xs font-semibold text-muted-foreground">{t("analytics.breakdown.fromAppointments", "From Appointments")}</span>
 												</div>
 												<p className="mt-1 text-base font-bold text-foreground pl-5.5">
 													₹{appointmentTotalEarnings.toLocaleString(undefined, { minimumFractionDigits: 2 })} ({appointmentEarningsPct}%)
@@ -892,7 +894,7 @@ function DoctorAnalytics() {
 											<div>
 												<div className="flex items-center gap-2">
 													<div className="h-3.5 w-3.5 rounded-full bg-[#c8a24a]" />
-													<span className="text-xs font-semibold text-muted-foreground">From Diet Plans</span>
+													<span className="text-xs font-semibold text-muted-foreground">{t("analytics.breakdown.fromDietPlans", "From Diet Plans")}</span>
 												</div>
 												<p className="mt-1 text-base font-bold text-foreground pl-5.5">
 													₹{dietPlanTotalEarnings.toLocaleString(undefined, { minimumFractionDigits: 2 })} ({dietPlanEarningsPct}%)
@@ -908,7 +910,7 @@ function DoctorAnalytics() {
 										<Coins className="h-5 w-5 text-amber-300" />
 									</div>
 									<p className="text-xs font-medium text-foreground">
-										Diet plans contributed <span className="text-base font-bold text-[#c8a24a]">{dietPlanEarningsPct}%</span> of total earnings
+										{t("analytics.breakdown.banner", "Diet plans contributed {{pct}}% of total earnings", { pct: dietPlanEarningsPct })}
 									</p>
 								</div>
 							</Card>
@@ -923,7 +925,7 @@ function DoctorAnalytics() {
 												<Star className="h-5 w-5" />
 											</div>
 											<h2 className="text-lg font-semibold text-foreground">
-												Top Services (by Volume)
+												{t("analytics.topServices.title", "Top Services (by Volume)")}
 											</h2>
 										</div>
 									</div>
@@ -972,12 +974,12 @@ function DoctorAnalytics() {
 								{/* Bottom info row */}
 								<div className="mt-6 flex items-center justify-around rounded-xl bg-muted/40 p-3 border border-border">
 									<div className="text-center">
-										<p className="text-[11px] font-semibold text-muted-foreground uppercase">Appointments</p>
+										<p className="text-[11px] font-semibold text-muted-foreground uppercase">{t("analytics.topServices.appointmentsLabel", "Appointments")}</p>
 										<p className="text-base font-bold text-foreground">{appointmentBookingsCount}</p>
 									</div>
 									<div className="h-8 w-px bg-border" />
 									<div className="text-center">
-										<p className="text-[11px] font-semibold text-muted-foreground uppercase">Diet Plans</p>
+										<p className="text-[11px] font-semibold text-muted-foreground uppercase">{t("analytics.topServices.dietPlansLabel", "Diet Plans")}</p>
 										<p className="text-base font-bold text-amber-700 dark:text-amber-400">{dietPlanBookingsCount}</p>
 									</div>
 								</div>
@@ -989,10 +991,10 @@ function DoctorAnalytics() {
 				{activeTab === "gender" && (
 					<Card className="p-6">
 						<h2 className="mb-5 border-b border-border pb-3 text-lg font-semibold text-foreground flex items-center gap-2">
-							<Users className="h-5 w-5 text-primary" /> Patient Gender Distribution
+							<Users className="h-5 w-5 text-primary" /> {t("analytics.gender.title", "Patient Gender Distribution")}
 						</h2>
 						{genderData.length === 0 ? (
-							<p className="py-12 text-center text-muted-foreground">No gender data available.</p>
+							<p className="py-12 text-center text-muted-foreground">{t("analytics.gender.noData", "No gender data available.")}</p>
 						) : (
 							<div className="flex flex-col items-center justify-center md:flex-row md:gap-12">
 								<ResponsiveContainer width="100%" height={320} className="max-w-[400px]">
@@ -1020,7 +1022,7 @@ function DoctorAnalytics() {
 										<div key={d.name} className="flex items-center gap-3">
 											<div className="h-4 w-4 rounded-full" style={{ backgroundColor: PIE_COLORS[index % PIE_COLORS.length] }} />
 											<span className="text-sm font-semibold text-foreground">{d.name}:</span>
-											<span className="text-sm text-muted-foreground">{d.value} patient(s)</span>
+											<span className="text-sm text-muted-foreground">{d.value} {t("analytics.gender.patients", "patient(s)")}</span>
 										</div>
 									))}
 								</div>
@@ -1032,7 +1034,7 @@ function DoctorAnalytics() {
 				{activeTab === "age" && (
 					<Card className="p-6">
 						<h2 className="mb-5 border-b border-border pb-3 text-lg font-semibold text-foreground flex items-center gap-2">
-							<UserCheck className="h-5 w-5 text-primary" /> Patient Age Distribution
+							<UserCheck className="h-5 w-5 text-primary" /> {t("analytics.age.title", "Patient Age Distribution")}
 						</h2>
 						<ResponsiveContainer width="100%" height={320}>
 							<BarChart
@@ -1063,28 +1065,28 @@ function DoctorAnalytics() {
 						<Card className="p-6">
 							<div className="flex flex-col gap-6">
 								<h2 className="border-b border-border pb-3 text-lg font-semibold text-foreground flex items-center gap-2">
-									<CalendarDays className="h-5 w-5 text-primary" /> Appointments Overview
+									<CalendarDays className="h-5 w-5 text-primary" /> {t("analytics.appointmentsOverview.title", "Appointments Overview")}
 								</h2>
 
 								{/* Top Summary stats cards */}
 								<div className="grid grid-cols-2 gap-4">
 									<div className="rounded-lg bg-muted/50 p-4">
-										<p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Appointments (Last 30 Days)</p>
+										<p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t("analytics.appointmentsOverview.last30Days", "Appointments (Last 30 Days)")}</p>
 										<div className="mt-1.5 flex items-baseline gap-2">
 											<span className="text-3xl font-bold text-foreground">{last30DaysCount}</span>
 											<span className={`text-xs font-semibold flex items-center ${growthColor}`}>
 												{growthText}
 											</span>
 										</div>
-										<p className="mt-0.5 text-[10px] text-muted-foreground">vs previous 30 days</p>
+										<p className="mt-0.5 text-[10px] text-muted-foreground">{t("analytics.appointmentsOverview.vsPrev30Days", "vs previous 30 days")}</p>
 									</div>
 									<div className="rounded-lg bg-muted/50 p-4">
-										<p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Today</p>
+										<p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t("analytics.appointmentsOverview.today", "Today")}</p>
 										<div className="mt-1.5 flex items-baseline gap-2">
 											<span className="text-3xl font-bold text-foreground">{todayAppointments}</span>
-											<span className="text-xs text-muted-foreground ml-1">Appointments</span>
+											<span className="text-xs text-muted-foreground ml-1">{t("analytics.topServices.appointmentsLabel", "Appointments")}</span>
 										</div>
-										<p className="mt-0.5 text-[10px] text-muted-foreground">done today</p>
+										<p className="mt-0.5 text-[10px] text-muted-foreground">{t("analytics.appointmentsOverview.doneToday", "done today")}</p>
 									</div>
 								</div>
 
@@ -1130,7 +1132,7 @@ function DoctorAnalytics() {
 										<Clock className="h-5 w-5" />
 									</div>
 									<h2 className="text-lg font-semibold text-foreground">
-										Peak Time Insights
+										{t("analytics.peakTime.title", "Peak Time Insights")}
 									</h2>
 								</div>
 							</div>
@@ -1140,7 +1142,7 @@ function DoctorAnalytics() {
 								<div className="flex flex-col justify-center gap-5 border-b lg:border-b-0 lg:border-r border-border pb-6 lg:pb-0 lg:pr-8 sm:min-w-[200px]">
 									<div>
 										<p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-											Busiest Day
+											{t("analytics.peakTime.busiestDay", "Busiest Day")}
 										</p>
 										<p className="mt-1 text-2xl font-extrabold text-[#2e4722] dark:text-primary tracking-tight">
 											{busiestDay}
@@ -1151,7 +1153,7 @@ function DoctorAnalytics() {
 
 									<div>
 										<p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-											Busiest Time Slot
+											{t("analytics.peakTime.busiestSlot", "Busiest Time Slot")}
 										</p>
 										<p className="mt-1 text-2xl font-extrabold text-[#2e4722] dark:text-primary tracking-tight">
 											{busiestTimeSlot}
@@ -1172,11 +1174,11 @@ function DoctorAnalytics() {
 
 										{/* Rows */}
 										{[
-											{ label: "Morning", sub: "(6 AM - 12 PM)", rowIdx: 0 },
-											{ label: "Afternoon", sub: "(12 PM - 6 PM)", rowIdx: 1 },
-											{ label: "Evening", sub: "(6 PM - 10 PM)", rowIdx: 2 },
+											{ label: t("analytics.peakTime.morning", "Morning"), sub: t("analytics.peakTime.morningSub", "(6 AM - 12 PM)"), rowIdx: 0 },
+											{ label: t("analytics.peakTime.afternoon", "Afternoon"), sub: t("analytics.peakTime.afternoonSub", "(12 PM - 6 PM)"), rowIdx: 1 },
+											{ label: t("analytics.peakTime.evening", "Evening"), sub: t("analytics.peakTime.eveningSub", "(6 PM - 10 PM)"), rowIdx: 2 },
 										].map((timePeriod) => (
-											<div key={timePeriod.label} className="grid grid-cols-8 gap-2 items-center mb-2.5">
+											<div key={timePeriod.rowIdx} className="grid grid-cols-8 gap-2 items-center mb-2.5">
 												<div className="text-left text-xs">
 													<p className="font-semibold text-foreground leading-tight">{timePeriod.label}</p>
 													<p className="text-[10px] text-muted-foreground leading-tight">{timePeriod.sub}</p>
@@ -1196,14 +1198,14 @@ function DoctorAnalytics() {
 
 										{/* Bottom Activity Legend */}
 										<div className="mt-4 flex items-center justify-end gap-2 text-xs font-medium text-muted-foreground">
-											<span>Low Activity</span>
+											<span>{t("analytics.peakTime.lowActivity", "Low Activity")}</span>
 											<div className="flex items-center gap-1">
 												<div className="h-3.5 w-3.5 rounded-xs bg-[#e8eee0] dark:bg-primary/20" />
 												<div className="h-3.5 w-3.5 rounded-xs bg-[#cddbba] dark:bg-primary/40" />
 												<div className="h-3.5 w-3.5 rounded-xs bg-[#8da864] dark:bg-primary/65" />
 												<div className="h-3.5 w-3.5 rounded-xs bg-[#3f4f22] dark:bg-primary" />
 											</div>
-											<span>High Activity</span>
+											<span>{t("analytics.peakTime.highActivity", "High Activity")}</span>
 										</div>
 									</div>
 								</div>
@@ -1215,10 +1217,10 @@ function DoctorAnalytics() {
 				{activeTab === "ratings" && (
 					<Card className="p-6">
 						<h2 className="mb-5 border-b border-border pb-3 text-lg font-semibold text-foreground flex items-center gap-2">
-							<Star className="h-5 w-5 text-primary fill-primary/10" /> Patient Ratings Trend (Monthly Average)
+							<Star className="h-5 w-5 text-primary fill-primary/10" /> {t("analytics.ratingsTrend.title", "Patient Ratings Trend (Monthly Average)")}
 						</h2>
 						{ratedBookings.length === 0 ? (
-							<p className="py-12 text-center text-muted-foreground">No ratings received yet.</p>
+							<p className="py-12 text-center text-muted-foreground">{t("analytics.ratingsTrend.noData", "No ratings received yet.")}</p>
 						) : (
 							<ResponsiveContainer width="100%" height={320}>
 								<AreaChart data={monthlyRatingsData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>

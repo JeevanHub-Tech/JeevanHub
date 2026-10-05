@@ -1,0 +1,116 @@
+{
+  "nav": {
+    "home": "Home",
+    "appointmentSlots": "Appointment Slots",
+    "patientList": "Patient List",
+    "appointmentHistory": "Appointment History",
+    "patientReviews": "Patient's Reviews",
+    "analytics": "Analytics",
+    "myHealthBlogs": "My Health Blogs",
+    "login": "Login",
+    "signup": "Sign Up",
+    "logout": "Logout",
+    "profile": "Profile"
+  },
+  "analytics": {
+    "title": "Analytics Dashboard",
+    "description": "Track your performance, payments, and patient statistics.",
+    "tabs": {
+      "payments": "Payments & Earnings",
+      "gender": "Gender Distribution",
+      "age": "Age Distribution",
+      "appointments": "Monthly Appointments",
+      "ratings": "Patient Ratings"
+    },
+    "paymentHistory": {
+      "title": "Payment History",
+      "searchDate": "Search Date:",
+      "serviceFilter": "Service:",
+      "filter": "Filter:",
+      "allServices": "All Services",
+      "appointment": "Appointment",
+      "dietPlan": "Diet Plan",
+      "allPayments": "All Payments",
+      "today": "Today",
+      "last7Days": "Last 7 Days",
+      "last30Days": "Last 30 Days",
+      "noPayments": "No payments found for this timeframe.",
+      "colPatient": "Patient",
+      "colDate": "Date",
+      "colRefId": "Reference ID",
+      "colService": "Service",
+      "colMethod": "Payment Method",
+      "colAmount": "Amount",
+      "clear": "Clear"
+    },
+    "monthlyEarnings": {
+      "title": "Monthly Earnings",
+      "totalEarnings": "Total Earnings",
+      "vsLastMonth": "vs last month",
+      "thisMonth": "This Month",
+      "insightsTitle": "Earnings Insights",
+      "highestMonth": "Highest Earnings Month",
+      "avgMonthly": "Avg. Monthly Earnings",
+      "projected": "Projected (Next 30 Days)",
+      "growthTrend": "Growth Trend",
+      "trendStrong": "Strong",
+      "trendStable": "Stable",
+      "trendModerate": "Moderate",
+      "trendNeutral": "Neutral"
+    },
+    "breakdown": {
+      "title": "Earnings Breakdown",
+      "fromAppointments": "From Appointments",
+      "fromDietPlans": "From Diet Plans",
+      "banner": "Diet plans contributed {{pct}}% of total earnings"
+    },
+    "topServices": {
+      "title": "Top Services (by Volume)",
+      "appointment": "Appointment",
+      "dietPlan": "Diet Plan",
+      "appointmentsLabel": "Appointments",
+      "dietPlansLabel": "Diet Plans"
+    },
+    "peakTime": {
+      "title": "Peak Time Insights",
+      "busiestDay": "Busiest Day",
+      "busiestSlot": "Busiest Time Slot",
+      "morning": "Morning",
+      "morningSub": "(6 AM - 12 PM)",
+      "afternoon": "Afternoon",
+      "afternoonSub": "(12 PM - 6 PM)",
+      "evening": "Evening",
+      "eveningSub": "(6 PM - 10 PM)",
+      "lowActivity": "Low Activity",
+      "highActivity": "High Activity"
+    },
+    "gender": {
+      "title": "Patient Gender Distribution",
+      "noData": "No gender data available.",
+      "patients": "patient(s)"
+    },
+    "age": {
+      "title": "Patient Age Distribution"
+    },
+    "appointmentsOverview": {
+      "title": "Appointments Overview",
+      "last30Days": "Appointments (Last 30 Days)",
+      "vsPrev30Days": "vs previous 30 days",
+      "today": "Today",
+      "doneToday": "done today"
+    },
+    "ratingsTrend": {
+      "title": "Patient Ratings Trend (Monthly Average)",
+      "noData": "No ratings received yet."
+    }
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "save": "Save",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "status": "Status",
+    "actions": "Actions"
+  }
+}

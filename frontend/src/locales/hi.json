@@ -1,0 +1,116 @@
+{
+  "nav": {
+    "home": "होम",
+    "appointmentSlots": "अपॉइंटमेंट स्लॉट",
+    "patientList": "मरीजों की सूची",
+    "appointmentHistory": "अपॉइंटमेंट इतिहास",
+    "patientReviews": "मरीजों की समीक्षाएं",
+    "analytics": "एनालिटिक्स",
+    "myHealthBlogs": "स्वास्थ्य ब्लॉग",
+    "login": "लॉग इन",
+    "signup": "साइन अप",
+    "logout": "लॉग आउट",
+    "profile": "प्रोफ़ाइल"
+  },
+  "analytics": {
+    "title": "एनालिटिक्स डैशबोर्ड",
+    "description": "अपने प्रदर्शन, भुगतान और मरीजों के आंकड़ों को ट्रैक करें।",
+    "tabs": {
+      "payments": "भुगतान और कमाई",
+      "gender": "लिंग वितरण",
+      "age": "आयु वितरण",
+      "appointments": "मासिक अपॉइंटमेंट्स",
+      "ratings": "मरीज रेटिंग्स"
+    },
+    "paymentHistory": {
+      "title": "भुगतान इतिहास",
+      "searchDate": "तिथि खोजें:",
+      "serviceFilter": "सेवा:",
+      "filter": "फ़िल्टर:",
+      "allServices": "सभी सेवाएं",
+      "appointment": "अपॉइंटमेंट",
+      "dietPlan": "डाइट प्लान",
+      "allPayments": "सभी भुगतान",
+      "today": "आज",
+      "last7Days": "पिछले 7 दिन",
+      "last30Days": "पिछले 30 दिन",
+      "noPayments": "इस समयावधि के लिए कोई भुगतान नहीं मिला।",
+      "colPatient": "मरीज",
+      "colDate": "तिथि",
+      "colRefId": "संदर्भ आईडी",
+      "colService": "सेवा",
+      "colMethod": "भुगतान विधि",
+      "colAmount": "राशि",
+      "clear": "हटाएं"
+    },
+    "monthlyEarnings": {
+      "title": "मासिक कमाई",
+      "totalEarnings": "कुल कमाई",
+      "vsLastMonth": "पिछले महीने की तुलना में",
+      "thisMonth": "इस महीने",
+      "insightsTitle": "कमाई की अंतर्दृष्टि",
+      "highestMonth": "सर्वाधिक कमाई वाला महीना",
+      "avgMonthly": "औसत मासिक कमाई",
+      "projected": "अनुमानित (अगले 30 दिन)",
+      "growthTrend": "विकास का रुझान",
+      "trendStrong": "मजबूत",
+      "trendStable": "स्थिर",
+      "trendModerate": "मध्यम",
+      "trendNeutral": "तटस्थ"
+    },
+    "breakdown": {
+      "title": "कमाई का विवरण",
+      "fromAppointments": "अपॉइंटमेंट्स से",
+      "fromDietPlans": "डाइट प्लान से",
+      "banner": "डाइट प्लान ने कुल कमाई का {{pct}}% योगदान दिया"
+    },
+    "topServices": {
+      "title": "शीर्ष सेवाएं (मात्रा अनुसार)",
+      "appointment": "अपॉइंटमेंट",
+      "dietPlan": "डाइट प्लान",
+      "appointmentsLabel": "अपॉइंटमेंट्स",
+      "dietPlansLabel": "डाइट प्लान"
+    },
+    "peakTime": {
+      "title": "व्यस्त समय की अंतर्दृष्टि",
+      "busiestDay": "सबसे व्यस्त दिन",
+      "busiestSlot": "सबसे व्यस्त समय स्लॉट",
+      "morning": "सुबह",
+      "morningSub": "(6 AM - 12 PM)",
+      "afternoon": "दोपहर",
+      "afternoonSub": "(12 PM - 6 PM)",
+      "evening": "शाम",
+      "eveningSub": "(6 PM - 10 PM)",
+      "lowActivity": "कम गतिविधि",
+      "highActivity": "अधिक गतिविधि"
+    },
+    "gender": {
+      "title": "मरीजों का लिंग वितरण",
+      "noData": "कोई लिंग डेटा उपलब्ध नहीं है।",
+      "patients": "मरीज"
+    },
+    "age": {
+      "title": "मरीजों का आयु वितरण"
+    },
+    "appointmentsOverview": {
+      "title": "अपॉइंटमेंट अवलोकन",
+      "last30Days": "अपॉइंटमेंट्स (पिछले 30 दिन)",
+      "vsPrev30Days": "पिछले 30 दिनों की तुलना में",
+      "today": "आज",
+      "doneToday": "आज संपन्न"
+    },
+    "ratingsTrend": {
+      "title": "मरीज रेटिंग रुझान (मासिक औसत)",
+      "noData": "अभी तक कोई रेटिंग प्राप्त नहीं हुई है।"
+    }
+  },
+  "common": {
+    "loading": "लोड हो रहा है...",
+    "error": "त्रुटि",
+    "save": "सहेजें",
+    "cancel": "रद्द करें",
+    "confirm": "पुष्टि करें",
+    "status": "स्थिति",
+    "actions": "कार्रवाई"
+  }
+}

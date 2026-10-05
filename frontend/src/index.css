@@ -46,22 +46,35 @@ code {
   margin-right: auto !important;
 }
 
-/* Google Translate Widget UI Resets - Completely hide Google top banner & tooltips */
+/* Google Translate Widget UI Resets - Completely hide Google top banner, tooltips, floating spinner & badges */
 .goog-te-banner-frame,
 iframe.goog-te-banner-frame,
 iframe.skiptranslate,
 .goog-te-banner-frame.skiptranslate,
 body > .skiptranslate,
 #goog-gt-tt,
+div[id^="goog-gt-"],
 .goog-te-balloon-frame,
 .goog-tooltip,
-.goog-tooltip:hover {
+.goog-tooltip:hover,
+.goog-te-spinner-pos,
+.goog-te-spinner,
+.goog-te-spinner-animation,
+[class*="goog-te-spinner"],
+[class*="VIpgJd-ZVi9od"],
+[class*="VIpgJd-"],
+.VIpgJd-ZVi9od-ORHb-OEVmcd,
+.VIpgJd-ZVi9od-l4eHX-hSRGPd,
+.VIpgJd-ZVi9od-aZ2wEe-wOHMyf,
+.VIpgJd-yAWNEb-VIpgJd-fmcmS-sn54Q,
+.VIpgJd-ZVi9od-SmDIxf {
   display: none !important;
   visibility: hidden !important;
   height: 0 !important;
   width: 0 !important;
   opacity: 0 !important;
   pointer-events: none !important;
+  clip: rect(0, 0, 0, 0) !important;
 }
 
 html, body {

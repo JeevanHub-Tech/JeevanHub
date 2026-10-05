@@ -24,16 +24,24 @@ export default function LanguageToggle({ className = "" }) {
 	useEffect(() => {
 		setCurrentLang(detectCurrentLanguage());
 
-		// Enforce clean layout: Prevent Google Translate from shifting the page down
-		const cleanBodyTop = () => {
+		// Enforce clean layout: Prevent Google Translate from shifting the page down or showing floating spinners
+		const cleanBodyTopAndPopups = () => {
 			if (document.body.style.top && document.body.style.top !== "0px") {
 				document.body.style.top = "0px";
 			}
+			const popups = document.querySelectorAll('[class*="VIpgJd"], [class*="goog-te-spinner"], #goog-gt-tt, .goog-te-balloon-frame');
+			popups.forEach((el) => {
+				if (el.style.display !== "none") {
+					el.style.setProperty("display", "none", "important");
+					el.style.setProperty("visibility", "hidden", "important");
+					el.style.setProperty("opacity", "0", "important");
+				}
+			});
 		};
 
-		cleanBodyTop();
-		const observer = new MutationObserver(cleanBodyTop);
-		observer.observe(document.body, { attributes: true, attributeFilter: ["style"] });
+		cleanBodyTopAndPopups();
+		const observer = new MutationObserver(cleanBodyTopAndPopups);
+		observer.observe(document.body, { attributes: true, childList: true, subtree: true });
 
 		return () => observer.disconnect();
 	}, [detectCurrentLanguage]);

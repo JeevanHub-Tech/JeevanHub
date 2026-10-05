@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
 	AlertCircle,
 	Calendar,
@@ -59,20 +60,21 @@ const STATUS_VARIANTS = {
 // Collapsed by default (keeps cards short) — expands to show dosage/instructions
 // per medicine, plus the visit's diagnosis if one was recorded.
 const PrescriptionSummary = ({ diagnosis, supplements }) => {
+	const { t } = useTranslation();
 	const [open, setOpen] = useState(false);
 	const count = supplements?.length || 0;
 	const hasDiagnosis = Boolean(diagnosis && diagnosis.trim());
 	const hasSupplements = count > 0;
 
-	let headerTitle = "Diagnosis & Prescription";
+	let headerTitle = t("appointedDoctor.diagnosisPrescription", "Diagnosis & Prescription");
 	if (hasDiagnosis && hasSupplements) {
-		headerTitle = `Diagnosis recorded · ${count} medicine${count > 1 ? "s" : ""} prescribed`;
+		headerTitle = `${t("appointedDoctor.diagnosisRecorded", "Diagnosis recorded")} · ${t("appointedDoctor.medicinesPrescribed", { count })}`;
 	} else if (hasDiagnosis) {
-		headerTitle = `Diagnosis recorded · Medicines not provided`;
+		headerTitle = `${t("appointedDoctor.diagnosisRecorded", "Diagnosis recorded")} · ${t("appointedDoctor.medicinesNotProvided", "Medicines not provided")}`;
 	} else if (hasSupplements) {
-		headerTitle = `Diagnosis not provided · ${count} medicine${count > 1 ? "s" : ""} prescribed`;
+		headerTitle = `${t("appointedDoctor.diagnosisNotProvided", "Diagnosis not provided")} · ${t("appointedDoctor.medicinesPrescribed", { count })}`;
 	} else {
-		headerTitle = "Diagnosis not provided · Medicines not provided";
+		headerTitle = `${t("appointedDoctor.diagnosisNotProvided", "Diagnosis not provided")} · ${t("appointedDoctor.medicinesNotProvided", "Medicines not provided")}`;
 	}
 
 	return (
@@ -244,6 +246,7 @@ const AppointmentTab = ({
 	onRequestCancelled,
 	onReload,
 }) => {
+	const { t } = useTranslation();
 	const navigate = useNavigate();
 	// { bookingId, mode: 'upload' | 'reference' } — which action opened the modal
 	// decides which of ShareRecordModal's two modes it should start on.
@@ -691,19 +694,39 @@ const AppointmentTab = ({
 	let content;
 	switch (activeTab) {
 		case "Upcoming":
-			content = renderList(upcomingAppointments, "upcoming", "asc", "No upcoming doctor assigned.");
+			content = renderList(
+				upcomingAppointments,
+				"upcoming",
+				"asc",
+				t("appointedDoctor.emptyUpcomingTitle", "No upcoming appointments"),
+			);
 			break;
 		case "Pending":
-			content = renderList(pendingDoctors, "pending", "asc", "No pending doctor requests at the moment.");
+			content = renderList(
+				pendingDoctors,
+				"pending",
+				"asc",
+				t("appointedDoctor.emptyPendingTitle", "No pending requests"),
+			);
 			break;
 		case "Denied":
-			content = renderList(deniedDoctors, "denied", "desc", "No denied doctor requests at the moment.");
+			content = renderList(
+				deniedDoctors,
+				"denied",
+				"desc",
+				t("appointedDoctor.emptyDeniedTitle", "No denied appointments"),
+			);
 			break;
 		case "Previous":
-			content = renderList(previousAppointments, "previous", "desc", "No previous appointments in your history.");
+			content = renderList(
+				previousAppointments,
+				"previous",
+				"desc",
+				t("appointedDoctor.emptyPreviousTitle", "No previous appointments"),
+			);
 			break;
 		default:
-			content = <p className="text-muted-foreground">Select a tab to view appointments</p>;
+			content = <p className="text-muted-foreground">{t("appointedDoctor.selectTab", "Select a tab to view appointments")}</p>;
 	}
 
 	return (

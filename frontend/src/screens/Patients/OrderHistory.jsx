@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect, useContext } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
 	AlertCircle,
 	CheckCircle2,
@@ -45,22 +46,21 @@ const STATUS_META = {
 	cancelled: { label: "Cancelled", variant: "destructive", icon: XCircle },
 };
 
-// Mockup groups statuses into 4 tabs; anything not finished yet rolls into
-// Pending (including accepted/processing/shipped), and "delivered" is displayed
-// as Completed.
-const TABS = [
-	{ id: "all", label: "All Orders", icon: ListChecks, match: () => true },
+const TAB_DEFS = [
+	{ id: "all", key: "orderHistory.tabs.all", label: "All Orders", icon: ListChecks, match: () => true },
 	{
 		id: "pending",
+		key: "orderHistory.tabs.pending",
 		label: "Pending",
 		icon: Clock,
 		match: (s) => s === "pending" || s === "accepted" || s === "processing" || s === "shipped",
 	},
-	{ id: "completed", label: "Completed", icon: CheckCircle2, match: (s) => s === "delivered" },
-	{ id: "cancelled", label: "Cancelled", icon: XCircle, match: (s) => s === "cancelled" || s === "rejected" },
+	{ id: "completed", key: "orderHistory.tabs.completed", label: "Completed", icon: CheckCircle2, match: (s) => s === "delivered" },
+	{ id: "cancelled", key: "orderHistory.tabs.cancelled", label: "Cancelled", icon: XCircle, match: (s) => s === "cancelled" || s === "rejected" },
 ];
 
 const OrderHistory = () => {
+	const { t } = useTranslation();
 	const [orders, setOrders] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
@@ -153,10 +153,12 @@ const OrderHistory = () => {
 							<ShoppingBag className="size-6" aria-hidden="true" />
 						</span>
 						<div>
-							<h1 className="font-display text-3xl text-foreground sm:text-4xl">Your Orders</h1>
+							<h1 className="font-display text-3xl text-foreground sm:text-4xl">
+								{t("orderHistory.title", "Your Orders")}
+							</h1>
 							{!loading && !error ? (
 								<p className="mt-0.5 text-sm text-muted-foreground">
-									{orders.length} order{orders.length === 1 ? "" : "s"} placed
+									{orders.length} {orders.length === 1 ? "order" : "orders"} placed
 								</p>
 							) : null}
 						</div>
@@ -167,7 +169,7 @@ const OrderHistory = () => {
 							<Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
 							<Input
 								type="search"
-								placeholder="Search orders..."
+								placeholder={t("orderHistory.searchPlaceholder", "Search orders...")}
 								value={searchTerm}
 								onChange={(e) => setSearchTerm(e.target.value)}
 								className="pl-9"
@@ -180,10 +182,10 @@ const OrderHistory = () => {
 					<Card className="mt-6 p-2">
 						<Tabs value={activeTab} onValueChange={setActiveTab}>
 							<TabsList variant="line" className="w-full justify-start gap-1 p-1">
-								{TABS.map((tab) => (
+								{TAB_DEFS.map((tab) => (
 									<TabsTrigger key={tab.id} value={tab.id} className="gap-1.5 px-3 py-1.5">
 										<tab.icon className="size-4" aria-hidden="true" />
-										{tab.label}
+										{t(tab.key, tab.label)}
 										<Badge variant="secondary" className="ml-1">
 											{tabCounts[tab.id] ?? 0}
 										</Badge>

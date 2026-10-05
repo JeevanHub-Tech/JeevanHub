@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from "react-i18next";
 
 import { cn } from "@/lib/utils";
 import RatingModal from "./RatingModal";
@@ -11,6 +12,7 @@ import { BACKEND_URL } from '../../../config';
 const TABS = ["Upcoming", "Pending", "Denied", "Previous"];
 
 function AppointedDoctor() {
+	const { t } = useTranslation();
 	const navigate = useNavigate();
 	const [activeTab, setActiveTab] = useState("Upcoming");
 	const [pendingDoctors, setPendingDoctors] = useState([]);
@@ -220,10 +222,19 @@ function AppointedDoctor() {
 		Previous: previousAppointments.length,
 	};
 
+	const tabLabels = {
+		Upcoming: t("appointedDoctor.tabs.upcoming", "Upcoming"),
+		Pending: t("appointedDoctor.tabs.pending", "Pending"),
+		Denied: t("appointedDoctor.tabs.denied", "Denied"),
+		Previous: t("appointedDoctor.tabs.previous", "Previous"),
+	};
+
 	return (
 		<main className="bg-background">
 			<div className="mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
-				<h1 className="font-display text-3xl text-foreground sm:text-4xl">Your appointments</h1>
+				<h1 className="font-display text-3xl text-foreground sm:text-4xl">
+					{t("appointedDoctor.title", "Your appointments")}
+				</h1>
 
 				{/* Tabs for Upcoming, Pending, Denied, and Previous Appointments */}
 				<div className="mt-6 flex flex-wrap gap-1 rounded-(--jh-radius-lg) bg-secondary p-1" role="tablist">
@@ -240,7 +251,7 @@ function AppointedDoctor() {
 									: "text-muted-foreground hover:text-foreground",
 							)}
 						>
-							{tab}
+							{tabLabels[tab]}
 							<span
 								className={cn(
 									"rounded-(--jh-radius-pill) px-1.5 text-xs",

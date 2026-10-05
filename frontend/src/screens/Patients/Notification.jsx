@@ -1,5 +1,6 @@
 import { useState, useEffect, useContext, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
 	AlertCircle,
 	Bell,
@@ -110,6 +111,7 @@ const formatNotificationTime = (dateStr) => {
 };
 
 const Notification = () => {
+	const { t } = useTranslation();
 	const navigate = useNavigate();
 	const { auth } = useContext(AuthContext);
 	const patientId = auth?.user?.id;
@@ -258,7 +260,9 @@ const Notification = () => {
 				<div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 					<div>
 						<div className="flex items-center gap-2.5">
-							<h1 className="font-display text-2xl font-bold text-foreground sm:text-3xl">Your Notifications</h1>
+							<h1 className="font-display text-2xl font-bold text-foreground sm:text-3xl">
+								{t("patientNotifications.title", "Notifications")}
+							</h1>
 							{notifications.length > 0 && (
 								<Badge className="bg-[#4a5c28] text-white hover:bg-[#3a4a1f] font-semibold">
 									{notifications.length} new
@@ -279,7 +283,7 @@ const Notification = () => {
 							className="flex items-center gap-1.5 self-start border-[var(--jh-line-strong)] bg-white text-foreground hover:bg-[var(--jh-sage-pale)] hover:text-[#4a5c28] font-semibold sm:self-auto cursor-pointer shadow-xs"
 						>
 							<CheckCheck className="size-4 text-[#4a5c28]" />
-							{markingAll ? "Marking..." : "Mark all as read"}
+							{markingAll ? "Marking..." : t("patientNotifications.markAllRead", "Mark all as read")}
 						</Button>
 					)}
 				</div>

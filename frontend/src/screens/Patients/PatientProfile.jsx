@@ -2,6 +2,7 @@ import { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { Camera, FileText, Trash2, UploadCloud } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -37,6 +38,7 @@ function Field({ label, htmlFor, children }) {
 }
 
 const PatientProfile = () => {
+	const { t } = useTranslation();
 	const { auth, setAuth, logout, loading: authLoading } = useContext(AuthContext);
 	const navigate = useNavigate();
 
@@ -306,36 +308,38 @@ const PatientProfile = () => {
 				<div className="flex flex-col gap-6">
 					<Card>
 						<CardHeader className="flex flex-row items-center justify-between gap-3">
-							<CardTitle className="font-display text-xl">Personal information</CardTitle>
+							<CardTitle className="font-display text-xl">
+								{t("patientProfile.personalInfo", "Personal Information")}
+							</CardTitle>
 							{isEditing ? (
 								<div className="flex gap-2">
 									<Button size="sm" onClick={handleSaveProfile} disabled={loading}>
-										{loading ? "Saving..." : "Save"}
+										{loading ? t("common.saving", "Saving...") : t("common.save", "Save")}
 									</Button>
 									<Button size="sm" variant="ghost" onClick={() => setIsEditing(false)}>
-										Cancel
+										{t("common.cancel", "Cancel")}
 									</Button>
 								</div>
 							) : (
 								<Button size="sm" variant="outline" onClick={() => setIsEditing(true)}>
-									Edit profile
+									{t("patientProfile.editProfile", "Edit Profile")}
 								</Button>
 							)}
 						</CardHeader>
 						<CardContent className="grid gap-4 sm:grid-cols-2">
-							<Field label="First name" htmlFor="firstName">
+							<Field label={t("patientProfile.firstName", "First Name")} htmlFor="firstName">
 								<Input id="firstName" name="firstName" value={patientData.firstName} onChange={handleInputChange} disabled={!isEditing} />
 							</Field>
-							<Field label="Last name" htmlFor="lastName">
+							<Field label={t("patientProfile.lastName", "Last Name")} htmlFor="lastName">
 								<Input id="lastName" name="lastName" value={patientData.lastName} onChange={handleInputChange} disabled={!isEditing} />
 							</Field>
-							<Field label="Phone" htmlFor="phone">
+							<Field label={t("patientProfile.phone", "Phone Number")} htmlFor="phone">
 								<Input id="phone" name="phone" value={patientData.phone} onChange={handleInputChange} disabled={!isEditing} />
 							</Field>
-							<Field label="Date of birth" htmlFor="dob">
+							<Field label={t("patientProfile.dob", "Date of Birth")} htmlFor="dob">
 								<Input id="dob" type="date" name="dob" value={patientData.dob} onChange={handleInputChange} disabled={!isEditing} />
 							</Field>
-							<Field label="Gender" htmlFor="gender">
+							<Field label={t("patientProfile.gender", "Gender")} htmlFor="gender">
 								<Select
 									value={patientData.gender}
 									onValueChange={(value) => setPatientData({ ...patientData, gender: value })}
@@ -351,11 +355,11 @@ const PatientProfile = () => {
 									</SelectContent>
 								</Select>
 							</Field>
-							<Field label="Zip code" htmlFor="zipCode">
+							<Field label={t("patientProfile.zipCode", "PIN / Zip Code")} htmlFor="zipCode">
 								<Input id="zipCode" name="zipCode" value={patientData.zipCode} onChange={handleInputChange} disabled={!isEditing} />
 							</Field>
 							<div className="sm:col-span-2">
-								<Field label="Address" htmlFor="address">
+								<Field label={t("patientProfile.address", "Address")} htmlFor="address">
 									<Input id="address" name="address" value={patientData.address} onChange={handleInputChange} disabled={!isEditing} />
 								</Field>
 							</div>
@@ -364,7 +368,9 @@ const PatientProfile = () => {
 
 					<Card>
 						<CardHeader>
-							<CardTitle className="font-display text-xl">Change password</CardTitle>
+							<CardTitle className="font-display text-xl">
+								{t("patientProfile.changePassword", "Change Password")}
+							</CardTitle>
 						</CardHeader>
 						<CardContent>
 							<form onSubmit={handlePasswordSubmit} className="grid gap-4 sm:grid-cols-3">

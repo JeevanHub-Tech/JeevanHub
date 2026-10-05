@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Star } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,15 +10,8 @@ import { cn } from "@/lib/utils";
 import { authFetch } from "../../../utils/authFetch";
 import { BACKEND_URL } from "../../../config";
 
-const ratingMessages = {
-	1: "Poor - Not satisfied with the consultation",
-	2: "Fair - Below expectations",
-	3: "Good - Satisfactory consultation",
-	4: "Very Good - Excellent care and advice",
-	5: "Excellent - Outstanding medical care",
-};
-
 const PatientFeedback = () => {
+	const { t } = useTranslation();
 	const [rating, setRating] = useState(0);
 	const [hoveredRating, setHoveredRating] = useState(0);
 	const [comment, setComment] = useState("");
@@ -25,9 +19,6 @@ const PatientFeedback = () => {
 	const navigate = useNavigate();
 	const { id: appointmentId } = useParams();
 
-	// Fairness/escrow: the doctor's payout for this appointment is held for a
-	// window after the slot -- this is the natural place, right after rating the
-	// consult, to flag a problem (e.g. the doctor never joined) before it releases.
 	const handleReportIssue = async () => {
 		const reason = window.prompt("What went wrong with this appointment? (e.g. the doctor never joined the call)");
 		if (!reason || !reason.trim()) return;
@@ -82,13 +73,15 @@ const PatientFeedback = () => {
 			<div className="mx-auto max-w-xl px-4 py-10 sm:px-6">
 				<Card>
 					<CardHeader>
-						<CardTitle className="font-display text-2xl">Rate your doctor's session</CardTitle>
+						<CardTitle className="font-display text-2xl">
+							{t("feedback.doctorTitle", "Rate your doctor's session")}
+						</CardTitle>
 					</CardHeader>
 					<CardContent>
 						<form onSubmit={handleSubmit} className="flex flex-col gap-6">
 							<div className="flex flex-col items-center gap-2 text-center">
 								<Label className="text-sm font-semibold text-foreground">
-									How would you rate this doctor's consultation?
+									{t("feedback.doctorPrompt", "How would you rate this doctor's consultation?")}
 								</Label>
 								<div className="flex gap-1">
 									{[1, 2, 3, 4, 5].map((star) => (
@@ -112,7 +105,6 @@ const PatientFeedback = () => {
 										</button>
 									))}
 								</div>
-								{rating > 0 ? <p className="text-sm text-muted-foreground">{ratingMessages[rating]}</p> : null}
 							</div>
 
 							<div className="flex flex-col gap-1.5">
@@ -122,14 +114,14 @@ const PatientFeedback = () => {
 									value={comment}
 									onChange={(e) => setComment(e.target.value)}
 									rows={4}
-									placeholder="Please share your experience with the doctor. How was the consultation? Were your concerns addressed? Any other feedback about the treatment or care received?"
+									placeholder={t("feedback.doctorReviewPlaceholder", "Share your experience with the doctor (optional)...")}
 									className="w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
 								/>
 							</div>
 
 							<div className="flex gap-3">
 								<Button type="submit" disabled={rating === 0} className="flex-1">
-									Submit feedback
+									{t("feedback.submitFeedback", "Submit Feedback")}
 								</Button>
 								<Button
 									type="button"
@@ -139,7 +131,7 @@ const PatientFeedback = () => {
 										setComment("");
 									}}
 								>
-									Clear
+									{t("common.cancel", "Cancel")}
 								</Button>
 							</div>
 						</form>
@@ -149,7 +141,7 @@ const PatientFeedback = () => {
 								Something went wrong during this appointment — like the doctor never joining the call?
 							</p>
 							<Button type="button" variant="ghost" size="sm" onClick={handleReportIssue} disabled={reportingIssue}>
-								{reportingIssue ? "Reporting…" : "Report an Issue"}
+								{reportingIssue ? "Reporting…" : t("feedback.reportConsultIssue", "Problem with this consultation? Report it here")}
 							</Button>
 						</div>
 					</CardContent>

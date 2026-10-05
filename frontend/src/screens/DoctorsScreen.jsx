@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ChevronDown, Loader2, Sparkles, Stethoscope, X } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -125,6 +126,7 @@ function FilterSelect({ id, label, placeholder, options, value, onValueChange, d
 }
 
 function DoctorsScreen() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const keyword = (searchParams.get("q") || "").trim().toLowerCase();
@@ -310,10 +312,10 @@ function DoctorsScreen() {
     <div className="relative -mt-8 min-h-screen bg-linear-to-b from-(--jh-cream-tint) to-background pt-8 pb-20">
       <div className="mx-auto mb-10 max-w-2xl px-6 text-center">
         <h1 className="font-display text-3xl leading-tight text-foreground sm:text-4xl">
-          Find Your Ayurvedic Doctor
+          {t("doctorsScreen.title", "Find Your Ayurvedic Doctor")}
         </h1>
         <p className="mt-4 text-base leading-relaxed text-muted-foreground">
-          Describe your concern and let AI find your best-matched practitioners — or browse and filter profiles yourself.
+          {t("doctorsScreen.subtitle", "Describe your concern and let AI find your best-matched practitioners — or browse and filter profiles yourself.")}
         </p>
       </div>
 

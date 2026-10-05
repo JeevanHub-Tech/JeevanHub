@@ -2,6 +2,7 @@ import { useState, useEffect, useContext, useCallback, useMemo, useRef } from "r
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { Search, X, RefreshCw, AlertCircle, Loader2, ShoppingCart, Frown } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -55,6 +56,7 @@ const buildPageList = (current, total) => {
 };
 
 const Medicines = () => {
+	const { t } = useTranslation();
 	const { auth } = useContext(AuthContext);
 	const { setCartCount } = useContext(CartContext);
 	const patientId = auth?.user?.id;
@@ -358,8 +360,12 @@ const Medicines = () => {
 		<div className="min-h-screen bg-background pb-16">
 			<div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
 				<div className="mb-8 text-center">
-					<h1 className="font-display text-3xl leading-tight text-foreground sm:text-4xl">Ayurvedic Medicines</h1>
-					<p className="mt-2 text-base text-muted-foreground">Natural healing solutions for your wellbeing</p>
+					<h1 className="font-display text-3xl leading-tight text-foreground sm:text-4xl">
+						{t("medicinesStore.title", "Ayurvedic Medicines")}
+					</h1>
+					<p className="mt-2 text-base text-muted-foreground">
+						{t("medicinesStore.subtitle", "Natural healing solutions for your wellbeing")}
+					</p>
 				</div>
 
 				<div className="mb-6 flex flex-col gap-4">
@@ -367,7 +373,7 @@ const Medicines = () => {
 						<Search className="pointer-events-none absolute top-1/2 left-3 size-5 -translate-y-1/2 text-muted-foreground" />
 						<Input
 							type="text"
-							placeholder="Search medicines by name, ingredients, or description..."
+							placeholder={t("medicinesStore.searchPlaceholder", "Search medicines by name, ingredients, or description...")}
 							value={searchInput}
 							onChange={(e) => {
 								setSearchInput(e.target.value);

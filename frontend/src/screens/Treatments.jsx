@@ -1,8 +1,10 @@
 import React from 'react';
 import { ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from "react-i18next";
 
 function TreatmentsScreen() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const treatments = [
     { category: 'Digestive Health', image: '../images/Digestive Health.png' },
@@ -35,12 +37,11 @@ function TreatmentsScreen() {
 
       <div className="relative mx-auto max-w-2xl px-6 text-center">
         <h1 className="font-display text-4xl leading-tight text-(--jh-olive-deep) sm:text-5xl">
-          Treatments
+          {t("treatments.title", "Treatments")}
         </h1>
         <div className="mx-auto mt-4 h-1 w-21 rounded-full bg-gradient-to-r from-(--jh-olive-leaf) via-(--jh-turmeric-gold) to-(--jh-bark-brown)" />
         <p className="mx-auto mt-4 mb-8 max-w-160 text-base leading-relaxed text-muted-foreground">
-          Explore holistic Ayurvedic care across every area of health. Pick a
-          concern to see remedies, approaches, and expert guidance.
+          {t("treatments.subtitle", "Explore holistic Ayurvedic care across every area of health. Pick a concern to see remedies, approaches, and expert guidance.")}
         </p>
       </div>
 

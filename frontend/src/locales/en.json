@@ -366,5 +366,105 @@
     "buyerReviewPlaceholder": "Write your feedback about product quality and delivery...",
     "receivingDate": "Order Received Date",
     "submitFeedback": "Submit Feedback"
+  },
+  "publicNav": {
+    "home": "Home",
+    "treatments": "Treatments",
+    "doctors": "Doctors",
+    "medicines": "Medicines",
+    "blogsVideos": "Blogs & Videos",
+    "signin": "Sign in",
+    "signup": "Sign up",
+    "searchPlaceholder": "Search doctors, medicines, treatments..."
+  },
+  "homeScreen": {
+    "badge": "Care rooted in Ayurveda",
+    "heroTitle": "A calmer way to find your path to",
+    "heroHighlight": "better health.",
+    "heroSubtitle": "Talk to a certified Ayurvedic doctor, understand what your body needs, and follow a plan made for your daily life.",
+    "bookConsult": "Book a consultation",
+    "exploreTreatments": "Explore treatments",
+    "usp1": "Real practitioner guidance",
+    "usp2": "Plans made for you",
+    "usp3": "Care from home",
+    "shopByConcern": "Shop by Health Concern",
+    "shopBySkinType": "Shop by Skin & Body Type",
+    "successRate": "Patient Success Stories",
+    "talkOfTheTown": "Trending in Ayurveda",
+    "requestCallback": "Request an Ayurvedic Consultation Call"
+  },
+  "doctorsScreen": {
+    "title": "Find Ayurvedic Doctors",
+    "subtitle": "Consult with experienced, verified BAMS/MD Ayurvedic practitioners.",
+    "searchPlaceholder": "Search by doctor name or specialization...",
+    "filterSpecialization": "Specialization",
+    "filterExperience": "Experience",
+    "filterPrice": "Consultation Fee",
+    "filterLanguage": "Language",
+    "filterRating": "Rating",
+    "bookNow": "Book Consultation",
+    "viewProfile": "View Profile",
+    "experience": "{{years}} yrs exp",
+    "consultationFee": "Consultation Fee: ₹{{fee}}",
+    "noDoctors": "No doctors match your criteria."
+  },
+  "medicinesStore": {
+    "title": "Ayurvedic Medicines & Remedies",
+    "subtitle": "Authentic herbal remedies, classical formulations, and supplements from certified sellers.",
+    "searchPlaceholder": "Search medicines, herbs, or formulations...",
+    "filterCategory": "Category",
+    "filterBrand": "Brand",
+    "filterPrice": "Price Range",
+    "addToCart": "Add to Cart",
+    "added": "Added to Cart",
+    "inStock": "In Stock",
+    "outOfStock": "Out of Stock",
+    "price": "₹{{price}}",
+    "viewDetails": "View Details",
+    "noMedicines": "No medicines found matching your search."
+  },
+  "cart": {
+    "title": "Your Cart",
+    "subtitle": "Review your selected herbal medicines before checkout.",
+    "emptyTitle": "Your cart is empty",
+    "emptyDesc": "Browse our authentic Ayurvedic store and add items to your cart.",
+    "shopNow": "Shop Medicines",
+    "subtotal": "Subtotal",
+    "shipping": "Shipping",
+    "freeShipping": "Free",
+    "total": "Total Amount",
+    "proceedToCheckout": "Proceed to Checkout",
+    "remove": "Remove",
+    "each": "₹{{price}} each"
+  },
+  "checkout": {
+    "title": "Checkout",
+    "deliveryAddress": "Delivery Address",
+    "orderSummary": "Order Summary",
+    "paymentMethod": "Payment Method",
+    "payOnline": "Online Payment (UPI / Cards / Net Banking)",
+    "cashOnDelivery": "Cash on Delivery (COD)",
+    "placeOrder": "Place Order",
+    "placingOrder": "Placing order..."
+  },
+  "treatments": {
+    "title": "Ayurvedic Treatments",
+    "subtitle": "Holistic healing plans for chronic and lifestyle conditions based on your Dosha balance.",
+    "explorePlans": "Explore Treatment Plans",
+    "learnMore": "Learn More"
+  },
+  "blogsVideos": {
+    "title": "Ayurveda Health Blogs & Videos",
+    "subtitle": "Evidence-based wellness guides, herbal insights, and video practices from Ayurvedic practitioners.",
+    "readMore": "Read Article",
+    "watchVideo": "Watch Video",
+    "writtenBy": "Written by {{author}}"
+  },
+  "chatbot": {
+    "title": "Sanjeevani AI Health Assistant",
+    "subtitle": "Ask questions about Ayurvedic remedies, diet, and lifestyle.",
+    "placeholder": "Ask Sanjeevani about your symptoms or Dosha...",
+    "send": "Send",
+    "typing": "Sanjeevani is thinking..."
   }
 }

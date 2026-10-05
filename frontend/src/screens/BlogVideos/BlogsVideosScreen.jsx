@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, BookOpen, Play, Filter } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +21,7 @@ const tabs = [
 ];
 
 function BlogsVideosScreen() {
+	const { t } = useTranslation();
 	const [activeTab, setActiveTab] = useState("all");
 	const [category, setCategory] = useState("all");
 	const [searchQuery, setSearchQuery] = useState("");
@@ -70,21 +72,19 @@ function BlogsVideosScreen() {
 				<div className="absolute inset-0 -z-10 bg-white/20" />
 				<div className="relative mx-auto w-full max-w-3xl px-4">
 					<h1 className="text-balance text-3xl font-bold text-foreground sm:text-4xl">
-						Welcome to Our <br className="hidden sm:block" />
-						<span className="text-primary">Ayurveda Guide</span>
+						{t("blogsVideos.title", "Ayurveda Health Blogs & Videos")}
 					</h1>
 					<p className="mt-4 text-pretty text-lg text-foreground/80">
-						Explore expert articles and videos on Ayurveda,
-						<br className="hidden sm:block" /> wellness, and natural living.
+						{t("blogsVideos.subtitle", "Explore expert articles and videos on Ayurveda, wellness, and natural living.")}
 					</p>
 					<div className="mt-8 flex flex-wrap justify-center gap-4">
 						<Button size="lg" onClick={scrollToContent}>
 							<BookOpen data-icon="inline-start" />
-							Explore Articles
+							{t("blogsVideos.readMore", "Explore Articles")}
 						</Button>
 						<Button size="lg" variant="secondary" onClick={scrollToContent}>
 							<Play data-icon="inline-start" />
-							Watch Videos
+							{t("blogsVideos.watchVideo", "Watch Videos")}
 						</Button>
 					</div>
 				</div>

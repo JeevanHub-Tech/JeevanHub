@@ -14,7 +14,8 @@ import FoodsToAvoidTab from "../Ayurveda/tabs/FoodsToAvoidTab";
 const API = BACKEND_URL || "http://localhost:8080";
 
 function OtherWellnessTab() {
-	const { t } = useTranslation();
+	const { t, i18n } = useTranslation();
+	const currentLang = i18n.language?.startsWith("hi") ? "hi" : "en";
 	const { auth } = useContext(AuthContext);
 	const [plan, setPlan] = useState(null);
 	const [loading, setLoading] = useState(true);
@@ -27,7 +28,7 @@ function OtherWellnessTab() {
 		(async () => {
 			setLoading(true);
 			try {
-				const res = await authFetch(`${API}/api/ayurveda/diet-plan`);
+				const res = await authFetch(`${API}/api/ayurveda/diet-plan?lang=${currentLang}`);
 				if (res.ok) setPlan(await res.json());
 			} catch (error) {
 				console.error("Error fetching wellness recommendations:", error);
@@ -35,7 +36,7 @@ function OtherWellnessTab() {
 				setLoading(false);
 			}
 		})();
-	}, [auth?.token]);
+	}, [auth?.token, currentLang]);
 
 	if (loading) {
 		return <p className="py-6 text-center text-sm text-muted-foreground">{t("common.loading", "Loading...")}</p>;

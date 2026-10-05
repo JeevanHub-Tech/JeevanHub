@@ -152,24 +152,51 @@ function sanitizePlan(raw) {
 }
 
 /**
- * @param {object} args { profile: AyurvedaWellnessProfile, dosha: AyurvedaDoshaAssessment|null, patient: {age, gender}, conditions: string[] }
- * @returns {Promise<object>} sanitized { morning, evening, summary } ready for video-link fill-in and persistence
+ * Translates an existing yoga plan to Hindi while preserving video links.
  */
-async function generateYogaPlan({ profile, dosha, patient, conditions }) {
-  if (!AYURVEDA_YOGA_ENABLED) { const e = new Error('AI yoga planning is disabled'); e.code = 'DISABLED'; throw e; }
+async function translateYogaPlanToHindi(yogaPlan) {
+  if (!yogaPlan) return null;
+  if (!AYURVEDA_YOGA_ENABLED) return null;
 
-  const prompt = buildPrompt({ profile, dosha, patient, conditions });
+  const prompt = `You are a certified Ayurvedic yoga instructor and translator. Translate the following yoga asana recommendations from English to Hindi (Devanagari script).
+
+CRITICAL INSTRUCTIONS:
+1. Maintain the exact same JSON structure.
+2. Translate asana names (if in English transliteration, use standard Devanagari e.g. "Surya Namaskar" -> "सूर्य नमस्कार", "Bhramari Pranayama" -> "भ्रामरी प्राणायाम").
+3. Translate purpose and summary into natural, authentic Hindi.
+4. Keep durationMinutes intact.
+5. Return only valid JSON matching the schema.
+
+YOGA PLAN TO TRANSLATE:
+${JSON.stringify({
+    morning: (yogaPlan.morning || []).map((m) => ({ name: m.name, purpose: m.purpose || "", durationMinutes: m.durationMinutes || 5 })),
+    evening: (yogaPlan.evening || []).map((e) => ({ name: e.name, purpose: e.purpose || "", durationMinutes: e.durationMinutes || 5 })),
+    summary: yogaPlan.summary || "",
+}, null, 2)}`;
 
   let raw;
   if (AYURVEDA_YOGA_PROVIDER === 'gemini') {
     raw = await generateWithGemini(prompt);
   } else {
-    const e = new Error(`Ayurveda yoga provider '${AYURVEDA_YOGA_PROVIDER}' is not implemented`);
-    e.code = 'PROVIDER_UNIMPLEMENTED';
-    throw e;
+    return null;
   }
 
-  return sanitizePlan(raw);
+  const sanitized = sanitizePlan(raw);
+  // Re-attach existing video links from original plan
+  const morningWithLinks = sanitized.morning.map((item, idx) => ({
+    ...item,
+    link: yogaPlan.morning?.[idx]?.link || "",
+  }));
+  const eveningWithLinks = sanitized.evening.map((item, idx) => ({
+    ...item,
+    link: yogaPlan.evening?.[idx]?.link || "",
+  }));
+
+  return {
+    ...sanitized,
+    morning: morningWithLinks,
+    evening: eveningWithLinks,
+  };
 }
 
-module.exports = { generateYogaPlan };
+module.exports = { generateYogaPlan, translateYogaPlanToHindi };

@@ -271,7 +271,8 @@ function StatusTile({ icon: Icon, title, complete, statusText, actions }) {
  * elsewhere (e.g. the Weekly Meal Planner section) can refetch.
  */
 function AyurvedaDashboard({ patientId: patientIdProp, readOnly = false, embedded = false, onPlanChanged }) {
-	const { t } = useTranslation();
+	const { t, i18n } = useTranslation();
+	const currentLang = i18n.language?.startsWith("hi") ? "hi" : "en";
 	const { auth, loading: authLoading } = useContext(AuthContext);
 	const navigate = useNavigate();
 	const [profile, setProfile] = useState(null);
@@ -290,12 +291,12 @@ function AyurvedaDashboard({ patientId: patientIdProp, readOnly = false, embedde
 				? {
 					profile: `${API}/api/ayurveda/wellness-profile/patient/${patientIdProp}`,
 					dosha: `${API}/api/ayurveda/dosha-assessment/patient/${patientIdProp}`,
-					plan: `${API}/api/ayurveda/diet-plan/patient/${patientIdProp}`,
+					plan: `${API}/api/ayurveda/diet-plan/patient/${patientIdProp}?lang=${currentLang}`,
 				}
 				: {
 					profile: `${API}/api/ayurveda/wellness-profile`,
 					dosha: `${API}/api/ayurveda/dosha-assessment`,
-					plan: `${API}/api/ayurveda/diet-plan`,
+					plan: `${API}/api/ayurveda/diet-plan?lang=${currentLang}`,
 				};
 			const headers = { Authorization: `Bearer ${auth.token}` };
 			const [profileRes, doshaRes, planRes] = await Promise.all([
@@ -311,7 +312,7 @@ function AyurvedaDashboard({ patientId: patientIdProp, readOnly = false, embedde
 		} finally {
 			setLoading(false);
 		}
-	}, [auth.token, isDoctorView, patientIdProp]);
+	}, [auth.token, isDoctorView, patientIdProp, currentLang]);
 
 	useEffect(() => {
 		if (authLoading) return;

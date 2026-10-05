@@ -300,25 +300,40 @@ function sanitizePlan(raw) {
 }
 
 /**
- * @param {object} args { profile: AyurvedaWellnessProfile, dosha: AyurvedaDoshaAssessment, patient: {age, gender} }
- * @returns {Promise<object>} sanitized plan fields ready to persist on AyurvedaDietPlan (minus model/generatedAt/ids)
+ * Translates an existing diet plan JSON into authentic Hindi while maintaining schema compatibility.
  */
-async function generateDietPlan({ profile, dosha, patient }) {
-  if (!AYURVEDA_DIET_ENABLED) { const e = new Error('AI diet planning is disabled'); e.code = 'DISABLED'; throw e; }
-  if (!dosha || !dosha.primaryDosha) { const e = new Error('Dosha assessment is required'); e.code = 'MISSING_DOSHA'; throw e; }
+async function translateDietPlanToHindi(dietPlan) {
+  if (!dietPlan) return null;
+  if (!AYURVEDA_DIET_ENABLED) return null;
 
-  const prompt = buildPrompt({ profile, dosha, patient });
+  const prompt = `You are a certified Ayurvedic practitioner and translator. Translate the following Ayurvedic diet plan JSON from English to clear, natural, and authentic Hindi (Devanagari script).
+
+CRITICAL INSTRUCTIONS:
+1. Maintain the EXACT same JSON structure and keys as required by the schema.
+2. The day field in weeklyPlan must remain one of ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].
+3. Translate all meal items (e.g. "Warm quinoa porridge with cinnamon" -> "दालचीनी युक्त गर्म किनोआ दलिया", "Moong dal soup" -> "मूंग दाल सूप"), portions (e.g. "1 bowl" -> "1 कटोरी", "1 cup" -> "1 कप", "1 plate" -> "1 प्लेट", "1 small handful" -> "1 छोटी मुट्ठी"), and Ayurvedic purpose strings into natural Hindi.
+4. Translate cooking instructions, spices, combinations, foods to avoid, and lifestyle recommendations into natural Hindi.
+5. Translate summary and explanations into natural Hindi.
+6. Return only valid JSON matching the schema.
+
+DIET PLAN TO TRANSLATE:
+${JSON.stringify({
+    summary: dietPlan.summary,
+    explanation: dietPlan.explanation,
+    weeklyPlan: dietPlan.weeklyPlan,
+    cookingInstructions: dietPlan.cookingInstructions,
+    foodsToAvoid: dietPlan.foodsToAvoid,
+    lifestyleRecommendations: dietPlan.lifestyleRecommendations,
+}, null, 2)}`;
 
   let raw;
   if (AYURVEDA_DIET_PROVIDER === 'gemini') {
     raw = await generateWithGemini(prompt);
   } else {
-    const e = new Error(`Ayurveda diet provider '${AYURVEDA_DIET_PROVIDER}' is not implemented`);
-    e.code = 'PROVIDER_UNIMPLEMENTED';
-    throw e;
+    return null;
   }
 
   return sanitizePlan(raw);
 }
 
-module.exports = { generateDietPlan, computeBmi, bmiCategory };
+module.exports = { generateDietPlan, translateDietPlanToHindi, computeBmi, bmiCategory };

@@ -4,7 +4,7 @@ const AyurvedaYogaPlan = require("../models/AyurvedaYogaPlan");
 const Patient = require("../models/Patient");
 const Doctor = require("../models/Doctor");
 const { assertDoctorRelationship, isProfileFilled } = require("./ayurvedaController");
-const { generateYogaPlan: generateYogaPlanAi } = require("../services/ayurvedaYoga/yogaPlanService");
+const { generateYogaPlan: generateYogaPlanAi, translateYogaPlanToHindi } = require("../services/ayurvedaYoga/yogaPlanService");
 const { AYURVEDA_YOGA_MODEL } = require("../services/ayurvedaYoga/config");
 const { fetchYouTubeVideos } = require("../services/youtubeService");
 
@@ -138,7 +138,7 @@ function resolveDisplayYogaPlan(plan) {
     return { summary: plan.summary, morning: plan.morning, evening: plan.evening };
 }
 
-async function attachStaleness(plan, { includeHistory = false } = {}) {
+async function attachStaleness(plan, { includeHistory = false, lang = "en" } = {}) {
     if (!plan) return null;
     const [profile, dosha] = await Promise.all([
         plan.wellnessProfileId ? AyurvedaWellnessProfile.findById(plan.wellnessProfileId) : null,
@@ -166,13 +166,39 @@ async function attachStaleness(plan, { includeHistory = false } = {}) {
         } catch (e) {}
     }
 
-    return { ...obj, isStale: Boolean(profileChanged || doshaChanged), displayPlan: resolveDisplayYogaPlan(obj) };
+    let displayPlan = resolveDisplayYogaPlan(obj);
+
+    if (lang === "hi") {
+        let hiPlan = plan.translations?.get ? plan.translations.get("hi") : plan.translations?.hi;
+        if (!hiPlan) {
+            try {
+                hiPlan = await translateYogaPlanToHindi(displayPlan);
+                if (hiPlan) {
+                    if (!plan.translations) plan.translations = new Map();
+                    if (plan.translations.set) {
+                        plan.translations.set("hi", hiPlan);
+                    } else {
+                        plan.translations["hi"] = hiPlan;
+                    }
+                    await plan.save();
+                }
+            } catch (err) {
+                console.error("Error translating yoga plan to Hindi:", err);
+            }
+        }
+        if (hiPlan) {
+            displayPlan = hiPlan;
+        }
+    }
+
+    return { ...obj, isStale: Boolean(profileChanged || doshaChanged), displayPlan };
 }
 
 exports.getYogaPlan = async (req, res) => {
     try {
+        const lang = req.query.lang || (req.headers["accept-language"]?.startsWith("hi") ? "hi" : "en");
         const plan = await AyurvedaYogaPlan.findOne({ patientId: req.user._id }).populate("doctorReview.reviewedBy", "firstName lastName email");
-        return res.status(200).json(await attachStaleness(plan));
+        return res.status(200).json(await attachStaleness(plan, { lang }));
     } catch (error) {
         console.error("Error fetching yoga plan:", error);
         return res.status(500).json({ error: "Server error" });
@@ -182,11 +208,12 @@ exports.getYogaPlan = async (req, res) => {
 exports.getYogaPlanForPatient = async (req, res) => {
     const { patientId } = req.params;
     try {
+        const lang = req.query.lang || (req.headers["accept-language"]?.startsWith("hi") ? "hi" : "en");
         const allowed = await assertDoctorRelationship(req, patientId);
         if (!allowed) return res.status(403).json({ error: "Access denied" });
 
         const plan = await AyurvedaYogaPlan.findOne({ patientId }).populate("doctorReview.reviewedBy", "firstName lastName email");
-        return res.status(200).json(await attachStaleness(plan, { includeHistory: true }));
+        return res.status(200).json(await attachStaleness(plan, { includeHistory: true, lang }));
     } catch (error) {
         console.error("Error fetching patient's yoga plan:", error);
         return res.status(500).json({ error: "Server error" });

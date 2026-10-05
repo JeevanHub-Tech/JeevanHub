@@ -106,6 +106,11 @@ const ayurvedaDietPlanSchema = new mongoose.Schema({
         action: { type: String, enum: ["edited", "approved", "replaced"] },
         snapshot: mongoose.Schema.Types.Mixed,
     }],
+    translations: {
+        type: Map,
+        of: mongoose.Schema.Types.Mixed,
+        default: {},
+    },
 }, { timestamps: true });
 
 const AyurvedaDietPlan = mongoose.model("AyurvedaDietPlan", ayurvedaDietPlanSchema);

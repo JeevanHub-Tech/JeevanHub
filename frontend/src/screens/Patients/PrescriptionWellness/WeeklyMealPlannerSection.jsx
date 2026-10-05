@@ -18,7 +18,8 @@ const API = BACKEND_URL || "http://localhost:8080";
 // raw AI plan) so a doctor-approved plan is never silently shadowed by the
 // original AI content. See resolveDisplayPlan() in ayurvedaController.js.
 function WeeklyMealPlannerSection() {
-	const { t } = useTranslation();
+	const { t, i18n } = useTranslation();
+	const currentLang = i18n.language?.startsWith("hi") ? "hi" : "en";
 	const { auth } = useContext(AuthContext);
 	const [plan, setPlan] = useState(null);
 	const [loading, setLoading] = useState(true);
@@ -30,14 +31,14 @@ function WeeklyMealPlannerSection() {
 		}
 		setLoading(true);
 		try {
-			const res = await authFetch(`${API}/api/ayurveda/diet-plan`);
+			const res = await authFetch(`${API}/api/ayurveda/diet-plan?lang=${currentLang}`);
 			if (res.ok) setPlan(await res.json());
 		} catch (error) {
 			console.error("Error fetching diet plan:", error);
 		} finally {
 			setLoading(false);
 		}
-	}, [auth?.token]);
+	}, [auth?.token, currentLang]);
 
 	useEffect(() => {
 		fetchPlan();

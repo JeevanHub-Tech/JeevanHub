@@ -35,6 +35,10 @@ const blogSchema = new mongoose.Schema({
     category: {
         type: String,
         default: 'General'
+    },
+    translations: {
+        type: mongoose.Schema.Types.Mixed,
+        default: {}
     }
 }, { timestamps: true });
 

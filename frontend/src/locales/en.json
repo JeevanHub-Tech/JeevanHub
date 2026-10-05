@@ -449,16 +449,28 @@
   },
   "treatments": {
     "title": "Ayurvedic Treatments",
-    "subtitle": "Holistic healing plans for chronic and lifestyle conditions based on your Dosha balance.",
+    "subtitle": "Explore holistic Ayurvedic care across every area of health. Pick a concern to see remedies, approaches, and expert guidance.",
     "explorePlans": "Explore Treatment Plans",
-    "learnMore": "Learn More"
+    "learnMore": "Learn More",
+    "commonConcern": "Common Concern",
+    "ayurvedicApproach": "Ayurvedic Approach",
+    "bookConsultation": "Book Consultation",
+    "categoryNotFound": "Category not found.",
+    "backToTreatments": "Back to Treatments",
+    "commonConcernsTitle": "Common Concerns & Ayurvedic Approach",
+    "findDoctor": "Find an Ayurvedic Doctor"
   },
   "blogsVideos": {
     "title": "Ayurveda Health Blogs & Videos",
     "subtitle": "Evidence-based wellness guides, herbal insights, and video practices from Ayurvedic practitioners.",
     "readMore": "Read Article",
     "watchVideo": "Watch Video",
-    "writtenBy": "Written by {{author}}"
+    "writtenBy": "By {{author}}",
+    "backToBlogs": "Back to blogs",
+    "noBlogFound": "No blog data found. Please refresh or explore our other articles.",
+    "translating": "Translating to Hindi...",
+    "viewOriginal": "View Original English",
+    "translateToHindi": "Translate to Hindi (हिंदी)"
   },
   "chatbot": {
     "title": "Sanjeevani AI Health Assistant",

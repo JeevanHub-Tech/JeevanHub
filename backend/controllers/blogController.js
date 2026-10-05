@@ -122,3 +122,98 @@ exports.deleteBlog = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
+
+// Translate blog on demand (cached in MongoDB)
+exports.translateBlog = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { targetLang = 'hi' } = req.body;
+
+        const blog = await Blog.findById(id);
+        if (!blog) {
+            return res.status(404).json({ message: 'Blog not found' });
+        }
+
+        // Return cached translation if available
+        if (blog.translations && blog.translations[targetLang]) {
+            return res.status(200).json({
+                title: blog.translations[targetLang].title,
+                category: blog.translations[targetLang].category || blog.category,
+                description: blog.translations[targetLang].description,
+                cached: true
+            });
+        }
+
+        const apiKey = process.env.GEMINI_API_KEY;
+        if (!apiKey) {
+            return res.status(500).json({ message: 'GEMINI_API_KEY is not configured' });
+        }
+
+        const { GoogleGenAI } = require('@google/genai');
+        const ai = new GoogleGenAI({ apiKey });
+
+        const prompt = `Translate the following Ayurvedic health blog title and HTML content into natural, authentic, easy-to-read Hindi (हिन्दी).
+CRITICAL RULES:
+1. Preserve all HTML structure and tags (<p>, <h2>, <h3>, <ul>, <ol>, <li>, <strong>, <em>, <a>, <img>, <blockquote>, etc.) exactly intact.
+2. Only translate the human text content inside the HTML tags into fluent Hindi.
+3. Keep classical Ayurvedic Sanskrit/Hindi terms clear and accurate (e.g. वात, पित्त, कफ, अग्नि, ओजस, प्राणायाम, काढ़ा, त्रिफला).
+4. Return ONLY a valid JSON object matching this schema without markdown codeblocks:
+{
+  "title": "हिंदी शीर्षक",
+  "category": "श्रेणी का हिंदी नाम",
+  "description": "<p>हिंदी में अनुवादित HTML सामग्री...</p>"
+}
+
+INPUT:
+Title: ${blog.title}
+Category: ${blog.category || 'General'}
+HTML Description:
+${blog.description}
+`;
+
+        const resp = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: prompt,
+            config: {
+                responseMimeType: 'application/json',
+                temperature: 0.3
+            }
+        });
+
+        let parsed;
+        try {
+            parsed = JSON.parse(resp.text);
+        } catch (_) {
+            const match = String(resp.text || '').match(/\{[\s\S]*\}/);
+            if (match) {
+                parsed = JSON.parse(match[0]);
+            } else {
+                throw new Error('Failed to parse translated blog JSON');
+            }
+        }
+
+        if (!blog.translations) {
+            blog.translations = {};
+        }
+
+        blog.translations[targetLang] = {
+            title: parsed.title || blog.title,
+            category: parsed.category || blog.category,
+            description: parsed.description || blog.description,
+            translatedAt: new Date()
+        };
+
+        blog.markModified('translations');
+        await blog.save();
+
+        res.status(200).json({
+            title: parsed.title || blog.title,
+            category: parsed.category || blog.category,
+            description: parsed.description || blog.description,
+            cached: false
+        });
+    } catch (error) {
+        console.error('Blog translation error:', error);
+        res.status(500).json({ message: 'Translation failed', error: error.message });
+    }
+};

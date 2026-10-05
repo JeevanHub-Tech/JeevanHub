@@ -10,7 +10,8 @@ const {
     getallBlog,
     createBlog,
     updateBlog,
-    deleteBlog
+    deleteBlog,
+    translateBlog
 } = require("../controllers/blogController");
 
 // Multer setup for Cloudinary image uploads from the blog editor
@@ -72,6 +73,9 @@ router.get('/doctor/:doctorId', (req, res, next) => {
     req.params.authorId = req.params.doctorId;
     getBlogsByAuthor(req, res).catch(next);
 });
+
+// Translate a blog on demand
+router.post('/:id/translate', translateBlog);
 
 // Get a single blog by ID
 router.get('/:id', getOneBlog);

@@ -409,13 +409,37 @@
   },
   "patientNotifications": {
     "title": "Notifications",
+    "subtitle": "Stay updated with your daily wellness routine, consultations, and orders.",
+    "newBadge": "{{count}} new",
     "markAllRead": "Mark all as read",
-    "emptyTitle": "No notifications",
-    "emptyDesc": "You're all caught up! Updates about your appointments and orders will appear here.",
-    "filterAll": "All",
-    "filterUnread": "Unread",
+    "marking": "Marking...",
+    "tabs": {
+      "all": "All ({{count}})",
+      "appointments": "Appointments ({{count}})",
+      "dietYoga": "Diet & Yoga ({{count}})",
+      "orders": "Orders ({{count}})",
+      "prescriptions": "Prescriptions ({{count}})"
+    },
+    "types": {
+      "appointment": "Appointment",
+      "diet": "Diet Plan",
+      "yoga": "Yoga Routine",
+      "order": "Order",
+      "payment": "Payment",
+      "system": "Prescription",
+      "default": "Notification"
+    },
+    "loading": "Loading notifications...",
+    "error": "Could not load notifications.",
+    "emptyTitle": "No new notifications",
+    "emptyDescAll": "You're all caught up! New reminders and updates will appear here.",
+    "emptyDescTab": "No unread notifications in {{tab}}.",
     "today": "Today",
-    "yesterday": "Yesterday"
+    "yesterday": "Yesterday",
+    "joinVideoCall": "Join Video Call",
+    "viewWellnessPlan": "View Wellness Plan",
+    "viewOrders": "View Orders",
+    "markRead": "Mark as read"
   },
   "feedback": {
     "doctorTitle": "Rate your doctor's session",

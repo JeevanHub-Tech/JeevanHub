@@ -409,13 +409,37 @@
   },
   "patientNotifications": {
     "title": "सूचनाएं",
+    "subtitle": "अपनी दैनिक दिनचर्या, डॉक्टर परामर्श और ऑर्डर्स से अपडेट रहें।",
+    "newBadge": "{{count}} नई",
     "markAllRead": "सभी को पढ़ा हुआ चिह्नित करें",
+    "marking": "चिह्नित किया जा रहा है...",
+    "tabs": {
+      "all": "सभी ({{count}})",
+      "appointments": "अपॉइंटमेंट्स ({{count}})",
+      "dietYoga": "डाइट और योग ({{count}})",
+      "orders": "ऑर्डर्स ({{count}})",
+      "prescriptions": "पर्चे ({{count}})"
+    },
+    "types": {
+      "appointment": "अपॉइंटमेंट",
+      "diet": "डाइट प्लान",
+      "yoga": "योग दिनचर्या",
+      "order": "ऑर्डर",
+      "payment": "भुगतान",
+      "system": "पर्चा (प्रिस्क्रिप्शन)",
+      "default": "सूचना"
+    },
+    "loading": "सूचनाएं लोड हो रही हैं...",
+    "error": "सूचनाएं लोड करने में असमर्थ।",
     "emptyTitle": "कोई नई सूचना नहीं है",
-    "emptyDesc": "आप पूरी तरह अपडेट हैं! आपके अपॉइंटमेंट्स और ऑर्डर्स के अपडेट यहाँ दिखेंगे।",
-    "filterAll": "सभी",
-    "filterUnread": "अपठित",
+    "emptyDescAll": "सब कुछ अद्यतित है! नए रिमाइंडर और अपडेट यहां दिखाई देंगे।",
+    "emptyDescTab": "{{tab}} में कोई अपठित सूचना नहीं है।",
     "today": "आज",
-    "yesterday": "कल"
+    "yesterday": "कल",
+    "joinVideoCall": "वीडियो कॉल में शामिल हों",
+    "viewWellnessPlan": "कल्याण योजना देखें",
+    "viewOrders": "ऑर्डर्स देखें",
+    "markRead": "पढ़ा हुआ चिह्नित करें"
   },
   "feedback": {
     "doctorTitle": "अपने डॉक्टर के परामर्श को रेटिंग दें",

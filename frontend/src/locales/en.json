@@ -822,6 +822,16 @@
     "signup": "Sign up",
     "searchPlaceholder": "Search doctors, medicines, treatments..."
   },
+  "locationPicker": {
+    "fallback": "Your location",
+    "chooseLocation": "Choose your location",
+    "enterPincodeDesc": "Enter a 6-digit pincode to see accurate delivery options.",
+    "placeholder": "e.g. 110001",
+    "pincodeInvalid": "Please enter a valid 6-digit pincode.",
+    "checking": "Checking...",
+    "confirm": "Confirm",
+    "useCurrent": "Use current"
+  },
   "homeScreen": {
     "badge": "Care rooted in Ayurveda",
     "heroTitle": "A calmer way to find your path to",
@@ -832,11 +842,130 @@
     "usp1": "Real practitioner guidance",
     "usp2": "Plans made for you",
     "usp3": "Care from home",
-    "shopByConcern": "Shop by Health Concern",
-    "shopBySkinType": "Shop by Skin & Body Type",
-    "successRate": "Patient Success Stories",
-    "talkOfTheTown": "Trending in Ayurveda",
-    "requestCallback": "Request an Ayurvedic Consultation Call"
+    "whyChooseUs": {
+      "title": "Why Choose Us for Treatment?",
+      "expertCareTitle": "Expert Care",
+      "expertCareDesc": "Experienced, certified Ayurvedic practitioners",
+      "gentleNaturalTitle": "Gentle & Natural",
+      "gentleNaturalDesc": "Herbs and routine, not quick chemical fixes",
+      "reliableTreatmentTitle": "Reliable Treatment",
+      "reliableTreatmentDesc": "Accurate diagnosis rooted in Ayurvedic science",
+      "fairAffordableTitle": "Fair & Affordable",
+      "fairAffordableDesc": "Honest plans, no compromise on quality",
+      "ourTreatment": "Our Treatment",
+      "ourDoctors": "Our Doctors",
+      "caseStudies": "Case Studies"
+    },
+    "concernsSection": {
+      "title": "Explore Ayurvedic Treatments for Various Health Concerns",
+      "subtitle": "Discover holistic solutions curated by expert doctors for optimal well-being.",
+      "exploreAll": "Explore all treatments",
+      "concerns": {
+        "digestive": "Digestive Health",
+        "respiratory": "Respiratory Health",
+        "skinCare": "Skin Care",
+        "jointBone": "Joint & Bone Health",
+        "cardiovascular": "Cardiovascular Health",
+        "mentalHealth": "Mental Health & Wellness",
+        "metabolic": "Metabolic & Endocrine Health"
+      }
+    },
+    "meetDoctors": {
+      "title": "Meet our doctors",
+      "subtitle": "Certified Ayurvedic practitioners, ready to build a plan around you.",
+      "newBadge": "New",
+      "experience": "Experience",
+      "years": "{{count}} years",
+      "viewProfile": "View Profile →",
+      "prevDoctors": "Previous doctors",
+      "nextDoctors": "Next doctors"
+    },
+    "yogaSection": {
+      "title": "Yoga Positions",
+      "poses": {
+        "downwardDog": {
+          "name": "Adho Mukha Svanasana (Downward Dog)",
+          "description": "Balances Vata by grounding energy, enhances circulation, and revitalizes Prana throughout the body."
+        },
+        "treePose": {
+          "name": "Vrikshasana (Tree Pose)",
+          "description": "Cultivates inner stillness and focus, strengthens the core, and aligns the body's energies, harmonizing Vata and Pitta."
+        },
+        "warrior": {
+          "name": "Virabhadrasana II (Warrior II)",
+          "description": "Ignites inner fire (Agni), strengthens the lower body, and opens the chest, balancing Kapha and Pitta doshas."
+        },
+        "bridgePose": {
+          "name": "Setu Bandhasana (Bridge Pose)",
+          "description": "Invokes heart-opening energy, stimulates digestion, and nourishes the nervous system, balancing Kapha and Vata."
+        },
+        "childPose": {
+          "name": "Balasana (Child's Pose)",
+          "description": "Deeply calming for the mind, soothes the nervous system, and releases tension, bringing balance to Vata dosha."
+        }
+      }
+    },
+    "allMedicines": {
+      "title": "Explore All Medicines",
+      "subtitle": "Authentic, quality-checked Ayurvedic remedies delivered to your door.",
+      "loading": "Loading medicines...",
+      "loadFailed": "Failed to load medicines.",
+      "addToCart": "Add to Cart",
+      "seeMore": "See More",
+      "seeLess": "See Less",
+      "loginRequired": "Please login first to add items to cart",
+      "addedSuccess": "Added to cart successfully!",
+      "addFailed": "Failed to add to cart"
+    },
+    "storiesSection": {
+      "videoTitle": "Real journeys, real healing",
+      "videoSubtitle": "Short films from people who chose the Ayurvedic path.",
+      "blogTitle": "From the journal",
+      "blogSubtitle": "Notes and guidance from our practitioners.",
+      "videos": {
+        "v1Title": "Reversing Fatty Liver Naturally",
+        "v1Desc": "How Ayurvedic diet and herbs helped restore liver health in months.",
+        "v2Title": "Calming Anxiety with Ayurveda",
+        "v2Desc": "Brahmi, pranayama, and routine — a real journey to a calmer mind.",
+        "v3Title": "Healing Chronic Joint Pain",
+        "v3Desc": "Panchakarma and Ayurvedic care that brought lasting relief.",
+        "v4Title": "Clearing Skin the Natural Way",
+        "v4Desc": "A holistic skincare transformation rooted in Ayurvedic wisdom.",
+        "v5Title": "Building Immunity with Ojas",
+        "v5Desc": "Daily rituals and herbs that rebuilt strength and vitality."
+      }
+    },
+    "calmerPath": {
+      "title": "A calmer path to feeling well",
+      "subtitle": "Ayurveda works gradually and holistically. We pair you with a real practitioner and a plan you can actually keep — so change is steady, natural, and yours.",
+      "points": {
+        "practitionerLedTitle": "Practitioner-led care",
+        "practitionerLedDesc": "Every plan comes from a certified Ayurvedic doctor, not an algorithm.",
+        "builtAroundBodyTitle": "Built around your body",
+        "builtAroundBodyDesc": "Diet, herbs, and daily rhythm tuned to your dosha and your concern.",
+        "naturalRemediesTitle": "Natural, quality-checked remedies",
+        "naturalRemediesDesc": "Authentic formulations, delivered to your door.",
+        "careFromHomeTitle": "Care from home",
+        "careFromHomeDesc": "Consult, follow up, and stay on track without a clinic visit."
+      }
+    },
+    "requestCallback": {
+      "title": "Request a callback",
+      "subtitle": "Know more about our plans or Smart Ring",
+      "button": "Request Callback",
+      "successTitle": "Request received",
+      "successDesc": "Thanks, {{name}}! Our team will call you back on {{phone}} shortly.",
+      "done": "Done",
+      "dialogTitle": "Request a callback",
+      "nameLabel": "Your name",
+      "phoneLabel": "Phone number",
+      "messageLabel": "What would you like to know? (optional)",
+      "cancel": "Cancel",
+      "submit": "Submit",
+      "submitting": "Submitting…",
+      "orCallUs": "Or call us on +91 8688324518",
+      "defaultError": "Something went wrong. Please try again."
+    }
   },
   "doctorsScreen": {
     "title": "Find Your Ayurvedic Doctor",

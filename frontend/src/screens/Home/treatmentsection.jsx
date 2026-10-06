@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { useTranslation } from 'react-i18next';
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -10,6 +11,7 @@ import { CartContext } from '../../context/CartContext';
 import { BACKEND_URL } from '../../config';
 
 const Medicines = () => {
+  const { t } = useTranslation();
   const { auth } = useContext(AuthContext);
   const { fetchCartCount } = useContext(CartContext);
   const [medicines, setMedicines] = useState([]);
@@ -29,12 +31,12 @@ const Medicines = () => {
         setLoading(false);
       } catch (err) {
         console.error("Failed to fetch medicines:", err);
-        setError("Failed to load medicines.");
+        setError(t("homeScreen.allMedicines.loadFailed", "Failed to load medicines."));
         setLoading(false);
       }
     };
     fetchMedicines();
-  }, []);
+  }, [t]);
 
   const [visibleCount, setVisibleCount] = useState(5);
   const [defaultVisibleCount, setDefaultVisibleCount] = useState(5);
@@ -71,15 +73,15 @@ const Medicines = () => {
     <section className="mx-auto w-[95%] max-w-310 px-4 pt-14 pb-12">
       <div className="mb-9.5 text-center">
         <h2 className="font-display relative m-0 inline-block text-[clamp(1.6rem,3vw,2.1rem)] font-semibold tracking-tight text-(--jh-olive-deep) after:mx-auto after:mt-3.5 after:block after:h-1 after:w-19 after:rounded-full after:bg-gradient-to-r after:from-(--jh-olive-leaf) after:to-(--jh-turmeric-gold)">
-          Explore All Medicines
+          {t("homeScreen.allMedicines.title", "Explore All Medicines")}
         </h2>
         <p className="mx-auto mt-4 max-w-140 text-base leading-relaxed text-muted-foreground">
-          Authentic, quality-checked Ayurvedic remedies delivered to your door.
+          {t("homeScreen.allMedicines.subtitle", "Authentic, quality-checked Ayurvedic remedies delivered to your door.")}
         </p>
       </div>
       <div className="my-2.5 grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-3.5 sm:grid-cols-[repeat(auto-fill,minmax(210px,1fr))] sm:gap-5.5">
         {loading ? (
-          <p>Loading medicines...</p>
+          <p>{t("homeScreen.allMedicines.loading", "Loading medicines...")}</p>
         ) : error ? (
           <p>{error}</p>
         ) : (
@@ -124,7 +126,7 @@ const Medicines = () => {
                     const patientId = auth?.user?.id;
                     const token = auth?.token;
                     if (!patientId) {
-                      alert("Please login first to add items to cart");
+                      alert(t("homeScreen.allMedicines.loginRequired", "Please login first to add items to cart"));
                       navigate('/signin');
                       return;
                     }
@@ -135,12 +137,12 @@ const Medicines = () => {
                     }, { headers: { Authorization: `Bearer ${token}` } })
                     .then(() => {
                       fetchCartCount();
-                      alert("Added to cart successfully!");
+                      alert(t("homeScreen.allMedicines.addedSuccess", "Added to cart successfully!"));
                     })
-                    .catch(err => alert("Failed to add to cart"));
+                    .catch(() => alert(t("homeScreen.allMedicines.addFailed", "Failed to add to cart")));
                   }}
                 >
-                  Add to Cart
+                  {t("homeScreen.allMedicines.addToCart", "Add to Cart")}
                 </Button>
               </div>
             </div>
@@ -150,12 +152,12 @@ const Medicines = () => {
       <div className="mt-7 flex justify-center gap-5 text-center">
         {visibleCount < medicines.length && (
           <Button type="button" variant="outline" className="gap-1.5 rounded-full border-(--jh-line-strong) px-5.5 text-(--jh-olive-leaf) hover:bg-(--jh-olive-leaf) hover:text-white" onClick={showMore}>
-            See More <span className="inline-block text-base transition-transform duration-300 ease-in-out group-hover:translate-y-0.75" aria-hidden="true">&#9662;</span>
+            {t("homeScreen.allMedicines.seeMore", "See More")} <span className="inline-block text-base transition-transform duration-300 ease-in-out group-hover:translate-y-0.75" aria-hidden="true">&#9662;</span>
           </Button>
         )}
         {visibleCount > defaultVisibleCount && (
           <Button type="button" variant="outline" className="gap-1.5 rounded-full border-(--jh-line-strong) px-5.5 text-(--jh-olive-leaf) hover:bg-(--jh-olive-leaf) hover:text-white" onClick={showLess}>
-            See Less <span className="inline-block rotate-180 text-base transition-transform duration-300 ease-in-out" aria-hidden="true">&#9662;</span>
+            {t("homeScreen.allMedicines.seeLess", "See Less")} <span className="inline-block rotate-180 text-base transition-transform duration-300 ease-in-out" aria-hidden="true">&#9662;</span>
           </Button>
         )}
       </div>
@@ -164,3 +166,4 @@ const Medicines = () => {
 };
 
 export default Medicines;
+

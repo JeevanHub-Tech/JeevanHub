@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import downwardDog from "../../media/dd.jpg";
@@ -7,47 +8,43 @@ import warriorII from "../../media/w2.jpg";
 import bridgePose from "../../media/bp.jpg";
 import childPose from "../../media/cp.jpg";
 
-const yogaPositions = [
-	{
-		id: 1,
-		name: "Adho Mukha Svanasana (Downward Dog)",
-		image: downwardDog,
-		description:
-			"Balances Vata by grounding energy, enhances circulation, and revitalizes Prana throughout the body.",
-	},
-	{
-		id: 2,
-		name: "Vrikshasana (Tree Pose)",
-		image: treePose,
-		description:
-			"Cultivates inner stillness and focus, strengthens the core, and aligns the body's energies, harmonizing Vata and Pitta.",
-	},
-	{
-		id: 3,
-		name: "Virabhadrasana II (Warrior II)",
-		image: warriorII,
-		description:
-			"Ignites inner fire (Agni), strengthens the lower body, and opens the chest, balancing Kapha and Pitta doshas.",
-	},
-	{
-		id: 4,
-		name: "Setu Bandhasana (Bridge Pose)",
-		image: bridgePose,
-		description:
-			"Invokes heart-opening energy, stimulates digestion, and nourishes the nervous system, balancing Kapha and Vata.",
-	},
-	{
-		id: 5,
-		name: "Balasana (Child's Pose)",
-		image: childPose,
-		description:
-			"Deeply calming for the mind, soothes the nervous system, and releases tension, bringing balance to Vata dosha.",
-	},
-];
-
 const YogaPositions = () => {
+	const { t } = useTranslation();
 	const [api, setApi] = useState(null);
 	const [selected, setSelected] = useState(0);
+
+	const yogaPositions = [
+		{
+			id: 1,
+			name: t("homeScreen.yogaSection.poses.downwardDog.name", "Adho Mukha Svanasana (Downward Dog)"),
+			image: downwardDog,
+			description: t("homeScreen.yogaSection.poses.downwardDog.description", "Balances Vata by grounding energy, enhances circulation, and revitalizes Prana throughout the body."),
+		},
+		{
+			id: 2,
+			name: t("homeScreen.yogaSection.poses.treePose.name", "Vrikshasana (Tree Pose)"),
+			image: treePose,
+			description: t("homeScreen.yogaSection.poses.treePose.description", "Cultivates inner stillness and focus, strengthens the core, and aligns the body's energies, harmonizing Vata and Pitta."),
+		},
+		{
+			id: 3,
+			name: t("homeScreen.yogaSection.poses.warrior.name", "Virabhadrasana II (Warrior II)"),
+			image: warriorII,
+			description: t("homeScreen.yogaSection.poses.warrior.description", "Ignites inner fire (Agni), strengthens the lower body, and opens the chest, balancing Kapha and Pitta doshas."),
+		},
+		{
+			id: 4,
+			name: t("homeScreen.yogaSection.poses.bridgePose.name", "Setu Bandhasana (Bridge Pose)"),
+			image: bridgePose,
+			description: t("homeScreen.yogaSection.poses.bridgePose.description", "Invokes heart-opening energy, stimulates digestion, and nourishes the nervous system, balancing Kapha and Vata."),
+		},
+		{
+			id: 5,
+			name: t("homeScreen.yogaSection.poses.childPose.name", "Balasana (Child's Pose)"),
+			image: childPose,
+			description: t("homeScreen.yogaSection.poses.childPose.description", "Deeply calming for the mind, soothes the nervous system, and releases tension, bringing balance to Vata dosha."),
+		},
+	];
 
 	useEffect(() => {
 		if (!api) return;
@@ -59,7 +56,9 @@ const YogaPositions = () => {
 
 	return (
 		<div className="relative mx-auto mt-15 w-[95%] max-w-320 overflow-hidden rounded-[10px] bg-gradient-to-b from-(--jh-olive-leaf) to-white/50 px-0 py-12.5">
-			<h2 className="mb-7.5 text-center text-3xl font-medium text-white sm:mb-8">Yoga Positions</h2>
+			<h2 className="mb-7.5 text-center text-3xl font-medium text-white sm:mb-8">
+				{t("homeScreen.yogaSection.title", "Yoga Positions")}
+			</h2>
 
 			<Carousel setApi={setApi} opts={{ align: "center", loop: yogaPositions.length > 3 }} className="px-14">
 				<CarouselContent>
@@ -95,3 +94,4 @@ const YogaPositions = () => {
 };
 
 export default YogaPositions;
+

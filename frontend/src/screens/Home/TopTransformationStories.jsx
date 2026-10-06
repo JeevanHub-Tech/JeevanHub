@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Play } from "lucide-react";
 
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
@@ -9,6 +10,8 @@ import { BACKEND_URL } from "../../config";
 const videos = [
 	{
 		id: 1,
+		titleKey: "homeScreen.storiesSection.videos.v1Title",
+		descKey: "homeScreen.storiesSection.videos.v1Desc",
 		title: "Reversing Fatty Liver Naturally",
 		description: "How Ayurvedic diet and herbs helped restore liver health in months.",
 		videoUrl: v,
@@ -16,6 +19,8 @@ const videos = [
 	},
 	{
 		id: 2,
+		titleKey: "homeScreen.storiesSection.videos.v2Title",
+		descKey: "homeScreen.storiesSection.videos.v2Desc",
 		title: "Calming Anxiety with Ayurveda",
 		description: "Brahmi, pranayama, and routine — a real journey to a calmer mind.",
 		videoUrl: v,
@@ -23,6 +28,8 @@ const videos = [
 	},
 	{
 		id: 3,
+		titleKey: "homeScreen.storiesSection.videos.v3Title",
+		descKey: "homeScreen.storiesSection.videos.v3Desc",
 		title: "Healing Chronic Joint Pain",
 		description: "Panchakarma and Ayurvedic care that brought lasting relief.",
 		videoUrl: v,
@@ -30,6 +37,8 @@ const videos = [
 	},
 	{
 		id: 4,
+		titleKey: "homeScreen.storiesSection.videos.v4Title",
+		descKey: "homeScreen.storiesSection.videos.v4Desc",
 		title: "Clearing Skin the Natural Way",
 		description: "A holistic skincare transformation rooted in Ayurvedic wisdom.",
 		videoUrl: v,
@@ -37,6 +46,8 @@ const videos = [
 	},
 	{
 		id: 5,
+		titleKey: "homeScreen.storiesSection.videos.v5Title",
+		descKey: "homeScreen.storiesSection.videos.v5Desc",
 		title: "Building Immunity with Ojas",
 		description: "Daily rituals and herbs that rebuilt strength and vitality.",
 		videoUrl: v,
@@ -44,51 +55,58 @@ const videos = [
 	},
 ];
 
-const StorySlide = ({ item, sectionType }) => (
-	<CarouselItem className="basis-9/10 sm:basis-1/2 lg:basis-1/3">
-		<div className="group flex h-full cursor-pointer flex-col">
-			{sectionType === "Video" ? (
-				<div className="relative">
-					<video
-						className="block aspect-3/2 w-full rounded-[14px] bg-muted object-cover shadow-[0_18px_34px_-20px_rgba(30,38,20,0.5)] transition-transform duration-500 ease-out group-hover:-translate-y-1"
-						src={item.videoUrl}
-						poster={item.poster}
-						preload="none"
-						aria-label={item.title}
-						controls
-					/>
-					<span className="pointer-events-none absolute top-[calc((100%_/_3_*_2)_-_58px)] left-4 z-10 flex size-11 items-center justify-center rounded-full bg-black/55 backdrop-blur-[2px]">
-						<Play className="size-4.5 fill-white text-white" aria-hidden="true" />
-					</span>
+const StorySlide = ({ item, sectionType }) => {
+	const { t } = useTranslation();
+	const title = item.titleKey ? t(item.titleKey, item.title) : item.title;
+	const description = item.descKey ? t(item.descKey, item.description) : item.description;
+
+	return (
+		<CarouselItem className="basis-9/10 sm:basis-1/2 lg:basis-1/3">
+			<div className="group flex h-full cursor-pointer flex-col">
+				{sectionType === "Video" ? (
+					<div className="relative">
+						<video
+							className="block aspect-3/2 w-full rounded-[14px] bg-muted object-cover shadow-[0_18px_34px_-20px_rgba(30,38,20,0.5)] transition-transform duration-500 ease-out group-hover:-translate-y-1"
+							src={item.videoUrl}
+							poster={item.poster}
+							preload="none"
+							aria-label={title}
+							controls
+						/>
+						<span className="pointer-events-none absolute top-[calc((100%_/_3_*_2)_-_58px)] left-4 z-10 flex size-11 items-center justify-center rounded-full bg-black/55 backdrop-blur-[2px]">
+							<Play className="size-4.5 fill-white text-white" aria-hidden="true" />
+						</span>
+					</div>
+				) : (
+					<div
+						role="link"
+						tabIndex={0}
+						aria-label={title}
+						onKeyDown={(e) => {
+							if (e.key === "Enter") window.location.href = `/blog/${item.id}`;
+						}}
+						onClick={() => (window.location.href = `/blog/${item.id}`)}
+					>
+						<img
+							className="block aspect-3/2 w-full rounded-[14px] bg-muted object-cover shadow-[0_18px_34px_-20px_rgba(30,38,20,0.5)] transition-transform duration-500 ease-out group-hover:-translate-y-1"
+							src={item.imageUrl}
+							alt={title}
+						/>
+					</div>
+				)}
+				<div className="pt-4">
+					<h2 className="font-display m-0 mb-1.5 line-clamp-2 text-lg leading-tight font-semibold text-foreground">
+						{title}
+					</h2>
+					<p className="m-0 line-clamp-2 text-sm leading-relaxed text-muted-foreground">{description}</p>
 				</div>
-			) : (
-				<div
-					role="link"
-					tabIndex={0}
-					aria-label={item.title}
-					onKeyDown={(e) => {
-						if (e.key === "Enter") window.location.href = `/blog/${item.id}`;
-					}}
-					onClick={() => (window.location.href = `/blog/${item.id}`)}
-				>
-					<img
-						className="block aspect-3/2 w-full rounded-[14px] bg-muted object-cover shadow-[0_18px_34px_-20px_rgba(30,38,20,0.5)] transition-transform duration-500 ease-out group-hover:-translate-y-1"
-						src={item.imageUrl}
-						alt={item.title}
-					/>
-				</div>
-			)}
-			<div className="pt-4">
-				<h2 className="font-display m-0 mb-1.5 line-clamp-2 text-lg leading-tight font-semibold text-foreground">
-					{item.title}
-				</h2>
-				<p className="m-0 line-clamp-2 text-sm leading-relaxed text-muted-foreground">{item.description}</p>
 			</div>
-		</div>
-	</CarouselItem>
-);
+		</CarouselItem>
+	);
+};
 
 const StoryCarouselSection = ({ items, sectionType }) => {
+	const { t } = useTranslation();
 	const [api, setApi] = useState(null);
 	const [selected, setSelected] = useState(0);
 
@@ -104,12 +122,12 @@ const StoryCarouselSection = ({ items, sectionType }) => {
 		<div className="max-w-300 mx-auto [&:not(:first-child)]:mt-14 sm:[&:not(:first-child)]:mt-24">
 			<div className="mb-8 max-w-160">
 				<h2 className="font-display m-0 mb-2.5 text-3xl leading-tight font-semibold tracking-tight text-foreground text-balance">
-					{sectionType === "Video" ? "Real journeys, real healing" : "From the journal"}
+					{sectionType === "Video" ? t("homeScreen.storiesSection.videoTitle", "Real journeys, real healing") : t("homeScreen.storiesSection.blogTitle", "From the journal")}
 				</h2>
 				<p className="m-0 text-base leading-relaxed text-muted-foreground">
 					{sectionType === "Video"
-						? "Short films from people who chose the Ayurvedic path."
-						: "Notes and guidance from our practitioners."}
+						? t("homeScreen.storiesSection.videoSubtitle", "Short films from people who chose the Ayurvedic path.")
+						: t("homeScreen.storiesSection.blogSubtitle", "Notes and guidance from our practitioners.")}
 				</p>
 			</div>
 

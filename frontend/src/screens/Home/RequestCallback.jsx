@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ArrowRight, CheckCircle2, Loader2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -10,6 +11,7 @@ import { BACKEND_URL } from '../../config';
 import call from '../../media/call.png';
 
 const RequestCallback = () => {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ name: '', phone: '', message: '' });
   const [status, setStatus] = useState('idle'); // idle | submitting | success | error
@@ -37,10 +39,10 @@ const RequestCallback = () => {
         body: JSON.stringify(form),
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.message || 'Failed to submit request.');
+      if (!response.ok) throw new Error(data.message || t('homeScreen.requestCallback.defaultError', 'Failed to submit request.'));
       setStatus('success');
     } catch (err) {
-      setError(err.message || 'Something went wrong. Please try again.');
+      setError(err.message || t('homeScreen.requestCallback.defaultError', 'Something went wrong. Please try again.'));
       setStatus('error');
     }
   };
@@ -49,9 +51,11 @@ const RequestCallback = () => {
     <section className="flex items-center justify-center bg-(--jh-cream-tint) px-2.5 py-7.5 sm:px-2.5 sm:py-4">
       <div className="relative flex w-full max-w-275 flex-col items-center justify-between gap-4 rounded-2xl bg-(--jh-surface) p-6.25 shadow-[0_12px_24px_rgba(0,0,0,0.1)] transition-transform duration-300 ease-in-out hover:-translate-y-1.25 sm:flex-row sm:p-10 sm:text-left">
         <div className="flex max-w-full flex-col justify-center sm:max-w-[55%]">
-          <h3 className="m-0 text-[22px] leading-tight font-bold text-foreground sm:text-[28px]">Request a callback</h3>
+          <h3 className="m-0 text-[22px] leading-tight font-bold text-foreground sm:text-[28px]">
+            {t('homeScreen.requestCallback.title', 'Request a callback')}
+          </h3>
           <p className="mt-2 text-sm leading-relaxed text-muted-foreground sm:mt-3 sm:text-base">
-            Know more about our plans or Smart Ring
+            {t('homeScreen.requestCallback.subtitle', 'Know more about our plans or Smart Ring')}
           </p>
           <div className="mt-7.5 hidden items-center justify-start sm:flex">
             <ArrowRight className="size-6.5 text-(--jh-olive-leaf)" aria-hidden="true" />
@@ -62,7 +66,7 @@ const RequestCallback = () => {
               className="mt-3.75 h-auto rounded-[10px] px-6 py-3 text-base font-semibold sm:mt-6.25 sm:px-7 sm:text-lg"
               onClick={() => setOpen(true)}
             >
-              Request Callback
+              {t('homeScreen.requestCallback.button', 'Request Callback')}
             </Button>
             <DialogContent>
               {status === 'success' ? (
@@ -70,36 +74,39 @@ const RequestCallback = () => {
                   <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                       <CheckCircle2 className="size-5 text-(--jh-olive-leaf)" aria-hidden="true" />
-                      Request received
+                      {t('homeScreen.requestCallback.successTitle', 'Request received')}
                     </DialogTitle>
                   </DialogHeader>
                   <p className="text-sm text-muted-foreground">
-                    Thanks, {form.name}! Our team will call you back on {form.phone} shortly.
+                    {t('homeScreen.requestCallback.successDesc', 'Thanks, {{name}}! Our team will call you back on {{phone}} shortly.', {
+                      name: form.name,
+                      phone: form.phone,
+                    })}
                   </p>
                   <DialogFooter>
                     <DialogClose asChild>
-                      <Button type="button">Done</Button>
+                      <Button type="button">{t('homeScreen.requestCallback.done', 'Done')}</Button>
                     </DialogClose>
                   </DialogFooter>
                 </>
               ) : (
                 <form onSubmit={handleSubmit} className="flex flex-col gap-4">
                   <DialogHeader>
-                    <DialogTitle>Request a callback</DialogTitle>
+                    <DialogTitle>{t('homeScreen.requestCallback.dialogTitle', 'Request a callback')}</DialogTitle>
                   </DialogHeader>
 
                   <Field>
-                    <FieldLabel htmlFor="callback-name">Your name</FieldLabel>
+                    <FieldLabel htmlFor="callback-name">{t('homeScreen.requestCallback.nameLabel', 'Your name')}</FieldLabel>
                     <Input id="callback-name" name="name" value={form.name} onChange={handleChange} required />
                   </Field>
 
                   <Field>
-                    <FieldLabel htmlFor="callback-phone">Phone number</FieldLabel>
+                    <FieldLabel htmlFor="callback-phone">{t('homeScreen.requestCallback.phoneLabel', 'Phone number')}</FieldLabel>
                     <Input id="callback-phone" name="phone" type="tel" value={form.phone} onChange={handleChange} required />
                   </Field>
 
                   <Field>
-                    <FieldLabel htmlFor="callback-message">What would you like to know? (optional)</FieldLabel>
+                    <FieldLabel htmlFor="callback-message">{t('homeScreen.requestCallback.messageLabel', 'What would you like to know? (optional)')}</FieldLabel>
                     <Textarea id="callback-message" name="message" value={form.message} onChange={handleChange} rows={3} />
                   </Field>
 
@@ -107,15 +114,15 @@ const RequestCallback = () => {
 
                   <DialogFooter>
                     <DialogClose asChild>
-                      <Button type="button" variant="outline">Cancel</Button>
+                      <Button type="button" variant="outline">{t('homeScreen.requestCallback.cancel', 'Cancel')}</Button>
                     </DialogClose>
                     <Button type="submit" disabled={status === 'submitting'}>
                       {status === 'submitting' ? (
                         <>
-                          <Loader2 className="size-4 animate-spin" aria-hidden="true" /> Submitting…
+                          <Loader2 className="size-4 animate-spin" aria-hidden="true" /> {t('homeScreen.requestCallback.submitting', 'Submitting…')}
                         </>
                       ) : (
-                        'Submit'
+                        t('homeScreen.requestCallback.submit', 'Submit')
                       )}
                     </Button>
                   </DialogFooter>
@@ -124,7 +131,7 @@ const RequestCallback = () => {
             </DialogContent>
           </Dialog>
           <a href="tel:+918688324518" className="mt-2 block text-sm text-(--jh-olive-leaf) hover:text-(--jh-olive-light) hover:underline">
-            Or call us on +91 8688324518
+            {t('homeScreen.requestCallback.orCallUs', 'Or call us on +91 8688324518')}
           </a>
         </div>
         <div className="relative mt-3.75 flex h-auto max-w-full items-center justify-center overflow-visible rounded-xl sm:mt-0 sm:h-62.5 sm:max-w-[45%] sm:overflow-hidden">

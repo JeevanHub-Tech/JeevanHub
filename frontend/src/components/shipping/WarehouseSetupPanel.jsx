@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { useTranslation } from "react-i18next";
 import { AlertCircle, Loader2 } from "lucide-react";
 
 import { BACKEND_URL } from "../../config";
@@ -9,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 function WarehouseSetupPanel({ retailerId, token, onSaved, onLoaded }) {
+	const { t } = useTranslation();
 	const [loading, setLoading] = useState(true);
 	const [saving, setSaving] = useState(false);
 	const [error, setError] = useState("");
@@ -46,14 +48,14 @@ function WarehouseSetupPanel({ retailerId, token, onSaved, onLoaded }) {
 				if (err.response?.status === 404) {
 					setIsEditing(true);
 				} else {
-					setError("Could not load warehouse settings.");
+					setError(t("warehouseSetup.fetchError", "Could not load warehouse settings."));
 				}
 			} finally {
 				setLoading(false);
 			}
 		};
 		fetchWarehouse();
-	}, [retailerId, token]); // Removed onSaved from deps to avoid loop
+	}, [retailerId, token, t]); // Removed onSaved from deps to avoid loop
 
 	const handleSave = async (e) => {
 		e.preventDefault();
@@ -70,7 +72,7 @@ function WarehouseSetupPanel({ retailerId, token, onSaved, onLoaded }) {
 			setIsEditing(false);
 			if (onSaved) onSaved(savedWarehouse);
 		} catch (err) {
-			setError(err.response?.data?.message || "Failed to save warehouse settings.");
+			setError(err.response?.data?.message || t("warehouseSetup.saveError", "Failed to save warehouse settings."));
 		} finally {
 			setSaving(false);
 		}
@@ -84,7 +86,7 @@ function WarehouseSetupPanel({ retailerId, token, onSaved, onLoaded }) {
 		return (
 			<div className="flex items-center gap-2 text-sm text-muted-foreground">
 				<Loader2 className="size-4 animate-spin" />
-				Loading warehouse settings...
+				{t("warehouseSetup.loading", "Loading warehouse settings...")}
 			</div>
 		);
 	}
@@ -98,10 +100,10 @@ function WarehouseSetupPanel({ retailerId, token, onSaved, onLoaded }) {
 						<p className="text-xs text-muted-foreground">
 							{warehouse.address}, {warehouse.city}, {warehouse.state} {warehouse.pincode}
 						</p>
-						{warehouse.phone && <p className="text-xs text-muted-foreground">Ph: {warehouse.phone}</p>}
+						{warehouse.phone && <p className="text-xs text-muted-foreground">{t("warehouseSetup.phonePrefix", "Ph:")} {warehouse.phone}</p>}
 					</div>
 					<Button type="button" variant="ghost" size="sm" onClick={() => setIsEditing(true)}>
-						Edit
+						{t("warehouseSetup.edit", "Edit")}
 					</Button>
 				</div>
 			</div>
@@ -110,45 +112,45 @@ function WarehouseSetupPanel({ retailerId, token, onSaved, onLoaded }) {
 
 	return (
 		<form onSubmit={handleSave} className="flex flex-col gap-3 rounded-lg border border-border p-4">
-			<p className="text-sm font-medium text-foreground">Configure Pickup Warehouse</p>
+			<p className="text-sm font-medium text-foreground">{t("warehouseSetup.title", "Configure Pickup Warehouse")}</p>
 			
 			{error && (
 				<Alert variant="destructive">
 					<AlertCircle className="size-4" />
-					<AlertTitle>Error</AlertTitle>
+					<AlertTitle>{t("warehouseSetup.errorTitle", "Error")}</AlertTitle>
 					<AlertDescription>{error}</AlertDescription>
 				</Alert>
 			)}
 			
 			<div className="grid gap-2">
-				<Label htmlFor="jh-wh-name">Warehouse Name *</Label>
+				<Label htmlFor="jh-wh-name">{t("warehouseSetup.nameLabel", "Warehouse Name *")}</Label>
 				<Input
 					id="jh-wh-name"
 					name="name"
 					value={formData.name}
 					onChange={handleChange}
 					required
-					placeholder="e.g. Main Hub"
+					placeholder={t("warehouseSetup.namePlaceholder", "e.g. Main Hub")}
 				/>
 				<p className="text-[10px] text-muted-foreground">
-					Must match the pickup location name registered in your Delhivery dashboard exactly.
+					{t("warehouseSetup.nameHelp", "Must match the pickup location name registered in your Delhivery dashboard exactly.")}
 				</p>
 			</div>
 
 			<div className="grid gap-2">
-				<Label htmlFor="jh-wh-address">Address</Label>
+				<Label htmlFor="jh-wh-address">{t("warehouseSetup.addressLabel", "Address")}</Label>
 				<Input
 					id="jh-wh-address"
 					name="address"
 					value={formData.address}
 					onChange={handleChange}
-					placeholder="123 Industrial Area"
+					placeholder={t("warehouseSetup.addressPlaceholder", "123 Industrial Area")}
 				/>
 			</div>
 
 			<div className="grid grid-cols-2 gap-2">
 				<div className="grid gap-2">
-					<Label htmlFor="jh-wh-city">City</Label>
+					<Label htmlFor="jh-wh-city">{t("warehouseSetup.cityLabel", "City")}</Label>
 					<Input
 						id="jh-wh-city"
 						name="city"
@@ -157,7 +159,7 @@ function WarehouseSetupPanel({ retailerId, token, onSaved, onLoaded }) {
 					/>
 				</div>
 				<div className="grid gap-2">
-					<Label htmlFor="jh-wh-state">State</Label>
+					<Label htmlFor="jh-wh-state">{t("warehouseSetup.stateLabel", "State")}</Label>
 					<Input
 						id="jh-wh-state"
 						name="state"
@@ -169,7 +171,7 @@ function WarehouseSetupPanel({ retailerId, token, onSaved, onLoaded }) {
 
 			<div className="grid grid-cols-2 gap-2">
 				<div className="grid gap-2">
-					<Label htmlFor="jh-wh-pincode">Pincode *</Label>
+					<Label htmlFor="jh-wh-pincode">{t("warehouseSetup.pincodeLabel", "Pincode *")}</Label>
 					<Input
 						id="jh-wh-pincode"
 						name="pincode"
@@ -178,11 +180,11 @@ function WarehouseSetupPanel({ retailerId, token, onSaved, onLoaded }) {
 						required
 						maxLength={6}
 						pattern="[0-9]{6}"
-						placeholder="6 digits"
+						placeholder={t("warehouseSetup.pincodePlaceholder", "6 digits")}
 					/>
 				</div>
 				<div className="grid gap-2">
-					<Label htmlFor="jh-wh-phone">Phone</Label>
+					<Label htmlFor="jh-wh-phone">{t("warehouseSetup.phoneLabel", "Phone")}</Label>
 					<Input
 						id="jh-wh-phone"
 						name="phone"
@@ -195,11 +197,11 @@ function WarehouseSetupPanel({ retailerId, token, onSaved, onLoaded }) {
 			<div className="flex justify-end gap-2 mt-2">
 				{warehouse && (
 					<Button type="button" variant="outline" onClick={() => setIsEditing(false)}>
-						Cancel
+						{t("warehouseSetup.cancel", "Cancel")}
 					</Button>
 				)}
 				<Button type="submit" loading={saving.toString()} disabled={saving || !formData.name || !formData.pincode}>
-					Save Warehouse
+					{saving ? t("warehouseSetup.saving", "Saving...") : t("warehouseSetup.saveWarehouse", "Save Warehouse")}
 				</Button>
 			</div>
 		</form>
@@ -207,3 +209,4 @@ function WarehouseSetupPanel({ retailerId, token, onSaved, onLoaded }) {
 }
 
 export default WarehouseSetupPanel;
+

@@ -2432,5 +2432,184 @@
     "passwordChangeFailed": "Failed to change password.",
     "imageUpdated": "Profile image updated successfully!",
     "imageUploadFailed": "Failed to upload image."
+  },
+  "shippingSettings": {
+    "title": "Shipping & Logistics",
+    "refresh": "Refresh",
+    "description": "Configure your delivery partners and pickup warehouse here to enable automatic shipping rates and automated AWB generation at checkout.",
+    "loading": "Loading shipping settings...",
+    "fetchError": "Could not check your Delhivery connection.",
+    "partnerStep": "1. Delivery Partner Integration",
+    "partnerDescNotConnected": "Connect to Delhivery to enable automated shipments and live order tracking.",
+    "connectedVia": "Delhivery integration is connected via",
+    "warehouseStep": "2. Pickup Warehouse Configuration",
+    "warehouseDesc": "Delhivery needs to know where to pick up your packages. Enter your warehouse details exactly as registered in your Delhivery dashboard."
+  },
+  "delhiveryConnect": {
+    "methods": {
+      "apiToken": "API token",
+      "oauth2": "OAuth2 / MCP client credentials",
+      "oauth2Short": "OAuth2 / MCP",
+      "webhook": "Webhook push"
+    },
+    "badges": {
+      "recommended": "Recommended",
+      "inUse": "In use",
+      "connected": "Connected"
+    },
+    "disconnect": "Disconnect",
+    "help": "Help",
+    "hideHelp": "Hide steps for {{title}}",
+    "showHelp": "Show steps for {{title}}",
+    "copyLabel": "Copy {{label}}",
+    "statusConnected": "Delhivery is connected",
+    "statusPrompt": "How should Delhivery share delivery status with JeevanHub?",
+    "statusSubConnected": "Using {{method}}. Pick another option below to switch.",
+    "statusSubPrompt": "Pick whichever one your Delhivery plan gives you. You only need one.",
+    "actionFailed": "Action failed",
+    "notConnectedRejected": "Not connected — Delhivery rejected these details",
+    "savedNotVerified": "Saved, but not verified",
+    "verifiedWithDelhivery": "Verified with Delhivery",
+    "verifiedLastWebhook": "Verified! Last webhook received at: {{time}}",
+    "noWebhookYet": "No webhook data received from Delhivery yet. Try sending a test ping from your Delhivery dashboard.",
+    "failedToCheckStatus": "Failed to check status.",
+    "couldNotSave": "Could not save the integration.",
+    "couldNotDisconnect": "Could not disconnect.",
+    "apiTokenLabel": "API token",
+    "apiTokenPlaceholder": "Paste the production token from Delhivery One",
+    "apiTokenHelp": "Stored encrypted. It is never shown again, here or anywhere else in JeevanHub.",
+    "checkingWithDelhivery": "Checking with Delhivery…",
+    "verifyAndConnect": "Verify & connect",
+    "oauthPasteLabel": "Paste the JSON from Delhivery (optional shortcut)",
+    "fillFields": "Fill fields",
+    "pasteError": "Could not find D1_CLIENT_ID / D1_CLIENT_SECRET / D1_AUTH_URL / D1_REALM in that text.",
+    "pasteMissing": "Filled what was found. Still missing: {{missing}}.",
+    "pasteAllFilled": "All four values filled in below.",
+    "clientId": "Client ID",
+    "clientSecret": "Client secret",
+    "authUrl": "Auth URL",
+    "realm": "Realm",
+    "webhookDesc": "Nothing to type here — JeevanHub generates the two values and you paste them into Delhivery. Generating again replaces the previous secret.",
+    "generateWebhookDetails": "Generate webhook details",
+    "generateNewWebhookDetails": "Generate new webhook details",
+    "testConnection": "Test Connection",
+    "webhookCopyPrompt": "Copy these into Delhivery now — the secret is not shown again.",
+    "webhookUrlLabel": "Webhook URL (POST)",
+    "headerNameLabel": "Header name",
+    "headerSecretLabel": "Header value (secret)",
+    "webhookLocalhostTitle": "This URL is not reachable by Delhivery",
+    "webhookLocalhostDesc": "It points at localhost. Expose your backend with a tunnel (e.g. ngrok http 8080), set BASE_URL in the backend .env to that public URL, restart the server, then generate again."
+  },
+  "delhiveryOptions": {
+    "apiToken": {
+      "title": "API token",
+      "tagline": "Simplest. One token from your Delhivery dashboard.",
+      "badge": "Recommended",
+      "helpTitle": "How to get your Delhivery API token",
+      "helpSteps": [
+        "Sign in to Delhivery One (one.delhivery.com) with the account that books your shipments.",
+        "Open the profile menu at the top right and go to Settings → API Setup. On some plans this sits under Integrations → API.",
+        "Find the API Token section and click Generate (or Show) for the Production token.",
+        "Copy the long alphanumeric string. Treat it like a password.",
+        "Paste it in the field here and click Connect. JeevanHub encrypts it before saving and never displays it again."
+      ],
+      "helpNotes": [
+        "If you only see a Staging / UAT token, ask your Delhivery account manager to enable production API access — a staging token cannot track real shipments.",
+        "If you ever regenerate the token in Delhivery, come back and connect again, otherwise tracking will start failing."
+      ]
+    },
+    "oauth2": {
+      "title": "OAuth2 / MCP client credentials",
+      "tagline": "For accounts issued a client ID and secret instead of a token.",
+      "helpTitle": "How to get your OAuth2 (MCP) credentials",
+      "helpSteps": [
+        "Sign in to Delhivery One and go to Settings → Developer. Delhivery also labels this MCP or API client credentials depending on your plan.",
+        "Click Create client (or Generate credentials).",
+        "Delhivery shows a JSON block containing D1_CLIENT_ID, D1_CLIENT_SECRET, D1_AUTH_URL and D1_REALM.",
+        "Copy the whole JSON block — the client secret is shown only once.",
+        "Paste it into the box here and click Fill fields, or type the four values in manually.",
+        "Click Connect. JeevanHub exchanges these for a short-lived access token whenever it checks your shipments, and stores the secret encrypted."
+      ],
+      "helpNotes": [
+        "D1_AUTH_URL must be a full https:// URL — that is the endpoint we call to get the access token.",
+        "If your account manager set this up for you, ask them for the same JSON block rather than re-generating it (regenerating invalidates the old secret)."
+      ]
+    },
+    "webhook": {
+      "title": "Webhook push",
+      "tagline": "Delhivery pushes each scan to us. No token to share.",
+      "helpTitle": "How to register the JeevanHub webhook in Delhivery",
+      "helpSteps": [
+        "Click Generate webhook details here. JeevanHub creates a URL and a secret unique to your store, and shows them once.",
+        "Copy both values before closing this dialog. The secret cannot be shown again — you can always generate a fresh one, which replaces the old.",
+        "Sign in to Delhivery One and go to Settings → Webhooks. If you do not see it, email your Delhivery account manager and ask them to register a shipment status push (also called an NSL webhook) for your account.",
+        "Add a new webhook with Method POST, Content-Type application/json, and the URL you copied.",
+        "Add a custom header named X-Secret whose value is the secret you copied. Pushes without the exact header are rejected.",
+        "Subscribe to all shipment status events — Manifested, In Transit, Out for Delivery, Delivered and RTO.",
+        "Save. From then on Delhivery notifies JeevanHub on every scan, so delivery is detected within seconds."
+      ],
+      "helpNotes": [
+        "With this method JeevanHub holds no Delhivery credentials, so it cannot fetch tracking on demand — the timeline is built only from what Delhivery pushes. Nothing appears until the first scan after you register the webhook.",
+        "The URL must be reachable from the public internet. If it shows localhost, you are on a local server: run a tunnel (for example ngrok http 8080) and set BASE_URL in the backend .env to that public URL, restart the server, then generate again."
+      ]
+    }
+  },
+  "warehouseSetup": {
+    "loading": "Loading warehouse settings...",
+    "fetchError": "Could not load warehouse settings.",
+    "saveError": "Failed to save warehouse settings.",
+    "title": "Configure Pickup Warehouse",
+    "errorTitle": "Error",
+    "nameLabel": "Warehouse Name *",
+    "namePlaceholder": "e.g. Main Hub",
+    "nameHelp": "Must match the pickup location name registered in your Delhivery dashboard exactly.",
+    "addressLabel": "Address",
+    "addressPlaceholder": "123 Industrial Area",
+    "cityLabel": "City",
+    "stateLabel": "State",
+    "pincodeLabel": "Pincode *",
+    "pincodePlaceholder": "6 digits",
+    "phoneLabel": "Phone",
+    "phonePrefix": "Ph:",
+    "cancel": "Cancel",
+    "edit": "Edit",
+    "saveWarehouse": "Save Warehouse",
+    "saving": "Saving..."
+  },
+  "retailerBankDetails": {
+    "title": "Bank Account Details (Payouts)",
+    "subtitle": "Provide your bank details to receive payouts for your orders.",
+    "loading": "Loading Bank Details...",
+    "saving": "Saving...",
+    "saveDetails": "Save Details",
+    "cancel": "Cancel",
+    "editBankDetails": "Edit Bank Details",
+    "verifiedMessage": "✅ Your bank account is verified and successfully linked for payouts. (Account ID: {{id}})",
+    "reviewMessage": "⏳ Your bank details are under review. Payouts will start once verified by the admin.",
+    "accountHolderName": "Account Holder Name",
+    "accountHolderNamePlaceholder": "Exact name as per bank records",
+    "accountNumber": "Account Number",
+    "accountNumberPlaceholder": "1234567890",
+    "ifscCode": "IFSC Code",
+    "ifscCodePlaceholder": "HDFC0001234",
+    "businessType": "Business Type",
+    "selectBusinessType": "Select Business Type",
+    "standardFastOnboarding": "Standard (Fast Onboarding)",
+    "corporateKycNotice": "Corporate (Razorpay may email you for KYC docs)",
+    "types": {
+      "individual": "Individual",
+      "proprietorship": "Proprietorship",
+      "partnership": "Partnership",
+      "private_limited": "Private Limited",
+      "public_limited": "Public Limited",
+      "llp": "LLP",
+      "trust": "Trust",
+      "society": "Society",
+      "ngo": "NGO"
+    },
+    "alerts": {
+      "saveSuccess": "Bank details saved successfully. Our team will verify and link your account for payouts.",
+      "saveFailed": "Failed to save bank details."
+    }
   }
 }

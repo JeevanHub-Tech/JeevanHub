@@ -19,12 +19,13 @@ import defaultProfilePic from "../../media/default-profile.png";
 const API = BACKEND_URL || "http://localhost:8080";
 
 function PrescriptionStatusBadge({ doc }) {
+	const { t } = useTranslation();
 	const ocrStatus = doc.ocr?.status;
 	const verificationStatus = doc.patientVerification?.status;
-	if (verificationStatus === "submitted") return <Badge variant="success">Submitted to doctor</Badge>;
-	if (ocrStatus === "failed") return <Badge variant="destructive">OCR failed</Badge>;
-	if (ocrStatus === "processing" || !ocrStatus || ocrStatus === "pending") return <Badge>Transcribing…</Badge>;
-	if (ocrStatus === "done") return <Badge variant="warning">Needs your review</Badge>;
+	if (verificationStatus === "submitted") return <Badge variant="success">{t("patientProfile.submittedToDoctor", "Submitted to doctor")}</Badge>;
+	if (ocrStatus === "failed") return <Badge variant="destructive">{t("patientProfile.ocrFailed", "OCR failed")}</Badge>;
+	if (ocrStatus === "processing" || !ocrStatus || ocrStatus === "pending") return <Badge>{t("patientProfile.transcribing", "Transcribing…")}</Badge>;
+	if (ocrStatus === "done") return <Badge variant="warning">{t("patientProfile.needsReview", "Needs your review")}</Badge>;
 	return null;
 }
 
@@ -300,7 +301,7 @@ const PatientProfile = () => {
 							<p className="text-sm text-muted-foreground">{patientData.email}</p>
 						</div>
 						<Button variant="outline" onClick={handleSignOut} className="w-full">
-							Sign out
+							{t("patientProfile.signOut", "Sign out")}
 						</Button>
 					</CardContent>
 				</Card>
@@ -314,10 +315,10 @@ const PatientProfile = () => {
 							{isEditing ? (
 								<div className="flex gap-2">
 									<Button size="sm" onClick={handleSaveProfile} disabled={loading}>
-										{loading ? t("common.saving", "Saving...") : t("common.save", "Save")}
+										{loading ? t("patientProfile.saving", "Saving...") : t("patientProfile.save", "Save")}
 									</Button>
 									<Button size="sm" variant="ghost" onClick={() => setIsEditing(false)}>
-										{t("common.cancel", "Cancel")}
+										{t("patientProfile.cancel", "Cancel")}
 									</Button>
 								</div>
 							) : (
@@ -346,12 +347,12 @@ const PatientProfile = () => {
 									disabled={!isEditing}
 								>
 									<SelectTrigger id="gender">
-										<SelectValue placeholder="Select" />
+										<SelectValue placeholder={t("patientProfile.select", "Select")} />
 									</SelectTrigger>
 									<SelectContent>
-										<SelectItem value="Male">Male</SelectItem>
-										<SelectItem value="Female">Female</SelectItem>
-										<SelectItem value="Other">Other</SelectItem>
+										<SelectItem value="Male">{t("patientProfile.genderOptions.male", "Male")}</SelectItem>
+										<SelectItem value="Female">{t("patientProfile.genderOptions.female", "Female")}</SelectItem>
+										<SelectItem value="Other">{t("patientProfile.genderOptions.other", "Other")}</SelectItem>
 									</SelectContent>
 								</Select>
 							</Field>
@@ -374,41 +375,41 @@ const PatientProfile = () => {
 						</CardHeader>
 						<CardContent>
 							<form onSubmit={handlePasswordSubmit} className="grid gap-4 sm:grid-cols-3">
-								<Field label="Current password" htmlFor="currentPassword">
+								<Field label={t("patientProfile.currentPassword", "Current password")} htmlFor="currentPassword">
 									<Input
 										id="currentPassword"
 										type="password"
 										name="currentPassword"
 										value={passwords.currentPassword}
 										onChange={handlePasswordChange}
-										placeholder="Enter current password"
+										placeholder={t("patientProfile.currentPasswordPlaceholder", "Enter current password")}
 										required
 									/>
 								</Field>
-								<Field label="New password" htmlFor="newPassword">
+								<Field label={t("patientProfile.newPassword", "New password")} htmlFor="newPassword">
 									<Input
 										id="newPassword"
 										type="password"
 										name="newPassword"
 										value={passwords.newPassword}
 										onChange={handlePasswordChange}
-										placeholder="Enter new password"
+										placeholder={t("patientProfile.newPasswordPlaceholder", "Enter new password")}
 										required
 									/>
 								</Field>
-								<Field label="Confirm new password" htmlFor="confirmPassword">
+								<Field label={t("patientProfile.confirmNewPassword", "Confirm new password")} htmlFor="confirmPassword">
 									<Input
 										id="confirmPassword"
 										type="password"
 										name="confirmPassword"
 										value={passwords.confirmPassword}
 										onChange={handlePasswordChange}
-										placeholder="Confirm new password"
+										placeholder={t("patientProfile.confirmNewPasswordPlaceholder", "Confirm new password")}
 										required
 									/>
 								</Field>
 								<Button type="submit" className="sm:col-span-3 sm:w-fit">
-									Update password
+									{t("patientProfile.updatePassword", "Update password")}
 								</Button>
 							</form>
 						</CardContent>
@@ -416,11 +417,11 @@ const PatientProfile = () => {
 
 					<Card>
 						<CardHeader>
-							<CardTitle className="font-display text-xl">Medical history</CardTitle>
+							<CardTitle className="font-display text-xl">{t("patientProfile.medicalHistory", "Medical history")}</CardTitle>
 						</CardHeader>
 						<CardContent className="flex flex-col gap-4">
 							<p className="text-sm text-muted-foreground">
-								Upload previous medical records (PDF, JPG, PNG) so doctors you consult can reference them.
+								{t("patientProfile.medicalHistoryDesc", "Upload previous medical records (PDF, JPG, PNG) so doctors you consult can reference them.")}
 							</p>
 
 							<div>
@@ -429,7 +430,7 @@ const PatientProfile = () => {
 									className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/80"
 								>
 									<UploadCloud size={16} />
-									{uploadingDocs ? "Uploading..." : "Upload documents"}
+									{uploadingDocs ? t("patientProfile.uploading", "Uploading...") : t("patientProfile.uploadDocuments", "Upload documents")}
 								</label>
 								<input
 									type="file"
@@ -443,7 +444,10 @@ const PatientProfile = () => {
 							</div>
 
 							{medicalHistory.length === 0 ? (
-								<EmptyState title="No documents uploaded yet" description="Upload a PDF, JPG, or PNG to get started." />
+								<EmptyState
+									title={t("patientProfile.noDocsTitle", "No documents uploaded yet")}
+									description={t("patientProfile.noDocsDesc", "Upload a PDF, JPG, or PNG to get started.")}
+								/>
 							) : (
 								<div className="flex flex-col gap-2">
 									{medicalHistory.map((doc) => (
@@ -460,7 +464,7 @@ const PatientProfile = () => {
 											<button
 												type="button"
 												onClick={() => handleDeleteMedicalHistoryDoc(doc._id)}
-												aria-label="Delete document"
+												aria-label={t("patientProfile.deleteDoc", "Delete document")}
 												className="shrink-0 rounded-md p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
 											>
 												<Trash2 size={16} />

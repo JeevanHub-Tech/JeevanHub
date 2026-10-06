@@ -6,42 +6,113 @@
 const axios = require('axios');
 const { fetchYouTubeVideos } = require('./youtubeService');
 
-const GROQ_API_KEY = process.env.GROQ_API_KEY;
+const { GoogleGenAI } = require('@google/genai');
+
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 
-// Model selection — llama-3.3-70b-versatile is best for complex reasoning
-const MODEL_FAST = 'llama-3.3-70b-versatile';    // For intent detection (fast + accurate)
-const MODEL_CHAT = 'llama-3.3-70b-versatile';     // For conversations & health analysis
+// Model selection — llama-3.3-70b-versatile for Groq, gemini-2.5-flash for Gemini
+const MODEL_FAST = 'llama-3.3-70b-versatile';
+const MODEL_CHAT = 'llama-3.3-70b-versatile';
+const GEMINI_MODEL = process.env.GEMINI_CHAT_MODEL || 'gemini-2.5-flash';
 
 /**
- * Helper: Make a Groq API call with error handling
+ * Helper: Make an AI call with Groq primary and Google Gemini fallback
  */
 async function groqChat(messages, options = {}) {
     const {
         temperature = 0.7,
-        maxTokens = 500,
+        maxTokens = 600,
         jsonMode = false
     } = options;
 
-    const requestBody = {
-        model: options.model || MODEL_CHAT,
-        messages,
-        temperature,
-        max_tokens: maxTokens,
-    };
+    const groqKey = process.env.GROQ_API_KEY ? process.env.GROQ_API_KEY.trim() : '';
+    const hasValidGroqKey = groqKey && !groqKey.includes('your_groq_api_key_here');
 
-    if (jsonMode) {
-        requestBody.response_format = { type: 'json_object' };
+    // 1. Try Groq if valid key provided
+    if (hasValidGroqKey) {
+        try {
+            const requestBody = {
+                model: options.model || MODEL_CHAT,
+                messages,
+                temperature,
+                max_tokens: maxTokens,
+            };
+
+            if (jsonMode) {
+                requestBody.response_format = { type: 'json_object' };
+            }
+
+            const response = await axios.post(GROQ_API_URL, requestBody, {
+                headers: {
+                    'Authorization': `Bearer ${groqKey}`,
+                    'Content-Type': 'application/json'
+                },
+                timeout: 10000
+            });
+
+            const content = response.data?.choices?.[0]?.message?.content;
+            if (content) return content;
+        } catch (groqError) {
+            console.warn('Groq AI failed, falling back to Gemini:', groqError.response?.data?.error?.message || groqError.message);
+        }
     }
 
-    const response = await axios.post(GROQ_API_URL, requestBody, {
-        headers: {
-            'Authorization': `Bearer ${GROQ_API_KEY}`,
-            'Content-Type': 'application/json'
-        }
-    });
+    // 2. Try Google Gemini
+    const geminiKey = process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.trim() : '';
+    if (geminiKey) {
+        try {
+            const ai = new GoogleGenAI({ apiKey: geminiKey });
+            
+            let systemInstruction = '';
+            const contents = [];
 
-    return response.data?.choices?.[0]?.message?.content;
+            for (const m of messages) {
+                if (m.role === 'system') {
+                    systemInstruction += (systemInstruction ? '\n\n' : '') + m.content;
+                } else {
+                    contents.push({
+                        role: m.role === 'assistant' ? 'model' : 'user',
+                        parts: [{ text: String(m.content || '') }]
+                    });
+                }
+            }
+
+            if (contents.length === 0 && systemInstruction) {
+                contents.push({
+                    role: 'user',
+                    parts: [{ text: systemInstruction }]
+                });
+                systemInstruction = '';
+            }
+
+            const config = {
+                temperature,
+                maxOutputTokens: maxTokens,
+            };
+
+            if (systemInstruction) {
+                config.systemInstruction = systemInstruction;
+            }
+            if (jsonMode) {
+                config.responseMimeType = 'application/json';
+            }
+
+            const resp = await ai.models.generateContent({
+                model: GEMINI_MODEL,
+                contents,
+                config
+            });
+
+            if (resp && resp.text) {
+                return resp.text;
+            }
+        } catch (geminiError) {
+            console.error('Gemini AI call error:', geminiError.message);
+            throw geminiError;
+        }
+    }
+
+    throw new Error('No AI provider available (neither Groq nor Gemini configured with working keys)');
 }
 
 
@@ -180,6 +251,43 @@ CRITICAL MEDICAL RULES:
 ${PLATFORM_CONTEXT}`;
 
 
+/**
+ * Helper: Safely parse JSON from LLMs even with markdown fences or unescaped newlines
+ */
+function safeParseJson(text, fallback = null) {
+    if (!text || typeof text !== 'string') return fallback;
+    try {
+        return JSON.parse(text);
+    } catch (_) {
+        try {
+            const cleaned = text.replace(/```json/gi, '').replace(/```/g, '').trim();
+            const match = cleaned.match(/\{[\s\S]*\}/);
+            if (match) {
+                try {
+                    return JSON.parse(match[0]);
+                } catch (_) {
+                    // Try fixing unescaped newlines/tabs inside string literals
+                    let sanitized = match[0].replace(/"((?:\\.|[^"\\])*)"/g, (matchStr) => {
+                        return matchStr.replace(/\r?\n/g, '\\n').replace(/\t/g, '\\t');
+                    });
+                    try {
+                        return JSON.parse(sanitized);
+                    } catch (_) {
+                        // If still broken, try dirty-json repair
+                        try {
+                            const evalFn = new Function(`return ${match[0]}`);
+                            return evalFn();
+                        } catch (e3) {}
+                    }
+                }
+            }
+        } catch (err) {
+            return fallback;
+        }
+    }
+    return fallback;
+}
+
 // ============================================================
 // INTENT DETECTION - Understand what the user wants
 // ============================================================
@@ -250,11 +358,13 @@ Respond ONLY with valid JSON (no extra text):
         ], {
             model: MODEL_FAST,
             temperature: 0.1,
-            maxTokens: 250,
+            maxTokens: 500,
             jsonMode: true
         });
 
-        const parsed = JSON.parse(text);
+        const parsed = safeParseJson(text, null);
+        if (!parsed) throw new Error('Invalid JSON response');
+
         // Normalize Hinglish variants
         if (parsed.language) {
             const l = parsed.language.toLowerCase();
@@ -428,12 +538,20 @@ Respond ONLY with valid JSON:
             { role: 'user', content: prompt }
         ], {
             temperature: 0.7,
-            maxTokens: 600,
+            maxTokens: 1200,
             jsonMode: true
         });
 
         if (!text) throw new Error('No response from quick assessment');
-        return JSON.parse(text);
+        const parsed = safeParseJson(text, null);
+        if (!parsed) throw new Error('Failed to parse quick assessment JSON');
+        return {
+            quickAdvice: cleanForChat(parsed.quickAdvice || ''),
+            category: parsed.category || 'General Wellness',
+            suggestedSpecialization: parsed.suggestedSpecialization || 'General Ayurveda',
+            doshaImbalance: parsed.doshaImbalance || 'Vata/Pitta/Kapha',
+            severity: parsed.severity || 'medium'
+        };
     } catch (error) {
         console.error('Quick Health Assessment Error:', error.response?.data || error.message);
         return {
@@ -492,7 +610,9 @@ Respond ONLY with valid JSON:
         });
 
         if (!text) throw new Error('No response from Groq health analysis');
-        return JSON.parse(text);
+        const parsed = safeParseJson(text, null);
+        if (!parsed) throw new Error('Failed to parse health analysis JSON');
+        return parsed;
     } catch (error) {
         console.error('Groq Health Analysis Error:', error.response?.data || error.message);
         return {

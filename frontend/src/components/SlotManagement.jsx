@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useTranslation } from 'react-i18next';
 import { BACKEND_URL } from '../config';
 
 // Helper to convert "HH:mm" to minutes for math
@@ -27,10 +28,13 @@ const generateAllDayTimes = () => {
 
 const ALL_DURATIONS = [15, 30, 45, 60, 75, 90, 105, 120];
 
-const CustomSelect = ({ value, onChange, options, style, placeholder = "Select...", disabled }) => {
+const CustomSelect = ({ value, onChange, options, style, placeholder, disabled }) => {
+    const { t } = useTranslation();
     const [isOpen, setIsOpen] = useState(false);
     const containerRef = React.useRef(null);
     const listRef = React.useRef(null);
+
+    const defaultPlaceholder = placeholder || t('slotManagement.selectPlaceholder', 'Select...');
 
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -75,7 +79,7 @@ const CustomSelect = ({ value, onChange, options, style, placeholder = "Select..
                 style={{ ...style, cursor: disabled ? 'not-allowed' : 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
             >
                 <span style={{ color: selectedOption ? 'inherit' : '#94a3b8' }}>
-                    {selectedOption ? selectedOption.label : placeholder}
+                    {selectedOption ? selectedOption.label : defaultPlaceholder}
                 </span>
                 <span style={{ fontSize: '10px', color: '#64748b', transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>▼</span>
             </div>
@@ -132,7 +136,7 @@ const CustomSelect = ({ value, onChange, options, style, placeholder = "Select..
                     ))}
                     {options.length === 0 && (
                         <div style={{ padding: '10px', color: '#94a3b8', fontSize: '14px', textAlign: 'center' }}>
-                            No options available
+                            {t('slotManagement.noOptions', 'No options available')}
                         </div>
                     )}
                 </div>
@@ -141,7 +145,10 @@ const CustomSelect = ({ value, onChange, options, style, placeholder = "Select..
     );
 };
 
+const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
 const SlotManagement = ({ doctorId, token, defaultPrice }) => {
+    const { t } = useTranslation();
     const [selectedDay, setSelectedDay] = useState('Monday');
     const [viewMode, setViewMode] = useState('template'); // 'template' or 'exceptions'
     const [selectedExceptionDate, setSelectedExceptionDate] = useState(new Date().toISOString().split('T')[0]);
@@ -256,7 +263,7 @@ const SlotManagement = ({ doctorId, token, defaultPrice }) => {
             setAvailableSlots(res.data.availableSlots);
             setSelectedSlot({ ...slot, isDisabled: !slot.isDisabled });
         } catch (error) {
-            alert("Error toggling slot status");
+            alert(t('slotManagement.alerts.errorToggling', 'Error toggling slot status'));
         } finally {
             setLoading(false);
         }
@@ -408,7 +415,7 @@ const SlotManagement = ({ doctorId, token, defaultPrice }) => {
     };
 
     const handleAddSlot = async () => {
-        if (!startTime) return alert("Please select a start time");
+        if (!startTime) return alert(t('slotManagement.alerts.selectStartTime', 'Please select a start time'));
         
         setLoading(true);
         try {
@@ -453,16 +460,16 @@ const SlotManagement = ({ doctorId, token, defaultPrice }) => {
             setStartTime('');
             setDuration(30);
             setShowAddSlotForm(false);
-            alert("Slot added successfully!");
+            alert(t('slotManagement.alerts.slotAdded', 'Slot added successfully!'));
         } catch (error) {
-            alert(error.response?.data?.message || "Error adding slot");
+            alert(error.response?.data?.message || t('slotManagement.alerts.errorAdding', 'Error adding slot'));
         } finally {
             setLoading(false);
         }
     };
 
     const handleDeleteSlot = async (slotId) => {
-        if (!window.confirm("Deleting this template will cancel all existing bookings for this time on future dates. Proceed anyway?")) return;
+        if (!window.confirm(t('slotManagement.alerts.deleteTemplateConfirm', 'Deleting this template will cancel all existing bookings for this time on future dates. Proceed anyway?'))) return;
         setLoading(true);
         try {
             const res = await axios.delete(
@@ -471,7 +478,7 @@ const SlotManagement = ({ doctorId, token, defaultPrice }) => {
             );
             setAvailableSlots(res.data.availableSlots);
         } catch (error) {
-            alert("Error deleting slot");
+            alert(t('slotManagement.alerts.errorDeleting', 'Error deleting slot'));
         } finally {
             setLoading(false);
         }
@@ -530,7 +537,7 @@ const SlotManagement = ({ doctorId, token, defaultPrice }) => {
             setIsEditingSlot(false);
             setSelectedSlot(null);
         } catch (error) {
-            alert("Error updating slot");
+            alert(t('slotManagement.alerts.errorUpdating', 'Error updating slot'));
         } finally {
             setLoading(false);
         }
@@ -726,11 +733,10 @@ const SlotManagement = ({ doctorId, token, defaultPrice }) => {
                         borderRadius: '8px',
                         padding: '8px 12px',
                         zIndex: 50,
-                    }}
-                >
-                    <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
+                    }}>
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
                         <div style={{ display: 'flex', flexDirection: 'column' }}>
-                            <label style={{ fontSize: '10px', fontWeight: 'bold', marginBottom: '2px' }}>Start Time</label>
+                            <label style={{ fontSize: '10px', fontWeight: 'bold', marginBottom: '2px' }}>{t('slotManagement.form.startTime', 'Start Time')}</label>
                             {(() => {
                                 const st = (typeof isEditingSlot !== 'undefined' && isEditingSlot && typeof editSlotData !== 'undefined') ? editSlotData.startTime : selectedSlot.startTime;
                                 const h24 = parseInt(st.split(':')[0] || '10');
@@ -788,27 +794,27 @@ const SlotManagement = ({ doctorId, token, defaultPrice }) => {
                         </div>
                         
                         <div style={{ display: 'flex', flexDirection: 'column' }}>
-                            <label style={{ fontSize: '10px', fontWeight: 'bold', marginBottom: '2px' }}>Duration</label>
+                            <label style={{ fontSize: '10px', fontWeight: 'bold', marginBottom: '2px' }}>{t('slotManagement.form.duration', 'Duration')}</label>
                             {(() => {
                                 const dur = isEditingSlot ? editSlotData.duration : selectedSlot.duration;
                                 const editMax = isEditingSlot ? getEditMaxDuration(editSlotData) : 999;
                                 return (
                                     <select title="Duration" disabled={!isEditingSlot} value={dur} onChange={(e) => setEditSlotData({ ...editSlotData, duration: Number(e.target.value) })} style={{ padding: '4px', fontSize: '12px', width: '75px', borderRadius: '4px', border: '1px solid #cbd5e1', appearance: isEditingSlot ? 'auto' : 'none', background: isEditingSlot ? 'white' : '#f8fafc', color: isEditingSlot ? 'black' : '#475569' }}>
-                                        {ALL_DURATIONS.filter(d => d <= 120).map(d => { const dis = d > editMax; return <option key={d} value={d} disabled={dis} style={{ background: dis ? '#f1f5f9' : 'white', color: dis ? '#94a3b8' : 'black' }}>{d} min</option> })}
+                                        {ALL_DURATIONS.filter(d => d <= 120).map(d => { const dis = d > editMax; return <option key={d} value={d} disabled={dis} style={{ background: dis ? '#f1f5f9' : 'white', color: dis ? '#94a3b8' : 'black' }}>{d} {t('slotManagement.form.min', 'min')}</option> })}
                                     </select>
                                 )
                             })()}
                         </div>
 
                         <div style={{ display: 'flex', flexDirection: 'column' }}>
-                            <label style={{ fontSize: '10px', fontWeight: 'bold', marginBottom: '2px' }}>Mode</label>
+                            <label style={{ fontSize: '10px', fontWeight: 'bold', marginBottom: '2px' }}>{t('slotManagement.form.mode', 'Mode')}</label>
                             {(() => {
                                 const mode = (typeof isEditingSlot !== 'undefined' && isEditingSlot && typeof editSlotData !== 'undefined') ? editSlotData.consultationType : selectedSlot.consultationType;
                                 return (
                                     <select title="Consultation Mode" disabled={typeof isEditingSlot === 'undefined' || !isEditingSlot} value={mode} onChange={(e) => setEditSlotData({ ...editSlotData, consultationType: e.target.value })} style={{ padding: '4px', fontSize: '12px', width: '80px', borderRadius: '4px', border: '1px solid #cbd5e1', appearance: (typeof isEditingSlot !== 'undefined' && isEditingSlot) ? 'auto' : 'none', background: (typeof isEditingSlot !== 'undefined' && isEditingSlot) ? 'white' : '#f8fafc', color: (typeof isEditingSlot !== 'undefined' && isEditingSlot) ? 'black' : '#475569' }}>
-                                        <option value="Online">Online</option>
-                                        <option value="In-Person">In-Person</option>
-                                        <option value="Both">Both</option>
+                                        <option value="Online">{t('slotManagement.form.modes.Online', 'Online')}</option>
+                                        <option value="In-Person">{t('slotManagement.form.modes.In-Person', 'In-Person')}</option>
+                                        <option value="Both">{t('slotManagement.form.modes.Both', 'Both')}</option>
                                     </select>
                                 )
                             })()}
@@ -820,15 +826,15 @@ const SlotManagement = ({ doctorId, token, defaultPrice }) => {
                             return (
                                 <div style={{ display: 'flex', gap: '8px', background: stype === 'Group' ? '#e2e8f0' : 'transparent', padding: '4px 6px', borderRadius: '6px', margin: '-4px -6px' }}>
                                     <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                        <label style={{ fontSize: '10px', fontWeight: 'bold', marginBottom: '2px' }}>Session</label>
+                                        <label style={{ fontSize: '10px', fontWeight: 'bold', marginBottom: '2px' }}>{t('slotManagement.form.session', 'Session')}</label>
                                         <select title="Session Type" disabled={typeof isEditingSlot === 'undefined' || !isEditingSlot} value={stype} onChange={(e) => setEditSlotData({ ...editSlotData, sessionType: e.target.value, maxCapacity: e.target.value === '1-to-1' ? 1 : 2 })} style={{ padding: '4px', fontSize: '12px', width: '80px', borderRadius: '4px', border: '1px solid #cbd5e1', appearance: (typeof isEditingSlot !== 'undefined' && isEditingSlot) ? 'auto' : 'none', background: (typeof isEditingSlot !== 'undefined' && isEditingSlot) ? 'white' : '#f8fafc', color: (typeof isEditingSlot !== 'undefined' && isEditingSlot) ? 'black' : '#475569' }}>
-                                            <option value="1-to-1">1-to-1</option>
-                                            <option value="Group">Group</option>
+                                            <option value="1-to-1">{t('slotManagement.form.sessionTypes.1-to-1', '1-to-1')}</option>
+                                            <option value="Group">{t('slotManagement.form.sessionTypes.Group', 'Group')}</option>
                                         </select>
                                     </div>
                                     {stype === 'Group' && (
                                         <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                            <label style={{ fontSize: '10px', fontWeight: 'bold', marginBottom: '2px' }}>Cap</label>
+                                            <label style={{ fontSize: '10px', fontWeight: 'bold', marginBottom: '2px' }}>{t('slotManagement.form.cap', 'Cap')}</label>
                                             <input type="number" min="2" disabled={typeof isEditingSlot === 'undefined' || !isEditingSlot} title="Capacity" value={cap} onChange={(e) => setEditSlotData({ ...editSlotData, maxCapacity: e.target.value === '' ? '' : Number(e.target.value) })} style={{ padding: '4px', fontSize: '12px', width: '40px', borderRadius: '4px', border: '1px solid #cbd5e1', background: (typeof isEditingSlot !== 'undefined' && isEditingSlot) ? 'white' : '#f8fafc', color: (typeof isEditingSlot !== 'undefined' && isEditingSlot) ? 'black' : '#475569' }} />
                                         </div>
                                     )}
@@ -837,7 +843,7 @@ const SlotManagement = ({ doctorId, token, defaultPrice }) => {
                         })()}
 
                         <div style={{ display: 'flex', flexDirection: 'column' }}>
-                            <label style={{ fontSize: '10px', fontWeight: 'bold', marginBottom: '2px' }}>Fee (₹)</label>
+                            <label style={{ fontSize: '10px', fontWeight: 'bold', marginBottom: '2px' }}>{t('slotManagement.form.fee', 'Fee (₹)')}</label>
                             {(() => {
                                 const feeVal = (typeof isEditingSlot !== 'undefined' && isEditingSlot && typeof editSlotData !== 'undefined') ? editSlotData.fee : selectedSlot.fee;
                                 return <input type="number" min="0" disabled={typeof isEditingSlot === 'undefined' || !isEditingSlot} title="Fee" value={feeVal} onChange={(e) => setEditSlotData({ ...editSlotData, fee: e.target.value === '' ? '' : Number(e.target.value) })} style={{ padding: '4px', fontSize: '12px', width: '60px', borderRadius: '4px', border: '1px solid #cbd5e1', background: (typeof isEditingSlot !== 'undefined' && isEditingSlot) ? 'white' : '#f8fafc', color: (typeof isEditingSlot !== 'undefined' && isEditingSlot) ? 'black' : '#475569' }} />
@@ -847,27 +853,27 @@ const SlotManagement = ({ doctorId, token, defaultPrice }) => {
                         <div style={{ display: 'flex', gap: '4px', marginLeft: '4px' }}>
                             {(typeof isEditingSlot !== 'undefined' && isEditingSlot) ? (
                                 <>
-                                    <button onClick={() => typeof handleUpdateSlot === 'function' ? handleUpdateSlot() : null} disabled={loading} style={{ background: '#10b981', color: 'white', padding: '5px 12px', border: 'none', borderRadius: '4px', fontSize: '12px', cursor: loading ? 'not-allowed' : 'pointer', fontWeight: 'bold' }}>Save</button>
+                                    <button onClick={() => typeof handleUpdateSlot === 'function' ? handleUpdateSlot() : null} disabled={loading} style={{ background: '#10b981', color: 'white', padding: '5px 12px', border: 'none', borderRadius: '4px', fontSize: '12px', cursor: loading ? 'not-allowed' : 'pointer', fontWeight: 'bold' }}>{t('slotManagement.form.save', 'Save')}</button>
                                     <button onClick={() => { setIsEditingSlot(false); setEditSlotData(selectedSlot); }} style={{ background: '#ef4444', color: 'white', padding: '5px 12px', border: 'none', borderRadius: '4px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold' }}>X</button>
                                 </>
                             ) : (
                                 <>
                                     {viewMode === 'template' ? (
                                         <>
-                                            <button onClick={() => { if(typeof setIsEditingSlot !== 'undefined') { setIsEditingSlot(true); setEditSlotData(selectedSlot); } }} style={{ background: '#3b82f6', color: 'white', padding: '5px 12px', border: 'none', borderRadius: '4px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold' }}>Edit</button>
-                                            <button onClick={() => { handleToggleDisable(selectedSlot); setSelectedSlot(null); }} style={{ background: '#f59e0b', color: 'white', padding: '5px 12px', border: 'none', borderRadius: '4px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold' }}>{selectedSlot.isDisabled ? 'Enable' : 'Disable'}</button>
-                                            <button onClick={() => { handleDeleteSlot(selectedSlot._id); setSelectedSlot(null); }} style={{ background: '#ef4444', color: 'white', padding: '5px 12px', border: 'none', borderRadius: '4px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold' }}>Delete</button>
+                                            <button onClick={() => { if(typeof setIsEditingSlot !== 'undefined') { setIsEditingSlot(true); setEditSlotData(selectedSlot); } }} style={{ background: '#3b82f6', color: 'white', padding: '5px 12px', border: 'none', borderRadius: '4px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold' }}>{t('slotManagement.form.edit', 'Edit')}</button>
+                                            <button onClick={() => { handleToggleDisable(selectedSlot); setSelectedSlot(null); }} style={{ background: '#f59e0b', color: 'white', padding: '5px 12px', border: 'none', borderRadius: '4px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold' }}>{selectedSlot.isDisabled ? t('slotManagement.form.enable', 'Enable') : t('slotManagement.form.disable', 'Disable')}</button>
+                                            <button onClick={() => { handleDeleteSlot(selectedSlot._id); setSelectedSlot(null); }} style={{ background: '#ef4444', color: 'white', padding: '5px 12px', border: 'none', borderRadius: '4px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold' }}>{t('slotManagement.form.delete', 'Delete')}</button>
                                         </>
                                     ) : selectedSlot.isCancelledOverride ? (
                                         <button 
                                             onClick={async () => {
-                                                if(!window.confirm("Restore this slot on this date?")) return;
+                                                if(!window.confirm(t('slotManagement.alerts.restoreSlotConfirm', 'Restore this slot on this date?'))) return;
                                                 setLoading(true);
                                                 try {
                                                     const res = await axios.delete(
                                                         `${BACKEND_URL || 'http://localhost:5000'}/api/doctors/slots/overrides`,
                                                         { 
-                                                            headers: { Authorization: `Bearer ${token}` },
+                                                             headers: { Authorization: `Bearer ${token}` },
                                                             data: { 
                                                                 date: selectedExceptionDate, 
                                                                 overrideId: selectedSlot.overrideId || selectedSlot._id,
@@ -877,25 +883,25 @@ const SlotManagement = ({ doctorId, token, defaultPrice }) => {
                                                     );
                                                     setScheduleOverrides(res.data.scheduleOverrides);
                                                 } catch (e) {
-                                                    alert("Error restoring slot");
+                                                    alert(t('slotManagement.alerts.errorRestoring', 'Error restoring slot'));
                                                 } finally {
                                                     setLoading(false);
                                                     setSelectedSlot(null);
                                                 }
                                             }}
                                             style={{ background: '#10b981', color: 'white', border: 'none', padding: '6px', borderRadius: '4px', cursor: 'pointer', flex: 1, fontSize: '12px' }}
-                                        >Restore Slot</button>
+                                        >{t('slotManagement.form.restoreSlot', 'Restore Slot')}</button>
                                     ) : (
                                         <>
                                             <button 
                                                 onClick={() => { if(typeof setIsEditingSlot !== 'undefined') { setIsEditingSlot(true); setEditSlotData({...selectedSlot, targetSlotId: selectedSlot.targetSlotId || selectedSlot._id, overrideId: selectedSlot.overrideId || selectedSlot._id}); } }}
                                                 style={{ background: '#3b82f6', color: 'white', border: 'none', padding: '6px', borderRadius: '4px', cursor: 'pointer', flex: 1, fontSize: '12px' }}
-                                            >Reschedule</button>
+                                            >{t('slotManagement.form.reschedule', 'Reschedule')}</button>
                                             
                                             {selectedSlot.isAddedOverride ? (
                                                 <button 
                                                     onClick={async () => {
-                                                        if(!window.confirm("Delete this added slot?")) return;
+                                                        if(!window.confirm(t('slotManagement.alerts.deleteAddedSlotConfirm', 'Delete this added slot?'))) return;
                                                         setLoading(true);
                                                         try {
                                                             const res = await axios.delete(
@@ -912,18 +918,18 @@ const SlotManagement = ({ doctorId, token, defaultPrice }) => {
                                                             );
                                                             setScheduleOverrides(res.data.scheduleOverrides);
                                                         } catch (e) {
-                                                            alert("Error deleting slot");
+                                                            alert(t('slotManagement.alerts.errorDeleting', 'Error deleting slot'));
                                                         } finally {
                                                             setLoading(false);
                                                             setSelectedSlot(null);
                                                         }
                                                     }}
                                                     style={{ background: '#ef4444', color: 'white', border: 'none', padding: '6px', borderRadius: '4px', cursor: 'pointer', flex: 1, fontSize: '12px' }}
-                                                >Delete Slot</button>
+                                                >{t('slotManagement.form.deleteSlot', 'Delete Slot')}</button>
                                             ) : (
                                                 <button 
                                                     onClick={async () => {
-                                                        if(!window.confirm("Cancel this slot on this date?")) return;
+                                                        if(!window.confirm(t('slotManagement.alerts.cancelSlotConfirm', 'Cancel this slot on this date?'))) return;
                                                         setLoading(true);
                                                         try {
                                                             const res = await axios.post(
@@ -933,14 +939,14 @@ const SlotManagement = ({ doctorId, token, defaultPrice }) => {
                                                             );
                                                             setScheduleOverrides(res.data.scheduleOverrides);
                                                         } catch (e) {
-                                                            alert("Error canceling slot");
+                                                            alert(t('slotManagement.alerts.errorCanceling', 'Error canceling slot'));
                                                         } finally {
                                                             setLoading(false);
                                                             setSelectedSlot(null);
                                                         }
                                                     }}
                                                     style={{ background: '#ef4444', color: 'white', border: 'none', padding: '6px', borderRadius: '4px', cursor: 'pointer', flex: 1, fontSize: '12px' }}
-                                                >Cancel Slot</button>
+                                                >{t('slotManagement.form.cancelSlot', 'Cancel Slot')}</button>
                                             )}
                                         </>
                                     )}
@@ -962,13 +968,13 @@ const SlotManagement = ({ doctorId, token, defaultPrice }) => {
                     onClick={() => { setViewMode('template'); setShowAddSlotForm(false); setSelectedSlot(null); }}
                     style={{ flex: 1, padding: '10px', borderRadius: '8px', border: viewMode === 'template' ? '2px solid #3b82f6' : '1px solid #cbd5e1', background: viewMode === 'template' ? '#eff6ff' : 'white', fontWeight: 'bold', color: viewMode === 'template' ? '#1d4ed8' : '#64748b', cursor: 'pointer' }}
                 >
-                    Template Schedule (Weekly)
+                    {t('slotManagement.tabs.template', 'Template Schedule (Weekly)')}
                 </button>
                 <button 
                     onClick={() => { setViewMode('exceptions'); setShowAddSlotForm(false); setSelectedSlot(null); }}
                     style={{ flex: 1, padding: '10px', borderRadius: '8px', border: viewMode === 'exceptions' ? '2px solid #3b82f6' : '1px solid #cbd5e1', background: viewMode === 'exceptions' ? '#eff6ff' : 'white', fontWeight: 'bold', color: viewMode === 'exceptions' ? '#1d4ed8' : '#64748b', cursor: 'pointer' }}
                 >
-                    Date-Specific Exceptions (Overrides)
+                    {t('slotManagement.tabs.exceptions', 'Date-Specific Exceptions (Overrides)')}
                 </button>
             </div>
             
@@ -978,16 +984,18 @@ const SlotManagement = ({ doctorId, token, defaultPrice }) => {
                         <CustomSelect 
                             value={selectedDay} 
                             onChange={(val) => { setSelectedDay(val); setStartTime(''); }}
-                            options={['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(d => ({ label: d, value: d }))}
+                            options={DAYS_OF_WEEK.map(d => ({ label: t(`slotManagement.days.${d}`, d), value: d }))}
                             style={{ padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '16px', fontWeight: 'bold', width: '200px' }}
                         />
-                        <span style={{ color: '#64748b', whiteSpace: 'nowrap', fontSize: '14px' }}>Select a day to view and edit its template schedule.</span>
+                        <span style={{ color: '#64748b', whiteSpace: 'nowrap', fontSize: '14px' }}>
+                            {t('slotManagement.templateSubtitle', 'Select a day to view and edit its template schedule.')}
+                        </span>
                     </div>
 
                     {showAddSlotForm ? (
                         <div ref={addSlotFormRef} style={{ display: 'flex', gap: '8px', alignItems: 'center', background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>
                             <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                <label style={{ fontSize: '10px', fontWeight: 'bold', marginBottom: '2px' }}>Start Time</label>
+                                <label style={{ fontSize: '10px', fontWeight: 'bold', marginBottom: '2px' }}>{t('slotManagement.form.startTime', 'Start Time')}</label>
                                 {(() => {
                                     const h24 = parseInt(startTime.split(':')[0] || '10');
                                     const mStr = startTime.split(':')[1] || '00';
@@ -1031,40 +1039,40 @@ const SlotManagement = ({ doctorId, token, defaultPrice }) => {
                                 })()}
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                <label style={{ fontSize: '10px', fontWeight: 'bold', marginBottom: '2px' }}>Duration</label>
+                                <label style={{ fontSize: '10px', fontWeight: 'bold', marginBottom: '2px' }}>{t('slotManagement.form.duration', 'Duration')}</label>
                                 <select title="Duration" value={duration} onChange={(e) => setDuration(Number(e.target.value))} disabled={!startTime} style={{ padding: '4px', fontSize: '12px', width: '75px', borderRadius: '4px', border: '1px solid #cbd5e1' }}>
-                                    {ALL_DURATIONS.filter(d => d <= 120).map(d => { const dis = d > maxDur; return <option key={d} value={d} disabled={dis} style={{ background: dis ? '#f1f5f9' : 'white', color: dis ? '#94a3b8' : 'black' }}>{d} min</option> })}
+                                    {ALL_DURATIONS.filter(d => d <= 120).map(d => { const dis = d > maxDur; return <option key={d} value={d} disabled={dis} style={{ background: dis ? '#f1f5f9' : 'white', color: dis ? '#94a3b8' : 'black' }}>{d} {t('slotManagement.form.min', 'min')}</option> })}
                                 </select>
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                <label style={{ fontSize: '10px', fontWeight: 'bold', marginBottom: '2px' }}>Mode</label>
+                                <label style={{ fontSize: '10px', fontWeight: 'bold', marginBottom: '2px' }}>{t('slotManagement.form.mode', 'Mode')}</label>
                                 <select title="Consultation Mode" value={consultationType} onChange={(e) => setConsultationType(e.target.value)} style={{ padding: '4px', fontSize: '12px', width: '80px', borderRadius: '4px', border: '1px solid #cbd5e1' }}>
-                                    <option value="Online">Online</option>
-                                    <option value="In-Person">In-Person</option>
-                                    <option value="Both">Both</option>
+                                    <option value="Online">{t('slotManagement.form.modes.Online', 'Online')}</option>
+                                    <option value="In-Person">{t('slotManagement.form.modes.In-Person', 'In-Person')}</option>
+                                    <option value="Both">{t('slotManagement.form.modes.Both', 'Both')}</option>
                                 </select>
                             </div>
                             <div style={{ display: 'flex', gap: '4px', alignItems: 'flex-end', background: sessionType === 'Group' ? '#eef2ff' : 'transparent', padding: sessionType === 'Group' ? '4px 6px' : '0', borderRadius: '6px' }}>
                                 <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                    <label style={{ fontSize: '10px', fontWeight: 'bold', marginBottom: '2px' }}>Session</label>
+                                    <label style={{ fontSize: '10px', fontWeight: 'bold', marginBottom: '2px' }}>{t('slotManagement.form.session', 'Session')}</label>
                                     <select title="Session Type" value={sessionType} onChange={(e) => { setSessionType(e.target.value); if (e.target.value === '1-to-1') setMaxCapacity(1); else setMaxCapacity(2); }} style={{ padding: '4px', fontSize: '12px', width: '70px', borderRadius: '4px', border: '1px solid #cbd5e1' }}>
-                                        <option value="1-to-1">1-to-1</option>
-                                        <option value="Group">Group</option>
+                                        <option value="1-to-1">{t('slotManagement.form.sessionTypes.1-to-1', '1-to-1')}</option>
+                                        <option value="Group">{t('slotManagement.form.sessionTypes.Group', 'Group')}</option>
                                     </select>
                                 </div>
                                 {sessionType === 'Group' && (
                                     <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                        <label style={{ fontSize: '10px', fontWeight: 'bold', marginBottom: '2px' }}>Cap</label>
+                                        <label style={{ fontSize: '10px', fontWeight: 'bold', marginBottom: '2px' }}>{t('slotManagement.form.cap', 'Cap')}</label>
                                         <input type="number" min="2" title="Capacity" value={maxCapacity} onChange={(e) => setMaxCapacity(e.target.value === '' ? '' : Number(e.target.value))} style={{ padding: '4px', fontSize: '12px', width: '40px', borderRadius: '4px', border: '1px solid #cbd5e1' }} />
                                     </div>
                                 )}
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                <label style={{ fontSize: '10px', fontWeight: 'bold', marginBottom: '2px' }}>Fee (₹)</label>
+                                <label style={{ fontSize: '10px', fontWeight: 'bold', marginBottom: '2px' }}>{t('slotManagement.form.fee', 'Fee (₹)')}</label>
                                 <input type="number" min="0" title="Fee" value={fee} onChange={(e) => setFee(e.target.value === '' ? '' : Number(e.target.value))} style={{ padding: '4px', fontSize: '12px', width: '60px', borderRadius: '4px', border: '1px solid #cbd5e1' }} />
                             </div>
                             <div style={{ display: 'flex', gap: '4px', marginTop: '14px' }}>
-                                <button onClick={() => handleAddSlot()} disabled={loading || !startTime} style={{ background: '#10b981', color: 'white', padding: '6px 12px', border: 'none', borderRadius: '4px', fontSize: '12px', cursor: (loading || !startTime) ? 'not-allowed' : 'pointer', fontWeight: 'bold' }}>Save</button>
+                                <button onClick={() => handleAddSlot()} disabled={loading || !startTime} style={{ background: '#10b981', color: 'white', padding: '6px 12px', border: 'none', borderRadius: '4px', fontSize: '12px', cursor: (loading || !startTime) ? 'not-allowed' : 'pointer', fontWeight: 'bold' }}>{t('slotManagement.form.save', 'Save')}</button>
                                 <button onClick={() => setShowAddSlotForm(false)} style={{ background: '#ef4444', color: 'white', padding: '6px 12px', border: 'none', borderRadius: '4px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold' }}>X</button>
                             </div>
                         </div>
@@ -1073,7 +1081,7 @@ const SlotManagement = ({ doctorId, token, defaultPrice }) => {
                             <button onClick={() => {
                                 if (typeof findBestAvailableTimeAndSet === 'function') findBestAvailableTimeAndSet();
                                 setShowAddSlotForm(true);
-                            }} style={{ background: '#3b82f6', color: 'white', padding: '10px 20px', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>+ Add New Slot</button>
+                            }} style={{ background: '#3b82f6', color: 'white', padding: '10px 20px', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>{t('slotManagement.addNewSlot', '+ Add New Slot')}</button>
                             {(() => {
                                 const daySlots = availableSlots[selectedDay] || [];
                                 const hasSlots = daySlots.length > 0;
@@ -1082,7 +1090,8 @@ const SlotManagement = ({ doctorId, token, defaultPrice }) => {
                                 return (
                                     <button 
                                         onClick={async () => {
-                                            if (!window.confirm(`${allDisabled ? 'Restore' : 'Disable'} ALL slots for ${selectedDay}?`)) return;
+                                            const actionText = allDisabled ? t('slotManagement.form.enable', 'Enable') : t('slotManagement.form.disable', 'Disable');
+                                            if (!window.confirm(t('slotManagement.alerts.toggleDayConfirm', '{{action}} ALL slots for {{day}}?', { action: actionText, day: t(`slotManagement.days.${selectedDay}`, selectedDay) }))) return;
                                             setLoading(true);
                                             try {
                                                 const res = await axios.put(
@@ -1092,14 +1101,14 @@ const SlotManagement = ({ doctorId, token, defaultPrice }) => {
                                                 );
                                                 setAvailableSlots(res.data.availableSlots);
                                             } catch (e) {
-                                                alert(`Error ${allDisabled ? 'restoring' : 'disabling'} day`);
+                                                alert(t('slotManagement.alerts.errorUpdatingDay', 'Error updating day status'));
                                             } finally {
                                                 setLoading(false);
                                             }
                                         }}
                                         style={{ background: allDisabled ? '#10b981' : '#e2e8f0', color: allDisabled ? 'white' : '#334155', padding: '10px 20px', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}
                                     >
-                                        {allDisabled ? 'Restore Entire Day' : 'Disable Entire Day'}
+                                        {allDisabled ? t('slotManagement.restoreEntireDay', 'Restore Entire Day') : t('slotManagement.disableEntireDay', 'Disable Entire Day')}
                                     </button>
                                 );
                             })()}
@@ -1115,13 +1124,15 @@ const SlotManagement = ({ doctorId, token, defaultPrice }) => {
                             onChange={(e) => setSelectedExceptionDate(e.target.value)}
                             style={{ padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '16px', fontWeight: 'bold', width: '200px' }}
                         />
-                        <p style={{ margin: 0, alignSelf: 'center', color: '#64748b' }}>Select a specific date to cancel or reschedule slots.</p>
+                        <p style={{ margin: 0, alignSelf: 'center', color: '#64748b' }}>
+                            {t('slotManagement.exceptionsSubtitle', 'Select a specific date to cancel or reschedule slots.')}
+                        </p>
                     </div>
 
                     {showAddSlotForm ? (
                         <div ref={addSlotFormRef} style={{ display: 'flex', gap: '8px', alignItems: 'center', background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>
                             <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                <label style={{ fontSize: '10px', fontWeight: 'bold', marginBottom: '2px' }}>Start Time</label>
+                                <label style={{ fontSize: '10px', fontWeight: 'bold', marginBottom: '2px' }}>{t('slotManagement.form.startTime', 'Start Time')}</label>
                                 {(() => {
                                     const h24 = parseInt(startTime.split(':')[0] || '10');
                                     const mStr = startTime.split(':')[1] || '00';
@@ -1165,40 +1176,40 @@ const SlotManagement = ({ doctorId, token, defaultPrice }) => {
                                 })()}
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                <label style={{ fontSize: '10px', fontWeight: 'bold', marginBottom: '2px' }}>Duration</label>
+                                <label style={{ fontSize: '10px', fontWeight: 'bold', marginBottom: '2px' }}>{t('slotManagement.form.duration', 'Duration')}</label>
                                 <select title="Duration" value={duration} onChange={(e) => setDuration(Number(e.target.value))} disabled={!startTime} style={{ padding: '4px', fontSize: '12px', width: '75px', borderRadius: '4px', border: '1px solid #cbd5e1' }}>
-                                    {ALL_DURATIONS.filter(d => d <= 120).map(d => { const dis = d > maxDur; return <option key={d} value={d} disabled={dis} style={{ background: dis ? '#f1f5f9' : 'white', color: dis ? '#94a3b8' : 'black' }}>{d} min</option> })}
+                                    {ALL_DURATIONS.filter(d => d <= 120).map(d => { const dis = d > maxDur; return <option key={d} value={d} disabled={dis} style={{ background: dis ? '#f1f5f9' : 'white', color: dis ? '#94a3b8' : 'black' }}>{d} {t('slotManagement.form.min', 'min')}</option> })}
                                 </select>
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                <label style={{ fontSize: '10px', fontWeight: 'bold', marginBottom: '2px' }}>Mode</label>
+                                <label style={{ fontSize: '10px', fontWeight: 'bold', marginBottom: '2px' }}>{t('slotManagement.form.mode', 'Mode')}</label>
                                 <select title="Consultation Mode" value={consultationType} onChange={(e) => setConsultationType(e.target.value)} style={{ padding: '4px', fontSize: '12px', width: '80px', borderRadius: '4px', border: '1px solid #cbd5e1' }}>
-                                    <option value="Online">Online</option>
-                                    <option value="In-Person">In-Person</option>
-                                    <option value="Both">Both</option>
+                                    <option value="Online">{t('slotManagement.form.modes.Online', 'Online')}</option>
+                                    <option value="In-Person">{t('slotManagement.form.modes.In-Person', 'In-Person')}</option>
+                                    <option value="Both">{t('slotManagement.form.modes.Both', 'Both')}</option>
                                 </select>
                             </div>
-                            <div style={{ display: 'flex', gap: '8px', background: sessionType === 'Group' ? '#e2e8f0' : 'transparent', padding: '4px 6px', borderRadius: '6px', margin: '-4px -6px' }}>
+                            <div style={{ display: 'flex', gap: '8px', background: sessionType === 'Group' ? '#e2e8f0' : 'transparent', padding: sessionType === 'Group' ? '4px 6px' : '0', borderRadius: '6px', margin: '-4px -6px' }}>
                                 <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                    <label style={{ fontSize: '10px', fontWeight: 'bold', marginBottom: '2px' }}>Session</label>
+                                    <label style={{ fontSize: '10px', fontWeight: 'bold', marginBottom: '2px' }}>{t('slotManagement.form.session', 'Session')}</label>
                                     <select title="Session Type" value={sessionType} onChange={(e) => { setSessionType(e.target.value); if(e.target.value === '1-to-1') setMaxCapacity(1); else setMaxCapacity(2); }} style={{ padding: '4px', fontSize: '12px', width: '80px', borderRadius: '4px', border: '1px solid #cbd5e1' }}>
-                                        <option value="1-to-1">1-to-1</option>
-                                        <option value="Group">Group</option>
+                                        <option value="1-to-1">{t('slotManagement.form.sessionTypes.1-to-1', '1-to-1')}</option>
+                                        <option value="Group">{t('slotManagement.form.sessionTypes.Group', 'Group')}</option>
                                     </select>
                                 </div>
                                 {sessionType === 'Group' && (
                                     <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                        <label style={{ fontSize: '10px', fontWeight: 'bold', marginBottom: '2px' }}>Cap</label>
+                                        <label style={{ fontSize: '10px', fontWeight: 'bold', marginBottom: '2px' }}>{t('slotManagement.form.cap', 'Cap')}</label>
                                         <input type="number" min="2" title="Capacity" value={maxCapacity} onChange={(e) => setMaxCapacity(e.target.value === '' ? '' : Number(e.target.value))} style={{ padding: '4px', fontSize: '12px', width: '40px', borderRadius: '4px', border: '1px solid #cbd5e1' }} />
                                     </div>
                                 )}
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                <label style={{ fontSize: '10px', fontWeight: 'bold', marginBottom: '2px' }}>Fee (₹)</label>
+                                <label style={{ fontSize: '10px', fontWeight: 'bold', marginBottom: '2px' }}>{t('slotManagement.form.fee', 'Fee (₹)')}</label>
                                 <input type="number" min="0" title="Fee" value={fee} onChange={(e) => setFee(e.target.value === '' ? '' : Number(e.target.value))} style={{ padding: '4px', fontSize: '12px', width: '60px', borderRadius: '4px', border: '1px solid #cbd5e1' }} />
                             </div>
                             <div style={{ display: 'flex', gap: '4px', marginTop: '14px' }}>
-                                <button onClick={() => handleAddSlot()} disabled={loading || !startTime} style={{ background: '#10b981', color: 'white', padding: '6px 12px', border: 'none', borderRadius: '4px', fontSize: '12px', cursor: (loading || !startTime) ? 'not-allowed' : 'pointer', fontWeight: 'bold' }}>Save</button>
+                                <button onClick={() => handleAddSlot()} disabled={loading || !startTime} style={{ background: '#10b981', color: 'white', padding: '6px 12px', border: 'none', borderRadius: '4px', fontSize: '12px', cursor: (loading || !startTime) ? 'not-allowed' : 'pointer', fontWeight: 'bold' }}>{t('slotManagement.form.save', 'Save')}</button>
                                 <button onClick={() => setShowAddSlotForm(false)} style={{ background: '#ef4444', color: 'white', padding: '6px 12px', border: 'none', borderRadius: '4px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold' }}>X</button>
                             </div>
                         </div>
@@ -1207,10 +1218,10 @@ const SlotManagement = ({ doctorId, token, defaultPrice }) => {
                             <button onClick={() => {
                                 findBestAvailableTimeAndSet();
                                 setShowAddSlotForm(true);
-                            }} style={{ background: '#3b82f6', color: 'white', padding: '10px 20px', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>+ Add Slot</button>
+                            }} style={{ background: '#3b82f6', color: 'white', padding: '10px 20px', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>{t('slotManagement.addSlot', '+ Add Slot')}</button>
                             <button 
                                 onClick={async () => {
-                                    if (!window.confirm('Cancel ALL slots for this date?')) return;
+                                    if (!window.confirm(t('slotManagement.alerts.cancelDateConfirm', 'Cancel ALL slots for this date?'))) return;
                                     setLoading(true);
                                     try {
                                         const res = await axios.post(
@@ -1219,16 +1230,16 @@ const SlotManagement = ({ doctorId, token, defaultPrice }) => {
                                             { headers: { Authorization: `Bearer ${token}` } }
                                         );
                                         setScheduleOverrides(res.data.scheduleOverrides);
-                                        alert('All slots for date cancelled.');
+                                        alert(t('slotManagement.alerts.dateCancelled', 'All slots for date cancelled.'));
                                     } catch (e) {
-                                        alert('Error canceling date');
+                                        alert(t('slotManagement.alerts.errorCancelingDate', 'Error canceling date'));
                                     } finally {
                                         setLoading(false);
                                     }
                                 }}
                                 style={{ background: '#ef4444', color: 'white', padding: '10px 20px', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}
                             >
-                                Cancel Entire Day
+                                {t('slotManagement.cancelEntireDay', 'Cancel Entire Day')}
                             </button>
                         </div>
                     )}
@@ -1237,20 +1248,20 @@ const SlotManagement = ({ doctorId, token, defaultPrice }) => {
 
             {/* Visual Timeline */}
             <div style={{ marginBottom: '20px' }}>
-                <h4 style={{ margin: '0 0 10px 0' }}>Daily Timeline</h4>
+                <h4 style={{ margin: '0 0 10px 0' }}>{t('slotManagement.timeline.title', 'Daily Timeline')}</h4>
                 <div style={{ margin: 0, fontSize: '12px', color: '#64748b', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '15px', flexWrap: 'wrap' }}>
-                        <span>Click a block to view details or edit.</span>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: '12px', height: '12px', background: '#3b82f6', borderRadius: '2px', display: 'inline-block' }}></span> Online</span>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: '12px', height: '12px', background: '#10b981', borderRadius: '2px', display: 'inline-block' }}></span> In-Person</span>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: '12px', height: '12px', background: '#8b5cf6', borderRadius: '2px', display: 'inline-block' }}></span> Both</span>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ fontSize: '14px' }}>👥</span> Group Session</span>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: '12px', height: '12px', background: 'repeating-linear-gradient(45deg, #e2e8f0, #e2e8f0 3px, #3b82f6 3px, #3b82f6 6px)', borderRadius: '2px', display: 'inline-block' }}></span> Disabled</span>
+                        <span>{t('slotManagement.timeline.instruction', 'Click a block to view details or edit.')}</span>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: '12px', height: '12px', background: '#3b82f6', borderRadius: '2px', display: 'inline-block' }}></span> {t('slotManagement.timeline.online', 'Online')}</span>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: '12px', height: '12px', background: '#10b981', borderRadius: '2px', display: 'inline-block' }}></span> {t('slotManagement.timeline.inPerson', 'In-Person')}</span>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: '12px', height: '12px', background: '#8b5cf6', borderRadius: '2px', display: 'inline-block' }}></span> {t('slotManagement.timeline.both', 'Both')}</span>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ fontSize: '14px' }}>👥</span> {t('slotManagement.timeline.groupSession', 'Group Session')}</span>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: '12px', height: '12px', background: 'repeating-linear-gradient(45deg, #e2e8f0, #e2e8f0 3px, #3b82f6 3px, #3b82f6 6px)', borderRadius: '2px', display: 'inline-block' }}></span> {t('slotManagement.timeline.disabled', 'Disabled')}</span>
                     </div>
                     {viewMode === 'exceptions' && (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: '12px', height: '12px', background: 'repeating-linear-gradient(45deg, #3b82f6, #3b82f6 3px, #eab308 3px, #eab308 6px)', borderRadius: '2px', display: 'inline-block' }}></span> Rescheduled</span>
-                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: '12px', height: '12px', background: 'repeating-linear-gradient(45deg, #ef4444, #ef4444 3px, #3b82f6 3px, #3b82f6 6px)', borderRadius: '2px', display: 'inline-block' }}></span> Cancelled</span>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: '12px', height: '12px', background: 'repeating-linear-gradient(45deg, #3b82f6, #3b82f6 3px, #eab308 3px, #eab308 6px)', borderRadius: '2px', display: 'inline-block' }}></span> {t('slotManagement.timeline.rescheduled', 'Rescheduled')}</span>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: '12px', height: '12px', background: 'repeating-linear-gradient(45deg, #ef4444, #ef4444 3px, #3b82f6 3px, #3b82f6 6px)', borderRadius: '2px', display: 'inline-block' }}></span> {t('slotManagement.timeline.cancelled', 'Cancelled')}</span>
                         </div>
                     )}
                 </div>

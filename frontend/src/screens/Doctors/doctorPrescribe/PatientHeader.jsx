@@ -1,5 +1,6 @@
 import { Fragment, useState } from "react";
 import { Leaf, Mail, Phone } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -29,20 +30,21 @@ const getInitials = (name) => {
 };
 
 export function PatientHeader({ patient, prakritiDosha }) {
+	const { t } = useTranslation();
 	const [showPhoto, setShowPhoto] = useState(false);
 
 	if (!patient) return null;
 
-	// A single compact meta line instead of a grid of padded boxes — small,
-	// de-emphasized details shouldn't each claim their own card real estate.
-	// Each part carries a title so hovering it reveals what the detail actually is.
+	const genderText = patient.gender ? t(`common.genders.${patient.gender.toLowerCase()}`, patient.gender) : null;
+	const ageText = patient.age != null ? `${patient.age} ${t("appointmentSlots.age", "yrs")}` : null;
+
 	const metaParts = [
-		patient.gender && patient.age
-			? { text: `${patient.gender}, ${patient.age} yrs`, title: "Gender and age" }
-			: patient.gender
-				? { text: patient.gender, title: "Gender" }
-				: patient.age
-					? { text: `${patient.age} yrs`, title: "Age" }
+		genderText && ageText
+			? { text: `${genderText}, ${ageText}`, title: "Gender and age" }
+			: genderText
+				? { text: genderText, title: "Gender" }
+				: ageText
+					? { text: ageText, title: "Age" }
 					: null,
 		patient.address || patient.zipCode ? { text: patient.address || patient.zipCode, title: "Address" } : null,
 	].filter(Boolean);
@@ -78,7 +80,9 @@ export function PatientHeader({ patient, prakritiDosha }) {
 								<Badge
 									variant="secondary"
 									className="gap-1"
-									title={`Prakriti (body constitution): ${DOSHA_LABELS[prakritiDosha] || prakritiDosha} — the patient's dominant dosha from their Prakriti assessment`}
+									title={t("doctorPrescribe.prakritiAssessed", "Prakriti (body constitution): {{dosha}} — the patient's dominant dosha from their Prakriti assessment", {
+										dosha: DOSHA_LABELS[prakritiDosha] || prakritiDosha,
+									})}
 								>
 									<Leaf size={13} /> {DOSHA_LABELS[prakritiDosha] || prakritiDosha}
 								</Badge>
@@ -86,9 +90,9 @@ export function PatientHeader({ patient, prakritiDosha }) {
 								<Badge
 									variant="outline"
 									className="gap-1 text-muted-foreground"
-									title="Prakriti (body constitution): the patient hasn't completed a Prakriti assessment yet"
+									title={t("doctorPrescribe.prakritiNotAssessed", "Prakriti (body constitution): the patient hasn't completed a Prakriti assessment yet")}
 								>
-									<Leaf size={13} /> Not yet assessed
+									<Leaf size={13} /> {t("doctorPrescribe.notYetAssessed", "Not yet assessed")}
 								</Badge>
 							)}
 						</div>

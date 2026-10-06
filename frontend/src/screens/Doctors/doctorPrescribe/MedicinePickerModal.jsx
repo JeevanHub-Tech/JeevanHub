@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { Search, X, ChevronLeft, ChevronRight, ArrowLeft, Check, Loader2, Pill, Filter } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import { BACKEND_URL } from "../../../config";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -17,6 +18,7 @@ const resolveImages = (medicine) => {
 
 // Full-screen medicine browser the doctor uses to pick an inventory item to prescribe.
 export function MedicinePickerModal({ onSelect, onClose }) {
+	const { t } = useTranslation();
 	const [medicines, setMedicines] = useState([]);
 	const [categories, setCategories] = useState(["All"]);
 	const [loading, setLoading] = useState(true);
@@ -33,7 +35,7 @@ export function MedicinePickerModal({ onSelect, onClose }) {
 	const [detailMedicine, setDetailMedicine] = useState(null);
 	const [imageIndex, setImageIndex] = useState(0);
 
-	// 1. Fetch categories list once (extremely lightweight, ~1KB)
+	// 1. Fetch categories list once
 	useEffect(() => {
 		const fetchCategories = async () => {
 			try {
@@ -153,15 +155,15 @@ export function MedicinePickerModal({ onSelect, onClose }) {
 							className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline cursor-pointer"
 							onClick={() => setDetailMedicine(null)}
 						>
-							<ArrowLeft size={18} /> Back to all medicines
+							<ArrowLeft size={18} /> {t("doctorPrescribe.backToAllMeds", "Back to all medicines")}
 						</button>
 					) : (
 						<div className="flex items-center justify-between w-full pr-6">
 							<DialogTitle className="flex items-center gap-2.5 text-lg font-bold text-foreground">
-								<Pill className="size-5 text-primary" /> Select a Medicine from Inventory
+								<Pill className="size-5 text-primary" /> {t("doctorPrescribe.pickerTitle", "Select a Medicine from Inventory")}
 							</DialogTitle>
 							<Badge variant="secondary" className="text-xs font-semibold">
-								{totalCount} {totalCount === 1 ? "medicine" : "medicines"} available
+								{t(totalCount === 1 ? "doctorPrescribe.medsAvailable_one" : "doctorPrescribe.medsAvailable_other", "{{count}} medicines available", { count: totalCount })}
 							</Badge>
 						</div>
 					)}
@@ -173,7 +175,7 @@ export function MedicinePickerModal({ onSelect, onClose }) {
 							<div className="relative flex aspect-square items-center justify-center overflow-hidden rounded-xl border border-border bg-muted/40 p-4">
 								{detailImages.length > 1 ? (
 									<button
-										className="absolute top-1/2 left-2.5 flex size-10 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-card/90 text-foreground shadow-xs hover:bg-card"
+										className="absolute top-1/2 left-2.5 flex size-10 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-card/90 text-foreground shadow-xs hover:bg-card cursor-pointer"
 										onClick={() => setImageIndex((i) => (i === 0 ? detailImages.length - 1 : i - 1))}
 									>
 										<ChevronLeft size={20} />
@@ -190,7 +192,7 @@ export function MedicinePickerModal({ onSelect, onClose }) {
 								/>
 								{detailImages.length > 1 ? (
 									<button
-										className="absolute top-1/2 right-2.5 flex size-10 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-card/90 text-foreground shadow-xs hover:bg-card"
+										className="absolute top-1/2 right-2.5 flex size-10 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-card/90 text-foreground shadow-xs hover:bg-card cursor-pointer"
 										onClick={() => setImageIndex((i) => (i === detailImages.length - 1 ? 0 : i + 1))}
 									>
 										<ChevronRight size={20} />
@@ -219,28 +221,30 @@ export function MedicinePickerModal({ onSelect, onClose }) {
 							<div className="mb-4 flex flex-wrap gap-2">
 								{detailMedicine.category ? <Badge variant="secondary">{detailMedicine.category}</Badge> : null}
 								{detailMedicine.prescription ? (
-									<Badge variant="destructive">Rx Required</Badge>
+									<Badge variant="destructive">{t("doctorPrescribe.rxRequired", "Rx Required")}</Badge>
 								) : (
-									<Badge className="bg-primary/15 text-primary hover:bg-primary/15">No Prescription</Badge>
+									<Badge className="bg-primary/15 text-primary hover:bg-primary/15">{t("doctorPrescribe.noPrescription", "No Prescription")}</Badge>
 								)}
 							</div>
 							<div className="mb-2 text-3xl font-extrabold text-primary">₹{detailMedicine.price}</div>
 							{detailMedicine.retailerId ? (
 								<p className="mb-4 text-xs text-muted-foreground">
-									Sold by {detailMedicine.retailerId.firstName || ""} {detailMedicine.retailerId.lastName || ""}
+									{t("doctorPrescribe.soldBy", "Sold by {{name}}", {
+										name: `${detailMedicine.retailerId.firstName || ""} ${detailMedicine.retailerId.lastName || ""}`.trim()
+									})}
 								</p>
 							) : null}
 							<div className="mb-5 rounded-lg border border-border/70 bg-secondary/30 p-3.5">
-								<h4 className="mb-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">Description</h4>
+								<h4 className="mb-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">{t("doctorPrescribe.description", "Description")}</h4>
 								<p className="text-sm leading-relaxed text-foreground/90">
-									{detailMedicine.description || "No description provided."}
+									{detailMedicine.description || "Ayurvedic formulation"}
 								</p>
 							</div>
 							<div className="mt-auto pt-4">
 								{detailMedicine.quantity > 0 ? (
-									<span className="text-sm font-semibold text-primary">In stock ({detailMedicine.quantity} available)</span>
+									<span className="text-sm font-semibold text-primary">{t("doctorPrescribe.inStock", "In stock ({{count}} available)", { count: detailMedicine.quantity })}</span>
 								) : (
-									<span className="text-sm font-semibold text-destructive">Out of stock</span>
+									<span className="text-sm font-semibold text-destructive">{t("doctorPrescribe.outOfStock", "Out of stock")}</span>
 								)}
 							</div>
 						</div>
@@ -249,12 +253,11 @@ export function MedicinePickerModal({ onSelect, onClose }) {
 					<>
 						{/* Search & Filter Toolbar */}
 						<div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 border-b border-border/60 bg-muted/20 px-6 py-3.5">
-							{/* Single sleek search bar without double rectangle */}
 							<div className="relative flex-1 flex items-center rounded-lg border border-input bg-card px-3.5 py-2 shadow-xs focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
 								<Search size={18} className="shrink-0 text-muted-foreground mr-2.5" />
 								<input
 									type="text"
-									placeholder="Search by name, category, or description..."
+									placeholder={t("doctorPrescribe.searchMedsPlaceholder", "Search by name, category, or description...")}
 									value={searchTerm}
 									onChange={(e) => setSearchTerm(e.target.value)}
 									autoFocus
@@ -279,19 +282,19 @@ export function MedicinePickerModal({ onSelect, onClose }) {
 										onValueChange={setSelectedCategory}
 										items={categories.map((cat) => ({
 											value: cat,
-											label: cat === "All" ? "All Categories" : cat,
+											label: cat === "All" ? t("doctorPrescribe.allCategories", "All Categories") : cat,
 										}))}
 									>
 										<SelectTrigger className="h-10 bg-card border-input shadow-xs">
 											<div className="flex items-center gap-2 truncate text-sm">
 												<Filter size={14} className="text-muted-foreground shrink-0" />
-												<SelectValue placeholder="All Categories" />
+												<SelectValue placeholder={t("doctorPrescribe.allCategories", "All Categories")} />
 											</div>
 										</SelectTrigger>
 										<SelectContent className="max-h-64">
 											{categories.map((cat) => (
 												<SelectItem key={cat} value={cat}>
-													{cat === "All" ? "All Categories" : cat}
+													{cat === "All" ? t("doctorPrescribe.allCategories", "All Categories") : cat}
 												</SelectItem>
 											))}
 										</SelectContent>
@@ -305,14 +308,14 @@ export function MedicinePickerModal({ onSelect, onClose }) {
 							{loading ? (
 								<div className="flex flex-col items-center justify-center gap-2.5 py-20 text-muted-foreground">
 									<Loader2 className="size-8 animate-spin text-primary" />
-									<p className="text-sm font-medium">Loading medicines inventory...</p>
+									<p className="text-sm font-medium">{t("doctorPrescribe.loadingInventory", "Loading medicines inventory...")}</p>
 								</div>
 							) : error ? (
 								<div className="flex items-center justify-center py-20 text-sm text-destructive">{error}</div>
 							) : medicines.length === 0 ? (
 								<div className="flex flex-col items-center justify-center gap-2 py-20 text-center">
 									<Pill className="size-10 text-muted-foreground/40" />
-									<p className="text-sm font-medium text-muted-foreground">No medicines match your search criteria.</p>
+									<p className="text-sm font-medium text-muted-foreground">{t("doctorPrescribe.noMedsMatch", "No medicines match your search criteria.")}</p>
 								</div>
 							) : (
 								<div className="flex flex-col gap-6">
@@ -344,7 +347,7 @@ export function MedicinePickerModal({ onSelect, onClose }) {
 														) : null}
 														{medicine.quantity !== undefined && medicine.quantity <= 0 ? (
 															<span className="absolute top-2 right-2 rounded-md bg-destructive text-white px-2 py-0.5 text-[10px] font-bold shadow-xs">
-																Out of stock
+																{t("doctorPrescribe.outOfStock", "Out of stock")}
 															</span>
 														) : null}
 													</div>
@@ -364,13 +367,13 @@ export function MedicinePickerModal({ onSelect, onClose }) {
 															<span className="text-base font-extrabold text-primary">₹{medicine.price}</span>
 															<Button
 																size="sm"
-																className="h-8 px-3 text-xs gap-1.5 font-semibold"
+																className="h-8 px-3 text-xs gap-1.5 font-semibold cursor-pointer"
 																onClick={(e) => {
 																	e.stopPropagation();
 																	confirmSelect(medicine);
 																}}
 															>
-																<Check size={14} /> Select
+																<Check size={14} /> {t("doctorPrescribe.select", "Select")}
 															</Button>
 														</div>
 													</div>
@@ -387,14 +390,14 @@ export function MedicinePickerModal({ onSelect, onClose }) {
 												size="sm"
 												onClick={handleLoadMore}
 												disabled={loadingMore}
-												className="min-w-[160px] gap-2 font-semibold"
+												className="min-w-[160px] gap-2 font-semibold cursor-pointer"
 											>
 												{loadingMore ? (
 													<>
-														<Loader2 className="size-4 animate-spin" /> Loading more...
+														<Loader2 className="size-4 animate-spin" /> {t("common.loading", "Loading...")}
 													</>
 												) : (
-													`Load More (${totalCount - medicines.length} remaining)`
+													t("doctorPrescribe.loadMore", "Load More ({{count}} remaining)", { count: totalCount - medicines.length })
 												)}
 											</Button>
 										</div>
@@ -407,8 +410,8 @@ export function MedicinePickerModal({ onSelect, onClose }) {
 
 				{detailMedicine ? (
 					<div className="flex justify-end border-t border-border bg-card p-4">
-						<Button size="lg" className="gap-2 font-semibold" onClick={() => confirmSelect(detailMedicine)}>
-							<Check size={16} /> Select this medicine
+						<Button size="lg" className="gap-2 font-semibold cursor-pointer" onClick={() => confirmSelect(detailMedicine)}>
+							<Check size={16} /> {t("doctorPrescribe.selectMedicine", "Select this medicine")}
 						</Button>
 					</div>
 				) : null}

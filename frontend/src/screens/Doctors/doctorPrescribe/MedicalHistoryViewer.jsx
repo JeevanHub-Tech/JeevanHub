@@ -2,6 +2,7 @@ import { useState, useEffect, useContext } from "react";
 import axios from "axios";
 import { FileText } from "lucide-react";
 
+import { useTranslation } from "react-i18next";
 import { AuthContext } from "../../../context/AuthContext";
 import { DocumentViewerModal } from "../../../components/DocumentViewerModal";
 import { BACKEND_URL } from "../../../config";
@@ -13,10 +14,12 @@ import { Badge } from "@/components/ui/badge";
 // here is already patient-verified, so the badge is just a confirmation, not
 // a status machine.
 function VerifiedBadge() {
-	return <Badge variant="success">Patient-verified</Badge>;
+	const { t } = useTranslation();
+	return <Badge variant="success">{t("patientDetail.patientVerified", "Patient-verified")}</Badge>;
 }
 
 export function MedicalHistoryViewer({ patientId }) {
+	const { t } = useTranslation();
 	const { auth } = useContext(AuthContext);
 	const [documents, setDocuments] = useState([]);
 	const [loading, setLoading] = useState(true);
@@ -43,7 +46,7 @@ export function MedicalHistoryViewer({ patientId }) {
 		return (
 			<Card className="p-4.5">
 				<p className="rounded-lg border border-dashed border-border bg-muted/40 p-5 text-center text-sm text-muted-foreground">
-					Loading medical history...
+					{t("patientDetail.loadingMedicalHistory", "Loading medical history...")}
 				</p>
 			</Card>
 		);
@@ -54,7 +57,7 @@ export function MedicalHistoryViewer({ patientId }) {
 			<div>
 				<h3 className="mb-3.5 flex items-center gap-2 border-b-2 border-border pb-2.5 text-base font-bold text-foreground">
 					<FileText className="size-[1.15rem] text-primary" />
-					Uploaded Documents ({documents.length})
+					{t("patientDetail.uploadedDocuments", "Uploaded Documents ({{count}})", { count: documents.length })}
 				</h3>
 				<div className="grid gap-2.5">
 					{documents.length > 0 ? (
@@ -72,7 +75,7 @@ export function MedicalHistoryViewer({ patientId }) {
 						))
 					) : (
 						<p className="rounded-lg border border-dashed border-border bg-muted/40 p-5 text-center text-sm text-muted-foreground">
-							No patient-verified prescriptions yet. Documents the patient hasn't reviewed and submitted aren't shown here.
+							{t("patientDetail.noVerifiedDocs", "No patient-verified prescriptions yet. Documents the patient hasn't reviewed and submitted aren't shown here.")}
 						</p>
 					)}
 				</div>

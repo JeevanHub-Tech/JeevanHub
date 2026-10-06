@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Leaf, Loader2, PenLine, Check, UserCheck } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import { authFetch } from "../../../utils/authFetch";
 import { BACKEND_URL } from "../../../config";
@@ -13,11 +14,13 @@ import { formatDateReadable } from "@/lib/date";
 const toStr = (arr) => (Array.isArray(arr) ? arr.join(", ") : "");
 const toList = (str) => (str || "").split(",").map((s) => s.trim()).filter(Boolean);
 
-// Which content the patient currently sees: doctorReview fields once
-// published, otherwise the raw AI fields. Mirrors resolveDisplayPlan() in
-// backend/controllers/ayurvedaController.js.
+// Which content the patient currently sees: server-resolved displayPlan
+// (Hindi if requested, doctorReview if approved, else raw AI).
 function resolveActiveContent(plan) {
 	if (!plan) return null;
+	if (plan.displayPlan) {
+		return plan.displayPlan;
+	}
 	if (plan.status === "ai_modified" || plan.status === "doctor_approved") {
 		return plan.doctorReview || {};
 	}
@@ -41,11 +44,11 @@ function fieldsToForm(active) {
 
 // Doctor-facing edit view of the same "Other Wellness Recommendations"
 // content the patient sees -- cooking guidelines, foods to avoid, and
-// lifestyle recommendations. This is the SAME underlying AyurvedaDietPlan
-// doctorReview document the Diet & Weekly Meal Planner tab edits (just a
-// different subset of its fields), saved as a silent draft via the same
-// review endpoint until "Submit Prescription" publishes it.
+// lifestyle recommendations.
 export function OtherWellnessTab({ patientId, bookingId }) {
+	const { t, i18n } = useTranslation();
+	const currentLang = i18n.language?.startsWith("hi") ? "hi" : "en";
+
 	const [plan, setPlan] = useState(null);
 	const [loading, setLoading] = useState(true);
 	const [editing, setEditing] = useState(false);
@@ -59,7 +62,7 @@ export function OtherWellnessTab({ patientId, bookingId }) {
 			return;
 		}
 		try {
-			const response = await authFetch(`${BACKEND_URL}/api/ayurveda/diet-plan/patient/${patientId}`);
+			const response = await authFetch(`${BACKEND_URL}/api/ayurveda/diet-plan/patient/${patientId}?lang=${currentLang}`);
 			if (response.ok) {
 				const data = await response.json();
 				setPlan(data);
@@ -69,7 +72,7 @@ export function OtherWellnessTab({ patientId, bookingId }) {
 		} finally {
 			setLoading(false);
 		}
-	}, [patientId]);
+	}, [patientId, currentLang]);
 
 	useEffect(() => {
 		fetchPlan();
@@ -122,11 +125,11 @@ export function OtherWellnessTab({ patientId, bookingId }) {
 				<div className="border-b border-border bg-muted/40 px-6 py-4">
 					<h3 className="flex items-center gap-3 text-lg font-bold text-foreground">
 						<Leaf className="size-6 text-primary" />
-						Other Wellness Recommendations
+						{t("doctorPrescribe.wellnessTitle", "Other Wellness Recommendations")}
 					</h3>
 				</div>
 				<div className="p-6">
-					<p className="py-6 text-center text-muted-foreground">Loading...</p>
+					<p className="py-6 text-center text-muted-foreground">{t("common.loading", "Loading...")}</p>
 				</div>
 			</Card>
 		);
@@ -138,14 +141,14 @@ export function OtherWellnessTab({ patientId, bookingId }) {
 				<div className="border-b border-border bg-muted/40 px-6 py-4">
 					<h3 className="flex items-center gap-3 text-lg font-bold text-foreground">
 						<Leaf className="size-6 text-primary" />
-						Other Wellness Recommendations
+						{t("doctorPrescribe.wellnessTitle", "Other Wellness Recommendations")}
 					</h3>
 				</div>
 				<div className="p-6">
 					<EmptyState
 						icon={Leaf}
-						title="Nothing to show yet"
-						description="This patient hasn't generated an AI diet plan yet -- cooking guidelines and foods-to-avoid come from it."
+						title={t("doctorPrescribe.nothingToShow", "Nothing to show yet")}
+						description={t("doctorPrescribe.noWellnessPlanDesc", "This patient hasn't generated an AI diet plan yet -- cooking guidelines and foods-to-avoid come from it.")}
 					/>
 				</div>
 			</Card>
@@ -158,7 +161,7 @@ export function OtherWellnessTab({ patientId, bookingId }) {
 	const doctorDisplayName = doctorReview?.doctorName ||
 		(doctorReview?.reviewedBy?.firstName
 			? `Dr. ${doctorReview.reviewedBy.firstName} ${doctorReview.reviewedBy.lastName || ""}`.trim()
-			: (typeof doctorReview?.reviewedBy === "string" ? doctorReview.reviewedBy : "your doctor"));
+			: (typeof doctorReview?.reviewedBy === "string" ? doctorReview.reviewedBy : t("weeklyMealPlanner.yourDoctor", "your doctor")));
 	const reviewedDate = doctorReview?.reviewedAt ? formatDateReadable(doctorReview.reviewedAt) : "";
 
 	return (
@@ -166,11 +169,11 @@ export function OtherWellnessTab({ patientId, bookingId }) {
 			<div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-muted/40 px-6 py-4">
 				<h3 className="flex items-center gap-3 text-lg font-bold text-foreground">
 					<Leaf className="size-6 text-primary" />
-					Other Wellness Recommendations
+					{t("doctorPrescribe.wellnessTitle", "Other Wellness Recommendations")}
 				</h3>
 				<div className="flex items-center gap-2">
 					{plan.doctorReview?.reviewedAt && !plan.doctorReview?.published ? (
-						<span className="rounded-full bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground">Draft -- not sent yet</span>
+						<span className="rounded-full bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground">{t("doctorPrescribe.draftBadge", "Draft -- not sent yet")}</span>
 					) : null}
 					<SourceBadge status={plan.status} />
 				</div>
@@ -180,10 +183,12 @@ export function OtherWellnessTab({ patientId, bookingId }) {
 					<div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/30 bg-gradient-to-r from-primary/15 via-primary/10 to-amber-500/10 p-3.5 text-xs text-foreground shadow-xs">
 						<div className="flex flex-wrap items-center gap-2">
 							<span className="inline-flex items-center gap-1.5 rounded-md bg-primary/20 px-2.5 py-1 font-bold text-primary">
-								<UserCheck size={14} /> Doctor Approved
+								<UserCheck size={14} /> {t("weeklyMealPlanner.doctorApproved", "Doctor Approved")}
 							</span>
 							<span className="font-semibold text-foreground">
-								Made by {doctorDisplayName}{reviewedDate ? ` on ${reviewedDate}` : ""}
+								{reviewedDate
+									? t("weeklyMealPlanner.madeByOnDate", "Made by {{doctorName}} on {{date}}", { doctorName: doctorDisplayName, date: reviewedDate })
+									: t("weeklyMealPlanner.madeBy", "Made by {{doctorName}}", { doctorName: doctorDisplayName })}
 							</span>
 						</div>
 						{doctorReview?.notes ? (
@@ -197,15 +202,15 @@ export function OtherWellnessTab({ patientId, bookingId }) {
 				{!editing ? (
 					<>
 						<div>
-							<h4 className="mb-1 text-sm font-bold text-foreground">Cooking guidelines</h4>
+							<h4 className="mb-1 text-sm font-bold text-foreground">{t("doctorPrescribe.cookingGuidelines", "Cooking guidelines")}</h4>
 							{active?.cookingInstructions?.generalGuidelines?.length ? (
 								<ul className="list-disc pl-5 text-sm text-foreground">
 									{active.cookingInstructions.generalGuidelines.map((g, i) => <li key={i}>{g}</li>)}
 								</ul>
-							) : <p className="text-sm text-muted-foreground">Not added</p>}
+							) : <p className="text-sm text-muted-foreground">{t("doctorPrescribe.notAdded", "Not added")}</p>}
 						</div>
 						<div>
-							<h4 className="mb-1 text-sm font-bold text-foreground">Foods to avoid</h4>
+							<h4 className="mb-1 text-sm font-bold text-foreground">{t("doctorPrescribe.foodsToAvoid", "Foods to avoid")}</h4>
 							{[
 								...(active?.foodsToAvoid?.doshaBased || []),
 								...(active?.foodsToAvoid?.medicalBased || []),
@@ -214,57 +219,57 @@ export function OtherWellnessTab({ patientId, bookingId }) {
 								<ul className="list-disc pl-5 text-sm text-foreground">
 									{[...(active?.foodsToAvoid?.doshaBased || []), ...(active?.foodsToAvoid?.medicalBased || []), ...(active?.foodsToAvoid?.seasonalBased || [])].map((f, i) => <li key={i}>{f}</li>)}
 								</ul>
-							) : <p className="text-sm text-muted-foreground">Not added</p>}
+							) : <p className="text-sm text-muted-foreground">{t("doctorPrescribe.notAdded", "Not added")}</p>}
 						</div>
 						<div>
-							<h4 className="mb-1 text-sm font-bold text-foreground">Lifestyle recommendations</h4>
+							<h4 className="mb-1 text-sm font-bold text-foreground">{t("doctorPrescribe.lifestyleRecs", "Lifestyle recommendations")}</h4>
 							{active?.lifestyleRecommendations?.length ? (
 								<ul className="list-disc pl-5 text-sm text-foreground">
 									{active.lifestyleRecommendations.map((r, i) => <li key={i}>{r}</li>)}
 								</ul>
-							) : <p className="text-sm text-muted-foreground">Not added</p>}
+							) : <p className="text-sm text-muted-foreground">{t("doctorPrescribe.notAdded", "Not added")}</p>}
 						</div>
 						<div>
 							<Button type="button" variant="outline" onClick={startEditing}>
-								<PenLine data-icon="inline-start" size={16} /> Edit
+								<PenLine data-icon="inline-start" size={16} /> {t("common.edit", "Edit")}
 							</Button>
 						</div>
 					</>
 				) : (
 					<>
 						<div className="flex flex-col gap-1.5">
-							<label className="text-xs font-semibold text-muted-foreground">Cooking guidelines (comma-separated)</label>
+							<label className="text-xs font-semibold text-muted-foreground">{t("doctorPrescribe.cookingGuidelinesComma", "Cooking guidelines (comma-separated)")}</label>
 							<Textarea rows={2} value={form.cookingGuidelines} onChange={(e) => setForm((f) => ({ ...f, cookingGuidelines: e.target.value }))} />
 						</div>
 						<div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
 							<div className="flex flex-col gap-1.5">
-								<label className="text-xs font-semibold text-muted-foreground">Foods to avoid -- dosha (comma-separated)</label>
+								<label className="text-xs font-semibold text-muted-foreground">{t("doctorPrescribe.foodsAvoidDosha", "Foods to avoid -- dosha (comma-separated)")}</label>
 								<Textarea rows={2} value={form.foodsAvoidDosha} onChange={(e) => setForm((f) => ({ ...f, foodsAvoidDosha: e.target.value }))} />
 							</div>
 							<div className="flex flex-col gap-1.5">
-								<label className="text-xs font-semibold text-muted-foreground">Foods to avoid -- medical (comma-separated)</label>
+								<label className="text-xs font-semibold text-muted-foreground">{t("doctorPrescribe.foodsAvoidMedical", "Foods to avoid -- medical (comma-separated)")}</label>
 								<Textarea rows={2} value={form.foodsAvoidMedical} onChange={(e) => setForm((f) => ({ ...f, foodsAvoidMedical: e.target.value }))} />
 							</div>
 							<div className="flex flex-col gap-1.5">
-								<label className="text-xs font-semibold text-muted-foreground">Foods to avoid -- seasonal (comma-separated)</label>
+								<label className="text-xs font-semibold text-muted-foreground">{t("doctorPrescribe.foodsAvoidSeasonal", "Foods to avoid -- seasonal (comma-separated)")}</label>
 								<Textarea rows={2} value={form.foodsAvoidSeasonal} onChange={(e) => setForm((f) => ({ ...f, foodsAvoidSeasonal: e.target.value }))} />
 							</div>
 						</div>
 						<div className="flex flex-col gap-1.5">
-							<label className="text-xs font-semibold text-muted-foreground">Lifestyle recommendations (comma-separated)</label>
+							<label className="text-xs font-semibold text-muted-foreground">{t("doctorPrescribe.lifestyleRecsComma", "Lifestyle recommendations (comma-separated)")}</label>
 							<Textarea rows={2} value={form.lifestyleRecommendations} onChange={(e) => setForm((f) => ({ ...f, lifestyleRecommendations: e.target.value }))} />
 						</div>
 						<div className="flex flex-col gap-1.5">
-							<label className="text-xs font-semibold text-muted-foreground">Doctor's notes (optional)</label>
+							<label className="text-xs font-semibold text-muted-foreground">{t("doctorPrescribe.doctorNotesOptional", "Doctor's notes (optional)")}</label>
 							<Textarea rows={2} value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} />
 						</div>
 						<div className="flex flex-wrap gap-2">
 							<Button type="button" variant="outline" onClick={() => setEditing(false)} disabled={saving}>
-								Cancel
+								{t("common.cancel", "Cancel")}
 							</Button>
 							<Button type="button" onClick={save} disabled={saving}>
 								{saving ? <Loader2 className="animate-spin" data-icon="inline-start" /> : <Check data-icon="inline-start" size={16} />}
-								Save
+								{t("common.save", "Save")}
 							</Button>
 						</div>
 					</>

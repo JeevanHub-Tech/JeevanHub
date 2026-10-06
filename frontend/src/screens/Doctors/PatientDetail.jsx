@@ -113,7 +113,7 @@ function PatientDetail() {
 							</span>
 						) : null}
 						<span>
-							{patient.age != null ? `${patient.age} ${t("appointmentSlots.age", "yrs")}` : t("patientDetail.ageNA", "Age N/A")} &bull; {patient.gender || "N/A"}
+							{patient.age != null ? `${patient.age} ${t("appointmentSlots.age", "yrs")}` : t("patientDetail.ageNA", "Age N/A")} &bull; {patient.gender ? t(`common.genders.${patient.gender.toLowerCase()}`, patient.gender) : t("common.na", "N/A")}
 						</span>
 					</div>
 				</Card>
@@ -155,20 +155,20 @@ function PatientDetail() {
 											) : null}
 										</div>
 										<Badge variant={visit.amountPaid === 0 ? "secondary" : "default"}>
-											{visit.amountPaid === 0 ? "Free" : `₹${visit.amountPaid}`}
+											{visit.amountPaid === 0 ? t("appointmentHistory.free", "Free") : `₹${visit.amountPaid}`}
 										</Badge>
 									</div>
 
 									{/* 1. Reason for Visit */}
 									<p className="mt-3 text-xs text-muted-foreground">
-										<strong className="text-foreground">Reason for Visit:</strong>{" "}
-										{visit.patientIllness || <span className="italic text-muted-foreground/75">Not provided</span>}
+										<strong className="text-foreground">{t("patientDetail.reasonForVisit", "Reason for Visit:")}</strong>{" "}
+										{visit.patientIllness || <span className="italic text-muted-foreground/75">{t("patientDetail.notProvided", "Not provided")}</span>}
 									</p>
 
 									{/* 2. Diagnosis */}
 									<p className="mt-1.5 text-xs text-muted-foreground">
-										<strong className="text-foreground">Diagnosis:</strong>{" "}
-										{visit.diagnosis ? visit.diagnosis : <span className="italic text-muted-foreground/75">Not provided</span>}
+										<strong className="text-foreground">{t("patientDetail.diagnosis", "Diagnosis:")}</strong>{" "}
+										{visit.diagnosis ? visit.diagnosis : <span className="italic text-muted-foreground/75">{t("patientDetail.notProvided", "Not provided")}</span>}
 									</p>
 
 									{/* 3. Medicines Prescribed (below Reason for Visit & Diagnosis) */}
@@ -181,8 +181,9 @@ function PatientDetail() {
 											>
 												<Pill className="size-3.5 text-muted-foreground" />
 												<span>
-													{visit.recommendedSupplements.length} medicine
-													{visit.recommendedSupplements.length > 1 ? "s" : ""} prescribed
+													{visit.recommendedSupplements.length === 1 
+														? t("patientDetail.medicinesPrescribed_one", "{{count}} medicine prescribed", { count: 1 })
+														: t("patientDetail.medicinesPrescribed_other", "{{count}} medicines prescribed", { count: visit.recommendedSupplements.length })}
 												</span>
 												<ChevronDown className={`size-3.5 text-muted-foreground transition-transform ${expandedMedicines[visit._id] ? "rotate-180" : ""}`} />
 											</button>
@@ -192,16 +193,16 @@ function PatientDetail() {
 													{visit.recommendedSupplements.map((med, idx) => (
 														<div key={med._id || idx} className="flex flex-col gap-1 rounded-md bg-secondary/30 p-2.5 border border-border/60">
 															<div>
-																<strong className="text-foreground">Medicine Name:</strong>{" "}
-																<span className="font-semibold text-foreground">{med.medicineName || "Not provided"}</span>
+																<strong className="text-foreground">{t("patientDetail.medicineName", "Medicine Name:")}</strong>{" "}
+																<span className="font-semibold text-foreground">{med.medicineName || t("patientDetail.notProvided", "Not provided")}</span>
 															</div>
 															<div>
-																<strong className="text-foreground">Dosage:</strong>{" "}
-																<span>{med.dosage || <span className="italic text-muted-foreground/75">Not provided</span>}</span>
+																<strong className="text-foreground">{t("patientDetail.dosage", "Dosage:")}</strong>{" "}
+																<span>{med.dosage || <span className="italic text-muted-foreground/75">{t("patientDetail.notProvided", "Not provided")}</span>}</span>
 															</div>
 															<div>
-																<strong className="text-foreground">Instructions:</strong>{" "}
-																<span className="italic">{med.instructions || <span className="not-italic text-muted-foreground/75">Not provided</span>}</span>
+																<strong className="text-foreground">{t("patientDetail.instructions", "Instructions:")}</strong>{" "}
+																<span className="italic">{med.instructions || <span className="not-italic text-muted-foreground/75">{t("patientDetail.notProvided", "Not provided")}</span>}</span>
 															</div>
 														</div>
 													))}
@@ -210,15 +211,15 @@ function PatientDetail() {
 										</div>
 									) : (
 										<p className="mt-1.5 text-xs text-muted-foreground">
-											<strong className="text-foreground">Medicines:</strong>{" "}
-											<span className="italic text-muted-foreground/75">Not provided</span>
+											<strong className="text-foreground">{t("patientDetail.medicines", "Medicines:")}</strong>{" "}
+											<span className="italic text-muted-foreground/75">{t("patientDetail.notProvided", "Not provided")}</span>
 										</p>
 									)}
 
 									{/* 4. Patient Review/Feedback */}
 									{visit.rating || (visit.review && visit.review.trim()) ? (
 										<div className="mt-2.5 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
-											<strong className="text-foreground">Feedback:</strong>
+											<strong className="text-foreground">{t("patientDetail.feedback", "Feedback:")}</strong>
 											{visit.rating ? (
 												<span className="flex items-center gap-0.5 font-medium text-foreground">
 													<Star className="size-3.5 fill-(--jh-turmeric-gold) text-(--jh-turmeric-gold)" />{" "}
@@ -237,7 +238,7 @@ function PatientDetail() {
 									) : null}
 
 									<Button size="sm" variant="outline" className="mt-3.5" onClick={() => navigate(`/doctorsprescribe/${visit._id}`)}>
-										View / Edit Prescription
+										{t("patientDetail.viewEditPrescription", "View / Edit Prescription")}
 									</Button>
 								</div>
 							))

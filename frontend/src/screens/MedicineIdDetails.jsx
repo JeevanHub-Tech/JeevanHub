@@ -2,6 +2,7 @@ import React, { useState, useEffect, useContext } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import axios from "axios";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ const FALLBACK_IMAGE =
   "https://images.unsplash.com/photo-1559757148-5c350d0d3c56?auto=format&fit=crop&w=900&q=80";
 
 function MedicineIdDetails({ addToCart }) {
+  const { t } = useTranslation();
   const { auth } = useContext(AuthContext);
   const { fetchCartCount } = useContext(CartContext);
   const { id, medicineId } = useParams();
@@ -189,9 +191,9 @@ function MedicineIdDetails({ addToCart }) {
   return (
     <main className="min-h-screen bg-background pb-16" aria-labelledby="medicine-title">
       <div className="mx-auto mb-4 max-w-6xl px-4">
-        <Button type="button" variant="ghost" onClick={() => navigate(-1)} aria-label="Go back">
+        <Button type="button" variant="ghost" onClick={() => navigate(-1)} aria-label={t("medicinesStore.back", "Back")}>
           <ChevronLeft className="size-4" />
-          Back
+          {t("medicinesStore.back", "Back")}
         </Button>
       </div>
 
@@ -256,7 +258,7 @@ function MedicineIdDetails({ addToCart }) {
 
             {medicine.prescription && (
               <Badge variant="destructive" className="mb-3 self-start uppercase">
-                Rx Prescription Required
+                {t("medicinesStore.prescriptionRequired", "Prescription required")}
               </Badge>
             )}
 
@@ -272,7 +274,7 @@ function MedicineIdDetails({ addToCart }) {
 
             <div className="mb-6 flex items-baseline gap-2">
               <span className="text-3xl font-bold text-foreground max-md:text-2xl">{formattedPrice}</span>
-              <span className="text-sm text-muted-foreground">Inclusive of all taxes</span>
+              <span className="text-sm text-muted-foreground">{t("medicinesStore.inclusiveTaxes", "Inclusive of all taxes")}</span>
             </div>
 
             <div className="mb-8 border-b border-dashed border-border pb-8">
@@ -301,13 +303,13 @@ function MedicineIdDetails({ addToCart }) {
                   type="button"
                   variant="outline"
                   onClick={handleAddToCart}
-                  aria-label={`Add ${medicine.name} to cart`}
+                  aria-label={t("medicinesStore.addNameToCart", { name: medicine.name, defaultValue: `Add ${medicine.name} to cart` })}
                   className="flex-1"
                 >
-                  Add to Cart
+                  {t("medicinesStore.addToCart", "Add to Cart")}
                 </Button>
                 <Button type="button" onClick={handleBuyNow} aria-label={`Buy ${medicine.name} now`} className="flex-1">
-                  Buy Now
+                  {t("medicinesStore.buyNow", "Buy Now")}
                 </Button>
               </div>
             </div>
@@ -317,13 +319,13 @@ function MedicineIdDetails({ addToCart }) {
         {/* BOTTOM SECTION: Detailed Info */}
         <section className="flex flex-col gap-6">
           <Card className="p-8 max-md:p-6">
-            <h2 className="mb-4 border-b border-border pb-2 text-lg font-semibold text-foreground">Product Description</h2>
+            <h2 className="mb-4 border-b border-border pb-2 text-lg font-semibold text-foreground">{t("medicinesStore.productDescription", "Product Description")}</h2>
             <p className="text-sm leading-relaxed text-muted-foreground">{medicine.description}</p>
           </Card>
 
           <Card className="grid grid-cols-[repeat(auto-fit,minmax(250px,1fr))] gap-8 p-8 max-md:p-6">
             <div>
-              <h2 className="mb-4 border-b border-border pb-2 text-lg font-semibold text-foreground">Ingredients</h2>
+              <h2 className="mb-4 border-b border-border pb-2 text-lg font-semibold text-foreground">{t("medicinesStore.ingredients", "Ingredients")}</h2>
               <ul className="list-inside list-disc space-y-1 text-sm leading-relaxed text-muted-foreground">
                 {medicine.ingredients.map((item, idx) => (
                   <li key={idx}>{item}</li>
@@ -332,7 +334,7 @@ function MedicineIdDetails({ addToCart }) {
             </div>
 
             <div>
-              <h2 className="mb-4 border-b border-border pb-2 text-lg font-semibold text-foreground">Uses & Benefits</h2>
+              <h2 className="mb-4 border-b border-border pb-2 text-lg font-semibold text-foreground">{t("medicinesStore.usesBenefits", "Uses & Benefits")}</h2>
               <ul className="list-inside list-disc space-y-1 text-sm leading-relaxed text-muted-foreground">
                 {medicine.usesBenefits.map((item, idx) => (
                   <li key={idx}>{item}</li>
@@ -341,12 +343,12 @@ function MedicineIdDetails({ addToCart }) {
             </div>
 
             <div>
-              <h2 className="mb-4 border-b border-border pb-2 text-lg font-semibold text-foreground">Dosage</h2>
+              <h2 className="mb-4 border-b border-border pb-2 text-lg font-semibold text-foreground">{t("medicinesStore.dosageInstructions", "Dosage & Usage Instructions")}</h2>
               <p className="text-sm leading-relaxed text-muted-foreground">{medicine.dosage}</p>
             </div>
 
             <div>
-              <h2 className="mb-4 border-b border-border pb-2 text-lg font-semibold text-foreground">Storage & Safety</h2>
+              <h2 className="mb-4 border-b border-border pb-2 text-lg font-semibold text-foreground">{t("medicinesStore.storageSafety", "Storage & Safety Information")}</h2>
               <p className="text-sm leading-relaxed text-muted-foreground">{medicine.storageSafety}</p>
             </div>
           </Card>

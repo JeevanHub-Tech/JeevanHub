@@ -12,6 +12,26 @@
     "logout": "Logout",
     "profile": "Profile"
   },
+  "footer": {
+    "tagline": "Authentic Ayurvedic care, connected to verified practitioners and personalized treatment plans you can follow at home.",
+    "explore": "Explore",
+    "treatments": "Treatments",
+    "doctors": "Doctors",
+    "medicines": "Medicines",
+    "blogsVideos": "Blogs & videos",
+    "contactUs": "Contact Us",
+    "legalPolicies": "Legal & Policies",
+    "termsConditions": "Terms & Conditions",
+    "privacyPolicy": "Privacy Policy",
+    "cancellationRefund": "Cancellation & Refund",
+    "shippingPolicy": "Shipping Policy",
+    "reachUs": "Reach Us",
+    "visitContact": "Visit Contact Page →",
+    "followAlong": "Follow along",
+    "copyright": "© {{year}} JeevanHub. Owned and operated by MYSTERY DOMES PRIVATE LIMITED. All rights reserved.",
+    "privacy": "Privacy",
+    "terms": "Terms"
+  },
   "doctorHome": {
     "greeting": "Hi Dr. {{name}}",
     "description": "Welcome back! Let's manage appointments and patient records efficiently.",

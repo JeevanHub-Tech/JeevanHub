@@ -18,7 +18,7 @@ const Prescription = ({ patientBookings }) => {
 		<Card>
 			<CardHeader>
 				<CardTitle className="flex items-center gap-2 font-display text-xl">
-					<Pill size={20} /> {t("prescription.tabs.medicines", "Medicines, Herbs & Supplements")}
+					<Pill size={20} /> {t("prescriptions.medicinesTitle", "Medicines, Herbs & Supplements")}
 					<Badge variant="secondary">{supplementCount}</Badge>
 				</CardTitle>
 			</CardHeader>
@@ -37,7 +37,7 @@ const Prescription = ({ patientBookings }) => {
 									<div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-2.5">
 										<div>
 											<span className="text-xs font-medium text-muted-foreground">
-												{t("prescription.labels.medicineName", "Medicine Name:")}{" "}
+												{t("prescriptions.medicineName", "Medicine Name:")}{" "}
 											</span>
 											<span className="text-base font-bold text-foreground">{supp.medicineName}</span>
 										</div>
@@ -45,22 +45,22 @@ const Prescription = ({ patientBookings }) => {
 
 									<p className="text-sm text-foreground/90">
 										<span className="font-medium text-muted-foreground">
-											{t("prescription.labels.dosage", "Dosage:")}{" "}
+											{t("prescriptions.dosage", "Dosage:")}{" "}
 										</span>
-										<span>{supp.dosage || <span className="italic text-muted-foreground">{t("prescription.labels.notProvided", "Not provided")}</span>}</span>
+										<span>{supp.dosage || <span className="italic text-muted-foreground">{t("prescriptions.notProvided", "Not provided")}</span>}</span>
 									</p>
 
 									<p className="text-sm text-foreground/90">
 										<span className="font-medium text-muted-foreground">
-											{t("prescription.labels.instructions", "Instructions:")}{" "}
+											{t("prescriptions.instructions", "Instructions:")}{" "}
 										</span>
-										<span className="italic">{supp.instructions || <span className="not-italic text-muted-foreground">{t("prescription.labels.notProvided", "Not provided")}</span>}</span>
+										<span className="italic">{supp.instructions || <span className="not-italic text-muted-foreground">{t("prescriptions.notProvided", "Not provided")}</span>}</span>
 									</p>
 
 									{supp.forIllness ? (
 										<p className="text-sm text-foreground/90">
 											<span className="font-medium text-muted-foreground">
-												{t("prescription.labels.forIllness", "For:")}{" "}
+												{t("prescriptions.forIllness", "For:")}{" "}
 											</span>
 											<span>{supp.forIllness}</span>
 										</p>
@@ -69,7 +69,7 @@ const Prescription = ({ patientBookings }) => {
 									{supp.duration ? (
 										<p className="text-sm text-foreground/90">
 											<span className="font-medium text-muted-foreground">
-												{t("prescription.labels.duration", "Duration:")}{" "}
+												{t("prescriptions.duration", "Duration:")}{" "}
 											</span>
 											<span>{supp.duration}</span>
 										</p>
@@ -77,11 +77,11 @@ const Prescription = ({ patientBookings }) => {
 
 									<div className="mt-1 flex flex-wrap items-center justify-between gap-2 border-t border-border/60 pt-2.5 text-xs text-muted-foreground">
 										<span>
-											<strong className="text-foreground/80">{t("prescription.labels.doctorName", "Doctor Name:")}</strong>{" "}
+											<strong className="text-foreground/80">{t("prescriptions.doctorName", "Doctor Name:")}</strong>{" "}
 											{doctorLabel}
 										</span>
 										<span>
-											<strong className="text-foreground/80">{t("prescription.labels.prescriptionDate", "Prescription Date:")}</strong>{" "}
+											<strong className="text-foreground/80">{t("prescriptions.prescriptionDate", "Prescription Date:")}</strong>{" "}
 											{formatDate(booking.createdAt || booking.dateOfAppointment)}
 										</span>
 									</div>
@@ -92,8 +92,8 @@ const Prescription = ({ patientBookings }) => {
 				) : (
 					<EmptyState
 						icon={Pill}
-						title={t("prescription.empty.notPrescribed", "Not prescribed")}
-						description={t("prescription.empty.medicinesDesc", "Prescribed medicines, herbs, and supplements will show up here once a doctor adds them.")}
+						title={t("prescriptions.notPrescribedTitle", "Not prescribed")}
+						description={t("prescriptions.notPrescribedDesc", "Prescribed medicines, herbs, and supplements will show up here once a doctor adds them.")}
 					/>
 				)}
 			</CardContent>

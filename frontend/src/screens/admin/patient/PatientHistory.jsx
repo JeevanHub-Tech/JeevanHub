@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { History as HistoryIcon, CalendarClock, Clock, Video, Pill, Stethoscope, FileText } from 'lucide-react';
+import { History as HistoryIcon, CalendarClock, Clock, Video, Pill } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { formatDateReadable } from "@/lib/date";
 
@@ -20,6 +20,7 @@ const format12HourTime = (timeStr) => {
 };
 
 const History = ({ bookings = [] }) => {
+	const { t } = useTranslation();
 	const [upcomingAppointments, setUpcomingAppointments] = useState([]);
 	const [pastAppointments, setPastAppointments] = useState([]);
 
@@ -75,14 +76,14 @@ const History = ({ bookings = [] }) => {
 		<Card>
 			<CardHeader>
 				<CardTitle className="flex items-center gap-2 font-display text-xl">
-					<HistoryIcon size={20} /> Medical History &amp; Appointments
+					<HistoryIcon size={20} /> {t("adminPatient.medicalHistoryAppointments", "Medical History & Appointments")}
 				</CardTitle>
 			</CardHeader>
 			<CardContent className="flex flex-col gap-10">
 				{/* Section 1: Upcoming Schedule */}
 				<div>
 					<h4 className="mb-6 flex items-center gap-2 border-b border-border pb-3 text-base font-semibold text-foreground">
-						<CalendarClock size={18} /> Upcoming Schedule
+						<CalendarClock size={18} /> {t("adminPatient.upcomingSchedule", "Upcoming Schedule")}
 					</h4>
 					<div className="flex flex-col gap-4">
 						{upcomingAppointments.length > 0 ? (
@@ -108,8 +109,8 @@ const History = ({ bookings = [] }) => {
 												</Badge>
 											</div>
 											<p className="text-xs text-muted-foreground mt-1">
-												<strong className="text-foreground/80">Reason for Visit:</strong>{" "}
-												{appt.patientIllness || <span className="italic">Not specified</span>}
+												<strong className="text-foreground/80">{t("adminPatient.reasonForVisit", "Reason for Visit:")}</strong>{" "}
+												{appt.patientIllness || <span className="italic">{t("prescriptions.notProvided", "Not specified")}</span>}
 											</p>
 											{appt.meetUrl ? (
 												<div className="mt-2">
@@ -119,12 +120,12 @@ const History = ({ bookings = [] }) => {
 														rel="noopener noreferrer"
 														className="inline-flex items-center gap-1.5 text-xs font-semibold text-(--jh-olive-leaf) hover:underline"
 													>
-														<Video size={14} /> Join Video Consultation
+														<Video size={14} /> {t("adminPatient.joinVideoConsultation", "Join Video Consultation")}
 													</a>
 												</div>
 											) : (
 												<p className="text-xs text-muted-foreground/80 mt-1 flex items-center gap-1">
-													<Video size={13} /> Video room link will activate before consultation
+													<Video size={13} /> {t("adminPatient.videoLinkNote", "Video room link will activate before consultation")}
 												</p>
 											)}
 										</div>
@@ -132,13 +133,17 @@ const History = ({ bookings = [] }) => {
 
 									<div className="shrink-0 self-start sm:self-center text-right">
 										<Badge variant={appt.amountPaid === 0 ? "secondary" : "default"} className="text-xs">
-											{appt.amountPaid === 0 ? "Free" : `₹${appt.amountPaid}`}
+											{appt.amountPaid === 0 ? t("common.free", "Free") : `₹${appt.amountPaid}`}
 										</Badge>
 									</div>
 								</div>
 							))
 						) : (
-							<EmptyState icon={CalendarClock} title="No upcoming appointments" description="Scheduled visits will appear here." />
+							<EmptyState
+								icon={CalendarClock}
+								title={t("adminPatient.noUpcomingAppointments", "No upcoming appointments")}
+								description={t("adminPatient.scheduledVisitsDesc", "Scheduled visits will appear here.")}
+							/>
 						)}
 					</div>
 				</div>
@@ -146,7 +151,7 @@ const History = ({ bookings = [] }) => {
 				{/* Section 2: Past Visits Timeline */}
 				<div>
 					<h4 className="mb-6 flex items-center gap-2 border-b border-border pb-3 text-base font-semibold text-foreground">
-						<HistoryIcon size={18} /> Past Visits
+						<HistoryIcon size={18} /> {t("adminPatient.pastVisits", "Past Visits")}
 					</h4>
 					{pastAppointments.length > 0 ? (
 						<div className="relative border-l-2 border-border pl-6 sm:pl-8 ml-2">
@@ -159,9 +164,9 @@ const History = ({ bookings = [] }) => {
 											<div className="flex flex-wrap items-center gap-2">
 												<h5 className="font-semibold text-foreground text-base">{visit.doctor}</h5>
 												{visit.status === 'denied' ? (
-													<Badge variant="destructive" className="text-xs">Cancelled</Badge>
+													<Badge variant="destructive" className="text-xs">{t("adminPatient.cancelled", "Cancelled")}</Badge>
 												) : (
-													<Badge variant="secondary" className="text-xs">Completed</Badge>
+													<Badge variant="secondary" className="text-xs">{t("adminPatient.completed", "Completed")}</Badge>
 												)}
 											</div>
 											<div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -179,36 +184,36 @@ const History = ({ bookings = [] }) => {
 
 										{/* Reason for Visit */}
 										<p className="text-xs text-muted-foreground">
-											<strong className="text-foreground">Reason for Visit:</strong>{" "}
-											{visit.patientIllness || <span className="italic text-muted-foreground/75">Not provided</span>}
+											<strong className="text-foreground">{t("adminPatient.reasonForVisit", "Reason for Visit:")}</strong>{" "}
+											{visit.patientIllness || <span className="italic text-muted-foreground/75">{t("prescriptions.notProvided", "Not provided")}</span>}
 										</p>
 
 										{/* Diagnosis */}
 										<p className="text-xs text-muted-foreground">
-											<strong className="text-foreground">Diagnosis:</strong>{" "}
-											{visit.diagnosis ? visit.diagnosis : <span className="italic text-muted-foreground/75">Not provided</span>}
+											<strong className="text-foreground">{t("adminPatient.diagnosis", "Diagnosis:")}</strong>{" "}
+											{visit.diagnosis ? visit.diagnosis : <span className="italic text-muted-foreground/75">{t("prescriptions.notProvided", "Not provided")}</span>}
 										</p>
 
 										{/* Prescribed Medicines Summary */}
 										{visit.medicines.length > 0 ? (
 											<div className="mt-1 rounded-md bg-secondary/40 p-3 border border-border/60 text-xs">
 												<p className="font-semibold text-foreground mb-2 flex items-center gap-1.5">
-													<Pill size={13} className="text-(--jh-olive-leaf)" /> Prescribed Medicines ({visit.medicines.length}):
+													<Pill size={13} className="text-(--jh-olive-leaf)" /> {t("prescriptions.medicinesTitle", "Prescribed Medicines")} ({visit.medicines.length}):
 												</p>
 												<div className="flex flex-col gap-2">
 													{visit.medicines.map((med, idx) => (
 														<div key={med._id || idx} className="flex flex-col gap-1 rounded bg-card/80 p-2.5 border border-border/50">
 															<div>
-																<strong className="text-foreground">Medicine Name:</strong>{" "}
-																<span className="font-semibold text-foreground">{med.medicineName || "Not provided"}</span>
+																<strong className="text-foreground">{t("prescriptions.medicineName", "Medicine Name:")}</strong>{" "}
+																<span className="font-semibold text-foreground">{med.medicineName || t("prescriptions.notProvided", "Not provided")}</span>
 															</div>
 															<div>
-																<strong className="text-foreground">Dosage:</strong>{" "}
-																<span className="text-foreground/90">{med.dosage || <span className="italic text-muted-foreground/75">Not provided</span>}</span>
+																<strong className="text-foreground">{t("prescriptions.dosage", "Dosage:")}</strong>{" "}
+																<span className="text-foreground/90">{med.dosage || <span className="italic text-muted-foreground/75">{t("prescriptions.notProvided", "Not provided")}</span>}</span>
 															</div>
 															<div>
-																<strong className="text-foreground">Instructions:</strong>{" "}
-																<span className="text-foreground/90">{med.instructions ? <span className="italic text-muted-foreground">{med.instructions}</span> : <span className="italic text-muted-foreground/75">Not provided</span>}</span>
+																<strong className="text-foreground">{t("prescriptions.instructions", "Instructions:")}</strong>{" "}
+																<span className="text-foreground/90">{med.instructions ? <span className="italic text-muted-foreground">{med.instructions}</span> : <span className="italic text-muted-foreground/75">{t("prescriptions.notProvided", "Not provided")}</span>}</span>
 															</div>
 														</div>
 													))}
@@ -216,15 +221,15 @@ const History = ({ bookings = [] }) => {
 											</div>
 										) : (
 											<p className="text-xs text-muted-foreground">
-												<strong className="text-foreground">Medicines:</strong>{" "}
-												<span className="italic text-muted-foreground/75">Not provided</span>
+												<strong className="text-foreground">{t("prescriptions.medicinesTitle", "Medicines:")}</strong>{" "}
+												<span className="italic text-muted-foreground/75">{t("prescriptions.notProvided", "Not provided")}</span>
 											</p>
 										)}
 
 										{/* Doctor Note / Cancellation Reason */}
 										{visit.doctorsMessage ? (
 											<p className="text-xs text-muted-foreground/90 border-t border-border/40 pt-2 italic">
-												<strong className="text-foreground not-italic">Doctor Note:</strong> {visit.doctorsMessage}
+												<strong className="text-foreground not-italic">{t("adminPatient.doctorNote", "Doctor Note:")}</strong> {visit.doctorsMessage}
 											</p>
 										) : null}
 									</div>
@@ -232,7 +237,7 @@ const History = ({ bookings = [] }) => {
 							))}
 						</div>
 					) : (
-						<EmptyState icon={HistoryIcon} title="No past visits recorded" />
+						<EmptyState icon={HistoryIcon} title={t("adminPatient.noPastVisits", "No past visits recorded")} />
 					)}
 				</div>
 			</CardContent>
@@ -241,4 +246,3 @@ const History = ({ bookings = [] }) => {
 };
 
 export default History;
-

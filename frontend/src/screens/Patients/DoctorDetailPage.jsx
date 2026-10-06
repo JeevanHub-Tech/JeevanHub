@@ -1,7 +1,7 @@
 import { useState, useContext, useEffect, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
-import { ArrowLeft, Clock, Loader2, Plus, Salad, Star, X } from "lucide-react";
+import { ArrowLeft, Calendar, Clock, Loader2, Plus, Salad, Star, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { Badge } from "@/components/ui/badge";
@@ -513,31 +513,32 @@ function DoctorDetail() {
 					<div className="mb-5">
 						<div className="mb-2 flex items-center justify-between gap-2">
 							<Label htmlFor="doctor-date-picker" className="cursor-pointer font-semibold">{t("doctorDetail.selectDate")}</Label>
-							<input
-								id="doctor-date-picker"
-								type="date"
-								min={getLocalDateString()}
-								value={carouselStartDate}
-								onClick={(e) => {
-									try {
-										e.currentTarget.showPicker();
-									} catch {}
-								}}
-								onFocus={(e) => {
-									try {
-										e.currentTarget.showPicker();
-									} catch {}
-								}}
-								onChange={(e) => {
-									if (e.target.value) {
-										setCarouselStartDate(e.target.value);
-										setDateOfAppointment(e.target.value);
-										setSelectedTime(null);
-										setShowAllSlots(false);
-									}
-								}}
-								className="cursor-pointer rounded-md border border-input bg-transparent px-2.5 py-1 text-sm outline-none transition-colors hover:border-ring focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-							/>
+							<div className="relative inline-flex items-center gap-2 rounded-md border border-input bg-card px-2.5 py-1 text-sm shadow-xs transition-colors hover:border-ring focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50">
+								<span className="select-none font-medium text-foreground tracking-wide">
+									{carouselStartDate ? carouselStartDate.split("-").reverse().join("-") : ""}
+								</span>
+								<Calendar size={15} className="text-muted-foreground shrink-0" />
+								<input
+									id="doctor-date-picker"
+									type="date"
+									min={getLocalDateString()}
+									value={carouselStartDate}
+									onClick={(e) => {
+										try {
+											e.currentTarget.showPicker();
+										} catch {}
+									}}
+									onChange={(e) => {
+										if (e.target.value) {
+											setCarouselStartDate(e.target.value);
+											setDateOfAppointment(e.target.value);
+											setSelectedTime(null);
+											setShowAllSlots(false);
+										}
+									}}
+									className="absolute inset-0 size-full cursor-pointer opacity-0"
+								/>
+							</div>
 						</div>
 						<div className="grid grid-cols-[repeat(auto-fill,minmax(96px,1fr))] gap-2">
 							{dates.map((d) => {

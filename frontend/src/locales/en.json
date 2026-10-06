@@ -12,6 +12,15 @@
     "logout": "Logout",
     "profile": "Profile"
   },
+  "globalSearch": {
+    "placeholder": "Search care, doctors, or medicines",
+    "explore": "Explore",
+    "noResults": "No results found",
+    "doctors": "Doctors",
+    "treatments": "Treatments",
+    "medicines": "Medicines",
+    "blogsVideos": "Blogs & videos"
+  },
   "footer": {
     "tagline": "Authentic Ayurvedic care, connected to verified practitioners and personalized treatment plans you can follow at home.",
     "explore": "Explore",

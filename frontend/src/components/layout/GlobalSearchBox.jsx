@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 import { Input } from "@/components/ui/input";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
@@ -15,6 +16,7 @@ function GlobalSearchBox({
   className = "",
   onNavigate,
 }) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [selectedType, setSelectedType] = useState(defaultType);
   const { query, setQuery, results, open, setOpen, clear } = useGlobalSearch(selectedType);
@@ -60,7 +62,7 @@ function GlobalSearchBox({
                 aria-label="Explore JeevanHub"
                 className="h-8 w-28 shrink-0 gap-1.5 border-0 bg-transparent px-2 text-sm font-semibold text-primary-foreground hover:bg-primary-foreground/10 focus-visible:ring-0 [&_svg]:text-primary-foreground/70"
               >
-                <SelectValue placeholder="Explore" />
+                <SelectValue placeholder={t("globalSearch.explore", "Explore")} />
               </SelectTrigger>
               <SelectContent>
                 {exploreOptions.map((option) => (
@@ -76,7 +78,7 @@ function GlobalSearchBox({
 
         <Input
           aria-label="Search JeevanHub"
-          placeholder="Search care, doctors, or medicines"
+          placeholder={t("globalSearch.placeholder", "Search care, doctors, or medicines")}
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           onKeyDown={handleKeyDown}
@@ -99,7 +101,7 @@ function GlobalSearchBox({
               </button>
             ))
           ) : (
-            <p className="px-3 py-2 text-sm text-muted-foreground">No results found</p>
+            <p className="px-3 py-2 text-sm text-muted-foreground">{t("globalSearch.noResults", "No results found")}</p>
           )}
         </div>
       ) : null}

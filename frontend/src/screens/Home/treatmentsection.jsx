@@ -87,7 +87,7 @@ const Medicines = () => {
         ) : (
           medicines.slice(0, visibleCount).map((medicine) => (
             <div
-              className="group relative flex h-full flex-col overflow-hidden rounded-[18px] border border-(--jh-line-strong) bg-(--jh-surface) shadow-[0_8px_22px_rgba(47,53,36,0.07)] transition-[transform,box-shadow] duration-320 ease-out hover:-translate-y-1.5 hover:shadow-[0_18px_38px_rgba(47,53,36,0.15)]"
+              className="group relative flex h-full flex-col overflow-hidden rounded-[18px] border border-(--jh-line-strong) bg-(--jh-surface) shadow-[0_8px_22px_rgba(47,53,36,0.07)] transition-all duration-300 ease-out will-change-transform hover:-translate-y-1.5 hover:shadow-[0_18px_38px_rgba(47,53,36,0.15)]"
               key={medicine._id}
             >
               <button

@@ -64,9 +64,9 @@ const YogaPositions = () => {
 				<CarouselContent>
 					{yogaPositions.map((pose) => (
 						<CarouselItem key={pose.id} className="basis-9/10 sm:basis-1/2 lg:basis-1/3">
-							<div className="flex h-full flex-col items-start rounded-2xl bg-card p-6 text-left shadow-[0_20px_40px_-24px_rgba(20,28,12,0.5)] transition-transform duration-450 ease-out hover:-translate-y-1.5">
+							<div className="group flex h-full flex-col items-start rounded-2xl bg-card p-6 text-left shadow-[0_16px_36px_-20px_rgba(20,28,12,0.4)] transition-all duration-300 ease-out will-change-transform hover:-translate-y-1.5 hover:shadow-[0_24px_48px_-16px_rgba(20,28,12,0.5)]">
 								<div className="mb-5.5 h-52.5 w-full overflow-hidden rounded-xl">
-									<img src={pose.image} alt={pose.name} className="size-full object-cover" />
+									<img src={pose.image} alt={pose.name} className="size-full object-cover transition-transform duration-500 ease-out group-hover:scale-105" />
 								</div>
 								<h3 className="font-display m-0 mb-2.5 text-xl leading-tight font-semibold text-foreground">{pose.name}</h3>
 								<p className="m-0 text-sm leading-relaxed text-muted-foreground">{pose.description}</p>

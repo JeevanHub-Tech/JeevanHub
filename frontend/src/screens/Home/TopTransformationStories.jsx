@@ -64,9 +64,9 @@ const StorySlide = ({ item, sectionType }) => {
 		<CarouselItem className="basis-9/10 sm:basis-1/2 lg:basis-1/3">
 			<div className="group flex h-full cursor-pointer flex-col">
 				{sectionType === "Video" ? (
-					<div className="relative">
+					<div className="relative overflow-hidden rounded-[14px] shadow-[0_12px_28px_-16px_rgba(30,38,20,0.4)] transition-all duration-300 ease-out will-change-transform group-hover:-translate-y-1.5 group-hover:shadow-[0_22px_44px_-14px_rgba(30,38,20,0.35)]">
 						<video
-							className="block aspect-3/2 w-full rounded-[14px] bg-muted object-cover shadow-[0_18px_34px_-20px_rgba(30,38,20,0.5)] transition-transform duration-500 ease-out group-hover:-translate-y-1"
+							className="block aspect-3/2 w-full bg-muted object-cover transition-transform duration-500 ease-out group-hover:scale-104"
 							src={item.videoUrl}
 							poster={item.poster}
 							preload="none"
@@ -79,6 +79,7 @@ const StorySlide = ({ item, sectionType }) => {
 					</div>
 				) : (
 					<div
+						className="relative overflow-hidden rounded-[14px] shadow-[0_12px_28px_-16px_rgba(30,38,20,0.4)] transition-all duration-300 ease-out will-change-transform group-hover:-translate-y-1.5 group-hover:shadow-[0_22px_44px_-14px_rgba(30,38,20,0.35)]"
 						role="link"
 						tabIndex={0}
 						aria-label={title}
@@ -88,7 +89,7 @@ const StorySlide = ({ item, sectionType }) => {
 						onClick={() => (window.location.href = `/blog/${item.id}`)}
 					>
 						<img
-							className="block aspect-3/2 w-full rounded-[14px] bg-muted object-cover shadow-[0_18px_34px_-20px_rgba(30,38,20,0.5)] transition-transform duration-500 ease-out group-hover:-translate-y-1"
+							className="block aspect-3/2 w-full bg-muted object-cover transition-transform duration-500 ease-out group-hover:scale-104"
 							src={item.imageUrl}
 							alt={title}
 						/>

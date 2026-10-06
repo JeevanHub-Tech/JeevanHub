@@ -49,7 +49,7 @@ const RequestCallback = () => {
 
   return (
     <section className="flex items-center justify-center bg-(--jh-cream-tint) px-2.5 py-7.5 sm:px-2.5 sm:py-4">
-      <div className="relative flex w-full max-w-275 flex-col items-center justify-between gap-4 rounded-2xl bg-(--jh-surface) p-6.25 shadow-[0_12px_24px_rgba(0,0,0,0.1)] transition-transform duration-300 ease-in-out hover:-translate-y-1.25 sm:flex-row sm:p-10 sm:text-left">
+      <div className="relative flex w-full max-w-275 flex-col items-center justify-between gap-4 rounded-2xl bg-(--jh-surface) p-6.25 shadow-[0_12px_24px_rgba(0,0,0,0.1)] transition-all duration-300 ease-out will-change-transform hover:-translate-y-1 hover:shadow-[0_18px_32px_rgba(0,0,0,0.14)] sm:flex-row sm:p-10 sm:text-left">
         <div className="flex max-w-full flex-col justify-center sm:max-w-[55%]">
           <h3 className="m-0 text-[22px] leading-tight font-bold text-foreground sm:text-[28px]">
             {t('homeScreen.requestCallback.title', 'Request a callback')}

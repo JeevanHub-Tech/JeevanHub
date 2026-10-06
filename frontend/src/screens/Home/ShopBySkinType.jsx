@@ -78,10 +78,10 @@ const ShopBySkinType = () => {
         ].map((b, idx) => (
           <div
             key={idx}
-            className="group relative flex flex-col items-center overflow-hidden rounded-[18px] border border-(--jh-line-strong) bg-(--jh-surface) px-5.5 pt-7.5 pb-6.5 shadow-[0_8px_22px_rgba(47,53,36,0.07)] transition-[transform,box-shadow] duration-320 ease-out before:absolute before:inset-x-0 before:top-0 before:h-1 before:origin-left before:scale-x-0 before:bg-gradient-to-r before:from-(--jh-olive-leaf) before:to-(--jh-turmeric-gold) before:transition-transform before:duration-350 hover:-translate-y-1.5 hover:shadow-[0_18px_38px_rgba(47,53,36,0.15)] hover:before:scale-x-100"
+            className="group relative flex flex-col items-center overflow-hidden rounded-[18px] border border-(--jh-line-strong) bg-(--jh-surface) px-5.5 pt-7.5 pb-6.5 shadow-[0_8px_22px_rgba(47,53,36,0.07)] transition-all duration-300 ease-out will-change-transform before:absolute before:inset-x-0 before:top-0 before:h-1 before:origin-left before:scale-x-0 before:bg-gradient-to-r before:from-(--jh-olive-leaf) before:to-(--jh-turmeric-gold) before:transition-transform before:duration-300 hover:-translate-y-1.5 hover:shadow-[0_18px_38px_rgba(47,53,36,0.15)] hover:before:scale-x-100"
           >
             <div
-              className="mb-4 flex size-16 items-center justify-center rounded-[18px] border border-(--jh-line-strong) bg-gradient-to-br from-(--jh-sage-pale) to-(--jh-sage-pale-2) text-(--jh-olive-action) shadow-[inset_0_2px_6px_rgba(255,255,255,0.7)] transition-transform duration-350 ease-out [&_svg]:size-7.5 group-hover:-translate-y-1 group-hover:scale-106"
+              className="mb-4 flex size-16 items-center justify-center rounded-[18px] border border-(--jh-line-strong) bg-gradient-to-br from-(--jh-sage-pale) to-(--jh-sage-pale-2) text-(--jh-olive-action) shadow-[inset_0_2px_6px_rgba(255,255,255,0.7)] transition-transform duration-300 ease-out [&_svg]:size-7.5 group-hover:-translate-y-1 group-hover:scale-105"
               aria-hidden="true"
             >
               {b.icon}
@@ -99,12 +99,12 @@ const ShopBySkinType = () => {
         {/* Our Treatment Tab */}
         <button
           type="button"
-          className="group relative block min-h-47.5 w-full overflow-hidden rounded-[18px] border-none bg-none p-0 text-left font-inherit shadow-[0_8px_22px_rgba(47,53,36,0.1)] transition-[transform,box-shadow] duration-320 ease-out hover:-translate-y-1.5 hover:shadow-[0_20px_40px_rgba(47,53,36,0.2)]"
+          className="group relative block min-h-47.5 w-full overflow-hidden rounded-[18px] border-none bg-none p-0 text-left font-inherit shadow-[0_8px_22px_rgba(47,53,36,0.1)] transition-all duration-300 ease-out will-change-transform hover:-translate-y-1.5 hover:shadow-[0_20px_40px_rgba(47,53,36,0.2)]"
           onClick={() => navigate('/treatments')}
           aria-label={t("homeScreen.whyChooseUs.ourTreatment", "Our Treatment")}
         >
           <span
-            className="absolute inset-0 h-full bg-cover bg-center transition-transform duration-600 ease-out group-hover:scale-108"
+            className="absolute inset-0 h-full bg-cover bg-center transition-transform duration-500 ease-out group-hover:scale-105"
             style={{
               backgroundImage: `url(${technologyImage})`,
             }}
@@ -120,12 +120,12 @@ const ShopBySkinType = () => {
         {/* Our Doctors Tab */}
         <button
           type="button"
-          className="group relative block min-h-47.5 w-full overflow-hidden rounded-[18px] border-none bg-none p-0 text-left font-inherit shadow-[0_8px_22px_rgba(47,53,36,0.1)] transition-[transform,box-shadow] duration-320 ease-out hover:-translate-y-1.5 hover:shadow-[0_20px_40px_rgba(47,53,36,0.2)]"
+          className="group relative block min-h-47.5 w-full overflow-hidden rounded-[18px] border-none bg-none p-0 text-left font-inherit shadow-[0_8px_22px_rgba(47,53,36,0.1)] transition-all duration-300 ease-out will-change-transform hover:-translate-y-1.5 hover:shadow-[0_20px_40px_rgba(47,53,36,0.2)]"
           onClick={() => navigate('/doctors')}
           aria-label={t("homeScreen.whyChooseUs.ourDoctors", "Our Doctors")}
         >
           <span
-            className="absolute inset-0 h-full bg-cover bg-center transition-transform duration-600 ease-out group-hover:scale-108"
+            className="absolute inset-0 h-full bg-cover bg-center transition-transform duration-500 ease-out group-hover:scale-105"
             style={{
               backgroundImage: `url(${doctorsImage})`,
             }}
@@ -141,12 +141,12 @@ const ShopBySkinType = () => {
         {/* Case Studies Tab */}
         <button
           type="button"
-          className="group relative block min-h-47.5 w-full overflow-hidden rounded-[18px] border-none bg-none p-0 text-left font-inherit shadow-[0_8px_22px_rgba(47,53,36,0.1)] transition-[transform,box-shadow] duration-320 ease-out hover:-translate-y-1.5 hover:shadow-[0_20px_40px_rgba(47,53,36,0.2)]"
+          className="group relative block min-h-47.5 w-full overflow-hidden rounded-[18px] border-none bg-none p-0 text-left font-inherit shadow-[0_8px_22px_rgba(47,53,36,0.1)] transition-all duration-300 ease-out will-change-transform hover:-translate-y-1.5 hover:shadow-[0_20px_40px_rgba(47,53,36,0.2)]"
           onClick={() => navigate('/blogs-videos')}
           aria-label={t("homeScreen.whyChooseUs.caseStudies", "Case Studies")}
         >
           <span
-            className="absolute inset-0 h-full bg-cover bg-center transition-transform duration-600 ease-out group-hover:scale-108"
+            className="absolute inset-0 h-full bg-cover bg-center transition-transform duration-500 ease-out group-hover:scale-105"
             style={{
               backgroundImage: `url(${successStoriesImage})`,
             }}

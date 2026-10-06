@@ -106,7 +106,7 @@ const DoctorsSection = () => {
                 key={index}
               >
                 <div
-                  className="group relative box-border flex w-full cursor-pointer flex-col items-center overflow-hidden rounded-[20px] border border-(--jh-line-strong) bg-(--jh-surface) px-5 pt-6 pb-5.5 shadow-[0_8px_22px_rgba(47,53,36,0.08)] transition-[transform,box-shadow] duration-300 ease-out before:absolute before:inset-x-0 before:top-0 before:h-19 before:bg-gradient-to-br before:from-(--jh-olive-light) before:to-(--jh-olive-leaf) hover:-translate-y-2 hover:shadow-[0_22px_44px_rgba(47,53,36,0.16)]"
+                  className="group relative box-border flex w-full cursor-pointer flex-col items-center overflow-hidden rounded-[20px] border border-(--jh-line-strong) bg-(--jh-surface) px-5 pt-6 pb-5.5 shadow-[0_8px_22px_rgba(47,53,36,0.08)] transition-all duration-300 ease-out will-change-transform before:absolute before:inset-x-0 before:top-0 before:h-19 before:bg-gradient-to-br before:from-(--jh-olive-light) before:to-(--jh-olive-leaf) hover:-translate-y-1.5 hover:shadow-[0_20px_40px_rgba(47,53,36,0.18)]"
                   role="button"
                   tabIndex={0}
                   aria-label={`View profile of ${doctor.name}`}
@@ -119,7 +119,7 @@ const DoctorsSection = () => {
                   }}
                 >
                   <div className="relative z-1 shrink-0">
-                    <Avatar size="lg" className="size-27 border-4 border-white shadow-[0_6px_16px_rgba(47,53,36,0.18)]">
+                    <Avatar size="lg" className="size-27 border-4 border-white shadow-[0_6px_16px_rgba(47,53,36,0.18)] transition-transform duration-300 ease-out group-hover:scale-103">
                       <AvatarImage
                         src={getDoctorImageUrl(doctor.profileImage)}
                         alt={doctor.name}

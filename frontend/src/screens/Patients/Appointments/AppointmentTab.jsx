@@ -94,12 +94,12 @@ const PrescriptionSummary = ({ diagnosis, supplements }) => {
 					{hasDiagnosis ? (
 						<p className="flex items-start gap-1.5 text-foreground">
 							<Stethoscope size={13} className="mt-0.5 shrink-0 text-primary" />
-							<span><strong>Diagnosis:</strong> {diagnosis}</span>
+							<span><strong>{t("appointedDoctor.diagnosisLabel", "Diagnosis:")}</strong> {diagnosis}</span>
 						</p>
 					) : (
 						<p className="flex items-start gap-1.5 text-xs text-muted-foreground">
 							<Stethoscope size={13} className="mt-0.5 shrink-0" />
-							<span><strong>Diagnosis:</strong> Not provided</span>
+							<span><strong>{t("appointedDoctor.diagnosisLabel", "Diagnosis:")}</strong> {t("appointedDoctor.notProvided", "Not provided")}</span>
 						</p>
 					)}
 
@@ -109,23 +109,23 @@ const PrescriptionSummary = ({ diagnosis, supplements }) => {
 								<div key={s._id || i} className="flex flex-col gap-0.5 rounded-md bg-card px-2.5 py-2">
 									<div className="flex items-center justify-between gap-2">
 										<span className="font-semibold text-foreground">
-											<span className="font-medium text-muted-foreground">Medicine: </span>
-											{s.medicineName || "Not provided"}
+											<span className="font-medium text-muted-foreground">{t("appointedDoctor.medicineLabel", "Medicine: ")}</span>
+											{s.medicineName || t("appointedDoctor.notProvided", "Not provided")}
 										</span>
 										{s.medicineId ? (
 											<Link
 												to={`/medicines/${s.medicineId}`}
 												className="shrink-0 text-xs font-semibold text-primary hover:underline"
 											>
-												View in store
+												{t("appointedDoctor.viewInStore", "View in store")}
 											</Link>
 										) : null}
 									</div>
 									<span className="text-xs text-muted-foreground">
-										<strong>Dosage:</strong> {s.dosage || "Not provided"}
+										<strong>{t("appointedDoctor.dosageLabel", "Dosage:")}</strong> {s.dosage || t("appointedDoctor.notProvided", "Not provided")}
 									</span>
 									<span className="text-xs text-muted-foreground">
-										<strong>Instructions:</strong> {s.instructions || "Not provided"}
+										<strong>{t("appointedDoctor.instructionsLabel", "Instructions:")}</strong> {s.instructions || t("appointedDoctor.notProvided", "Not provided")}
 									</span>
 								</div>
 							))}
@@ -133,7 +133,7 @@ const PrescriptionSummary = ({ diagnosis, supplements }) => {
 					) : (
 						<p className="flex items-start gap-1.5 text-xs text-muted-foreground">
 							<Pill size={13} className="mt-0.5 shrink-0" />
-							<span><strong>Medicines:</strong> Not provided</span>
+							<span><strong>{t("appointedDoctor.medicinesLabel", "Medicines:")}</strong> {t("appointedDoctor.notProvided", "Not provided")}</span>
 						</p>
 					)}
 				</div>
@@ -146,6 +146,7 @@ const PrescriptionSummary = ({ diagnosis, supplements }) => {
 // (same visual treatment as the doctor's-message note) instead of being
 // squeezed into the meta strip. Only editable on upcoming appointments.
 const IllnessSection = ({ appointmentId, illness, editable, onSaved }) => {
+	const { t } = useTranslation();
 	const [editing, setEditing] = useState(false);
 	const [value, setValue] = useState(illness || "");
 	const [saving, setSaving] = useState(false);
@@ -182,18 +183,18 @@ const IllnessSection = ({ appointmentId, illness, editable, onSaved }) => {
 		return (
 			<div className="mt-3 flex flex-col gap-1.5 rounded-(--jh-radius-md) bg-secondary/60 p-3">
 				<span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
-					<Stethoscope size={13} /> Reason for visit
+					<Stethoscope size={13} /> {t("appointedDoctor.reasonForVisit", "Reason for visit")}
 				</span>
 				<textarea
 					value={value}
 					onChange={(e) => setValue(e.target.value)}
 					rows={3}
-					placeholder="Describe your symptoms or reason for this visit..."
+					placeholder={t("appointedDoctor.describeSymptomsPlaceholder", "Describe your symptoms or reason for this visit...")}
 					className="w-full rounded-md border border-input bg-card px-2.5 py-1.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
 				/>
 				<div className="flex gap-2">
 					<Button size="sm" onClick={handleSave} disabled={saving}>
-						{saving ? "Saving..." : "Save"}
+						{saving ? t("appointedDoctor.saving", "Saving...") : t("appointedDoctor.save", "Save")}
 					</Button>
 					<Button
 						size="sm"
@@ -204,7 +205,7 @@ const IllnessSection = ({ appointmentId, illness, editable, onSaved }) => {
 						}}
 						disabled={saving}
 					>
-						Cancel
+						{t("appointedDoctor.cancel", "Cancel")}
 					</Button>
 				</div>
 			</div>
@@ -214,7 +215,7 @@ const IllnessSection = ({ appointmentId, illness, editable, onSaved }) => {
 	return (
 		<div className="mt-3 rounded-(--jh-radius-md) bg-secondary/60 p-3">
 			<span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
-				<Stethoscope size={13} /> Reason for visit
+				<Stethoscope size={13} /> {t("appointedDoctor.reasonForVisit", "Reason for visit")}
 				{editable ? (
 					<button
 						type="button"
@@ -229,7 +230,7 @@ const IllnessSection = ({ appointmentId, illness, editable, onSaved }) => {
 					</button>
 				) : null}
 			</span>
-			<p className="mt-1 text-sm text-foreground">{illness || "Not provided"}</p>
+			<p className="mt-1 text-sm text-foreground">{illness || t("appointedDoctor.notProvided", "Not provided")}</p>
 		</div>
 	);
 };
@@ -467,9 +468,19 @@ const AppointmentTab = ({
 		const isRescheduled = appointment.isRescheduledByDoctor;
 		const isCancelledByDoctor = appointment.isCancelledByDoctor;
 
-		let badgeLabel = variant === "previous" ? appointment.source : variant.charAt(0).toUpperCase() + variant.slice(1);
-		if (variant === "denied" && isCancelledByDoctor) badgeLabel = "Cancelled by Doctor";
-		const badgeVariant = STATUS_VARIANTS[badgeLabel] || (variant === "denied" ? "destructive" : "default");
+		const statusLabels = {
+			Upcoming: t("appointedDoctor.status.upcoming", "Upcoming"),
+			Pending: t("appointedDoctor.status.pending", "Pending"),
+			Denied: t("appointedDoctor.status.denied", "Denied"),
+			Completed: t("appointedDoctor.status.completed", "Completed"),
+			"Cancelled by Doctor": t("appointedDoctor.status.cancelledByDoctor", "Cancelled by Doctor"),
+			Rescheduled: t("appointedDoctor.status.rescheduled", "Rescheduled"),
+		};
+
+		let rawBadgeKey = variant === "previous" ? appointment.source : variant.charAt(0).toUpperCase() + variant.slice(1);
+		if (variant === "denied" && isCancelledByDoctor) rawBadgeKey = "Cancelled by Doctor";
+		const badgeVariant = STATUS_VARIANTS[rawBadgeKey] || (variant === "denied" ? "destructive" : "default");
+		const badgeLabel = statusLabels[rawBadgeKey] || rawBadgeKey;
 
 		const rowSupplements = supplements[appointment._id];
 
@@ -499,7 +510,7 @@ const AppointmentTab = ({
 				<div className="flex flex-wrap items-start justify-between gap-2">
 					<h3 className="font-display text-lg text-foreground">Dr. {appointment.doctorName}</h3>
 					<div className="flex flex-wrap items-center gap-1.5">
-						{isRescheduled ? <Badge variant="warning">Rescheduled</Badge> : null}
+						{isRescheduled ? <Badge variant="warning">{t("appointedDoctor.status.rescheduled", "Rescheduled")}</Badge> : null}
 						<Badge variant={badgeVariant}>{badgeLabel}</Badge>
 					</div>
 				</div>
@@ -520,16 +531,16 @@ const AppointmentTab = ({
 				{variant === "denied" && (
 					<div className="mt-3 rounded-(--jh-radius-md) border border-destructive/20 bg-destructive/5 p-3">
 						<span className="flex items-center gap-1.5 text-xs font-semibold text-destructive">
-							<AlertCircle size={13} /> Reason for Cancellation
+							<AlertCircle size={13} /> {t("appointedDoctor.reasonForCancellation", "Reason for Cancellation")}
 						</span>
-						<p className="mt-1 text-sm text-foreground">{appointment.doctorsMessage || "No specific reason provided by doctor."}</p>
+						<p className="mt-1 text-sm text-foreground">{appointment.doctorsMessage || t("appointedDoctor.noSpecificReason", "No specific reason provided by doctor.")}</p>
 					</div>
 				)}
 
 				{variant === "previous" && appointment.doctorsMessage ? (
 					<div className="mt-3 rounded-(--jh-radius-md) bg-secondary/60 p-3">
 						<span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
-							<MessageSquareText size={13} /> Doctor's Note
+							<MessageSquareText size={13} /> {t("appointedDoctor.doctorsNote", "Doctor's Note")}
 						</span>
 						<p className="mt-1 text-sm text-foreground">{appointment.doctorsMessage}</p>
 					</div>
@@ -568,13 +579,13 @@ const AppointmentTab = ({
 								<span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/20 text-primary">
 									<Salad size={14} />
 								</span>
-								Personalized diet plan is made by your doctor
+								{t("appointedDoctor.dietPlanMade", "Personalized diet plan is made by your doctor")}
 							</span>
 							<Link
 								to="/prescription-wellness?tab=diet"
 								className="inline-flex items-center gap-1 rounded-lg bg-primary px-3.5 py-1.5 text-xs font-bold text-primary-foreground shadow-xs transition-all hover:bg-primary/90 hover:shadow-sm"
 							>
-								View Meal Plan →
+								{t("appointedDoctor.viewMealPlan", "View Meal Plan →")}
 							</Link>
 						</div>
 					) : (
@@ -583,7 +594,7 @@ const AppointmentTab = ({
 								<span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/20 text-primary">
 									<Salad size={14} />
 								</span>
-								Personalized Diet Plan Requested
+								{t("appointedDoctor.dietPlanRequested", "Personalized Diet Plan Requested")}
 							</span>
 						</div>
 					)
@@ -593,7 +604,7 @@ const AppointmentTab = ({
 					{variant === "upcoming" && (
 						<>
 							<Button size="sm" onClick={() => handleJoinDaily(appointment._id)} disabled={joiningId === appointment._id}>
-								<Video size={14} /> {joiningId === appointment._id ? "Joining…" : "Join Meet"}
+								<Video size={14} /> {joiningId === appointment._id ? t("appointedDoctor.joining", "Joining…") : t("appointedDoctor.joinMeet", "Join Meet")}
 							</Button>
 							{appointment.meetLink && appointment.meetLink !== "no" ? (
 								<Button
@@ -602,7 +613,7 @@ const AppointmentTab = ({
 									title="Backup link from your doctor, in case the built-in video call fails"
 									onClick={() => window.open(appointment.meetLink, "_blank")}
 								>
-									<LinkIcon size={14} /> Alternate Link
+									<LinkIcon size={14} /> {t("appointedDoctor.alternateLink", "Alternate Link")}
 								</Button>
 							) : null}
 						</>
@@ -615,7 +626,7 @@ const AppointmentTab = ({
 							className="inline-flex items-center gap-1.5 rounded-lg border border-primary/40 bg-card px-3 py-1.5 text-xs font-semibold text-primary shadow-xs transition-all hover:bg-primary hover:text-primary-foreground dark:border-primary/50 dark:hover:bg-primary"
 							onClick={() => setDietModalAppointment(appointment)}
 						>
-							<Salad size={14} className="text-primary" /> Request Diet Plan (+₹{getDietFee(appointment)})
+							<Salad size={14} className="text-primary" /> {t("appointedDoctor.requestDietPlan", { fee: getDietFee(appointment), defaultValue: `Request Diet Plan (+₹${getDietFee(appointment)})` })}
 						</Button>
 					) : null}
 
@@ -627,7 +638,7 @@ const AppointmentTab = ({
 							onClick={() => handleReportIssue(appointment)}
 							disabled={reportingId === appointment._id}
 						>
-							{reportingId === appointment._id ? "Reporting…" : "Report an Issue"}
+							{reportingId === appointment._id ? t("appointedDoctor.reporting", "Reporting…") : t("appointedDoctor.reportAnIssue", "Report an Issue")}
 						</Button>
 					) : null}
 
@@ -638,7 +649,7 @@ const AppointmentTab = ({
 							onClick={() => handleCancelRequest(appointment)}
 							disabled={cancellingId === appointment._id}
 						>
-							<XCircle size={14} /> {cancellingId === appointment._id ? "Cancelling..." : "Cancel Request"}
+							<XCircle size={14} /> {cancellingId === appointment._id ? t("appointedDoctor.cancelling", "Cancelling...") : t("appointedDoctor.cancelRequest", "Cancel Request")}
 						</Button>
 					) : null}
 
@@ -648,25 +659,25 @@ const AppointmentTab = ({
 							variant="ghost"
 							onClick={() => (variant === "previous" ? navigate(`/PatientFeedback/${appointment._id}`) : onRatingClick(appointment._id))}
 						>
-							<Star size={14} /> Give Rating
+							<Star size={14} /> {t("appointedDoctor.giveRating", "Give Rating")}
 						</Button>
 					) : null}
 
 					{canShare ? (
 						<Button size="sm" variant="outline" onClick={() => setShareModal({ bookingId: appointment._id, mode: "upload" })}>
-							<UploadCloud size={14} /> Share Prescription
+							<UploadCloud size={14} /> {t("appointedDoctor.sharePrescription", "Share Prescription")}
 						</Button>
 					) : null}
 
 					{variant === "previous" && appointment.source === "Completed" && rowSupplements?.length > 0 ? (
 						<Button size="sm" variant="ghost" onClick={() => navigate("/cart")}>
-							<ShoppingBag size={14} /> View in Cart
+							<ShoppingBag size={14} /> {t("appointedDoctor.viewInCart", "View in Cart")}
 						</Button>
 					) : null}
 
 					{canRebook ? (
 						<Button size="sm" variant="ghost" onClick={() => handleRebook(appointment)} disabled={rebookingId === appointment._id}>
-							<RotateCcw size={14} /> {rebookingId === appointment._id ? "Loading..." : "Rebook with this Doctor"}
+							<RotateCcw size={14} /> {rebookingId === appointment._id ? t("appointedDoctor.loading", "Loading...") : t("appointedDoctor.rebookWithDoctor", "Rebook with this Doctor")}
 						</Button>
 					) : null}
 				</div>
@@ -749,20 +760,20 @@ const AppointmentTab = ({
 				<DialogContent className="max-w-lg">
 					<DialogTitle className="flex items-center gap-2">
 						<Salad className="size-5 text-primary" />
-						Request Personalized Diet Plan
+						{t("appointedDoctor.dietModal.title", "Request Personalized Diet Plan")}
 					</DialogTitle>
 					<div className="flex flex-col gap-4 py-1 text-sm">
 						<div className="flex flex-col gap-2 rounded-xl border border-primary/25 bg-gradient-to-r from-primary/10 via-primary/5 to-amber-500/10 p-3.5">
 							<div className="flex items-center justify-between">
-								<span className="text-muted-foreground">Doctor:</span>
+								<span className="text-muted-foreground">{t("appointedDoctor.dietModal.doctorLabel", "Doctor:")}</span>
 								<strong className="font-semibold text-foreground">Dr. {dietModalAppointment?.doctorName}</strong>
 							</div>
 							<div className="flex items-center justify-between">
-								<span className="text-muted-foreground">Add-on:</span>
-								<span className="font-medium text-foreground">7-Day Ayurvedic Diet Plan</span>
+								<span className="text-muted-foreground">{t("appointedDoctor.dietModal.addonLabel", "Add-on:")}</span>
+								<span className="font-medium text-foreground">{t("appointedDoctor.dietModal.addonName", "7-Day Ayurvedic Diet Plan")}</span>
 							</div>
 							<div className="flex items-center justify-between border-t border-border/60 pt-2 font-semibold">
-								<span className="text-foreground">Amount to Pay:</span>
+								<span className="text-foreground">{t("appointedDoctor.dietModal.amountToPay", "Amount to Pay:")}</span>
 								<span className="text-base text-primary">₹{getDietFee(dietModalAppointment)}</span>
 							</div>
 						</div>
@@ -770,7 +781,7 @@ const AppointmentTab = ({
 						{!showManualUpi ? (
 							<div className="flex flex-col gap-3">
 								<p className="text-xs text-muted-foreground">
-									The doctor will analyze your Prakriti (Dosha) and health conditions to design tailored daily meals, cooking advice, and avoidance guidelines.
+									{t("appointedDoctor.dietModal.desc", "The doctor will analyze your Prakriti (Dosha) and health conditions to design tailored daily meals, cooking advice, and avoidance guidelines.")}
 								</p>
 
 								<Button
@@ -780,7 +791,7 @@ const AppointmentTab = ({
 									disabled={payingViaRazorpay}
 								>
 									{payingViaRazorpay ? <Loader2 className="size-4 animate-spin" /> : null}
-									{payingViaRazorpay ? "Opening payment gateway..." : `Pay Now (₹${getDietFee(dietModalAppointment)})`}
+									{payingViaRazorpay ? t("appointedDoctor.dietModal.openingGateway", "Opening payment gateway...") : t("appointedDoctor.dietModal.payNow", { fee: getDietFee(dietModalAppointment), defaultValue: `Pay Now (₹${getDietFee(dietModalAppointment)})` })}
 								</Button>
 
 								<button
@@ -788,7 +799,7 @@ const AppointmentTab = ({
 									onClick={() => setShowManualUpi(true)}
 									className="mx-auto bg-transparent p-0 text-xs font-medium text-muted-foreground underline hover:text-foreground"
 								>
-									Or pay manually via UPI (QR / screenshot upload)
+									{t("appointedDoctor.dietModal.payManuallyUpi", "Or pay manually via UPI (QR / screenshot upload)")}
 								</button>
 							</div>
 						) : (
@@ -800,19 +811,19 @@ const AppointmentTab = ({
 									return (
 										<>
 											<div className="flex flex-col items-center gap-2 text-center">
-												<p className="text-xs font-semibold text-foreground">Scan QR code using GPay, PhonePe, Paytm, or any UPI app</p>
+												<p className="text-xs font-semibold text-foreground">{t("appointedDoctor.dietModal.scanQr", "Scan QR code using GPay, PhonePe, Paytm, or any UPI app")}</p>
 												<img
 													src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(upiUrl)}`}
 													alt="UPI Payment QR Code"
 													className="size-36 rounded-lg bg-white p-2 shadow-xs"
 												/>
-												<span className="text-xs text-muted-foreground">UPI ID: <strong className="text-foreground">{upiId}</strong></span>
+												<span className="text-xs text-muted-foreground">{t("appointedDoctor.dietModal.upiId", "UPI ID:")} <strong className="text-foreground">{upiId}</strong></span>
 											</div>
 
 											<form onSubmit={(e) => handleUploadDietProof(e, dietModalAppointment)} className="flex flex-col gap-3 border-t border-border/60 pt-3">
 												<div>
-													<label className="text-xs font-semibold text-foreground">Upload Payment Screenshot (Max 5)</label>
-													<p className="text-[11px] text-muted-foreground">Upload a screenshot of your completed UPI transaction.</p>
+													<label className="text-xs font-semibold text-foreground">{t("appointedDoctor.dietModal.uploadScreenshot", "Upload Payment Screenshot (Max 5)")}</label>
+													<p className="text-[11px] text-muted-foreground">{t("appointedDoctor.dietModal.uploadScreenshotDesc", "Upload a screenshot of your completed UPI transaction.")}</p>
 												</div>
 
 												<div className="flex flex-wrap gap-2">
@@ -864,11 +875,11 @@ const AppointmentTab = ({
 														onClick={() => setShowManualUpi(false)}
 														disabled={uploadingScreenshot}
 													>
-														Back
+														{t("appointedDoctor.dietModal.back", "Back")}
 													</Button>
 													<Button type="submit" size="sm" disabled={uploadingScreenshot || screenshotFiles.length === 0}>
 														{uploadingScreenshot ? <Loader2 className="size-4 animate-spin" /> : null}
-														{uploadingScreenshot ? "Uploading..." : "Submit Payment Proof"}
+														{uploadingScreenshot ? t("appointedDoctor.dietModal.uploading", "Uploading...") : t("appointedDoctor.dietModal.submitProof", "Submit Payment Proof")}
 													</Button>
 												</div>
 											</form>

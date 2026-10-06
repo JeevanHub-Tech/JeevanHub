@@ -41,6 +41,37 @@ const buildPageList = (current, total) => {
 	return result;
 };
 
+const CATEGORY_KEY_MAP = {
+	"diabetes care": "diabetesCare",
+	"digestive health": "digestiveHealth",
+	"immunity & stress": "immunityStress",
+	"mind & memory": "mindMemory",
+	"skin care": "skinCare",
+	"taila": "taila",
+	"women's health": "womensHealth",
+	"men's health": "mensHealth",
+	"hair care": "hairCare",
+	"bone & joint care": "boneJointCare",
+	"heart care": "heartCare",
+	"respiratory care": "respiratoryCare",
+	"general wellness": "generalWellness",
+	"other": "other",
+	"tablets": "tablets",
+	"capsules": "capsules",
+	"syrup": "syrup",
+	"churna": "churna",
+};
+
+const getCategoryLabel = (cat, t) => {
+	if (!cat) return "";
+	if (cat === "all") return t("medicinesStore.allCategories", "All Categories");
+	const key = CATEGORY_KEY_MAP[cat.trim().toLowerCase()];
+	if (key) {
+		return t(`medicinesStore.categories.${key}`, cat);
+	}
+	return cat;
+};
+
 const Medicines = () => {
 	const { t } = useTranslation();
 	const { auth } = useContext(AuthContext);
@@ -115,7 +146,10 @@ const Medicines = () => {
 	// label before the popup (where the matching SelectItem lives) has ever
 	// been mounted — without it the trigger shows the raw value instead.
 	const categoryItems = useMemo(
-		() => [{ value: "all", label: t("medicinesStore.allCategories", "All Categories") }, ...categories.map((cat) => ({ value: cat, label: cat }))],
+		() => [
+			{ value: "all", label: t("medicinesStore.allCategories", "All Categories") },
+			...categories.map((cat) => ({ value: cat, label: getCategoryLabel(cat, t) })),
+		],
 		[categories, t],
 	);
 
@@ -435,7 +469,7 @@ const Medicines = () => {
 									<SelectItem value="all">{t("medicinesStore.allCategories", "All Categories")}</SelectItem>
 									{categories.map((cat) => (
 										<SelectItem key={cat} value={cat}>
-											{cat}
+											{getCategoryLabel(cat, t)}
 										</SelectItem>
 									))}
 								</SelectContent>

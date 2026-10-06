@@ -512,11 +512,22 @@ function DoctorDetail() {
 				<div className="flex flex-col rounded-(--jh-radius-lg) bg-card p-5 shadow-(--jh-shadow-rest) sm:p-6">
 					<div className="mb-5">
 						<div className="mb-2 flex items-center justify-between gap-2">
-							<Label className="font-semibold">{t("doctorDetail.selectDate")}</Label>
+							<Label htmlFor="doctor-date-picker" className="cursor-pointer font-semibold">{t("doctorDetail.selectDate")}</Label>
 							<input
+								id="doctor-date-picker"
 								type="date"
 								min={getLocalDateString()}
 								value={carouselStartDate}
+								onClick={(e) => {
+									try {
+										e.currentTarget.showPicker();
+									} catch {}
+								}}
+								onFocus={(e) => {
+									try {
+										e.currentTarget.showPicker();
+									} catch {}
+								}}
 								onChange={(e) => {
 									if (e.target.value) {
 										setCarouselStartDate(e.target.value);
@@ -525,7 +536,7 @@ function DoctorDetail() {
 										setShowAllSlots(false);
 									}
 								}}
-								className="rounded-md border border-input bg-transparent px-2.5 py-1 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+								className="cursor-pointer rounded-md border border-input bg-transparent px-2.5 py-1 text-sm outline-none transition-colors hover:border-ring focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
 							/>
 						</div>
 						<div className="grid grid-cols-[repeat(auto-fill,minmax(96px,1fr))] gap-2">

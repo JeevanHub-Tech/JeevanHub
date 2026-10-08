@@ -147,6 +147,8 @@ const DietPlan = ({ patientId }) => {
 	const [selectedDayIdx, setSelectedDayIdx] = useState(0);
 
 	useEffect(() => {
+		let isMounted = true;
+
 		const fetchPlans = async () => {
 			if (!patientId) return;
 			setLoading(true);
@@ -154,46 +156,57 @@ const DietPlan = ({ patientId }) => {
 			const headers = { Authorization: `Bearer ${token}` };
 
 			try {
+				const fetchDiet = async () => {
+					try {
+						let res = await authFetch(
+							`${BACKEND_URL}/api/ayurveda/diet-plan/patient/${patientId}?lang=${currentLang}`,
+							{ headers }
+						);
+						if (!res.ok && (res.status === 403 || res.status === 404)) {
+							res = await authFetch(
+								`${BACKEND_URL}/api/ayurveda/diet-plan?lang=${currentLang}`,
+								{ headers }
+							);
+						}
+						if (res.ok) return await res.json();
+					} catch (e) {
+						console.error("Error fetching diet plan:", e);
+					}
+					return null;
+				};
+
+				const fetchYoga = async () => {
+					try {
+						let res = await authFetch(
+							`${BACKEND_URL}/api/ayurveda/yoga-plan/patient/${patientId}?lang=${currentLang}`,
+							{ headers }
+						);
+						if (!res.ok && (res.status === 403 || res.status === 404)) {
+							res = await authFetch(
+								`${BACKEND_URL}/api/ayurveda/yoga-plan?lang=${currentLang}`,
+								{ headers }
+							);
+						}
+						if (res.ok) return await res.json();
+					} catch (e) {
+						console.error("Error fetching yoga plan:", e);
+					}
+					return null;
+				};
+
+				const [dietData, yogaData] = await Promise.all([fetchDiet(), fetchYoga()]);
+
+				if (!isMounted) return;
+
 				let hasModern = false;
-
-				// Fetch patient diet plan with lang
-				let dietRes = await authFetch(
-					`${BACKEND_URL}/api/ayurveda/diet-plan/patient/${patientId}?lang=${currentLang}`,
-					{ headers }
-				);
-				if (!dietRes.ok && (dietRes.status === 403 || dietRes.status === 404)) {
-					dietRes = await authFetch(
-						`${BACKEND_URL}/api/ayurveda/diet-plan?lang=${currentLang}`,
-						{ headers }
-					);
+				if (dietData && (dietData.weeklyPlan?.length || dietData.displayPlan?.weeklyPlan?.length)) {
+					setDietPlanData(dietData);
+					hasModern = true;
 				}
 
-				if (dietRes.ok) {
-					const data = await dietRes.json();
-					if (data && (data.weeklyPlan?.length || data.displayPlan?.weeklyPlan?.length)) {
-						setDietPlanData(data);
-						hasModern = true;
-					}
-				}
-
-				// Fetch patient yoga plan with lang
-				let yogaRes = await authFetch(
-					`${BACKEND_URL}/api/ayurveda/yoga-plan/patient/${patientId}?lang=${currentLang}`,
-					{ headers }
-				);
-				if (!yogaRes.ok && (yogaRes.status === 403 || yogaRes.status === 404)) {
-					yogaRes = await authFetch(
-						`${BACKEND_URL}/api/ayurveda/yoga-plan?lang=${currentLang}`,
-						{ headers }
-					);
-				}
-
-				if (yogaRes.ok) {
-					const yData = await yogaRes.json();
-					if (yData && (yData.morning?.length || yData.displayPlan?.morning?.length)) {
-						setYogaPlanData(yData);
-						hasModern = true;
-					}
+				if (yogaData && (yogaData.morning?.length || yogaData.displayPlan?.morning?.length)) {
+					setYogaPlanData(yogaData);
+					hasModern = true;
 				}
 
 				// If no modern plan exists, check for legacy data
@@ -212,11 +225,15 @@ const DietPlan = ({ patientId }) => {
 			} catch (err) {
 				console.error("Error fetching patient diet/yoga plans:", err);
 			} finally {
-				setLoading(false);
+				if (isMounted) setLoading(false);
 			}
 		};
 
 		fetchPlans();
+
+		return () => {
+			isMounted = false;
+		};
 	}, [patientId, currentLang]);
 
 	if (loading) {

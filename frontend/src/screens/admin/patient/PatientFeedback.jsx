@@ -22,103 +22,74 @@ const StarRating = ({ rating }) => {
 };
 
 const Feedback = ({ patientId }) => {
-	const [reviewedBookings, setReviewedBookings] = useState([]);
-	const [loadingReviewedBookings, setLoadingReviewedBookings] = useState(true);
-	const [reviewedOrders, setReviewedOrders] = useState([]);
-	const [loadingReviewedOrders, setLoadingReviewedOrders] = useState(true);
 	const [feedbackList, setFeedbackList] = useState([]);
+	const [loading, setLoading] = useState(true);
 
 	useEffect(() => {
-		const fetchReviewedBookings = async () => {
-			try {
-				const res = await authFetch(
-					`${BACKEND_URL}/api/bookings/patient/reviews/${patientId}`,
-					{
-						headers: {
-							Authorization: `Bearer ${localStorage.getItem("token")}`
-						}
-					}
-				);
+		let isMounted = true;
 
-				if (!res.ok) {
-					if (res.status === 404) {
-						setReviewedBookings([]);
-						return;
-					}
-					throw new Error("Failed to fetch reviewed bookings");
+		const fetchFeedback = async () => {
+			if (!patientId) return;
+			setLoading(true);
+			const token = localStorage.getItem("token");
+			const headers = { Authorization: `Bearer ${token}` };
+
+			try {
+				const [bookingsRes, ordersRes] = await Promise.all([
+					authFetch(`${BACKEND_URL}/api/bookings/patient/reviews/${patientId}`, { headers }),
+					authFetch(`${BACKEND_URL}/api/orders/reviews/${patientId}`, { headers }),
+				]);
+
+				let reviewedBookings = [];
+				if (bookingsRes.ok) {
+					const data = await bookingsRes.json();
+					reviewedBookings = data.bookings || [];
 				}
 
-				const data = await res.json();
-				setReviewedBookings(data.bookings);
+				let reviewedOrders = [];
+				if (ordersRes.ok) {
+					const data = await ordersRes.json();
+					reviewedOrders = data.orders || [];
+				}
+
+				if (!isMounted) return;
+
+				const bookingsFeedback = reviewedBookings.map((b) => ({
+					id: b._id,
+					doctorName: b.doctorName,
+					date: b.dateOfAppointment || b.createdAt,
+					rating: b.rating,
+					comment: b.review,
+					type: "Booking",
+				}));
+
+				const ordersFeedback = reviewedOrders.map((o) => ({
+					id: o._id,
+					doctorName: (o.retailers || []).join(", "),
+					date: o.review?.createdAt || o.createdAt,
+					rating: o.review?.rating,
+					comment: o.review?.comment,
+					type: "Order",
+				}));
+
+				const merged = [...bookingsFeedback, ...ordersFeedback].sort(
+					(a, b) => new Date(b.date) - new Date(a.date)
+				);
+
+				setFeedbackList(merged);
 			} catch (error) {
-				console.error("❌ Error fetching reviewed bookings:", error);
+				console.error("❌ Error fetching feedback:", error);
 			} finally {
-				setLoadingReviewedBookings(false);
+				if (isMounted) setLoading(false);
 			}
 		};
 
-		if (patientId) fetchReviewedBookings();
-	}, [patientId]);
+		fetchFeedback();
 
-	useEffect(() => {
-		const fetchReviewedOrders = async () => {
-			try {
-				const res = await authFetch(
-					`${BACKEND_URL}/api/orders/reviews/${patientId}`,
-					{
-						headers: {
-							Authorization: `Bearer ${localStorage.getItem("token")}`
-						}
-					}
-				);
-
-				if (!res.ok) {
-					if (res.status === 404) {
-						setReviewedOrders([]);
-						return;
-					}
-					throw new Error("Failed to fetch reviewed orders");
-				}
-
-				const data = await res.json();
-				setReviewedOrders(data.orders);
-			} catch (error) {
-				console.error("❌ Error fetching reviewed orders:", error);
-			} finally {
-				setLoadingReviewedOrders(false);
-			}
+		return () => {
+			isMounted = false;
 		};
-
-		if (patientId) fetchReviewedOrders();
 	}, [patientId]);
-
-	useEffect(() => {
-		if (!loadingReviewedBookings && !loadingReviewedOrders) {
-			const bookingsFeedback = reviewedBookings.map((b) => ({
-				id: b._id,
-				doctorName: b.doctorName,
-				date: b.dateOfAppointment || b.createdAt,
-				rating: b.rating,
-				comment: b.review,
-				type: "Booking",
-			}));
-
-			const ordersFeedback = reviewedOrders.map((o) => ({
-				id: o._id,
-				doctorName: o.retailers.map(r => r).join(", "),
-				date: o.review?.createdAt || o.createdAt,
-				rating: o.review?.rating,
-				comment: o.review?.comment,
-				type: "Order",
-			}));
-
-			const merged = [...bookingsFeedback, ...ordersFeedback].sort(
-				(a, b) => new Date(b.date) - new Date(a.date)
-			);
-
-			setFeedbackList(merged);
-		}
-	}, [reviewedBookings, reviewedOrders, loadingReviewedBookings, loadingReviewedOrders]);
 
 	return (
 		<Card>

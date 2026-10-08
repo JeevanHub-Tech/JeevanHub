@@ -41,6 +41,11 @@ const ayurvedaWellnessProfileSchema = new mongoose.Schema({
     },
     foodHabits: {
         dietType: { type: String, enum: ["vegetarian", "non_vegetarian", "eggetarian", "vegan"] },
+        regionalPreference: {
+            type: String,
+            enum: ["north_indian", "south_indian", "indo_chinese", "no_preference"],
+            default: "no_preference",
+        },
         preferredFoods: [{ type: String }],
         dislikedFoods: [{ type: String }],
         eatingTimings: { type: String },

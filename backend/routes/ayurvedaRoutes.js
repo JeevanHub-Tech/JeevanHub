@@ -14,6 +14,7 @@ const {
     getDietPlanForPatient,
     deleteDietPlan,
     reviewDietPlan,
+    getMealRecipe,
 } = require("../controllers/ayurvedaController");
 const {
     generateYogaPlan,
@@ -40,6 +41,7 @@ const dietPlanAiLimit = aiRateLimit({
 });
 
 router.post("/diet-plan/generate", verifyToken, dietPlanAiLimit, generateDietPlan);
+router.post("/diet-plan/meal-recipe", verifyToken, getMealRecipe);
 router.get("/diet-plan", verifyToken, getDietPlan);
 router.get("/diet-plan/patient/:patientId", verifyToken, getDietPlanForPatient);
 router.delete("/diet-plan", verifyToken, deleteDietPlan);

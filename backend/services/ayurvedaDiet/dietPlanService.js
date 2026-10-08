@@ -47,6 +47,7 @@ const DIET_PLAN_SCHEMA = {
         bmiCategory: { type: 'string' },
         prakritiSummary: { type: 'string', description: 'One or two sentences summarizing the patient\'s dosha constitution.' },
         healthConsiderations: { type: 'array', items: { type: 'string' } },
+        regionalPreference: { type: 'string', description: 'Regional cuisine style applied (e.g. North Indian, South Indian, Indo-Chinese).' },
       },
       required: ['prakritiSummary', 'healthConsiderations'],
     },
@@ -56,6 +57,7 @@ const DIET_PLAN_SCHEMA = {
         doshaBalanceReasoning: { type: 'string', description: 'Why these foods balance the patient\'s dosha.' },
         medicalConditionReasoning: { type: 'string', description: 'How the plan supports the patient\'s medical conditions, or empty if none reported.' },
         seasonalReasoning: { type: 'string', description: 'Seasonal (especially monsoon) benefits of the plan.' },
+        regionalAdaptationReasoning: { type: 'string', description: 'How the regional cuisine style (North Indian, South Indian, or Indo-Chinese) is harmonized for dosha balance.' },
       },
       required: ['doshaBalanceReasoning', 'medicalConditionReasoning', 'seasonalReasoning'],
     },
@@ -92,12 +94,54 @@ const DIET_PLAN_SCHEMA = {
         doshaBased: { type: 'array', items: { type: 'string' } },
         medicalBased: { type: 'array', items: { type: 'string' } },
         seasonalBased: { type: 'array', items: { type: 'string' } },
+        regionalDishesToAvoid: { type: 'array', items: { type: 'string' }, description: 'Popular regional dishes of this cuisine to avoid due to dosha aggravation.' },
       },
       required: ['doshaBased', 'medicalBased', 'seasonalBased'],
     },
     lifestyleRecommendations: { type: 'array', items: { type: 'string' } },
   },
   required: ['summary', 'explanation', 'weeklyPlan', 'cookingInstructions', 'foodsToAvoid', 'lifestyleRecommendations'],
+};
+
+const RECIPE_SCHEMA = {
+  type: 'object',
+  properties: {
+    dishName: { type: 'string', description: 'Name of the dish' },
+    prepTimeMinutes: { type: 'number', description: 'Preparation time in minutes' },
+    cookTimeMinutes: { type: 'number', description: 'Cooking time in minutes' },
+    servings: { type: 'string', description: 'Portion / Servings size' },
+    ingredients: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          item: { type: 'string', description: 'Ingredient name and quantity, e.g. "1/2 cup Moong Dal (washed)"' },
+          ayurvedicRole: { type: 'string', description: 'Ayurvedic significance or digestive note, e.g. "Easy to digest, cooling protein"' },
+        },
+        required: ['item'],
+      },
+    },
+    steps: {
+      type: 'array',
+      items: { type: 'string', description: 'Numbered cooking step instruction' },
+    },
+    ayurvedicBenefits: {
+      type: 'string',
+      description: 'Why this dish and cooking method suits the patient\'s dosha balance and digestive Agni.',
+    },
+    cookingTips: {
+      type: 'array',
+      items: { type: 'string', description: 'Ayurvedic culinary tips, tempering recommendations, or food combinations.' },
+    },
+  },
+  required: ['dishName', 'prepTimeMinutes', 'cookTimeMinutes', 'ingredients', 'steps', 'ayurvedicBenefits'],
+};
+
+const REGIONAL_LABELS = {
+  north_indian: 'North Indian (Phulkas/Roti, Dal Tadka, Seasonal Sabzi, Paneer, Jeera Rice, Khichdi, Warm Digestive Spices)',
+  south_indian: 'South Indian (Idli, Dosa/Uttapam, Sambar, Rasam, Rice/Kanji, Mor/Buttermilk, Curry Leaves, Mustard & Hing Tempering)',
+  indo_chinese: 'Indo-Chinese (Ayurvedic-adapted: Steamed vegetable dumplings/Momos, Ginger-Garlic-Sesame Clear Vegetable Soup, Mild Stir-fry Veggies, Light Fried Rice with Cumin & Turmeric, avoiding excess vinegar/MSG/deep-frying)',
+  no_preference: 'Standard Indian Ayurvedic / Balanced Homestyle',
 };
 
 const na = (v) => (v === undefined || v === null || v === '' ? 'not provided' : v);
@@ -142,6 +186,9 @@ function buildPrompt({ profile, dosha, patient }) {
   ].filter(Boolean);
   const season = getCurrentSeason();
 
+  const regionalKey = profile?.foodHabits?.regionalPreference || 'no_preference';
+  const regionalLabel = REGIONAL_LABELS[regionalKey] || REGIONAL_LABELS.no_preference;
+
   const patientBlock = {
     age: na(patient?.age),
     gender: na(patient?.gender),
@@ -159,6 +206,7 @@ function buildPrompt({ profile, dosha, patient }) {
     exerciseHabits: na(profile?.lifestyle?.exerciseHabits),
     workRoutine: na(profile?.lifestyle?.workRoutine),
     dietType: na(profile?.foodHabits?.dietType),
+    regionalPreference: regionalLabel,
     preferredFoods: (profile?.foodHabits?.preferredFoods || []).length ? profile.foodHabits.preferredFoods : 'none specified',
     dislikedFoods: (profile?.foodHabits?.dislikedFoods || []).length ? profile.foodHabits.dislikedFoods : 'none specified',
     eatingTimings: na(profile?.foodHabits?.eatingTimings),
@@ -177,21 +225,26 @@ function buildPrompt({ profile, dosha, patient }) {
     ? '\n\nSpecial focus: it is currently monsoon season. Emphasize easily digestible, freshly cooked, warm foods; caution against raw salads, street food, and stagnant-water risks; recommend immunity-supportive spices (ginger, turmeric, black pepper); flag monsoon-specific digestive-safety practices in foodsToAvoid.seasonalBased.'
     : '';
 
+  const regionalDirective = regionalKey !== 'no_preference'
+    ? `\n\nREGIONAL CUISINE HARMONIZATION MANDATE:\n` +
+      `The patient strongly prefers "${regionalLabel}". You MUST design authentic breakfast, lunch, and dinner dishes conforming to this regional culinary tradition while modifying them for strict Ayurvedic compatibility with the patient's dominant dosha (${dosha.primaryDosha}) and health conditions. In summary.regionalPreference, record "${regionalKey.replace('_', ' ')}". In explanation.regionalAdaptationReasoning, clearly explain how this cuisine was adapted for their dosha. In foodsToAvoid.regionalDishesToAvoid, list 2-4 popular regional dishes of this cuisine that this patient must strictly avoid or modify.`
+    : `\n\nIn explanation.regionalAdaptationReasoning, explain the general Ayurvedic cuisine principles applied.`;
+
   return (
     `You are an Ayurvedic nutrition assistant generating a personalized diet plan for a patient. ` +
     `Every recommendation must be explainable and connect to the patient's specific dosha, medical ` +
     `conditions, or season -- never a generic food list. Strictly avoid any item listed in the ` +
     `patient's allergies/restrictions or disliked foods. Respect their diet type (e.g. vegetarian) ` +
-    `absolutely.${monsoonNote}\n\n` +
+    `absolutely.${monsoonNote}${regionalDirective}\n\n` +
     `PATIENT PROFILE:\n${JSON.stringify(patientBlock, null, 2)}\n\n` +
     `DOSHA (PRAKRITI) ASSESSMENT:\n${JSON.stringify(doshaBlock, null, 2)}\n\n` +
     `Generate a complete 7-day plan (Monday through Sunday, all 7 required), cooking instructions, ` +
-    `foods to avoid (separately reasoned by dosha, medical condition, and season), and lifestyle ` +
+    `foods to avoid (separately reasoned by dosha, medical condition, season, and regional cuisine), and lifestyle ` +
     `recommendations, following the response schema exactly.`
   );
 }
 
-async function generateWithGemini(prompt) {
+async function generateWithGemini(prompt, schema = DIET_PLAN_SCHEMA) {
   const { GoogleGenAI } = require('@google/genai');
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) { const e = new Error('GEMINI_API_KEY is not set'); e.code = 'NO_KEY'; throw e; }
@@ -202,7 +255,7 @@ async function generateWithGemini(prompt) {
     resp = await ai.models.generateContent({
       model: AYURVEDA_DIET_MODEL,
       contents: prompt,
-      config: { responseMimeType: 'application/json', responseJsonSchema: DIET_PLAN_SCHEMA, temperature: 0.4 },
+      config: { responseMimeType: 'application/json', responseJsonSchema: schema, temperature: 0.4 },
     });
   } catch (error) {
     if (error.status === 429 || (error.message && (error.message.includes('429') || error.message.includes('quota')))) {
@@ -272,11 +325,13 @@ function sanitizePlan(raw) {
       bmiCategory: clampStr(summary.bmiCategory, 50),
       prakritiSummary: clampStr(summary.prakritiSummary, 500),
       healthConsiderations: clampArr(summary.healthConsiderations, 10, 200),
+      regionalPreference: clampStr(summary.regionalPreference, 100),
     },
     explanation: {
       doshaBalanceReasoning: clampStr(explanation.doshaBalanceReasoning, 800),
       medicalConditionReasoning: clampStr(explanation.medicalConditionReasoning, 800),
       seasonalReasoning: clampStr(explanation.seasonalReasoning, 800),
+      regionalAdaptationReasoning: clampStr(explanation.regionalAdaptationReasoning, 800),
     },
     weeklyPlan: sanitizeWeeklyPlan(raw.weeklyPlan),
     cookingInstructions: {
@@ -294,8 +349,26 @@ function sanitizePlan(raw) {
       doshaBased: clampArr(avoid.doshaBased, 15, 150),
       medicalBased: clampArr(avoid.medicalBased, 15, 150),
       seasonalBased: clampArr(avoid.seasonalBased, 15, 150),
+      regionalDishesToAvoid: clampArr(avoid.regionalDishesToAvoid, 15, 150),
     },
     lifestyleRecommendations: clampArr(raw.lifestyleRecommendations, 15, 250),
+  };
+}
+
+function sanitizeRecipe(raw) {
+  if (!raw || typeof raw !== 'object') raw = {};
+  return {
+    dishName: clampStr(raw.dishName, 150) || 'Ayurvedic Meal Recipe',
+    prepTimeMinutes: typeof raw.prepTimeMinutes === 'number' ? raw.prepTimeMinutes : 10,
+    cookTimeMinutes: typeof raw.cookTimeMinutes === 'number' ? raw.cookTimeMinutes : 15,
+    servings: clampStr(raw.servings, 50) || '1 serving',
+    ingredients: (Array.isArray(raw.ingredients) ? raw.ingredients : []).slice(0, 20).map((ing) => ({
+      item: clampStr(ing?.item, 150),
+      ayurvedicRole: clampStr(ing?.ayurvedicRole, 150),
+    })).filter((ing) => ing.item),
+    steps: clampArr(raw.steps, 15, 400),
+    ayurvedicBenefits: clampStr(raw.ayurvedicBenefits, 800),
+    cookingTips: clampArr(raw.cookingTips, 10, 300),
   };
 }
 
@@ -311,7 +384,7 @@ async function generateDietPlan({ profile, dosha, patient }) {
 
   let raw;
   if (AYURVEDA_DIET_PROVIDER === 'gemini') {
-    raw = await generateWithGemini(prompt);
+    raw = await generateWithGemini(prompt, DIET_PLAN_SCHEMA);
   } else {
     const e = new Error(`Ayurveda diet provider '${AYURVEDA_DIET_PROVIDER}' is not implemented`);
     e.code = 'PROVIDER_UNIMPLEMENTED';
@@ -319,6 +392,59 @@ async function generateDietPlan({ profile, dosha, patient }) {
   }
 
   return sanitizePlan(raw);
+}
+
+/**
+ * On-demand Ayurvedic recipe and preparation generator for a specific meal.
+ */
+async function generateMealRecipe({ mealContext, items, portion, day, dosha, healthInfo, lang = 'en', regionalPreference }) {
+  if (!AYURVEDA_DIET_ENABLED) { const e = new Error('AI diet planning is disabled'); e.code = 'DISABLED'; throw e; }
+
+  const isHindi = lang === 'hi';
+  const foodList = Array.isArray(items) ? items.join(', ') : (items || 'Ayurvedic Dish');
+  const conditions = healthInfo?.conditions || {};
+  const conditionsList = [
+    conditions.diabetes && 'diabetes',
+    conditions.highBP && 'high blood pressure',
+    conditions.obesityFocus && 'weight management focus',
+    conditions.skinDisease && 'skin disease',
+    conditions.jointPainArthritis && 'joint pain / arthritis',
+    conditions.digestiveIssues && 'digestive issues (GERD/gastritis)',
+    conditions.respiratoryIssues && 'respiratory issues',
+    ...(conditions.other || []),
+  ].filter(Boolean);
+
+  const prompt = (
+    `You are an expert Ayurvedic chef and certified Vaidya (Ayurvedic nutritionist). ` +
+    `Provide an authentic, therapeutic, and easy-to-follow Ayurvedic cooking recipe with step-by-step preparation instructions for this specific meal:\n\n` +
+    `MEAL DETAILS:\n` +
+    `- Meal Type: ${mealContext || 'Meal'}${day ? ` (${day})` : ''}\n` +
+    `- Food Item(s): ${foodList}\n` +
+    `- Recommended Portion: ${portion || '1 serving'}\n` +
+    `- Patient's Dominant Dosha: ${dosha?.primaryDosha || 'Tridoshic'}${dosha?.secondaryDosha ? ` / ${dosha.secondaryDosha}` : ''}\n` +
+    `- Medical Health Considerations: ${conditionsList.length ? conditionsList.join(', ') : 'General Wellness'}\n` +
+    `- Allergies & Foods to Avoid: ${(healthInfo?.allergies || []).join(', ') || 'None reported'}\n` +
+    (regionalPreference ? `- Regional Cuisine Preference: ${regionalPreference}\n` : '') +
+    `\nRECIPE REQUIREMENTS:\n` +
+    `1. Provide realistic prep time (prepTimeMinutes) and cooking time (cookTimeMinutes).\n` +
+    `2. List key ingredients with exact measurements and their Ayurvedic health role (e.g. "digestive fire booster", "tridoshic protein", "cooling herb").\n` +
+    `3. Provide clear, numbered step-by-step cooking method following authentic Ayurvedic principles (e.g. tempering with digestive spices like jeera/turmeric/hing in cow's ghee/sesame oil, gentle boiling/simmering, avoiding reheating honey).\n` +
+    `4. In ayurvedicBenefits, clearly explain why this preparation balances the patient's dosha (${dosha?.primaryDosha || 'doshas'}) and kindles digestive fire (Agni).\n` +
+    `5. In cookingTips, provide 1-3 practical Ayurvedic kitchen tips (e.g. ideal meal timing, temperature, what to avoid eating together).\n` +
+    (isHindi ? `6. Return all text, dish name, ingredients, and instructions in natural Hindi (Devanagari script).\n` : `6. Return all text in English.\n`) +
+    `7. Output strictly valid JSON matching the schema.`
+  );
+
+  let raw;
+  if (AYURVEDA_DIET_PROVIDER === 'gemini') {
+    raw = await generateWithGemini(prompt, RECIPE_SCHEMA);
+  } else {
+    const e = new Error(`Ayurveda diet provider '${AYURVEDA_DIET_PROVIDER}' is not implemented`);
+    e.code = 'PROVIDER_UNIMPLEMENTED';
+    throw e;
+  }
+
+  return sanitizeRecipe(raw);
 }
 
 /**
@@ -350,7 +476,7 @@ ${JSON.stringify({
 
   let raw;
   if (AYURVEDA_DIET_PROVIDER === 'gemini') {
-    raw = await generateWithGemini(prompt);
+    raw = await generateWithGemini(prompt, DIET_PLAN_SCHEMA);
   } else {
     return null;
   }
@@ -358,4 +484,5 @@ ${JSON.stringify({
   return sanitizePlan(raw);
 }
 
-module.exports = { generateDietPlan, translateDietPlanToHindi, computeBmi, bmiCategory };
+module.exports = { generateDietPlan, generateMealRecipe, translateDietPlanToHindi, computeBmi, bmiCategory };
+

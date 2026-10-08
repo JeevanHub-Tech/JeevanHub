@@ -59,6 +59,11 @@ function WeeklyMealPlannerSection() {
 					<Salad className="size-5 text-primary" />
 					<h2 className="font-display text-lg text-foreground">{t("weeklyMealPlanner.title", "Weekly Meal Planner")}</h2>
 					{plan ? <SourceBadge status={plan.status || "ai"} /> : null}
+					{plan?.summary?.regionalPreference ? (
+						<Badge variant="secondary" className="text-xs capitalize font-medium">
+							{plan.summary.regionalPreference}
+						</Badge>
+					) : null}
 				</div>
 			</div>
 

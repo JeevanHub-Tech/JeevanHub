@@ -3,9 +3,8 @@ const AyurvedaDoshaAssessment = require("../models/AyurvedaDoshaAssessment");
 const AyurvedaDietPlan = require("../models/AyurvedaDietPlan");
 const Patient = require("../models/Patient");
 const Booking = require("../models/Booking");
-const Doctor = require("../models/Doctor");
 const { getDoshaProfile } = require("../constants/doshaProfiles");
-const { generateDietPlan, translateDietPlanToHindi } = require("../services/ayurvedaDiet/dietPlanService");
+const { generateDietPlan, generateMealRecipe, translateDietPlanToHindi } = require("../services/ayurvedaDiet/dietPlanService");
 const { AYURVEDA_DIET_MODEL } = require("../services/ayurvedaDiet/config");
 
 async function assertDoctorRelationship(req, patientId) {
@@ -446,5 +445,44 @@ exports.deleteDietPlan = async (req, res) => {
     } catch (error) {
         console.error("Error deleting diet plan:", error);
         return res.status(500).json({ message: "Server error" });
+    }
+};
+
+exports.getMealRecipe = async (req, res) => {
+    try {
+        const { mealContext, items, portion, day, lang = "en" } = req.body || {};
+        let patientId = req.user.role === "patient" ? req.user._id : req.body.patientId;
+
+        if (patientId && req.user.role !== "patient") {
+            const allowed = await assertDoctorRelationship(req, patientId);
+            if (!allowed) return res.status(403).json({ error: "Access denied" });
+        }
+
+        let dosha = null;
+        let profile = null;
+        if (patientId) {
+            [dosha, profile] = await Promise.all([
+                AyurvedaDoshaAssessment.findOne({ patientId }),
+                AyurvedaWellnessProfile.findOne({ patientId }),
+            ]);
+        }
+
+        const recipe = await generateMealRecipe({
+            mealContext,
+            items,
+            portion,
+            day,
+            dosha,
+            healthInfo: {
+                conditions: profile?.healthInfo?.conditions,
+                allergies: profile?.healthInfo?.allergies,
+            },
+            lang,
+            regionalPreference: profile?.foodHabits?.regionalPreference || null,
+        });
+
+        return res.status(200).json({ success: true, recipe });
+    } catch (error) {
+        return mapServiceErrorToStatus(res, error);
     }
 };

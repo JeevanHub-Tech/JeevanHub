@@ -52,11 +52,13 @@ const ayurvedaDietPlanSchema = new mongoose.Schema({
         bmiCategory: { type: String },
         prakritiSummary: { type: String },
         healthConsiderations: [{ type: String }],
+        regionalPreference: { type: String },
     },
     explanation: {
         doshaBalanceReasoning: { type: String },
         medicalConditionReasoning: { type: String },
         seasonalReasoning: { type: String },
+        regionalAdaptationReasoning: { type: String },
     },
     weeklyPlan: [dayPlanSchema],
     cookingInstructions: {
@@ -67,6 +69,7 @@ const ayurvedaDietPlanSchema = new mongoose.Schema({
         doshaBased: [{ type: String }],
         medicalBased: [{ type: String }],
         seasonalBased: [{ type: String }],
+        regionalDishesToAvoid: [{ type: String }],
     },
     lifestyleRecommendations: [{ type: String }],
     model: { type: String },

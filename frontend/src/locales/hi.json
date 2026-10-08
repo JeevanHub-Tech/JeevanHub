@@ -2740,5 +2740,34 @@
       "saveSuccess": "बैंक विवरण सफलतापूर्वक सहेजा गया। हमारी टीम भुगतान के लिए आपके खाते को सत्यापित और लिंक करेगी।",
       "saveFailed": "बैंक विवरण सहेजने में विफल।"
     }
+  },
+  "ayurveda": {
+    "recipe": {
+      "title": "आयुर्वेदिक रेसिपी और विधि",
+      "generating": "AI के साथ प्रामाणिक आयुर्वेदिक पाक विधि और दोष संतुलन के नोट्स तैयार किए जा रहे हैं...",
+      "fetchError": "रेसिपी लोड करने में असमर्थ। कृपया पुनः प्रयास करें।",
+      "prepTime": "तैयारी का समय",
+      "cookTime": "पकाने का समय",
+      "servings": "मात्रा / परोसने हेतु",
+      "ingredientsTitle": "मुख्य सामग्री और आयुर्वेदिक महत्व",
+      "items": "सामग्री",
+      "methodTitle": "आयुर्वेदिक बनाने की विधि",
+      "benefitsTitle": "आयुर्वेदिक एवं दोष संतुलन विश्लेषण",
+      "tipsTitle": "वैद्य की रसोई संबंधी सलाह",
+      "copyRecipe": "रेसिपी कॉपी करें"
+    }
+  },
+  "wellnessProfileForm": {
+    "regionalPreference": "क्षेत्रीय खान-पान प्राथमिकता",
+    "regionalPreferences": {
+      "north_indian": "🍲 उत्तर भारतीय (North Indian)",
+      "south_indian": "🥥 दक्षिण भारतीय (South Indian)",
+      "indo_chinese": "🥢 इंडो-चाइनीज (Indo-Chinese)",
+      "no_preference": "🌿 कोई विशेष प्राथमिकता नहीं"
+    }
+  },
+  "adminPatient": {
+    "regionalCuisine": "क्षेत्रीय व्यंजन शैली",
+    "regionalAvoid": "बचने योग्य क्षेत्रीय व्यंजन"
   }
 }

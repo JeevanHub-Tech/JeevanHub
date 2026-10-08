@@ -16,10 +16,12 @@ import {
 	AlertTriangle,
 	Utensils,
 	Info,
+	ChefHat,
 } from "lucide-react";
 
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -28,6 +30,7 @@ import { ExpandableText } from "@/components/ui/expandable-text";
 import { getYouTubeEmbedUrl, buildYoutubeSearchUrl } from "@/lib/youtube";
 import { formatDateReadable } from "@/lib/date";
 import { cn } from "@/lib/utils";
+import MealRecipeModal from "@/components/ayurveda/MealRecipeModal";
 import { BACKEND_URL } from "../../../config";
 import { authFetch } from "../../../utils/authFetch";
 
@@ -96,7 +99,7 @@ function AsanaCard({ asana }) {
 	);
 }
 
-function ModernMealCard({ mealKey, meal }) {
+function ModernMealCard({ mealKey, meal, day, onOpenRecipe }) {
 	const { t } = useTranslation();
 	const meta = MEAL_META[mealKey] || { defaultLabel: mealKey, icon: Utensils };
 	const Icon = meta.icon;
@@ -104,33 +107,50 @@ function ModernMealCard({ mealKey, meal }) {
 	const hasItems = Array.isArray(meal?.items) && meal.items.length > 0;
 
 	return (
-		<div className="flex flex-col gap-3 rounded-(--jh-radius-lg) border border-border bg-card p-4 shadow-(--jh-shadow-rest)">
-			<div className="flex flex-wrap items-center justify-between gap-2">
-				<div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-					<Icon size={16} className="shrink-0 text-primary" />
-					<span>{label}</span>
+		<div className="flex flex-col justify-between gap-3 rounded-(--jh-radius-lg) border border-border bg-card p-4 shadow-(--jh-shadow-rest) hover:border-primary/30 transition-all">
+			<div className="space-y-3">
+				<div className="flex flex-wrap items-center justify-between gap-2">
+					<div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+						<Icon size={16} className="shrink-0 text-primary" />
+						<span>{label}</span>
+					</div>
+					{meal?.portion ? (
+						<Badge variant="secondary" className="max-w-full text-xs break-words">
+							{meal.portion}
+						</Badge>
+					) : null}
 				</div>
-				{meal?.portion ? (
-					<Badge variant="secondary" className="max-w-full text-xs break-words">
-						{meal.portion}
-					</Badge>
+
+				{hasItems ? (
+					<div className="flex flex-wrap gap-1.5">
+						{meal.items.map((item, idx) => (
+							<Badge key={idx} variant="success" className="text-xs font-normal">
+								{item}
+							</Badge>
+						))}
+					</div>
+				) : (
+					<p className="text-xs text-muted-foreground">{t("common.notSpecified", "Not specified")}</p>
+				)}
+
+				{meal?.purpose ? (
+					<p className="text-xs italic text-muted-foreground">{meal.purpose}</p>
 				) : null}
 			</div>
 
-			{hasItems ? (
-				<div className="flex flex-wrap gap-1.5">
-					{meal.items.map((item, idx) => (
-						<Badge key={idx} variant="success" className="text-xs font-normal">
-							{item}
-						</Badge>
-					))}
+			{hasItems && onOpenRecipe ? (
+				<div className="pt-2 border-t border-border/50 flex justify-end">
+					<Button
+						type="button"
+						variant="ghost"
+						size="sm"
+						onClick={() => onOpenRecipe({ mealKey, meal, day })}
+						className="h-7 text-xs font-medium text-primary hover:text-primary hover:bg-primary/10 gap-1.5 px-2.5 rounded-(--jh-radius-sm)"
+					>
+						<ChefHat size={14} />
+						<span>{t("weeklyMealPlanner.viewRecipe", "View Recipe & Prep")}</span>
+					</Button>
 				</div>
-			) : (
-				<p className="text-xs text-muted-foreground">{t("common.notSpecified", "Not specified")}</p>
-			)}
-
-			{meal?.purpose ? (
-				<p className="text-xs italic text-muted-foreground">{meal.purpose}</p>
 			) : null}
 		</div>
 	);
@@ -145,6 +165,7 @@ const DietPlan = ({ patientId }) => {
 	const [legacyData, setLegacyData] = useState(null);
 	const [loading, setLoading] = useState(true);
 	const [selectedDayIdx, setSelectedDayIdx] = useState(0);
+	const [activeRecipeModal, setActiveRecipeModal] = useState(null);
 
 	useEffect(() => {
 		const fetchPlans = async () => {
@@ -318,7 +339,7 @@ const DietPlan = ({ patientId }) => {
 							) : null}
 
 							{activeDiet.summary.healthConsiderations?.length ? (
-								<div className="rounded-(--jh-radius-md) border border-border bg-secondary/50 p-3.5 sm:col-span-2 lg:col-span-1">
+								<div className="rounded-(--jh-radius-md) border border-border bg-secondary/50 p-3.5">
 									<div className="mb-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
 										{t("adminPatient.targetedHealthFocus", "Targeted Health Focus")}
 									</div>
@@ -329,6 +350,22 @@ const DietPlan = ({ patientId }) => {
 											</Badge>
 										))}
 									</div>
+								</div>
+							) : null}
+
+							{activeDiet.summary.regionalPreference ? (
+								<div className="rounded-(--jh-radius-md) border border-primary/20 bg-primary/5 p-3.5 sm:col-span-2 lg:col-span-1">
+									<div className="mb-1 text-xs font-semibold text-primary uppercase tracking-wide">
+										{t("adminPatient.regionalCuisine", "Regional Cuisine Style")}
+									</div>
+									<Badge variant="success" className="capitalize text-xs font-medium">
+										{activeDiet.summary.regionalPreference}
+									</Badge>
+									{activeDiet.explanation?.regionalAdaptationReasoning ? (
+										<p className="mt-1.5 text-xs text-muted-foreground leading-relaxed line-clamp-3">
+											{activeDiet.explanation.regionalAdaptationReasoning}
+										</p>
+									) : null}
 								</div>
 							) : null}
 						</div>
@@ -382,7 +419,13 @@ const DietPlan = ({ patientId }) => {
 									{currentDay ? (
 										<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
 											{MEAL_KEYS.map((key) => (
-												<ModernMealCard key={key} mealKey={key} meal={currentDay[key]} />
+												<ModernMealCard
+													key={key}
+													mealKey={key}
+													meal={currentDay[key]}
+													day={currentDay.day}
+													onOpenRecipe={(info) => setActiveRecipeModal(info)}
+												/>
 											))}
 										</div>
 									) : null}
@@ -433,6 +476,19 @@ const DietPlan = ({ patientId }) => {
 											</div>
 											<ul className="list-disc pl-4 text-xs text-muted-foreground space-y-1">
 												{foodsAvoid.seasonalBased.map((item, i) => (
+													<li key={i}>{item}</li>
+												))}
+											</ul>
+										</div>
+									) : null}
+
+									{foodsAvoid.regionalDishesToAvoid?.length ? (
+										<div className="rounded-(--jh-radius-md) border border-destructive/30 bg-destructive/5 p-4">
+											<div className="mb-2 text-xs font-semibold text-destructive">
+												{t("adminPatient.regionalAvoid", "Regional Dishes to Avoid / Modify")}
+											</div>
+											<ul className="list-disc pl-4 text-xs text-muted-foreground space-y-1">
+												{foodsAvoid.regionalDishesToAvoid.map((item, i) => (
 													<li key={i}>{item}</li>
 												))}
 											</ul>
@@ -540,6 +596,18 @@ const DietPlan = ({ patientId }) => {
 						</TabsContent>
 					</Tabs>
 				</CardContent>
+
+				{activeRecipeModal && (
+					<MealRecipeModal
+						isOpen={Boolean(activeRecipeModal)}
+						onClose={() => setActiveRecipeModal(null)}
+						mealKey={activeRecipeModal.mealKey}
+						day={activeRecipeModal.day}
+						items={activeRecipeModal.meal?.items || []}
+						portion={activeRecipeModal.meal?.portion}
+						patientId={patientId}
+					/>
+				)}
 			</Card>
 		);
 	}

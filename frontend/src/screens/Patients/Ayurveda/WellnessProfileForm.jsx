@@ -70,6 +70,7 @@ const emptyForm = {
 	exerciseHabits: "",
 	workRoutine: "",
 	dietType: "",
+	regionalPreference: "no_preference",
 	preferredFoods: "",
 	dislikedFoods: "",
 	eatingTimings: "",
@@ -122,6 +123,7 @@ function WellnessProfileForm({ embedded = false, onSaved } = {}) {
 						exerciseHabits: p.lifestyle?.exerciseHabits || "",
 						workRoutine: p.lifestyle?.workRoutine || "",
 						dietType: p.foodHabits?.dietType || "",
+						regionalPreference: p.foodHabits?.regionalPreference || "no_preference",
 						preferredFoods: toStr(p.foodHabits?.preferredFoods),
 						dislikedFoods: toStr(p.foodHabits?.dislikedFoods),
 						eatingTimings: p.foodHabits?.eatingTimings || "",
@@ -176,6 +178,7 @@ function WellnessProfileForm({ embedded = false, onSaved } = {}) {
 				},
 				foodHabits: {
 					dietType: form.dietType || undefined,
+					regionalPreference: form.regionalPreference || undefined,
 					preferredFoods: toList(form.preferredFoods),
 					dislikedFoods: toList(form.dislikedFoods),
 					eatingTimings: form.eatingTimings || undefined,
@@ -386,6 +389,21 @@ function WellnessProfileForm({ embedded = false, onSaved } = {}) {
 								<SelectItem value="non_vegetarian">{t("wellnessProfileForm.dietTypes.non_vegetarian", "Non-vegetarian")}</SelectItem>
 								<SelectItem value="eggetarian">{t("wellnessProfileForm.dietTypes.eggetarian", "Eggetarian")}</SelectItem>
 								<SelectItem value="vegan">{t("wellnessProfileForm.dietTypes.vegan", "Vegan")}</SelectItem>
+							</SelectContent>
+						</Select>
+					</Field>
+					<Field label={t("wellnessProfileForm.regionalPreference", "Regional Cuisine Preference")} htmlFor="regionalPreference" optionalText={opt}>
+						<Select value={form.regionalPreference} onValueChange={set("regionalPreference")}>
+							<SelectTrigger id="regionalPreference">
+								<SelectValue placeholder={t("wellnessProfileForm.select", "Select")}>
+									{form.regionalPreference ? t(`wellnessProfileForm.regionalPreferences.${form.regionalPreference}`, form.regionalPreference) : undefined}
+								</SelectValue>
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="north_indian">{t("wellnessProfileForm.regionalPreferences.north_indian", "🍲 North Indian")}</SelectItem>
+								<SelectItem value="south_indian">{t("wellnessProfileForm.regionalPreferences.south_indian", "🥥 South Indian")}</SelectItem>
+								<SelectItem value="indo_chinese">{t("wellnessProfileForm.regionalPreferences.indo_chinese", "🥢 Indo-Chinese")}</SelectItem>
+								<SelectItem value="no_preference">{t("wellnessProfileForm.regionalPreferences.no_preference", "🌿 No Specific Preference")}</SelectItem>
 							</SelectContent>
 						</Select>
 					</Field>

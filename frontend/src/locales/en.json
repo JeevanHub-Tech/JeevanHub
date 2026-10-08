@@ -2740,5 +2740,34 @@
       "saveSuccess": "Bank details saved successfully. Our team will verify and link your account for payouts.",
       "saveFailed": "Failed to save bank details."
     }
+  },
+  "ayurveda": {
+    "recipe": {
+      "title": "Ayurvedic Recipe & Prep",
+      "generating": "Crafting authentic Ayurvedic culinary steps & dosha balance notes with AI...",
+      "fetchError": "Unable to load recipe. Please try again.",
+      "prepTime": "Prep Time",
+      "cookTime": "Cook Time",
+      "servings": "Servings",
+      "ingredientsTitle": "Key Ingredients & Ayurvedic Role",
+      "items": "items",
+      "methodTitle": "Ayurvedic Preparation Steps",
+      "benefitsTitle": "Ayurvedic & Dosha Balance Insight",
+      "tipsTitle": "Vaidya's Kitchen Wisdom",
+      "copyRecipe": "Copy Recipe"
+    }
+  },
+  "wellnessProfileForm": {
+    "regionalPreference": "Regional Cuisine Preference",
+    "regionalPreferences": {
+      "north_indian": "🍲 North Indian",
+      "south_indian": "🥥 South Indian",
+      "indo_chinese": "🥢 Indo-Chinese",
+      "no_preference": "🌿 No Specific Preference"
+    }
+  },
+  "adminPatient": {
+    "regionalCuisine": "Regional Cuisine Style",
+    "regionalAvoid": "Regional Dishes to Avoid / Modify"
   }
 }

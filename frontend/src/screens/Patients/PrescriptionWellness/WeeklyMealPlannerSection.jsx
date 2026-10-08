@@ -3,6 +3,7 @@ import { Salad, UserCheck } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 
+import { Badge } from "@/components/ui/badge";
 import { SourceBadge } from "@/components/ui/SourceBadge";
 import { formatDateReadable } from "@/lib/date";
 import { AuthContext } from "../../../context/AuthContext";

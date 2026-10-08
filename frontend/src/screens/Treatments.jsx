@@ -2,7 +2,7 @@ import React from 'react';
 import { ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from "react-i18next";
-import { categoryTranslations } from "@/data/treatmentData";
+import { categoryTranslations } from "@/data/treatmentCategories";
 
 function TreatmentsScreen() {
   const { t, i18n } = useTranslation();
@@ -56,12 +56,14 @@ function TreatmentsScreen() {
             <button
               type="button"
               key={index}
-              className="group relative aspect-4/5 cursor-pointer overflow-hidden rounded-2xl text-left shadow-(--jh-shadow-card) transition-[transform,box-shadow] duration-350 ease-(--jh-ease-organic) hover:-translate-y-2 hover:shadow-(--jh-shadow-hover) max-[900px]:aspect-[4/4.4] max-[560px]:aspect-3/4 max-[560px]:rounded-2xl"
+              className="group relative aspect-4/5 cursor-pointer overflow-hidden rounded-2xl bg-(--jh-sage-pale)/40 text-left shadow-(--jh-shadow-card) transition-[transform,box-shadow] duration-350 ease-(--jh-ease-organic) hover:-translate-y-2 hover:shadow-(--jh-shadow-hover) max-[900px]:aspect-[4/4.4] max-[560px]:aspect-3/4 max-[560px]:rounded-2xl"
               onClick={() => navigate(`/treatment/${encodeURIComponent(treatment.category)}`)}
             >
               <img
                 src={treatment.image}
                 alt={displayName}
+                loading="lazy"
+                decoding="async"
                 className="absolute inset-0 size-full object-cover transition-transform duration-600 ease-(--jh-ease-organic) group-hover:scale-108"
               />
               <span className="absolute inset-0 bg-linear-to-b from-black/0 from-38% via-black/55 via-72% to-black/88" />

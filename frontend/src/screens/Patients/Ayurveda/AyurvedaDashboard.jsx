@@ -51,9 +51,16 @@ function isProfileFilled(profile) {
 		cond.skinDisease || cond.jointPainArthritis || cond.digestiveIssues || cond.respiratoryIssues || cond.other?.length ||
 		hi.medications?.length || hi.allergies?.length ||
 		ls.activityLevel || ls.sleepHours || ls.sleepQuality || ls.stressLevel || ls.exerciseHabits || ls.workRoutine ||
-		fh.dietType || fh.preferredFoods?.length || fh.dislikedFoods?.length || fh.eatingTimings || fh.waterIntakeLiters
+		fh.dietType || (fh.regionalPreference && fh.regionalPreference !== "no_preference") || fh.preferredFoods?.length || fh.dislikedFoods?.length || fh.eatingTimings || fh.waterIntakeLiters
 	);
 }
+
+const REGIONAL_LABELS = {
+	north_indian: "🍲 North Indian",
+	south_indian: "🥥 South Indian",
+	indo_chinese: "🥢 Indo-Chinese",
+	no_preference: "🌿 No Specific Preference",
+};
 
 const BODY_TYPE_LABELS = {
 	lean_thin: "Lean / Thin Frame",
@@ -211,6 +218,14 @@ function WellnessProfileDetails({ profile }) {
 
 			<DetailSection icon={Salad} title={t("wellnessProfile.foodHabits", "Food habits")}>
 				<DetailRow label={t("wellnessProfile.dietType", "Diet type")} value={na(fh.dietType)} />
+				<DetailRow
+					label={t("wellnessProfile.regionalPreference", "Regional cuisine")}
+					value={
+						fh.regionalPreference
+							? t(`wellnessProfileForm.regionalPreferences.${fh.regionalPreference}`, REGIONAL_LABELS[fh.regionalPreference] || fh.regionalPreference)
+							: notProv
+					}
+				/>
 				<DetailBadgeRow label={t("wellnessProfile.preferredFoods", "Preferred foods")} items={fh.preferredFoods || []} empty={notProv} variant="success" />
 				<DetailBadgeRow label={t("wellnessProfile.foodDislikes", "Food dislikes")} items={fh.dislikedFoods || []} empty={notProv} />
 				<DetailRow label={t("wellnessProfile.eatingTimings", "Eating timings")} value={na(fh.eatingTimings)} />

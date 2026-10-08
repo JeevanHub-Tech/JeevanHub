@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Pill, Salad, HeartPulse, Leaf } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -23,11 +23,32 @@ function PrescriptionWellnessPage() {
 	const [searchParams, setSearchParams] = useSearchParams();
 	const requestedTab = searchParams.get("tab");
 	const activeTab = TAB_IDS.includes(requestedTab) ? requestedTab : "diet";
-	const setActiveTab = (id) => setSearchParams((prev) => {
-		const next = new URLSearchParams(prev);
-		next.set("tab", id);
-		return next;
-	}, { replace: true });
+	const [visitedTabs, setVisitedTabs] = useState(() => new Set([activeTab]));
+
+	useEffect(() => {
+		if (activeTab) {
+			setVisitedTabs((prev) => {
+				if (prev.has(activeTab)) return prev;
+				const next = new Set(prev);
+				next.add(activeTab);
+				return next;
+			});
+		}
+	}, [activeTab]);
+
+	const setActiveTab = (id) => {
+		setVisitedTabs((prev) => {
+			if (prev.has(id)) return prev;
+			const next = new Set(prev);
+			next.add(id);
+			return next;
+		});
+		setSearchParams((prev) => {
+			const next = new URLSearchParams(prev);
+			next.set("tab", id);
+			return next;
+		}, { replace: true });
+	};
 
 	const [planRefreshKey, setPlanRefreshKey] = useState(0);
 
@@ -58,10 +79,18 @@ function PrescriptionWellnessPage() {
 							))}
 						</TabsList>
 					</div>
-					<TabsContent value="medicines"><MedicinesHerbsSupplementsTab /></TabsContent>
-					<TabsContent value="diet"><WeeklyMealPlannerSection key={planRefreshKey} /></TabsContent>
-					<TabsContent value="yoga"><YogaLifestyleTab key={planRefreshKey} /></TabsContent>
-					<TabsContent value="wellness"><OtherWellnessTab /></TabsContent>
+					<TabsContent value="medicines">
+						{visitedTabs.has("medicines") && <MedicinesHerbsSupplementsTab />}
+					</TabsContent>
+					<TabsContent value="diet">
+						{visitedTabs.has("diet") && <WeeklyMealPlannerSection key={planRefreshKey} />}
+					</TabsContent>
+					<TabsContent value="yoga">
+						{visitedTabs.has("yoga") && <YogaLifestyleTab key={planRefreshKey} />}
+					</TabsContent>
+					<TabsContent value="wellness">
+						{visitedTabs.has("wellness") && <OtherWellnessTab />}
+					</TabsContent>
 				</Tabs>
 			</div>
 		</main>

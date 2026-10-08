@@ -31,10 +31,54 @@ function getInitials(name) {
     .toUpperCase();
 }
 
+let doctorsMemoryCache = null;
+let doctorsMemoryCacheTime = 0;
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+function mapDoctorList(data) {
+  const approvedDoctors = data.filter((doc) => doc.approvalStatus === "Approved");
+  return approvedDoctors.map((doctor) => {
+    const rawSpecs = Array.isArray(doctor.specialization)
+      ? doctor.specialization
+      : typeof doctor.specialization === "string"
+        ? [doctor.specialization]
+        : [];
+    const specializations = rawSpecs
+      .flatMap((s) => (typeof s === "string" ? s.split(",").map((x) => x.trim()) : s))
+      .filter(Boolean);
+    return {
+      ...doctor,
+      id: doctor._id,
+      _id: doctor._id,
+      name: doctor.name || `${doctor.firstName || ""} ${doctor.lastName || ""}`.trim(),
+      firstName: doctor.firstName,
+      lastName: doctor.lastName,
+      education: doctor.education,
+      upiId: doctor.upiId,
+      price: doctor.price,
+      dietPlanFee: doctor.dietPlanFee !== undefined ? doctor.dietPlanFee : 299,
+      specializations,
+      specialization: specializations.join(", ") || "N/A",
+      rawExperience: doctor.experience != null ? Number(doctor.experience) : null,
+      experience: doctor.experience ? `${doctor.experience} years` : "0 years",
+      email: `${doctor.email}`,
+      pricepoint: `${doctor.price || "0"}`,
+      priceRange:
+        doctor.price < 500 ? "Low" : doctor.price >= 500 && doctor.price <= 1000 ? "Medium" : "High",
+      location: doctor.address || doctor.zipCode || null,
+      languages: doctor.languages || [],
+      language: doctor.languages?.join(", ") || "English",
+      rating: typeof doctor.rating === "number" ? doctor.rating : null,
+      gender: doctor.gender ? doctor.gender.charAt(0).toUpperCase() + doctor.gender.slice(1) : "N/A",
+      profileImage: doctor.profileImage || null,
+    };
+  });
+}
+
 function DoctorAvatar({ src, name }) {
   return (
     <Avatar size="lg">
-      {isValidImage(src) && <AvatarImage src={src} alt={name} />}
+      {isValidImage(src) && <AvatarImage src={src} alt={name} loading="lazy" decoding="async" />}
       <AvatarFallback className="bg-secondary font-semibold text-primary">
         {getInitials(name)}
       </AvatarFallback>
@@ -136,8 +180,8 @@ function DoctorsScreen() {
   // Filters live in the URL so navigating to /doctor-detail and back restores
   // them instead of resetting — this screen fully unmounts on that navigation.
   const { values: filters, setFilter, setFilters } = useUrlFilters(DEFAULT_FILTERS);
-  const [doctors, setDoctors] = useState([]);
-  const [status, setStatus] = useState("loading"); // loading | ready | error
+  const [doctors, setDoctors] = useState(() => doctorsMemoryCache || []);
+  const [status, setStatus] = useState(() => doctorsMemoryCache ? "ready" : "loading"); // loading | ready | error
 
   // AI illness-match state.
   const [aiQuery, setAiQuery] = useState("");
@@ -200,6 +244,13 @@ function DoctorsScreen() {
   }), [t]);
 
   useEffect(() => {
+    const isCacheStale = !doctorsMemoryCache || Date.now() - doctorsMemoryCacheTime > CACHE_TTL_MS;
+    if (!isCacheStale && doctorsMemoryCache) {
+      setDoctors(doctorsMemoryCache);
+      setStatus("ready");
+      return;
+    }
+
     const token = localStorage.getItem("token");
     authFetch(`${BACKEND_URL}/api/doctors/publicDoctors`, {
       headers: {
@@ -208,50 +259,15 @@ function DoctorsScreen() {
     })
       .then((response) => response.json())
       .then((data) => {
-        const approvedDoctors = data.filter((doc) => doc.approvalStatus === "Approved");
-
-        const mappedDoctors = approvedDoctors.map((doctor) => {
-          const rawSpecs = Array.isArray(doctor.specialization)
-            ? doctor.specialization
-            : typeof doctor.specialization === "string"
-              ? [doctor.specialization]
-              : [];
-          const specializations = rawSpecs
-            .flatMap((s) => (typeof s === "string" ? s.split(",").map((x) => x.trim()) : s))
-            .filter(Boolean);
-          return {
-            ...doctor,
-            id: doctor._id,
-            _id: doctor._id,
-            name: doctor.name || `${doctor.firstName || ""} ${doctor.lastName || ""}`.trim(),
-            firstName: doctor.firstName,
-            lastName: doctor.lastName,
-            education: doctor.education,
-            upiId: doctor.upiId,
-            price: doctor.price,
-            dietPlanFee: doctor.dietPlanFee !== undefined ? doctor.dietPlanFee : 299,
-            specializations,
-            specialization: specializations.join(", ") || "N/A",
-            rawExperience: doctor.experience != null ? Number(doctor.experience) : null,
-            experience: doctor.experience ? `${doctor.experience} years` : "0 years",
-            email: `${doctor.email}`,
-            pricepoint: `${doctor.price || "0"}`,
-            priceRange:
-              doctor.price < 500 ? "Low" : doctor.price >= 500 && doctor.price <= 1000 ? "Medium" : "High",
-            location: doctor.address || doctor.zipCode || null,
-            languages: doctor.languages || [],
-            language: doctor.languages?.join(", ") || "English",
-            rating: typeof doctor.rating === "number" ? doctor.rating : null,
-            gender: doctor.gender ? doctor.gender.charAt(0).toUpperCase() + doctor.gender.slice(1) : "N/A",
-            profileImage: doctor.profileImage || null,
-          };
-        });
+        const mappedDoctors = mapDoctorList(data);
+        doctorsMemoryCache = mappedDoctors;
+        doctorsMemoryCacheTime = Date.now();
         setDoctors(mappedDoctors);
         setStatus("ready");
       })
       .catch((error) => {
         console.error("Error fetching doctors:", error);
-        setStatus("error");
+        if (!doctorsMemoryCache) setStatus("error");
       });
   }, []);
 

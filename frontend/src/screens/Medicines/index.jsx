@@ -82,12 +82,27 @@ const Medicines = () => {
 		page: "1",
 	});
 
-	const [medicines, setMedicines] = useState([]);
-	const [total, setTotal] = useState(0);
-	const [totalPages, setTotalPages] = useState(1);
+let categoriesCache = null;
+const medicinesQueryCache = new Map();
+const CACHE_TTL_MS = 3 * 60 * 1000; // 3 minutes
+
+const getQueryKey = (params) => JSON.stringify(params);
+
+	const initialQueryKey = getQueryKey({
+		page: Number(filters.page) || 1,
+		search: filters.q || "",
+		category: filters.category,
+		priceRange: filters.price,
+		sortBy: filters.sort,
+	});
+	const initialCached = medicinesQueryCache.get(initialQueryKey);
+
+	const [medicines, setMedicines] = useState(() => initialCached?.medicines || []);
+	const [total, setTotal] = useState(() => initialCached?.total || 0);
+	const [totalPages, setTotalPages] = useState(() => initialCached?.totalPages || 1);
 	const page = Number(filters.page) || 1;
 	const setPage = useCallback((p) => setFilter("page", String(p)), [setFilter]);
-	const [loading, setLoading] = useState(true);
+	const [loading, setLoading] = useState(() => !initialCached);
 	const [error, setError] = useState(null);
 
 	const [cart, setCart] = useState([]);
@@ -109,7 +124,7 @@ const Medicines = () => {
 	const setPriceRange = useCallback((v) => setFilter("price", v), [setFilter]);
 	const sortBy = filters.sort;
 	const setSortBy = useCallback((v) => setFilter("sort", v), [setFilter]);
-	const [categories, setCategories] = useState([]);
+	const [categories, setCategories] = useState(() => categoriesCache || []);
 
 	// Base UI's Select needs an `items` list to resolve the trigger's display
 	// label before the popup (where the matching SelectItem lives) has ever
@@ -145,11 +160,18 @@ const Medicines = () => {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [searchTerm, selectedCategory, priceRange, sortBy]);
 
-	// Categories are fetched once, independent of pagination.
+	// Categories are fetched once and cached in memory across page navigations.
 	useEffect(() => {
+		if (categoriesCache) {
+			setCategories(categoriesCache);
+			return;
+		}
 		axios
 			.get(`${BACKEND_URL}/api/medicines/categories`)
-			.then((res) => setCategories(res.data || []))
+			.then((res) => {
+				categoriesCache = res.data || [];
+				setCategories(categoriesCache);
+			})
 			.catch((err) => console.error("Failed to fetch categories:", err));
 	}, []);
 
@@ -190,10 +212,33 @@ const Medicines = () => {
 		fetchCart();
 	}, [patientId, token, setCartCount]);
 
-	// Medicines are fetched per page/filter combo from the server.
+	// Medicines are fetched per page/filter combo with SWR caching.
 	useEffect(() => {
-		const fetchMedicines = async () => {
+		let isMounted = true;
+		const queryKey = getQueryKey({
+			page,
+			search: searchTerm || "",
+			category: selectedCategory,
+			priceRange,
+			sortBy,
+		});
+
+		const cached = medicinesQueryCache.get(queryKey);
+		const isFresh = cached && Date.now() - cached.timestamp < CACHE_TTL_MS;
+
+		if (cached) {
+			setMedicines(cached.medicines);
+			setTotal(cached.total);
+			setTotalPages(cached.totalPages);
+			setLoading(false);
+		} else {
 			setLoading(true);
+		}
+
+		// If cache is fresh, skip background fetch
+		if (isFresh) return;
+
+		const fetchMedicines = async () => {
 			try {
 				const response = await axios.get(`${BACKEND_URL}/api/medicines`, {
 					params: {
@@ -206,19 +251,35 @@ const Medicines = () => {
 					},
 				});
 
-				setMedicines(response.data.medicines || []);
-				setTotal(response.data.total || 0);
-				setTotalPages(response.data.totalPages || 1);
+				if (!isMounted) return;
+
+				const resData = {
+					medicines: response.data.medicines || [],
+					total: response.data.total || 0,
+					totalPages: response.data.totalPages || 1,
+					timestamp: Date.now(),
+				};
+
+				medicinesQueryCache.set(queryKey, resData);
+				setMedicines(resData.medicines);
+				setTotal(resData.total);
+				setTotalPages(resData.totalPages);
 				setError(null);
 			} catch (err) {
 				console.error("Failed to fetch medicines:", err);
-				setError(err.message);
+				if (!medicinesQueryCache.has(queryKey)) {
+					setError(err.message);
+				}
 			} finally {
-				setLoading(false);
+				if (isMounted) setLoading(false);
 			}
 		};
 
 		fetchMedicines();
+
+		return () => {
+			isMounted = false;
+		};
 	}, [page, searchTerm, selectedCategory, priceRange, sortBy]);
 
 	const cartQuantityById = useMemo(() => {

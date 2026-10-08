@@ -192,7 +192,10 @@ exports.getAllMedicines = async (req, res) => {
     const sort = sortMap[sortBy] || sortMap.name;
 
     if (all === 'true') {
-      const medicines = await Medicine.find(query).sort(sort).populate('retailerId', 'firstName lastName');
+      const medicines = await Medicine.find(query)
+        .sort(sort)
+        .populate('retailerId', 'firstName lastName')
+        .lean();
       return res.status(200).json(medicines);
     }
 
@@ -201,7 +204,12 @@ exports.getAllMedicines = async (req, res) => {
     const skip = (pageNum - 1) * limitNum;
 
     const [medicines, total] = await Promise.all([
-      Medicine.find(query).sort(sort).skip(skip).limit(limitNum).populate('retailerId', 'firstName lastName'),
+      Medicine.find(query)
+        .sort(sort)
+        .skip(skip)
+        .limit(limitNum)
+        .populate('retailerId', 'firstName lastName')
+        .lean(),
       Medicine.countDocuments(query),
     ]);
 
@@ -230,7 +238,9 @@ exports.getMedicineCategories = async (req, res) => {
 // Get Single Medicine by ID (Public)
 exports.getMedicineById = async (req, res) => {
   try {
-    const medicine = await Medicine.findById(req.params.id).populate('retailerId', 'firstName lastName');
+    const medicine = await Medicine.findById(req.params.id)
+      .populate('retailerId', 'firstName lastName')
+      .lean();
     if (!medicine) {
       return res.status(404).json({ message: 'Medicine not found' });
     }

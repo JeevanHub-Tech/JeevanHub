@@ -1,0 +1,18 @@
+export const categoryTranslations = {
+  "Digestive Health": { en: "Digestive Health", hi: "पाचन स्वास्थ्य (अग्नि एवं कोष्ठ)" },
+  "Respiratory Health": { en: "Respiratory Health", hi: "श्वसन स्वास्थ्य (प्राणवह स्रोतस)" },
+  "Skin Care": { en: "Skin Care", hi: "त्वचा एवं केश देखभाल" },
+  "Joint and Bone Health": { en: "Joint and Bone Health", hi: "संधि एवं अस्थि स्वास्थ्य" },
+  "Cardiovascular Health": { en: "Cardiovascular Health", hi: "हृदय एवं रक्त परिसंचरण" },
+  "Mental Health and Wellness": { en: "Mental Health and Wellness", hi: "मानसिक स्वास्थ्य एवं शांति" },
+  "Metabolic and Endocrine Health": { en: "Metabolic and Endocrine Health", hi: "चयापचय एवं हार्मोनल स्वास्थ्य" },
+  "Immune Support": { en: "Immune Support", hi: "रोग प्रतिरोधक क्षमता (ओजस एवं व्याधिक्षमत्व)" },
+  "Women's Health": { en: "Women's Health", hi: "स्त्री स्वास्थ्य (स्त्री रोग एवं मातृत्व)" },
+  "Men's Health": { en: "Men's Health", hi: "पुरुष स्वास्थ्य (शुक्र धातु एवं पौरुष)" },
+  "Liver and Kidney Health": { en: "Liver and Kidney Health", hi: "यकृत एवं वृक्क स्वास्थ्य (लिवर व किडनी)" },
+  "Eye Health": { en: "Eye Health", hi: "नेत्र स्वास्थ्य एवं दृष्टि सुधार" },
+  "Oral Health": { en: "Oral Health", hi: "मुख स्वास्थ्य एवं दंत चिकित्सा" },
+  "General Wellness": { en: "General Wellness", hi: "समग्र स्वास्थ्य एवं कायाकल्प (डिटॉक्स)" },
+  "Infections": { en: "Infections", hi: "संक्रमण एवं रोग मुक्ति" },
+  "Pain Management": { en: "Pain Management", hi: "दर्द निवारण (वेदना शमन)" },
+};

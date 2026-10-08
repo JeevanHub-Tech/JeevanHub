@@ -57,6 +57,7 @@ const MedicineCard = ({ medicine, cartQuantity, addToCart, handleQuantityChange,
 						src={medicine.images?.[0] || FALLBACK_IMAGE}
 						alt={medicine.name}
 						loading="lazy"
+						decoding="async"
 						onError={(e) => {
 							e.currentTarget.onerror = null;
 							e.currentTarget.src = FALLBACK_IMAGE;

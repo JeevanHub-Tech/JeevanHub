@@ -117,12 +117,14 @@ exports.getAllDoctorsData = async (req, res) => {
 // Get Public Doctors Data (Safe fields only)
 exports.getPublicDoctorsData = async (req, res) => {
 	try {
-		const doctors = await Doctor.find({ approvalStatus: 'Approved' }).select('-password');
-		
-		// Fetch average ratings from Feedback collection
-		const ratings = await Feedback.aggregate([
-			{ $match: { toType: 'Doctor' } },
-			{ $group: { _id: '$to', averageRating: { $avg: '$stars' } } }
+		const [doctors, ratings] = await Promise.all([
+			Doctor.find({ approvalStatus: 'Approved' })
+				.select('firstName lastName email gender designation specialization experience price dietPlanFee education languages introduction approvalStatus profileImage address zipCode')
+				.lean(),
+			Feedback.aggregate([
+				{ $match: { toType: 'Doctor' } },
+				{ $group: { _id: '$to', averageRating: { $avg: '$stars' } } }
+			])
 		]);
 		
 		// Map ratings by doctor ID for quick lookup
@@ -131,6 +133,7 @@ exports.getPublicDoctorsData = async (req, res) => {
 			if (r._id) ratingMap[r._id.toString()] = r.averageRating;
 		});
 
+		const baseUrl = process.env.BASE_URL || "http://localhost:5000";
 		const formattedDoctors = doctors.map((doc) => ({
 			_id: doc._id,
 			firstName: doc.firstName,
@@ -151,7 +154,7 @@ exports.getPublicDoctorsData = async (req, res) => {
 			introduction: doc.introduction || "",
 			approvalStatus: doc.approvalStatus || 'Pending',
 			profileImage: doc.profileImage
-				? (doc.profileImage.startsWith('http') ? doc.profileImage : `${process.env.BASE_URL || "http://localhost:5000"}/${doc.profileImage}`)
+				? (doc.profileImage.startsWith('http') ? doc.profileImage : `${baseUrl}/${doc.profileImage}`)
 				: null,
 			rating: ratingMap[doc._id.toString()] || null
 		}));

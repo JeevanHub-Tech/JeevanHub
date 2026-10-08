@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { Loader2, ShoppingBag, AlertCircle, Minus, Plus, Trash2, Stethoscope, ArrowRightLeft, Lock, ChevronDown } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -102,6 +103,7 @@ const MyCartEmptyPlaceholder = ({ onBrowse }) => (
 );
 
 const CartScreen = () => {
+	const { t } = useTranslation();
 	const navigate = useNavigate();
 	const { auth, loading: authLoading } = useContext(AuthContext);
 	const { setCartCount } = useContext(CartContext);
@@ -403,11 +405,11 @@ const CartScreen = () => {
 					<span>₹{totalPrice.toFixed(2)}</span>
 				</div>
 				<div className="mb-3.5 flex items-baseline justify-between font-display text-lg font-semibold text-(--jh-ink-strong) sm:mb-6 sm:text-2xl">
-					<span>Total</span>
+					<span>{t("cart.total", "Total Amount")}</span>
 					<span>₹{totalPrice.toFixed(2)}</span>
 				</div>
 				<Button type="button" onClick={handleProceedToCheckout} className="w-full">
-					Proceed to Checkout
+					{t("cart.proceedToCheckout", "Proceed to Checkout")}
 				</Button>
 			</aside>
 		</>
@@ -416,7 +418,9 @@ const CartScreen = () => {
 	return (
 		<div className={`mx-auto w-full min-h-screen bg-background px-4 pb-32.5 font-body text-foreground transition-[max-width] duration-200 ease-out sm:px-5 sm:pb-15 ${hasDoctorCarts ? 'max-w-none' : 'max-w-275'}`}>
 			<header className="mb-10 flex flex-col items-center text-center">
-				<h1 className="m-0 font-display text-3xl leading-tight font-normal tracking-tight text-(--jh-ink-strong) sm:text-4xl">Your Cart</h1>
+				<h1 className="m-0 font-display text-3xl leading-tight font-normal tracking-tight text-(--jh-ink-strong) sm:text-4xl">
+					{t("cart.title", "Your Cart")}
+				</h1>
 				<span
 					aria-hidden="true"
 					className="mt-3.5 block h-1 w-21 rounded-(--jh-radius-pill) bg-linear-to-r from-(--jh-olive-leaf) via-(--jh-turmeric-gold) to-(--jh-bark-brown)"
@@ -431,11 +435,11 @@ const CartScreen = () => {
 			{isEverythingEmpty ? (
 				<EmptyState
 					icon={ShoppingBag}
-					title="Your cart is empty"
-					description="Browse our ayurvedic medicines and add what you need — we'll keep it here for you."
+					title={t("cart.emptyTitle", "Your cart is empty")}
+					description={t("cart.emptyDesc", "Browse our authentic Ayurvedic store and add items to your cart.")}
 					action={
 						<Button type="button" onClick={() => navigate('/medicines')}>
-							Browse Medicines
+							{t("cart.shopNow", "Shop Medicines")}
 						</Button>
 					}
 				/>

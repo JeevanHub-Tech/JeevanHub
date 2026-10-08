@@ -2,6 +2,7 @@ import { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { Camera, AlertTriangle, CreditCard, Pencil, Check } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import { AuthContext } from "../../context/AuthContext";
 import defaultProfilePic from "../../media/default-profile.png";
@@ -16,6 +17,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 const DoctorProfile = () => {
+	const { t } = useTranslation();
 	const { auth, setAuth, logout, loading: authLoading } = useContext(AuthContext);
 	const navigate = useNavigate();
 
@@ -81,7 +83,6 @@ const DoctorProfile = () => {
 				});
 			} catch (error) {
 				console.error("Error fetching doctor data:", error);
-				alert("Failed to load profile details.");
 			}
 		};
 
@@ -136,7 +137,7 @@ const DoctorProfile = () => {
 				{ headers: { Authorization: `Bearer ${auth.token}` } }
 			);
 
-			alert("Profile updated successfully!");
+			alert(t("doctorProfile.profileUpdated", "Profile updated successfully!"));
 
 			if (response.data.data) {
 				const updated = response.data.data;
@@ -161,7 +162,7 @@ const DoctorProfile = () => {
 			setIsEditing(false);
 		} catch (error) {
 			console.error("Error updating profile:", error);
-			alert("Failed to update profile.");
+			alert(t("doctorProfile.profileUpdateFailed", "Failed to update profile."));
 		} finally {
 			setLoading(false);
 		}
@@ -170,7 +171,7 @@ const DoctorProfile = () => {
 	const handleSaveUpiId = async () => {
 		const upiRegex = /^[a-zA-Z0-9.\-_]{1,256}@[a-zA-Z0-9.\-_]{1,64}$/;
 		if (tempUpiId && !upiRegex.test(tempUpiId)) {
-			alert("Please enter a valid UPI ID format (e.g., doctor@upi).");
+			alert(t("doctorProfile.validUpiRequired", "Please enter a valid UPI ID format (e.g., doctor@upi)."));
 			return;
 		}
 
@@ -183,11 +184,11 @@ const DoctorProfile = () => {
 			);
 
 			setDoctorData((prev) => ({ ...prev, upiId: tempUpiId }));
-			alert("UPI ID updated successfully!");
+			alert(t("doctorProfile.upiUpdated", "UPI ID updated successfully!"));
 			setIsEditingUpi(false);
 		} catch (error) {
 			console.error("Error updating UPI ID:", error);
-			alert(error.response?.data?.message || "Failed to update UPI ID.");
+			alert(error.response?.data?.message || t("doctorProfile.upiUpdateFailed", "Failed to update UPI ID."));
 		} finally {
 			setLoading(false);
 		}
@@ -196,7 +197,7 @@ const DoctorProfile = () => {
 	const handlePasswordSubmit = async (e) => {
 		e.preventDefault();
 		if (passwords.newPassword !== passwords.confirmPassword) {
-			return alert("New passwords do not match!");
+			return alert(t("doctorProfile.passwordMismatch", "New passwords do not match!"));
 		}
 
 		try {
@@ -209,11 +210,11 @@ const DoctorProfile = () => {
 				{ headers: { Authorization: `Bearer ${auth.token}` } }
 			);
 
-			alert("Password changed successfully!");
+			alert(t("doctorProfile.passwordChanged", "Password changed successfully!"));
 			setPasswords({ currentPassword: "", newPassword: "", confirmPassword: "" });
 		} catch (error) {
 			console.error("Error changing password:", error);
-			alert(error.response?.data?.message || "Failed to change password");
+			alert(error.response?.data?.message || t("doctorProfile.passwordChangeFailed", "Failed to change password."));
 		}
 	};
 
@@ -248,11 +249,11 @@ const DoctorProfile = () => {
 					user: { ...prev.user, profileImage: newImageUrl },
 				}));
 
-				alert("Profile image updated successfully!");
+				alert(t("doctorProfile.imageUpdated", "Profile image updated successfully!"));
 			}
 		} catch (error) {
 			console.error("Error uploading image:", error);
-			alert("Failed to upload image.");
+			alert(t("doctorProfile.imageUploadFailed", "Failed to upload image."));
 		} finally {
 			setLoading(false);
 		}
@@ -295,30 +296,34 @@ const DoctorProfile = () => {
 					<h3 className="mt-4 text-lg font-semibold text-foreground">
 						Dr. {doctorData.firstName} {doctorData.lastName}
 					</h3>
-					<p className="mt-1 text-sm font-semibold text-primary">{doctorData.specialization || "General Practitioner"}</p>
+					<p className="mt-1 text-sm font-semibold text-primary">
+						{doctorData.specialization || t("doctorProfile.generalPractitioner", "General Practitioner")}
+					</p>
 					<p className="text-sm text-muted-foreground">{doctorData.email}</p>
-					<Button variant="destructive" className="mt-4 w-full" onClick={handleSignOut}>
-						Sign Out
+					<Button variant="destructive" className="mt-4 w-full cursor-pointer" onClick={handleSignOut}>
+						{t("doctorProfile.signOut", "Sign Out")}
 					</Button>
 				</Card>
 
 				<div className="flex flex-col gap-6">
 					<Card className="p-6">
 						<div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-							<h2 className="text-lg font-semibold text-foreground">Professional Information</h2>
+							<h2 className="text-lg font-semibold text-foreground">
+								{t("doctorProfile.professionalInfo", "Professional Information")}
+							</h2>
 							<div className="flex gap-2">
 								{isEditing ? (
 									<>
-										<Button onClick={handleSaveProfile} disabled={loading}>
-											{loading ? "Saving..." : "Save Profile"}
+										<Button onClick={handleSaveProfile} disabled={loading} className="cursor-pointer">
+											{loading ? t("doctorProfile.saving", "Saving...") : t("doctorProfile.saveProfile", "Save Profile")}
 										</Button>
-										<Button variant="outline" onClick={() => setIsEditing(false)}>
-											Cancel
+										<Button variant="outline" onClick={() => setIsEditing(false)} className="cursor-pointer">
+											{t("common.cancel", "Cancel")}
 										</Button>
 									</>
 								) : (
-									<Button variant="outline" onClick={() => setIsEditing(true)}>
-										Edit Profile
+									<Button variant="outline" onClick={() => setIsEditing(true)} className="cursor-pointer">
+										{t("doctorProfile.editProfile", "Edit Profile")}
 									</Button>
 								)}
 							</div>
@@ -330,23 +335,23 @@ const DoctorProfile = () => {
 								<div className="rounded-lg border border-border bg-muted/40 p-4">
 									<div className="mb-2 flex items-center gap-2">
 										<CreditCard className="size-5 text-primary" />
-										<h4 className="font-semibold text-foreground">Configure UPI ID</h4>
+										<h4 className="font-semibold text-foreground">{t("doctorProfile.configureUpi", "Configure UPI ID")}</h4>
 									</div>
 									<p className="mb-3 text-sm text-muted-foreground">
-										Enter your UPI ID to receive direct payments for consultation slots.
+										{t("doctorProfile.configureUpiDesc", "Enter your UPI ID to receive direct payments for consultation slots.")}
 									</p>
 									<div className="flex flex-wrap items-center gap-2">
 										<Input
-											placeholder="e.g. doctorname@okaxis"
+											placeholder={t("doctorProfile.upiPlaceholder", "e.g. doctorname@okaxis")}
 											value={tempUpiId}
 											onChange={(e) => setTempUpiId(e.target.value)}
 											className="min-w-52 flex-1"
 										/>
-										<Button size="icon" onClick={handleSaveUpiId} disabled={loading} title="Save UPI ID">
+										<Button size="icon" onClick={handleSaveUpiId} disabled={loading} title="Save UPI ID" className="cursor-pointer">
 											<Check />
 										</Button>
-										<Button variant="outline" onClick={() => setIsEditingUpi(false)}>
-											Cancel
+										<Button variant="outline" onClick={() => setIsEditingUpi(false)} className="cursor-pointer">
+											{t("common.cancel", "Cancel")}
 										</Button>
 									</div>
 								</div>
@@ -355,9 +360,9 @@ const DoctorProfile = () => {
 									<div className="flex items-start gap-3">
 										<AlertTriangle className="size-6 shrink-0 text-primary" />
 										<div>
-											<h4 className="font-semibold text-foreground">UPI ID Missing</h4>
+											<h4 className="font-semibold text-foreground">{t("doctorProfile.upiMissing", "UPI ID Missing")}</h4>
 											<p className="text-sm text-muted-foreground">
-												Your paid slots will not be visible to the patients until you configure a valid UPI ID.
+												{t("doctorProfile.upiMissingDesc", "Your paid slots will not be visible to the patients until you configure a valid UPI ID.")}
 											</p>
 										</div>
 									</div>
@@ -366,8 +371,9 @@ const DoctorProfile = () => {
 											setIsEditingUpi(true);
 											setTempUpiId("");
 										}}
+										className="cursor-pointer"
 									>
-										Add UPI ID
+										{t("doctorProfile.addUpi", "Add UPI ID")}
 									</Button>
 								</div>
 							) : (
@@ -375,7 +381,7 @@ const DoctorProfile = () => {
 									<div className="flex items-start gap-3">
 										<CreditCard className="size-6 shrink-0 text-primary" />
 										<div>
-											<h4 className="font-semibold text-foreground">UPI ID Configured</h4>
+											<h4 className="font-semibold text-foreground">{t("doctorProfile.upiConfigured", "UPI ID Configured")}</h4>
 											<p className="text-sm text-muted-foreground">{doctorData.upiId}</p>
 										</div>
 									</div>
@@ -386,7 +392,8 @@ const DoctorProfile = () => {
 											setIsEditingUpi(true);
 											setTempUpiId(doctorData.upiId);
 										}}
-										title="Edit UPI ID"
+										title={t("doctorProfile.editUpi", "Edit UPI ID")}
+										className="cursor-pointer"
 									>
 										<Pencil />
 									</Button>
@@ -396,19 +403,19 @@ const DoctorProfile = () => {
 
 						<FieldGroup className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 							<Field>
-								<FieldLabel htmlFor="firstName">First Name</FieldLabel>
+								<FieldLabel htmlFor="firstName">{t("doctorProfile.firstName", "First Name")}</FieldLabel>
 								<Input id="firstName" name="firstName" value={doctorData.firstName} onChange={handleInputChange} disabled={!isEditing} />
 							</Field>
 							<Field>
-								<FieldLabel htmlFor="lastName">Last Name</FieldLabel>
+								<FieldLabel htmlFor="lastName">{t("doctorProfile.lastName", "Last Name")}</FieldLabel>
 								<Input id="lastName" name="lastName" value={doctorData.lastName} onChange={handleInputChange} disabled={!isEditing} />
 							</Field>
 							<Field>
-								<FieldLabel htmlFor="phone">Phone</FieldLabel>
+								<FieldLabel htmlFor="phone">{t("doctorProfile.phone", "Phone")}</FieldLabel>
 								<Input id="phone" name="phone" value={doctorData.phone} onChange={handleInputChange} disabled={!isEditing} />
 							</Field>
 							<Field>
-								<FieldLabel htmlFor="registrationNumber">Registration Number</FieldLabel>
+								<FieldLabel htmlFor="registrationNumber">{t("doctorProfile.registrationNumber", "Registration Number")}</FieldLabel>
 								<Input
 									id="registrationNumber"
 									name="registrationNumber"
@@ -418,7 +425,7 @@ const DoctorProfile = () => {
 								/>
 							</Field>
 							<Field className="sm:col-span-2">
-								<FieldLabel htmlFor="specialization">Specialization (Comma separated)</FieldLabel>
+								<FieldLabel htmlFor="specialization">{t("doctorProfile.specialization", "Specialization (Comma separated)")}</FieldLabel>
 								<Input
 									id="specialization"
 									name="specialization"
@@ -428,11 +435,11 @@ const DoctorProfile = () => {
 								/>
 							</Field>
 							<Field>
-								<FieldLabel htmlFor="education">Education</FieldLabel>
+								<FieldLabel htmlFor="education">{t("doctorProfile.education", "Education")}</FieldLabel>
 								<Input id="education" name="education" value={doctorData.education} onChange={handleInputChange} disabled={!isEditing} />
 							</Field>
 							<Field>
-								<FieldLabel htmlFor="designation">Designation</FieldLabel>
+								<FieldLabel htmlFor="designation">{t("doctorProfile.designation", "Designation")}</FieldLabel>
 								<Input
 									id="designation"
 									name="designation"
@@ -442,7 +449,7 @@ const DoctorProfile = () => {
 								/>
 							</Field>
 							<Field>
-								<FieldLabel htmlFor="experience">Experience (Years)</FieldLabel>
+								<FieldLabel htmlFor="experience">{t("doctorProfile.experience", "Experience (Years)")}</FieldLabel>
 								<Input
 									id="experience"
 									type="number"
@@ -453,11 +460,11 @@ const DoctorProfile = () => {
 								/>
 							</Field>
 							<Field>
-								<FieldLabel htmlFor="price">Consultation Price (₹)</FieldLabel>
+								<FieldLabel htmlFor="price">{t("doctorProfile.price", "Consultation Price (₹)")}</FieldLabel>
 								<Input id="price" type="number" name="price" value={doctorData.price} onChange={handleInputChange} disabled={!isEditing} />
 							</Field>
 							<Field>
-								<FieldLabel htmlFor="dietPlanFee">Personalized Diet Plan Fee (₹)</FieldLabel>
+								<FieldLabel htmlFor="dietPlanFee">{t("doctorProfile.dietPlanFee", "Personalized Diet Plan Fee (₹)")}</FieldLabel>
 								<Input
 									id="dietPlanFee"
 									type="number"
@@ -468,75 +475,77 @@ const DoctorProfile = () => {
 								/>
 							</Field>
 							<Field>
-								<FieldLabel htmlFor="age">Age</FieldLabel>
+								<FieldLabel htmlFor="age">{t("doctorProfile.age", "Age")}</FieldLabel>
 								<Input id="age" type="number" name="age" value={doctorData.age} onChange={handleInputChange} disabled={!isEditing} />
 							</Field>
 							<Field>
-								<FieldLabel htmlFor="gender">Gender</FieldLabel>
+								<FieldLabel htmlFor="gender">{t("doctorProfile.gender", "Gender")}</FieldLabel>
 								<Select
 									value={doctorData.gender}
 									onValueChange={(value) => setDoctorData((prev) => ({ ...prev, gender: value }))}
 									disabled={!isEditing}
 								>
 									<SelectTrigger id="gender">
-										<SelectValue placeholder="Select" />
+										<SelectValue placeholder={t("doctorProfile.select", "Select")} />
 									</SelectTrigger>
 									<SelectContent>
-										<SelectItem value="Male">Male</SelectItem>
-										<SelectItem value="Female">Female</SelectItem>
-										<SelectItem value="Other">Other</SelectItem>
+										<SelectItem value="Male">{t("common.genders.male", "Male")}</SelectItem>
+										<SelectItem value="Female">{t("common.genders.female", "Female")}</SelectItem>
+										<SelectItem value="Other">{t("common.genders.other", "Other")}</SelectItem>
 									</SelectContent>
 								</Select>
 							</Field>
 							<Field>
-								<FieldLabel htmlFor="zipCode">Zip Code</FieldLabel>
+								<FieldLabel htmlFor="zipCode">{t("doctorProfile.zipCode", "Zip Code")}</FieldLabel>
 								<Input id="zipCode" name="zipCode" value={doctorData.zipCode} onChange={handleInputChange} disabled={!isEditing} />
 							</Field>
 						</FieldGroup>
 					</Card>
 
 					<Card className="p-6">
-						<h3 className="mb-4 text-lg font-semibold text-foreground">Change Password</h3>
+						<h3 className="mb-4 text-lg font-semibold text-foreground">
+							{t("doctorProfile.changePassword", "Change Password")}
+						</h3>
 						<form onSubmit={handlePasswordSubmit}>
 							<FieldGroup>
 								<Field>
-									<FieldLabel htmlFor="currentPassword">Current Password</FieldLabel>
+									<FieldLabel htmlFor="currentPassword">{t("doctorProfile.currentPassword", "Current Password")}</FieldLabel>
 									<Input
 										id="currentPassword"
 										type="password"
 										name="currentPassword"
 										value={passwords.currentPassword}
 										onChange={handlePasswordChange}
-										placeholder="Enter current password"
+										placeholder={t("doctorProfile.currentPasswordPlaceholder", "Enter current password")}
 										required
 									/>
 								</Field>
 								<Field>
-									<FieldLabel htmlFor="newPassword">New Password</FieldLabel>
+									<FieldLabel htmlFor="newPassword">{t("doctorProfile.newPassword", "New Password")}</FieldLabel>
 									<Input
 										id="newPassword"
 										type="password"
 										name="newPassword"
 										value={passwords.newPassword}
 										onChange={handlePasswordChange}
-										placeholder="Enter new password"
+										placeholder={t("doctorProfile.newPasswordPlaceholder", "Enter new password")}
 										required
 									/>
 								</Field>
 								<Field>
-									<FieldLabel htmlFor="confirmPassword">Confirm New Password</FieldLabel>
+									<FieldLabel htmlFor="confirmPassword">{t("doctorProfile.confirmNewPassword", "Confirm New Password")}</FieldLabel>
 									<Input
 										id="confirmPassword"
 										type="password"
 										name="confirmPassword"
 										value={passwords.confirmPassword}
 										onChange={handlePasswordChange}
-										placeholder="Confirm new password"
+										placeholder={t("doctorProfile.confirmNewPasswordPlaceholder", "Confirm new password")}
 										required
 									/>
 								</Field>
-								<Button type="submit" className="w-fit">
-									Update Password
+								<Button type="submit" className="w-fit cursor-pointer">
+									{t("doctorProfile.updatePassword", "Update Password")}
 								</Button>
 							</FieldGroup>
 						</form>

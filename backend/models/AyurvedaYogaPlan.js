@@ -48,6 +48,11 @@ const ayurvedaYogaPlanSchema = new mongoose.Schema({
         action: { type: String, enum: ["ai_generated", "edited", "approved", "replaced"] },
         snapshot: mongoose.Schema.Types.Mixed,
     }],
+    translations: {
+        type: Map,
+        of: mongoose.Schema.Types.Mixed,
+        default: {},
+    },
 }, { timestamps: true });
 
 const AyurvedaYogaPlan = mongoose.model("AyurvedaYogaPlan", ayurvedaYogaPlanSchema);

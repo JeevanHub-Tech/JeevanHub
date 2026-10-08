@@ -1,6 +1,7 @@
-import { useContext, useState, useEffect } from "react";
+import { useContext, useState, useEffect, useMemo } from "react";
 import { Menu, X, Bell, LogOut, ShoppingCart } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -8,7 +9,6 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import GlobalSearchBox from "@/components/layout/GlobalSearchBox";
 import LocationPicker from "@/components/layout/LocationPicker";
 import LanguageToggle from "@/components/layout/LanguageToggle";
-import { exploreOptions as defaultExploreOptions } from "@/screens/publicNavigation";
 import { AuthContext } from "@/context/AuthContext";
 import { CartContext } from "@/context/CartContext";
 import { BACKEND_URL } from "@/config";
@@ -43,13 +43,25 @@ function NavigationLink({ item, onNavigate }) {
 // `navItems` array rendered once (desktop row + mobile disclosure), same
 // Explore/search/location treatment as the public nav. Role files own their own
 // data fetching (SSE badge counts, path-aware sublinks) and pass the result in.
-function DashboardNavbar({ navItems, profileTo, notificationsTo, cartTo, logoTo = "/", exploreOptions = defaultExploreOptions }) {
+function DashboardNavbar({ navItems, profileTo, notificationsTo, cartTo, logoTo = "/", exploreOptions: customExploreOptions }) {
+	const { t } = useTranslation();
 	const [showMenu, setShowMenu] = useState(false);
 	const [unreadCount, setUnreadCount] = useState(0);
 	const { auth, logout } = useContext(AuthContext);
 	const { cartCount } = useContext(CartContext);
 	const savedLocation = auth.user?.address || auth.user?.zipCode;
 	const navigate = useNavigate();
+
+	const exploreOptions = useMemo(
+		() =>
+			customExploreOptions || [
+				{ label: t("globalSearch.doctors", "Doctors"), value: "doctor", to: "/doctors" },
+				{ label: t("globalSearch.treatments", "Treatments"), value: "treatment", to: "/treatments" },
+				{ label: t("globalSearch.medicines", "Medicines"), value: "medicine", to: "/medicines" },
+				{ label: t("globalSearch.blogsVideos", "Blogs & videos"), value: "blogs-videos", to: "/blogs-videos" },
+			],
+		[customExploreOptions, t],
+	);
 
 	useEffect(() => {
 		if (!auth?.token || !notificationsTo) {

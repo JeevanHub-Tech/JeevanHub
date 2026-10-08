@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect, useContext } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
 	AlertCircle,
 	CheckCircle2,
@@ -35,32 +36,30 @@ const FALLBACK_IMAGE =
 	"https://images.unsplash.com/photo-1638310526160-ce17611bffff?q=80&w=627&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D";
 
 const STATUS_META = {
-	pending: { label: "Pending", variant: "warning", icon: Clock },
-	// Both are "the seller has it, nothing has left the shop yet".
-	accepted: { label: "Accepted", variant: "secondary", icon: ListChecks },
-	processing: { label: "Processing", variant: "secondary", icon: ListChecks },
-	shipped: { label: "Shipped", variant: "default", icon: Truck },
-	delivered: { label: "Completed", variant: "success", icon: CheckCircle2 },
-	rejected: { label: "Rejected", variant: "destructive", icon: XCircle },
-	cancelled: { label: "Cancelled", variant: "destructive", icon: XCircle },
+	pending: { labelKey: "orderHistory.status.pending", label: "Pending", variant: "warning", icon: Clock },
+	accepted: { labelKey: "orderHistory.status.accepted", label: "Accepted", variant: "secondary", icon: ListChecks },
+	processing: { labelKey: "orderHistory.status.processing", label: "Processing", variant: "secondary", icon: ListChecks },
+	shipped: { labelKey: "orderHistory.status.shipped", label: "Shipped", variant: "default", icon: Truck },
+	delivered: { labelKey: "orderHistory.status.delivered", label: "Completed", variant: "success", icon: CheckCircle2 },
+	rejected: { labelKey: "orderHistory.status.rejected", label: "Rejected", variant: "destructive", icon: XCircle },
+	cancelled: { labelKey: "orderHistory.status.cancelled", label: "Cancelled", variant: "destructive", icon: XCircle },
 };
 
-// Mockup groups statuses into 4 tabs; anything not finished yet rolls into
-// Pending (including accepted/processing/shipped), and "delivered" is displayed
-// as Completed.
-const TABS = [
-	{ id: "all", label: "All Orders", icon: ListChecks, match: () => true },
+const TAB_DEFS = [
+	{ id: "all", key: "orderHistory.tabs.all", label: "All Orders", icon: ListChecks, match: () => true },
 	{
 		id: "pending",
+		key: "orderHistory.tabs.pending",
 		label: "Pending",
 		icon: Clock,
 		match: (s) => s === "pending" || s === "accepted" || s === "processing" || s === "shipped",
 	},
-	{ id: "completed", label: "Completed", icon: CheckCircle2, match: (s) => s === "delivered" },
-	{ id: "cancelled", label: "Cancelled", icon: XCircle, match: (s) => s === "cancelled" || s === "rejected" },
+	{ id: "completed", key: "orderHistory.tabs.completed", label: "Completed", icon: CheckCircle2, match: (s) => s === "delivered" },
+	{ id: "cancelled", key: "orderHistory.tabs.cancelled", label: "Cancelled", icon: XCircle, match: (s) => s === "cancelled" || s === "rejected" },
 ];
 
 const OrderHistory = () => {
+	const { t } = useTranslation();
 	const [orders, setOrders] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
@@ -76,7 +75,7 @@ const OrderHistory = () => {
 	// window after delivery — this is the patient's chance to flag "paid but
 	// never received it" before that hold auto-releases.
 	const handleReportIssue = async (order) => {
-		const reason = window.prompt("What went wrong with this order? (e.g. never received the medicines)");
+		const reason = window.prompt(t("orderHistory.disputePrompt", "What went wrong with this order? (e.g. never received the medicines)"));
 		if (!reason || !reason.trim()) return;
 		setReportingId(order._id);
 		try {
@@ -85,9 +84,9 @@ const OrderHistory = () => {
 				{ reason },
 				{ headers: { Authorization: `Bearer ${auth.token}` } }
 			);
-			alert("Thanks — we've flagged this and will review it before any payout goes out.");
+			alert(t("orderHistory.disputeSuccess", "Thanks — we've flagged this and will review it before any payout goes out."));
 		} catch (err) {
-			alert(err.response?.data?.message || "Could not report this issue. Please try again.");
+			alert(err.response?.data?.message || t("orderHistory.disputeError", "Could not report this issue. Please try again."));
 		} finally {
 			setReportingId(null);
 		}
@@ -108,14 +107,14 @@ const OrderHistory = () => {
 					setOrders([]);
 				} else {
 					console.error("Error fetching orders:", error);
-					setError("Failed to load your orders. Please try again later.");
+					setError(t("orderHistory.errorDefault", "Failed to load your orders. Please try again later."));
 				}
 				setLoading(false);
 			}
 		};
 
 		if (userId) fetchOrders();
-	}, [userId, auth.token]);
+	}, [userId, auth.token, t]);
 
 	const getImageUrl = (imagePath) => {
 		if (!imagePath) return FALLBACK_IMAGE;
@@ -126,14 +125,14 @@ const OrderHistory = () => {
 
 	const tabCounts = useMemo(() => {
 		const counts = {};
-		TABS.forEach((tab) => {
+		TAB_DEFS.forEach((tab) => {
 			counts[tab.id] = orders.filter((o) => tab.match(o.orderStatus?.toLowerCase())).length;
 		});
 		return counts;
 	}, [orders]);
 
 	const visibleOrders = useMemo(() => {
-		const activeTabDef = TABS.find((t) => t.id === activeTab) || TABS[0];
+		const activeTabDef = TAB_DEFS.find((t) => t.id === activeTab) || TAB_DEFS[0];
 		const term = searchTerm.trim().toLowerCase();
 		return orders.filter((order) => {
 			if (!activeTabDef.match(order.orderStatus?.toLowerCase())) return false;
@@ -153,10 +152,14 @@ const OrderHistory = () => {
 							<ShoppingBag className="size-6" aria-hidden="true" />
 						</span>
 						<div>
-							<h1 className="font-display text-3xl text-foreground sm:text-4xl">Your Orders</h1>
+							<h1 className="font-display text-3xl text-foreground sm:text-4xl">
+								{t("orderHistory.title", "Your Orders")}
+							</h1>
 							{!loading && !error ? (
 								<p className="mt-0.5 text-sm text-muted-foreground">
-									{orders.length} order{orders.length === 1 ? "" : "s"} placed
+									{orders.length === 1
+										? t("orderHistory.ordersPlaced_one", "{{count}} order placed", { count: 1 })
+										: t("orderHistory.ordersPlaced_other", "{{count}} orders placed", { count: orders.length })}
 								</p>
 							) : null}
 						</div>
@@ -167,7 +170,7 @@ const OrderHistory = () => {
 							<Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
 							<Input
 								type="search"
-								placeholder="Search orders..."
+								placeholder={t("orderHistory.searchPlaceholder", "Search orders...")}
 								value={searchTerm}
 								onChange={(e) => setSearchTerm(e.target.value)}
 								className="pl-9"
@@ -180,10 +183,10 @@ const OrderHistory = () => {
 					<Card className="mt-6 p-2">
 						<Tabs value={activeTab} onValueChange={setActiveTab}>
 							<TabsList variant="line" className="w-full justify-start gap-1 p-1">
-								{TABS.map((tab) => (
+								{TAB_DEFS.map((tab) => (
 									<TabsTrigger key={tab.id} value={tab.id} className="gap-1.5 px-3 py-1.5">
 										<tab.icon className="size-4" aria-hidden="true" />
-										{tab.label}
+										{t(tab.key, tab.label)}
 										<Badge variant="secondary" className="ml-1">
 											{tabCounts[tab.id] ?? 0}
 										</Badge>
@@ -197,7 +200,7 @@ const OrderHistory = () => {
 				{loading ? (
 					<div className="mt-10 flex flex-col items-center gap-3 py-16 text-muted-foreground">
 						<Loader2 className="size-8 animate-spin" />
-						<p>Loading your orders...</p>
+						<p>{t("orderHistory.loading", "Loading your orders...")}</p>
 					</div>
 				) : error ? (
 					<div className="mt-10 flex flex-col items-center gap-3 py-16 text-destructive">
@@ -208,25 +211,26 @@ const OrderHistory = () => {
 					<div className="mt-10">
 						<EmptyState
 							icon={PackageSearch}
-							title="No orders yet"
-							description="Medicines you order will show up here so you can track them from purchase to delivery."
-							action={<Button onClick={() => navigate("/medicines")}>Shop now</Button>}
+							title={t("orderHistory.noOrdersTitle", "No orders yet")}
+							description={t("orderHistory.noOrdersDesc", "Medicines you order will show up here so you can track them from purchase to delivery.")}
+							action={<Button onClick={() => navigate("/medicines")}>{t("orderHistory.shopNow", "Shop now")}</Button>}
 						/>
 					</div>
 				) : visibleOrders.length === 0 ? (
 					<div className="mt-10">
 						<EmptyState
 							icon={PackageSearch}
-							title="No matching orders"
-							description="Try a different search term or switch tabs."
+							title={t("orderHistory.noMatchingOrdersTitle", "No matching orders")}
+							description={t("orderHistory.noMatchingOrdersDesc", "Try a different search term or switch tabs.")}
 						/>
 					</div>
 				) : (
 					<div className="mt-6 flex flex-col gap-5">
 						{visibleOrders.map((order) => {
 							const statusKey = order.orderStatus?.toLowerCase();
-							const statusMeta = STATUS_META[statusKey] || { label: order.orderStatus, variant: "secondary", icon: Package };
+							const statusMeta = STATUS_META[statusKey] || { label: order.orderStatus, labelKey: null, variant: "secondary", icon: Package };
 							const StatusIcon = statusMeta.icon;
+							const statusLabel = statusMeta.labelKey ? t(statusMeta.labelKey, statusMeta.label) : statusMeta.label;
 							const canViewDetail = statusKey === "shipped" || statusKey === "delivered";
 
 							return (
@@ -239,27 +243,29 @@ const OrderHistory = () => {
 												</span>
 												<div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
 													<div>
-														<p className="text-xs text-muted-foreground">Order placed</p>
+														<p className="text-xs text-muted-foreground">{t("orderHistory.orderPlaced", "Order placed")}</p>
 														<p className="font-medium text-foreground">{formatDate(order.createdAt)}</p>
 													</div>
 													<div>
-														<p className="text-xs text-muted-foreground">Total</p>
+														<p className="text-xs text-muted-foreground">{t("orderHistory.total", "Total")}</p>
 														<p className="font-medium text-foreground">₹{(Number(order.totalPrice) || 0).toFixed(2)}</p>
 													</div>
 													<div>
-														<p className="text-xs text-muted-foreground">Order #</p>
+														<p className="text-xs text-muted-foreground">{t("orderHistory.orderNumber", "Order #")}</p>
 														<p className="font-medium text-foreground">{order._id.slice(-6)}</p>
 													</div>
 												</div>
 											</div>
 											<Badge variant={statusMeta.variant} className="gap-1">
 												<StatusIcon className="size-3.5" aria-hidden="true" />
-												{statusMeta.label}
+												{statusLabel}
 											</Badge>
 										</div>
 
 										{order.retailers?.length > 0 ? (
-											<p className="text-sm text-muted-foreground">Sold by {order.retailers.join(", ")}</p>
+											<p className="text-sm text-muted-foreground">
+												{t("orderHistory.soldBy", "Sold by {{retailers}}", { retailers: order.retailers.join(", ") })}
+											</p>
 										) : null}
 
 										<ul className="flex flex-col gap-3">
@@ -297,19 +303,19 @@ const OrderHistory = () => {
 														<Truck className="size-4 text-(--jh-bark-brown)" aria-hidden="true" />
 														<div className="min-w-0 flex-1">
 															<p className="text-sm font-medium text-foreground">
-																{shipment.lastPolledStatus || "Handed to Delhivery"}
+																{shipment.lastPolledStatus || t("orderHistory.handedToDelhivery", "Handed to Delhivery")}
 																{shipment.lastPolledLocation ? (
 																	<span className="font-normal text-muted-foreground"> · {shipment.lastPolledLocation}</span>
 																) : null}
 															</p>
 															<p className="text-xs text-muted-foreground">
 																Delhivery AWB {shipment.trackingId}
-																{shipment.shippedAt ? ` · shipped ${formatDate(shipment.shippedAt)}` : ""}
+																{shipment.shippedAt ? ` · ${t("orderHistory.shipped", "shipped")} ${formatDate(shipment.shippedAt)}` : ""}
 															</p>
 														</div>
 														<Button size="sm" variant="outline" onClick={() => setTrackOrderId({ orderId: order._id, retailerId: shipment.retailerId })}>
 															<PackageSearch className="size-3.5" aria-hidden="true" />
-															Track shipment
+															{t("orderHistory.trackShipment", "Track shipment")}
 														</Button>
 													</div>
 												))}
@@ -318,7 +324,7 @@ const OrderHistory = () => {
 
 										{statusKey === "delivered" && order.review ? (
 											<div className="rounded-(--jh-radius-md) bg-secondary/60 p-3">
-												<h4 className="text-xs font-semibold text-muted-foreground">Your feedback</h4>
+												<h4 className="text-xs font-semibold text-muted-foreground">{t("orderHistory.yourFeedback", "Your feedback")}</h4>
 												<div className="mt-1 flex gap-0.5">
 													{[1, 2, 3, 4, 5].map((i) => (
 														<Star
@@ -341,7 +347,7 @@ const OrderHistory = () => {
 												) : null}
 												{order.review.deliveredAt ? (
 													<p className="mt-1 text-xs text-muted-foreground">
-														Delivered on {formatDate(order.review.deliveredAt)}
+														{t("orderHistory.deliveredOn", "Delivered on {{date}}", { date: formatDate(order.review.deliveredAt) })}
 													</p>
 												) : null}
 											</div>
@@ -351,11 +357,14 @@ const OrderHistory = () => {
 											<div className="flex flex-wrap gap-x-5 gap-y-1 text-xs text-muted-foreground">
 												<span className="flex items-center gap-1.5">
 													<Truck className="size-3.5" aria-hidden="true" />
-													Payment method: {order.paymentMethod === "cashOnDelivery" ? "Cash on delivery" : "Online payment"}
+													{t("orderHistory.paymentMethod", "Payment method:")}{" "}
+													{order.paymentMethod === "cashOnDelivery"
+														? t("orderHistory.cod", "Cash on delivery")
+														: t("orderHistory.online", "Online payment")}
 												</span>
 												<span className="flex items-center gap-1.5">
 													<CreditCard className="size-3.5" aria-hidden="true" />
-													Payment status: {order.paymentStatus.charAt(0).toUpperCase() + order.paymentStatus.slice(1)}
+													{t("orderHistory.paymentStatus", "Payment status:")} {order.paymentStatus ? (order.paymentStatus.charAt(0).toUpperCase() + order.paymentStatus.slice(1)) : ""}
 												</span>
 											</div>
 
@@ -368,7 +377,7 @@ const OrderHistory = () => {
 														onClick={() => handleReportIssue(order)}
 														disabled={reportingId === order._id}
 													>
-														{reportingId === order._id ? "Reporting…" : "Report an Issue"}
+														{reportingId === order._id ? t("orderHistory.reporting", "Reporting…") : t("orderHistory.reportIssue", "Report an Issue")}
 													</Button>
 												) : null}
 
@@ -379,7 +388,9 @@ const OrderHistory = () => {
 														onClick={() => navigate(`/BuyerFeedback/${order._id}`)}
 													>
 														<Package className="size-4" aria-hidden="true" />
-														{statusKey === "shipped" ? "Update order status" : "View order"}
+														{statusKey === "shipped"
+															? t("orderHistory.updateOrderStatus", "Update order status")
+															: t("orderHistory.viewOrder", "View order")}
 														<ChevronRight className="size-4" aria-hidden="true" />
 													</Button>
 												) : null}

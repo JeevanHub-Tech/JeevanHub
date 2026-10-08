@@ -1,10 +1,10 @@
 import React, { useState } from "react";
 import { Menu, X } from "lucide-react";
 import { NavLink } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
 import GlobalSearchBox from "@/components/layout/GlobalSearchBox";
-import { exploreOptions, publicNavigation } from "./publicNavigation";
 import LocationPicker from "../components/layout/LocationPicker";
 import LanguageToggle from "../components/layout/LanguageToggle";
 import defaultProfilePic from "../media/default-profile.png";
@@ -29,7 +29,23 @@ function NavigationLink({ item, onNavigate }) {
 }
 
 function Navbar() {
+  const { t } = useTranslation();
   const [showMenu, setShowMenu] = useState(false);
+
+  const publicNavigation = [
+    { label: t("publicNav.home", "Home"), to: "/" },
+    { label: t("publicNav.treatments", "Treatments"), to: "/treatments" },
+    { label: t("publicNav.doctors", "Doctors"), to: "/doctors" },
+    { label: t("publicNav.medicines", "Medicines"), to: "/medicines" },
+    { label: t("publicNav.blogsVideos", "Blogs & videos"), to: "/blogs-videos" },
+  ];
+
+  const exploreOptions = [
+    { label: t("publicNav.doctors", "Doctors"), value: "doctor", to: "/doctors" },
+    { label: t("publicNav.treatments", "Treatments"), value: "treatment", to: "/treatments" },
+    { label: t("publicNav.medicines", "Medicines"), value: "medicine", to: "/medicines" },
+    { label: t("publicNav.blogsVideos", "Blogs & videos"), value: "blogs-videos", to: "/blogs-videos" },
+  ];
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 border-b border-primary-foreground/10 bg-primary text-primary-foreground shadow-[var(--jh-shadow-rest)]">
@@ -46,7 +62,9 @@ function Navbar() {
         <div className="ml-auto flex items-center gap-2">
           <LocationPicker className="hidden xl:flex" />
           <LanguageToggle className="hidden sm:inline-flex" />
-          <NavLink to="/signin" className="hidden h-9 items-center justify-center rounded-md bg-primary-foreground px-4 text-sm font-semibold text-primary transition-colors hover:bg-primary-foreground/90 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50 sm:inline-flex">Sign in</NavLink>
+          <NavLink to="/signin" className="hidden h-9 items-center justify-center rounded-md bg-primary-foreground px-4 text-sm font-semibold text-primary transition-colors hover:bg-primary-foreground/90 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50 sm:inline-flex">
+            {t("publicNav.signin", "Sign in")}
+          </NavLink>
           <LanguageToggle className="sm:hidden" />
           <NavLink to="/signin" aria-label="Sign in" className="sm:hidden">
             <img src={defaultProfilePic} alt="" className="size-9 rounded-full border border-primary-foreground/40 object-cover" />

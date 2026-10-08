@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useContext } from "react";
 import { HeartPulse, Sun, Moon, Sparkles, Video, ExternalLink, UserCheck } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -69,6 +70,8 @@ function YogaColumn({ title, Icon, entries }) {
 // backend/controllers/ayurvedaYogaPlanController.js). Lifestyle
 // recommendations come from the AI diet plan, unrelated to this plan.
 function YogaLifestyleTab() {
+	const { t, i18n } = useTranslation();
+	const currentLang = i18n.language?.startsWith("hi") ? "hi" : "en";
 	const { auth } = useContext(AuthContext);
 	const patientId = auth?.user?.id;
 
@@ -84,8 +87,8 @@ function YogaLifestyleTab() {
 		setLoading(true);
 		try {
 			const [yogaRes, dietRes] = await Promise.all([
-				authFetch(`${API}/api/ayurveda/yoga-plan`),
-				authFetch(`${API}/api/ayurveda/diet-plan`),
+				authFetch(`${API}/api/ayurveda/yoga-plan?lang=${currentLang}`),
+				authFetch(`${API}/api/ayurveda/diet-plan?lang=${currentLang}`),
 			]);
 			if (yogaRes.ok) setYogaPlan(await yogaRes.json());
 			if (dietRes.ok) setDietPlan(await dietRes.json());
@@ -94,7 +97,7 @@ function YogaLifestyleTab() {
 		} finally {
 			setLoading(false);
 		}
-	}, [patientId]);
+	}, [patientId, currentLang]);
 
 	useEffect(() => {
 		fetchAll();

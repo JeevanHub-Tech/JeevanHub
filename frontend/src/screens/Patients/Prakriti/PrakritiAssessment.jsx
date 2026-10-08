@@ -2,6 +2,7 @@ import { Fragment, useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
 import { ArrowLeft, ArrowRight, RotateCcw } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -100,8 +101,17 @@ const DOSHA_DATA = {
 const stepsKeys = ["kapha", "pitta", "vata"];
 
 function PrakritiAssessment() {
+	const { i18n } = useTranslation();
 	const location = useLocation();
-	const [lang, setLang] = useState("en");
+	const activeLang = i18n.language?.startsWith("hi") ? "hi" : "en";
+	const [lang, setLang] = useState(activeLang);
+
+	useEffect(() => {
+		if (i18n.language) {
+			setLang(i18n.language.startsWith("hi") ? "hi" : "en");
+		}
+	}, [i18n.language]);
+
 	const [step, setStep] = useState(0);
 	const [answers, setAnswers] = useState({});
 	const [results, setResults] = useState(null);

@@ -1,6 +1,7 @@
 import { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { Clock, Calendar, ChevronLeft, ChevronRight, ChevronDown, Star, CheckCircle2, Hourglass, Pill, Search, X } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import { AuthContext } from "../../context/AuthContext";
 import { authFetch } from "../../utils/authFetch";
@@ -45,25 +46,28 @@ const format12HourTime = (timeStr) => {
 	return `${hours}:${minutes} ${ampm}`;
 };
 
-const timeElapsed = (dateStr) => {
-	if (!dateStr) return "Recently";
+const timeElapsed = (dateStr, t) => {
+	if (!dateStr) return t ? t("appointmentHistory.timeAgo.recently", "Recently") : "Recently";
 	const diff = Date.now() - new Date(dateStr).getTime();
 	const minutes = Math.floor(diff / 60000);
-	if (minutes < 60) return `${minutes}m ago`;
+	if (minutes < 60) return t ? t("appointmentHistory.timeAgo.minutes", "{{count}}m ago", { count: minutes }) : `${minutes}m ago`;
 	const hours = Math.floor(minutes / 60);
-	if (hours < 24) return `${hours}h ago`;
+	if (hours < 24) return t ? t("appointmentHistory.timeAgo.hours", "{{count}}h ago", { count: hours }) : `${hours}h ago`;
 	const days = Math.floor(hours / 24);
-	return `${days}d ago`;
+	return t ? t("appointmentHistory.timeAgo.days", "{{count}}d ago", { count: days }) : `${days}d ago`;
 };
 
-const TIME_FILTER_OPTIONS = [
-	{ value: "all", label: "All Appointments" },
-	{ value: "today", label: "Today" },
-	{ value: "week", label: "Last 7 Days" },
-	{ value: "month", label: "Last 30 Days" },
-];
+const formatGender = (gender, t) => {
+	if (!gender) return t("common.na", "N/A");
+	const key = gender.toLowerCase();
+	if (key === "female") return t("common.genders.female", "Female");
+	if (key === "male") return t("common.genders.male", "Male");
+	if (key === "other") return t("common.genders.other", "Other");
+	return gender;
+};
 
 function AppointmentHistory() {
+	const { t, i18n } = useTranslation();
 	const [activeTab, setActiveTab] = useState("Previous");
 	const navigate = useNavigate();
 	const [previousAppointments, setPreviousAppointments] = useState([]);
@@ -80,6 +84,13 @@ function AppointmentHistory() {
 	const [timeFilter, setTimeFilter] = useState("all");
 	const [customDate, setCustomDate] = useState("");
 	const [visibleProofs, setVisibleProofs] = useState({});
+
+	const timeFilterOptions = [
+		{ value: "all", label: t("appointmentHistory.allAppointments", "All Appointments") },
+		{ value: "today", label: t("appointmentHistory.today", "Today") },
+		{ value: "week", label: t("appointmentHistory.last7Days", "Last 7 Days") },
+		{ value: "month", label: t("appointmentHistory.last30Days", "Last 30 Days") },
+	];
 
 	const toggleProofVisibility = (bookingId) => {
 		setVisibleProofs((prev) => ({ ...prev, [bookingId]: !prev[bookingId] }));
@@ -229,7 +240,7 @@ function AppointmentHistory() {
 	if (loading) {
 		return (
 			<DashboardShell>
-				<p className="text-muted-foreground">Loading...</p>
+				<p className="text-muted-foreground">{t("common.loading", "Loading...")}</p>
 			</DashboardShell>
 		);
 	}
@@ -237,21 +248,24 @@ function AppointmentHistory() {
 	if (error) {
 		return (
 			<DashboardShell>
-				<p className="text-destructive">Error: {error}</p>
+				<p className="text-destructive">{t("common.error", "Error")}: {error}</p>
 			</DashboardShell>
 		);
 	}
 
 	return (
 		<DashboardShell>
-			<DashboardPageHeader title="Appointment History" description="Past consultations and denied requests." />
+			<DashboardPageHeader
+				title={t("appointmentHistory.title", "Appointment History")}
+				description={t("appointmentHistory.description", "Past consultations and denied requests.")}
+			/>
 
 			{/* Filters Panel */}
 			<Card className="mb-6 p-4 flex flex-col md:flex-row items-center gap-4 bg-card">
 				<div className="relative w-full md:w-72">
 					<Search className="absolute left-3 top-3 size-4 text-muted-foreground" />
 					<Input
-						placeholder="Search patient by name..."
+						placeholder={t("appointmentHistory.searchPlaceholder", "Search patient by name or illness...")}
 						value={searchTerm}
 						onChange={(e) => setSearchTerm(e.target.value)}
 						className="pl-9 pr-8"
@@ -259,7 +273,7 @@ function AppointmentHistory() {
 					{searchTerm && (
 						<button
 							onClick={() => setSearchTerm("")}
-							className="absolute right-2.5 top-3 text-muted-foreground hover:text-foreground"
+							className="absolute right-2.5 top-3 text-muted-foreground hover:text-foreground cursor-pointer"
 						>
 							<X className="size-4" />
 						</button>
@@ -273,13 +287,13 @@ function AppointmentHistory() {
 							setTimeFilter(val);
 							setCustomDate(""); // Clear custom date when quick range changes
 						}}
-						items={TIME_FILTER_OPTIONS}
+						items={timeFilterOptions}
 					>
-						<SelectTrigger className="w-full md:w-48">
-							<SelectValue placeholder="All Appointments" />
+						<SelectTrigger className="w-full md:w-48 cursor-pointer">
+							<SelectValue placeholder={t("appointmentHistory.allAppointments", "All Appointments")} />
 						</SelectTrigger>
 						<SelectContent>
-							{TIME_FILTER_OPTIONS.map((opt) => (
+							{timeFilterOptions.map((opt) => (
 								<SelectItem key={opt.value} value={opt.value}>
 									{opt.label}
 								</SelectItem>
@@ -289,7 +303,9 @@ function AppointmentHistory() {
 				</div>
 
 				<div className="flex w-full md:w-auto items-center gap-2">
-					<span className="text-sm font-medium text-muted-foreground hidden md:inline">Or:</span>
+					<span className="text-sm font-medium text-muted-foreground hidden md:inline">
+						{t("appointmentHistory.or", "Or:")}
+					</span>
 					<div className="relative flex items-center w-full md:w-auto">
 						<Input
 							type="date"
@@ -313,7 +329,7 @@ function AppointmentHistory() {
 						{customDate && (
 							<button
 								onClick={() => setCustomDate("")}
-								className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground"
+								className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground cursor-pointer"
 							>
 								<X className="size-4" />
 							</button>
@@ -324,13 +340,19 @@ function AppointmentHistory() {
 
 			<Tabs value={activeTab} onValueChange={setActiveTab}>
 				<TabsList className="mb-6">
-					<TabsTrigger value="Previous" className="cursor-pointer">Previous Appointments</TabsTrigger>
-					<TabsTrigger value="Denied" className="cursor-pointer">Denied / Cancelled</TabsTrigger>
+					<TabsTrigger value="Previous" className="cursor-pointer">
+						{t("appointmentHistory.tabPrevious", "Completed Consultations")}
+					</TabsTrigger>
+					<TabsTrigger value="Denied" className="cursor-pointer">
+						{t("appointmentHistory.tabDenied", "Denied Requests")}
+					</TabsTrigger>
 				</TabsList>
 
 				<TabsContent value="Previous">
 					{patients.length === 0 ? (
-						<p className="text-center text-muted-foreground">No previous patients found.</p>
+						<p className="text-center text-muted-foreground">
+							{t("appointmentHistory.noHistory", "No previous patients found.")}
+						</p>
 					) : (
 						<div className="flex flex-col gap-5">
 							{patients.map(({ key, latest, visits, prescriptions, reviewedVisit }) => {
@@ -344,31 +366,43 @@ function AppointmentHistory() {
 											<div>
 												<div className="flex flex-wrap items-center gap-2">
 													<h3 className="text-lg font-semibold text-foreground">{latest.patientName}</h3>
-													<Badge variant="secondary" title="Total appointments with you">
-														{visits.length} visit{visits.length > 1 ? "s" : ""}
+													<Badge
+														variant="secondary"
+														title={t("appointmentHistory.totalAppointmentsTooltip", "Total appointments with you")}
+													>
+														{t("appointmentHistory.visitsCount", { count: visits.length })}
 													</Badge>
 												</div>
 												<p
 													className="mt-1 text-sm text-muted-foreground"
-													title={`Age: ${latest.patientAge} yrs | Gender: ${latest.patientGender} | Email: ${latest.patientEmail}`}
+													title={t("appointmentHistory.patientInfoTooltip", "Age: {{age}} yrs | Gender: {{gender}} | Email: {{email}}", {
+														age: latest.patientAge || t("common.na", "N/A"),
+														gender: formatGender(latest.patientGender, t),
+														email: latest.patientEmail || t("common.na", "N/A"),
+													})}
 												>
-													{latest.patientAge || "N/A"} yrs &bull; {latest.patientGender || "N/A"} &bull;{" "}
-													{latest.patientEmail || "N/A"}
+													{latest.patientAge
+														? t("appointmentHistory.ageYrs", "{{age}} yrs", { age: latest.patientAge })
+														: t("common.na", "N/A")}{" "}
+													&bull; {formatGender(latest.patientGender, t)} &bull;{" "}
+													{latest.patientEmail || t("common.na", "N/A")}
 												</p>
 												<div className="mt-3 text-sm text-foreground/80">
-													<strong className="text-foreground">Latest reason for visit:</strong>{" "}
+													<strong className="text-foreground">
+														{t("appointmentHistory.latestReason", "Latest reason for visit:")}
+													</strong>{" "}
 													{latest.patientIllness && latest.patientIllness.length > 80 ? (
 														<>
 															{latest.patientIllness.substring(0, 80)}...
 															<button
-																className="ml-1 text-primary underline hover:no-underline"
+																className="ml-1 text-primary underline hover:no-underline cursor-pointer"
 																onClick={() => setSelectedIllness(latest.patientIllness)}
 															>
-																More
+																{t("common.more", "More")}
 															</button>
 														</>
 													) : (
-														latest.patientIllness || "No illness information"
+														latest.patientIllness || t("appointmentHistory.noIllnessInfo", "No illness information")
 													)}
 												</div>
 												{reviewedVisit ? (
@@ -376,8 +410,10 @@ function AppointmentHistory() {
 														className="mt-3 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground"
 														title={
 															reviewedVisit._id === latest._id
-																? "Patient's feedback for the latest consultation"
-																: `Patient's feedback from consultation on ${formatDateReadable(reviewedVisit.dateOfAppointment)}`
+																? t("appointmentHistory.latestReviewTooltip", "Patient's feedback for the latest consultation")
+																: t("appointmentHistory.pastReviewTooltip", "Patient's feedback from consultation on {{date}}", {
+																		date: formatDateReadable(reviewedVisit.dateOfAppointment),
+																  })
 														}
 													>
 														<span className="flex items-center gap-0.5 font-medium text-foreground">
@@ -399,35 +435,49 @@ function AppointmentHistory() {
 														) : null}
 													</div>
 												) : (
-													<div className="mt-3 text-xs text-muted-foreground">No review submitted yet</div>
+													<div className="mt-3 text-xs text-muted-foreground">
+														{t("appointmentHistory.noReviewYet", "No review submitted yet")}
+													</div>
 												)}
 											</div>
 
 											<div>
 												<div className="flex flex-wrap items-center justify-between gap-3">
 													<div className="flex flex-col gap-1 text-sm text-foreground/80">
-														<span className="flex items-center gap-1.5" title="Most Recent Appointment">
+														<span
+															className="flex items-center gap-1.5"
+															title={t("appointmentHistory.mostRecentApptTooltip", "Most Recent Appointment")}
+														>
 															<Calendar className="size-4 text-muted-foreground" />
-															{new Date(latest.dateOfAppointment).toLocaleDateString("en-GB", {
-																weekday: "short",
-																day: "numeric",
-																month: "short",
-																year: "numeric",
-															})}
+															{new Date(latest.dateOfAppointment).toLocaleDateString(
+																i18n.language === "hi" ? "hi-IN" : "en-GB",
+																{
+																	weekday: "short",
+																	day: "numeric",
+																	month: "short",
+																	year: "numeric",
+																}
+															)}
 														</span>
-														<span className="flex items-center gap-1.5" title="Time of Appointment">
+														<span
+															className="flex items-center gap-1.5"
+															title={t("appointmentHistory.timeOfApptTooltip", "Time of Appointment")}
+														>
 															<Clock className="size-4 text-muted-foreground" />
 															{format12HourTime(latest.timeSlot)}
 														</span>
 													</div>
-													<Badge variant={latest.amountPaid === 0 ? "secondary" : "default"} title="Latest Consultation Fee">
-														{latest.amountPaid === 0 ? "Free" : `₹${latest.amountPaid}`}
+													<Badge
+														variant={latest.amountPaid === 0 ? "secondary" : "default"}
+														title={t("appointmentHistory.latestFeeTooltip", "Latest Consultation Fee")}
+													>
+														{latest.amountPaid === 0 ? t("appointmentHistory.free", "Free") : `₹${latest.amountPaid}`}
 													</Badge>
 												</div>
 
 												{latest.paymentStatus === "Completed" ? (
 													<p className="mt-3 flex items-center gap-1.5 text-sm font-semibold text-primary">
-														<CheckCircle2 className="size-4" /> Payment Verified
+														<CheckCircle2 className="size-4" /> {t("appointmentHistory.paymentVerified", "Payment Verified")}
 													</p>
 												) : null}
 
@@ -438,7 +488,10 @@ function AppointmentHistory() {
 															onClick={() => toggleProofVisibility(latest._id)}
 															className="text-xs font-semibold text-primary hover:underline flex items-center gap-1 cursor-pointer bg-transparent border-0 p-0 outline-none"
 														>
-															{visibleProofs[latest._id] ? "Hide Payment Proof" : "View Payment Proof"} ({latest.paymentScreenshots.length})
+															{visibleProofs[latest._id]
+																? t("appointmentHistory.hidePaymentProof", "Hide Payment Proof")
+																: t("appointmentHistory.viewPaymentProof", "View Payment Proof")}{" "}
+															({latest.paymentScreenshots.length})
 														</button>
 														{visibleProofs[latest._id] && (
 															<div className="mt-2 flex flex-wrap gap-2">
@@ -450,7 +503,9 @@ function AppointmentHistory() {
 																		<img
 																			key={index}
 																			src={imgUrl}
-																			alt={`Payment Proof ${index + 1}`}
+																			alt={t("appointmentHistory.paymentProofAlt", "Payment Proof {{number}}", {
+																				number: index + 1,
+																			})}
 																			className="size-16 cursor-pointer rounded-md border border-border object-cover"
 																			onClick={() => {
 																				setGalleryImages(latest.paymentScreenshots);
@@ -466,7 +521,7 @@ function AppointmentHistory() {
 
 												{isPendingPayment && !hasScreenshots ? (
 													<p className="mt-3 flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
-														<Hourglass className="size-3.5" /> Awaiting payment proof
+														<Hourglass className="size-3.5" /> {t("appointmentHistory.awaitingProof", "Awaiting payment proof")}
 													</p>
 												) : null}
 
@@ -474,41 +529,77 @@ function AppointmentHistory() {
 													<button
 														type="button"
 														onClick={() => toggleExpanded(key)}
-														className="mt-3 flex w-full items-center gap-1.5 border-t border-dashed border-border bg-transparent pt-3 text-left text-xs font-medium text-muted-foreground hover:text-foreground"
+														className="mt-3 flex w-full items-center gap-1.5 border-t border-dashed border-border bg-transparent pt-3 text-left text-xs font-medium text-muted-foreground hover:text-foreground cursor-pointer"
 													>
-														<Pill className="size-3.5" /> {prescriptions.length} medicine{prescriptions.length > 1 ? "s" : ""} prescribed across {visits.length} visit{visits.length > 1 ? "s" : ""}
-														<ChevronDown className={`ml-auto size-3.5 shrink-0 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+														<Pill className="size-3.5" />{" "}
+														{prescriptions.length === 1 && visits.length === 1
+															? t("appointmentHistory.prescriptionsCount_singular", "{{prescCount}} medicine prescribed across {{visitCount}} visit", {
+																	prescCount: prescriptions.length,
+																	visitCount: visits.length,
+															  })
+															: prescriptions.length === 1
+															? t("appointmentHistory.prescriptionsCount_oneMed", "{{prescCount}} medicine prescribed across {{visitCount}} visits", {
+																	prescCount: prescriptions.length,
+																	visitCount: visits.length,
+															  })
+															: visits.length === 1
+															? t("appointmentHistory.prescriptionsCount_oneVisit", "{{prescCount}} medicines prescribed across {{visitCount}} visit", {
+																	prescCount: prescriptions.length,
+																	visitCount: visits.length,
+															  })
+															: t("appointmentHistory.prescriptionsCount", "{{prescCount}} medicines prescribed across {{visitCount}} visits", {
+																	prescCount: prescriptions.length,
+																	visitCount: visits.length,
+															  })}
+														<ChevronDown
+															className={`ml-auto size-3.5 shrink-0 transition-transform ${
+																isExpanded ? "rotate-180" : ""
+															}`}
+														/>
 													</button>
 												) : (
 													<div className="mt-3 flex w-full items-center gap-1.5 border-t border-dashed border-border pt-3 text-left text-xs font-medium text-muted-foreground/60 select-none">
-														<Pill className="size-3.5" /> No medicine prescribed yet
+														<Pill className="size-3.5" />{" "}
+														{t("appointmentHistory.noMedicinePrescribed", "No medicine prescribed yet")}
 													</div>
 												)}
 
 												{isExpanded ? (
 													<div className="mt-2.5 flex flex-col gap-2 rounded-(--jh-radius-md) bg-secondary/50 p-3 text-xs text-foreground/80 border border-border/60">
 														{prescriptions.map((supplement, idx) => (
-															<div key={idx} className="flex flex-col gap-1 rounded bg-card/80 p-2.5 border border-border/50">
+															<div
+																key={idx}
+																className="flex flex-col gap-1 rounded bg-card/80 p-2.5 border border-border/50"
+															>
 																<div className="flex flex-wrap items-center justify-between gap-2">
 																	<div>
-																		<strong className="text-foreground">Medicine Name:</strong>{" "}
+																		<strong className="text-foreground">
+																			{t("appointmentHistory.medicineName", "Medicine Name:")}
+																		</strong>{" "}
 																		<span className="font-semibold text-foreground">{supplement.medicineName}</span>
 																	</div>
 																	{supplement.visitDate ? (
 																		<div className="text-muted-foreground font-medium">
-																			<strong className="text-foreground/80">Prescribed Date:</strong> {formatDateReadable(supplement.visitDate)}
+																			<strong className="text-foreground/80">
+																				{t("appointmentHistory.prescribedDate", "Prescribed Date:")}
+																			</strong>{" "}
+																			{formatDateReadable(supplement.visitDate)}
 																		</div>
 																	) : null}
 																</div>
 																{supplement.dosage ? (
 																	<div>
-																		<strong className="text-foreground">Dosage:</strong>{" "}
+																		<strong className="text-foreground">
+																			{t("appointmentHistory.dosage", "Dosage:")}
+																		</strong>{" "}
 																		<span>{supplement.dosage}</span>
 																	</div>
 																) : null}
 																{supplement.instructions ? (
 																	<div>
-																		<strong className="text-foreground">Instructions:</strong>{" "}
+																		<strong className="text-foreground">
+																			{t("appointmentHistory.instructions", "Instructions:")}
+																		</strong>{" "}
 																		<span className="italic">{supplement.instructions}</span>
 																	</div>
 																) : null}
@@ -520,7 +611,7 @@ function AppointmentHistory() {
 
 											<div>
 												<Button onClick={() => navigate(`/doctorsprescribe/${latest._id}`)}>
-													Prescribe Medicine & Diet - Yoga Plan
+													{t("appointmentHistory.prescribe", "Prescribe Medicine & Diet - Yoga Plan")}
 												</Button>
 											</div>
 										</div>
@@ -533,7 +624,9 @@ function AppointmentHistory() {
 
 				<TabsContent value="Denied">
 					{filteredDenied.length === 0 ? (
-						<p className="text-center text-muted-foreground">No denied requests found.</p>
+						<p className="text-center text-muted-foreground">
+							{t("appointmentHistory.noDenied", "No denied requests found.")}
+						</p>
 					) : (
 						<div className="flex flex-col gap-5">
 							{filteredDenied.map((appointment) => (
@@ -542,72 +635,113 @@ function AppointmentHistory() {
 										<div>
 											<div className="flex flex-wrap items-center gap-2">
 												<h3 className="text-lg font-semibold text-foreground">{appointment.patientName}</h3>
-												<Badge variant="destructive" title="This request was denied">
-													Denied
+												<Badge
+													variant="destructive"
+													title={t("appointmentHistory.deniedTooltip", "This request was denied")}
+												>
+													{t("appointmentHistory.denied", "Denied")}
 												</Badge>
 												{appointment.isReturningPatient ? (
-													<Badge variant="secondary" title="Has previously booked appointments with you">
-														Returning
+													<Badge
+														variant="secondary"
+														title={t(
+															"appointmentHistory.returningTooltip",
+															"Has previously booked appointments with you"
+														)}
+													>
+														{t("appointmentHistory.returning", "Returning")}
 													</Badge>
 												) : (
-													<Badge title="First-time booking with you">New</Badge>
+													<Badge title={t("appointmentHistory.newTooltip", "First-time booking with you")}>
+														{t("appointmentHistory.new", "New")}
+													</Badge>
 												)}
 											</div>
 											<p
 												className="mt-1 text-sm text-muted-foreground"
-												title={`Age: ${appointment.patientAge} yrs | Gender: ${appointment.patientGender} | Email: ${appointment.patientEmail}`}
+												title={t("appointmentHistory.patientInfoTooltip", "Age: {{age}} yrs | Gender: {{gender}} | Email: {{email}}", {
+													age: appointment.patientAge || t("common.na", "N/A"),
+													gender: formatGender(appointment.patientGender, t),
+													email: appointment.patientEmail || t("common.na", "N/A"),
+												})}
 											>
-												{appointment.patientAge || "N/A"} yrs &bull; {appointment.patientGender || "N/A"} &bull;{" "}
-												{appointment.patientEmail || "N/A"}
+												{appointment.patientAge
+													? t("appointmentHistory.ageYrs", "{{age}} yrs", { age: appointment.patientAge })
+													: t("common.na", "N/A")}{" "}
+												&bull; {formatGender(appointment.patientGender, t)} &bull;{" "}
+												{appointment.patientEmail || t("common.na", "N/A")}
 											</p>
 											<div className="mt-3 text-sm text-foreground/80">
-												<strong className="text-foreground">Illness:</strong>{" "}
+												<strong className="text-foreground">
+													{t("appointmentHistory.illness", "Illness:")}
+												</strong>{" "}
 												{appointment.patientIllness && appointment.patientIllness.length > 80 ? (
 													<>
 														{appointment.patientIllness.substring(0, 80)}...
 														<button
-															className="ml-1 text-primary underline hover:no-underline"
+															className="ml-1 text-primary underline hover:no-underline cursor-pointer"
 															onClick={() => setSelectedIllness(appointment.patientIllness)}
 														>
-															More
+															{t("common.more", "More")}
 														</button>
 													</>
 												) : (
-													appointment.patientIllness || "No illness information"
+													appointment.patientIllness || t("appointmentHistory.noIllnessInfo", "No illness information")
 												)}
 											</div>
 											<div
 												className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground"
-												title="Time since the appointment was requested"
+												title={t(
+													"appointmentHistory.requestedTimeTooltip",
+													"Time since the appointment was requested"
+												)}
 											>
-												<Clock className="size-3.5" /> Requested {timeElapsed(appointment.createdAt)}
+												<Clock className="size-3.5" />{" "}
+												{t("appointmentHistory.requestedTime", "Requested {{time}}", {
+													time: timeElapsed(appointment.createdAt, t),
+												})}
 											</div>
 										</div>
 
 										<div>
 											<div className="flex flex-wrap items-center justify-between gap-3">
 												<div className="flex flex-col gap-1 text-sm text-foreground/80">
-													<span className="flex items-center gap-1.5" title="Requested Date">
+													<span
+														className="flex items-center gap-1.5"
+														title={t("appointmentHistory.requestedDateTooltip", "Requested Date")}
+													>
 														<Calendar className="size-4 text-muted-foreground" />
-														{new Date(appointment.dateOfAppointment).toLocaleDateString("en-GB", {
-															weekday: "short",
-															day: "numeric",
-															month: "short",
-															year: "numeric",
-														})}
+														{new Date(appointment.dateOfAppointment).toLocaleDateString(
+															i18n.language === "hi" ? "hi-IN" : "en-GB",
+															{
+																weekday: "short",
+																day: "numeric",
+																month: "short",
+																year: "numeric",
+															}
+														)}
 													</span>
-													<span className="flex items-center gap-1.5" title="Requested Time">
+													<span
+														className="flex items-center gap-1.5"
+														title={t("appointmentHistory.requestedTimeSlotTooltip", "Requested Time")}
+													>
 														<Clock className="size-4 text-muted-foreground" />
 														{format12HourTime(appointment.timeSlot)}
 													</span>
 												</div>
-												<Badge variant={appointment.amountPaid === 0 ? "secondary" : "default"} title="Consultation Fee">
-													{appointment.amountPaid === 0 ? "Free" : `₹${appointment.amountPaid}`}
+												<Badge
+													variant={appointment.amountPaid === 0 ? "secondary" : "default"}
+													title={t("appointmentHistory.consultationFeeTooltip", "Consultation Fee")}
+												>
+													{appointment.amountPaid === 0 ? t("appointmentHistory.free", "Free") : `₹${appointment.amountPaid}`}
 												</Badge>
 											</div>
 											<div className="mt-4 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
-												<strong className="block">Reason for Denial</strong>
-												{appointment.doctorsMessage || "No reason was provided."}
+												<strong className="block">
+													{t("appointmentHistory.reasonForDenial", "Reason for Denial")}
+												</strong>
+												{appointment.doctorsMessage ||
+													t("appointmentHistory.noReasonProvided", "No reason was provided.")}
 											</div>
 										</div>
 									</div>
@@ -624,7 +758,7 @@ function AppointmentHistory() {
 					<div className="relative flex items-center justify-center">
 						{galleryImages.length > 1 ? (
 							<button
-								className="absolute left-0 z-10 rounded-full bg-muted p-2 text-foreground"
+								className="absolute left-0 z-10 rounded-full bg-muted p-2 text-foreground cursor-pointer"
 								onClick={() => setCurrentImageIndex((prev) => (prev === 0 ? galleryImages.length - 1 : prev - 1))}
 							>
 								<ChevronLeft className="size-5" />
@@ -637,13 +771,13 @@ function AppointmentHistory() {
 									? galleryImages[currentImageIndex]
 									: `${BACKEND_URL || "http://localhost:8080"}/${galleryImages[currentImageIndex]}`
 							}
-							alt="Enlarged Proof"
+							alt={t("appointmentHistory.enlargedProofAlt", "Enlarged Proof")}
 							className="max-h-[70vh] w-full rounded-lg object-contain"
 						/>
 
 						{galleryImages.length > 1 ? (
 							<button
-								className="absolute right-0 z-10 rounded-full bg-muted p-2 text-foreground"
+								className="absolute right-0 z-10 rounded-full bg-muted p-2 text-foreground cursor-pointer"
 								onClick={() => setCurrentImageIndex((prev) => (prev === galleryImages.length - 1 ? 0 : prev + 1))}
 							>
 								<ChevronRight className="size-5" />
@@ -673,7 +807,9 @@ function AppointmentHistory() {
 			<Dialog open={!!selectedIllness} onOpenChange={(open) => !open && setSelectedIllness(null)}>
 				<DialogContent className="max-w-lg">
 					<DialogHeader>
-						<DialogTitle>Patient's Illness Details</DialogTitle>
+						<DialogTitle>
+							{t("appointmentHistory.illnessModalTitle", "Patient's Illness Details")}
+						</DialogTitle>
 					</DialogHeader>
 					<p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/80">{selectedIllness}</p>
 				</DialogContent>
@@ -683,3 +819,4 @@ function AppointmentHistory() {
 }
 
 export default AppointmentHistory;
+

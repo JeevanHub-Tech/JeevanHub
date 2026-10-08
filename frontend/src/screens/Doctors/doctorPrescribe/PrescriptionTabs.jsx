@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Pill, Salad, HeartPulse, FileText, Leaf } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import { MedicineForm } from "./MedicineForm";
 import { DietPlanForm } from "./DietPlanForm";
@@ -10,18 +11,17 @@ import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import AyurvedaDashboard from "../../Patients/Ayurveda/AyurvedaDashboard";
 
-// "Prescription & Wellness" doctor-facing structure: the same 4 content
-// sections the patient sees, plus Medical History.
-const tabs = [
-	{ id: "medicine", label: "Medicines & Supplements", Icon: Pill },
-	{ id: "diet", label: "Diet & Meal Planner", Icon: Salad },
-	{ id: "yoga", label: "Yoga & Lifestyle", Icon: HeartPulse },
-	{ id: "wellness", label: "Other Wellness", Icon: Leaf },
-	{ id: "history", label: "Medical History", Icon: FileText },
-];
-
 export function PrescriptionTabs({ bookingId, patientId, doctorId, dietPlanRequested, defaultTab, onPrescribed }) {
+	const { t } = useTranslation();
 	const [activeTab, setActiveTab] = useState(defaultTab || "medicine");
+
+	const tabs = [
+		{ id: "medicine", label: t("doctorPrescribe.tabs.medicine", "Medicines & Supplements"), Icon: Pill },
+		{ id: "diet", label: t("doctorPrescribe.tabs.diet", "Diet & Meal Planner"), Icon: Salad },
+		{ id: "yoga", label: t("doctorPrescribe.tabs.yoga", "Yoga & Lifestyle"), Icon: HeartPulse },
+		{ id: "wellness", label: t("doctorPrescribe.tabs.wellness", "Other Wellness"), Icon: Leaf },
+		{ id: "history", label: t("doctorPrescribe.tabs.history", "Medical History"), Icon: FileText },
+	];
 
 	useEffect(() => {
 		if (defaultTab) {
@@ -68,7 +68,7 @@ export function PrescriptionTabs({ bookingId, patientId, doctorId, dietPlanReque
 								<span className="truncate">{label}</span>
 								{id === "diet" && dietPlanRequested ? (
 									<span className="shrink-0 rounded-full bg-emerald-600 px-1.5 py-0.5 text-[9px] font-bold text-white shadow-xs">
-										Paid
+										{t("doctorPrescribe.paid", "Paid")}
 									</span>
 								) : null}
 							</TabsTrigger>

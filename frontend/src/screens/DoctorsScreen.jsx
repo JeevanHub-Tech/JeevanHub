@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ChevronDown, Loader2, Sparkles, Stethoscope, X } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -125,6 +126,7 @@ function FilterSelect({ id, label, placeholder, options, value, onValueChange, d
 }
 
 function DoctorsScreen() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const keyword = (searchParams.get("q") || "").trim().toLowerCase();
@@ -145,6 +147,57 @@ function DoctorsScreen() {
   const [aiQueryUsed, setAiQueryUsed] = useState("");
   const [aiMessage, setAiMessage] = useState("");
   const [aiSuggestions, setAiSuggestions] = useState([]);
+
+  const experienceOptions = useMemo(() => [
+    { value: "1", label: t("doctorsScreen.expOptions.one", "1 year or less") },
+    { value: "2-5", label: t("doctorsScreen.expOptions.twoToFive", "2 - 5 years") },
+    { value: "5+", label: t("doctorsScreen.expOptions.fivePlus", "More than 5 years") },
+  ], [t]);
+
+  const priceRangeOptions = useMemo(() => [
+    { value: "Low", label: t("doctorsScreen.priceOptions.low", "Less than ₹500") },
+    { value: "Medium", label: t("doctorsScreen.priceOptions.medium", "₹500 - ₹1000") },
+    { value: "High", label: t("doctorsScreen.priceOptions.high", "More than ₹1000") },
+  ], [t]);
+
+  const genderOptions = useMemo(() => [
+    { value: "Male", label: t("doctorsScreen.genderOptions.male", "Male") },
+    { value: "Female", label: t("doctorsScreen.genderOptions.female", "Female") },
+  ], [t]);
+
+  const ratingOptions = useMemo(() => [
+    { value: "1", label: t("doctorsScreen.ratingOptions.one", "1 star & up") },
+    { value: "2", label: t("doctorsScreen.ratingOptions.two", "2 star & up") },
+    { value: "3", label: t("doctorsScreen.ratingOptions.three", "3 star & up") },
+    { value: "4", label: t("doctorsScreen.ratingOptions.four", "4 star & up") },
+    { value: "5", label: t("doctorsScreen.ratingOptions.five", "5 star") },
+  ], [t]);
+
+  const sortOptions = useMemo(() => [
+    { value: "lowToHigh", label: t("doctorsScreen.sortOptions.lowToHigh", "Rating: Low to High") },
+    { value: "highToLow", label: t("doctorsScreen.sortOptions.highToLow", "Rating: High to Low") },
+  ], [t]);
+
+  const filterChipLabels = useMemo(() => ({
+    specialization: (v) => v,
+    experience: (v) => ({
+      "1": t("doctorsScreen.expOptions.one", "1 year or less"),
+      "2-5": t("doctorsScreen.expOptions.twoToFive", "2 - 5 years"),
+      "5+": t("doctorsScreen.expOptions.fivePlus", "More than 5 years"),
+    }[v] || v),
+    priceRange: (v) => ({
+      Low: t("doctorsScreen.priceOptions.low", "Less than ₹500"),
+      Medium: t("doctorsScreen.priceOptions.medium", "₹500 - ₹1000"),
+      High: t("doctorsScreen.priceOptions.high", "More than ₹1000"),
+    }[v] || v),
+    location: (v) => v,
+    language: (v) => v,
+    rating: (v) => `${v}★`,
+    gender: (v) => ({
+      Male: t("doctorsScreen.genderOptions.male", "Male"),
+      Female: t("doctorsScreen.genderOptions.female", "Female"),
+    }[v] || v),
+  }), [t]);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -179,12 +232,14 @@ function DoctorsScreen() {
             dietPlanFee: doctor.dietPlanFee !== undefined ? doctor.dietPlanFee : 299,
             specializations,
             specialization: specializations.join(", ") || "N/A",
+            rawExperience: doctor.experience != null ? Number(doctor.experience) : null,
             experience: doctor.experience ? `${doctor.experience} years` : "0 years",
             email: `${doctor.email}`,
             pricepoint: `${doctor.price || "0"}`,
             priceRange:
               doctor.price < 500 ? "Low" : doctor.price >= 500 && doctor.price <= 1000 ? "Medium" : "High",
-            location: doctor.address || doctor.zipCode || "Not specified",
+            location: doctor.address || doctor.zipCode || null,
+            languages: doctor.languages || [],
             language: doctor.languages?.join(", ") || "English",
             rating: typeof doctor.rating === "number" ? doctor.rating : null,
             gender: doctor.gender ? doctor.gender.charAt(0).toUpperCase() + doctor.gender.slice(1) : "N/A",
@@ -216,7 +271,7 @@ function DoctorsScreen() {
           (filters.experience === "5+" && parseInt(doctor.experience) > 5)
         : true) &&
       (filters.priceRange ? doctor.priceRange === filters.priceRange : true) &&
-      (filters.location ? doctor.location === filters.location : true) &&
+      (filters.location ? (doctor.location === filters.location) : true) &&
       (filters.language ? doctor.language.includes(filters.language) : true) &&
       (filters.rating ? (doctor.rating ?? 0) >= parseFloat(filters.rating) : true) &&
       (filters.gender ? doctor.gender === filters.gender : true),
@@ -246,9 +301,9 @@ function DoctorsScreen() {
   const activeChips = useMemo(
     () =>
       Object.entries(filters)
-        .filter(([key, value]) => value !== "" && FILTER_CHIP_LABELS[key])
-        .map(([key, value]) => ({ key, value, text: FILTER_CHIP_LABELS[key](value) })),
-    [filters],
+        .filter(([key, value]) => value !== "" && filterChipLabels[key])
+        .map(([key, value]) => ({ key, value, text: filterChipLabels[key](value) })),
+    [filters, filterChipLabels],
   );
 
   const setFilterValue = (key) => (value) => setFilter(key, value);
@@ -310,10 +365,10 @@ function DoctorsScreen() {
     <div className="relative -mt-8 min-h-screen bg-linear-to-b from-(--jh-cream-tint) to-background pt-8 pb-20">
       <div className="mx-auto mb-10 max-w-2xl px-6 text-center">
         <h1 className="font-display text-3xl leading-tight text-foreground sm:text-4xl">
-          Find Your Ayurvedic Doctor
+          {t("doctorsScreen.title", "Find Your Ayurvedic Doctor")}
         </h1>
         <p className="mt-4 text-base leading-relaxed text-muted-foreground">
-          Describe your concern and let AI find your best-matched practitioners — or browse and filter profiles yourself.
+          {t("doctorsScreen.subtitle", "Describe your concern and let AI find your best-matched practitioners — or browse and filter profiles yourself.")}
         </p>
       </div>
 
@@ -326,18 +381,20 @@ function DoctorsScreen() {
         >
           <div className="flex flex-col gap-1.5">
             <Badge className="w-fit">
-              <Sparkles className="size-3.5" aria-hidden="true" /> AI Match
+              <Sparkles className="size-3.5" aria-hidden="true" /> {t("doctorsScreen.aiMatch", "AI Match")}
             </Badge>
-            <h2 className="font-display text-xl text-foreground">Describe your concern, meet your doctor</h2>
+            <h2 className="font-display text-xl text-foreground">
+              {t("doctorsScreen.aiHeading", "Describe your concern, meet your doctor")}
+            </h2>
             <p className="text-sm leading-relaxed text-muted-foreground">
-              Tell us your symptoms or condition in your own words. Our AI ranks the doctors best suited to help.
+              {t("doctorsScreen.aiDescription", "Tell us your symptoms or condition in your own words. Our AI ranks the doctors best suited to help.")}
             </p>
           </div>
 
           <div className="flex flex-col gap-2.5 sm:flex-row sm:items-start">
             <Textarea
               className="min-h-16 flex-1 bg-card"
-              placeholder="e.g. I've had chronic acidity and bloating after meals for a few months…"
+              placeholder={t("doctorsScreen.aiPlaceholder", "e.g. I've had chronic acidity and bloating after meals for a few months…")}
               value={aiQuery}
               onChange={(e) => setAiQuery(e.target.value)}
               onKeyDown={(e) => {
@@ -354,10 +411,10 @@ function DoctorsScreen() {
             >
               {aiStatus === "loading" ? (
                 <>
-                  <Loader2 className="size-4 animate-spin" aria-hidden="true" /> Analyzing…
+                  <Loader2 className="size-4 animate-spin" aria-hidden="true" /> {t("doctorsScreen.analyzing", "Analyzing…")}
                 </>
               ) : (
-                "Find my match"
+                t("doctorsScreen.findMatch", "Find my match")
               )}
             </Button>
           </div>
@@ -382,10 +439,10 @@ function DoctorsScreen() {
           {aiActive && (
             <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3 text-sm">
               <span className="text-muted-foreground">
-                Showing AI matches for: <strong className="text-foreground">&ldquo;{aiQueryUsed}&rdquo;</strong>
+                {t("doctorsScreen.showingMatches", "Showing AI matches for:")} <strong className="text-foreground">&ldquo;{aiQueryUsed}&rdquo;</strong>
               </span>
               <Button type="button" variant="link" size="sm" className="h-auto p-0" onClick={clearAiMatch}>
-                Clear AI match
+                {t("doctorsScreen.clearAiMatch", "Clear AI match")}
               </Button>
             </div>
           )}
@@ -401,7 +458,7 @@ function DoctorsScreen() {
             onClick={() => setShowFilter((v) => !v)}
           >
             <span className="inline-flex items-center gap-2">
-              Filter doctors
+              {t("doctorsScreen.filterTitle", "Filter doctors")}
               {activeChips.length > 0 && (
                 <Badge className="min-w-5 justify-center">{activeChips.length}</Badge>
               )}
@@ -422,7 +479,7 @@ function DoctorsScreen() {
               <Card className="mt-2.5 gap-4 p-4.5 shadow-(--jh-shadow-rest)">
                 <div className="flex items-center justify-between">
                   <p className="text-sm leading-relaxed text-muted-foreground">
-                    Narrow the list by specialization, budget, and more.
+                    {t("doctorsScreen.filterSubtitle", "Narrow the list by specialization, budget, and more.")}
                   </p>
                 </div>
                 <Button
@@ -433,13 +490,13 @@ function DoctorsScreen() {
                   disabled={activeChips.length === 0}
                   onClick={() => setFilters(DEFAULT_FILTERS)}
                 >
-                  Clear all
+                  {t("doctorsScreen.clearAll", "Clear all")}
                 </Button>
 
                 <FilterSelect
                   id="specialization"
-                  label="Specialization"
-                  placeholder="All specializations"
+                  label={t("doctorsScreen.specialization", "Specialization")}
+                  placeholder={t("doctorsScreen.allSpecializations", "All specializations")}
                   options={specializationOptions}
                   value={filters.specialization}
                   onValueChange={setFilterValue("specialization")}
@@ -448,49 +505,49 @@ function DoctorsScreen() {
                 <div className="grid grid-cols-2 gap-3.5">
                   <FilterSelect
                     id="experience"
-                    label="Experience"
-                    placeholder="Any"
-                    options={EXPERIENCE_OPTIONS}
+                    label={t("doctorsScreen.experience", "Experience")}
+                    placeholder={t("doctorsScreen.any", "Any")}
+                    options={experienceOptions}
                     value={filters.experience}
                     onValueChange={setFilterValue("experience")}
                   />
                   <FilterSelect
                     id="priceRange"
-                    label="Price range"
-                    placeholder="All"
-                    options={PRICE_RANGE_OPTIONS}
+                    label={t("doctorsScreen.priceRange", "Price range")}
+                    placeholder={t("doctorsScreen.all", "All")}
+                    options={priceRangeOptions}
                     value={filters.priceRange}
                     onValueChange={setFilterValue("priceRange")}
                   />
                   <FilterSelect
                     id="location"
-                    label="Location"
-                    placeholder="All locations"
+                    label={t("doctorsScreen.location", "Location")}
+                    placeholder={t("doctorsScreen.allLocations", "All locations")}
                     options={locationOptions}
                     value={filters.location}
                     onValueChange={setFilterValue("location")}
                   />
                   <FilterSelect
                     id="language"
-                    label="Language"
-                    placeholder="All languages"
+                    label={t("doctorsScreen.language", "Language")}
+                    placeholder={t("doctorsScreen.allLanguages", "All languages")}
                     options={languageOptions}
                     value={filters.language}
                     onValueChange={setFilterValue("language")}
                   />
                   <FilterSelect
                     id="gender"
-                    label="Gender"
-                    placeholder="Any"
-                    options={GENDER_OPTIONS}
+                    label={t("doctorsScreen.gender", "Gender")}
+                    placeholder={t("doctorsScreen.any", "Any")}
+                    options={genderOptions}
                     value={filters.gender}
                     onValueChange={setFilterValue("gender")}
                   />
                   <FilterSelect
                     id="rating"
-                    label="Rating"
-                    placeholder="Any"
-                    options={RATING_OPTIONS}
+                    label={t("doctorsScreen.rating", "Rating")}
+                    placeholder={t("doctorsScreen.any", "Any")}
+                    options={ratingOptions}
                     value={filters.rating}
                     onValueChange={setFilterValue("rating")}
                   />
@@ -499,15 +556,15 @@ function DoctorsScreen() {
                 <div className="border-t border-border pt-4">
                   <FilterSelect
                     id="sort"
-                    label="Sort by"
-                    placeholder="Default"
-                    options={SORT_OPTIONS}
+                    label={t("doctorsScreen.sortBy", "Sort by")}
+                    placeholder={t("doctorsScreen.defaultSort", "Default")}
+                    options={sortOptions}
                     value={filters.sort}
                     onValueChange={setFilterValue("sort")}
                     disabled={aiActive}
                   />
                   {aiActive && (
-                    <p className="mt-1.5 text-xs text-muted-foreground">Sorting is set by AI match</p>
+                    <p className="mt-1.5 text-xs text-muted-foreground">{t("doctorsScreen.aiSortNotice", "Sorting is set by AI match")}</p>
                   )}
                 </div>
               </Card>
@@ -519,7 +576,7 @@ function DoctorsScreen() {
           <div className="mb-4.5 flex min-h-8 flex-wrap items-center gap-x-4 gap-y-2.5">
             <span className="text-sm font-semibold whitespace-nowrap text-muted-foreground">
               {status === "ready"
-                ? `${sortedDoctors.length} doctor${sortedDoctors.length === 1 ? "" : "s"} ${aiActive ? "matched" : "found"}`
+                ? t(aiActive ? "doctorsScreen.doctorsMatched" : "doctorsScreen.doctorsFound", { count: sortedDoctors.length })
                 : " "}
             </span>
 
@@ -577,8 +634,8 @@ function DoctorsScreen() {
               <EmptyState
                 className="col-span-full"
                 icon={Stethoscope}
-                title="Couldn't load doctors"
-                description="Please refresh the page and try again."
+                title={t("doctorsScreen.empty.errorTitle", "Couldn't load doctors")}
+                description={t("doctorsScreen.empty.errorDesc", "Please refresh the page and try again.")}
               />
             )}
 
@@ -586,11 +643,11 @@ function DoctorsScreen() {
               <EmptyState
                 className="col-span-full"
                 icon={Stethoscope}
-                title={aiActive ? "No doctors matched your description" : "No doctors match your filters"}
+                title={aiActive ? t("doctorsScreen.empty.noMatchTitle", "No doctors matched your description") : t("doctorsScreen.empty.noFilterTitle", "No doctors match your filters")}
                 description={
                   aiActive
-                    ? "Try describing your concern differently, or clear your filters to see more results."
-                    : "Try clearing a filter to see more results."
+                    ? t("doctorsScreen.empty.noMatchDesc", "Try describing your concern differently, or clear your filters to see more results.")
+                    : t("doctorsScreen.empty.noFilterDesc", "Try clearing a filter to see more results.")
                 }
                 action={
                   <Button
@@ -601,7 +658,7 @@ function DoctorsScreen() {
                       clearAiMatch();
                     }}
                   >
-                    Clear filters
+                    {t("doctorsScreen.empty.clearFilters", "Clear filters")}
                   </Button>
                 }
               />
@@ -620,37 +677,41 @@ function DoctorsScreen() {
                   <div className="flex flex-col gap-2">
                     <div className="mb-1.5 flex items-center gap-3">
                       <DoctorAvatar src={doctor.profileImage} name={doctor.name} />
-                      <div className="font-display text-lg font-semibold text-foreground">Dr. {doctor.name}</div>
+                      <div className="font-display text-lg font-semibold text-foreground">
+                        {doctor.name?.startsWith("Dr.") ? doctor.name : `Dr. ${doctor.name}`}
+                      </div>
                     </div>
 
                     {doctor.ai && (
                       <div className="mb-1 flex flex-col gap-1 rounded-lg bg-(--jh-sage-pale) p-2.5">
                         <Badge className="w-fit">
-                          <Sparkles className="size-3.5" aria-hidden="true" /> {doctor.ai.score}% match
+                          <Sparkles className="size-3.5" aria-hidden="true" /> {t("doctorsScreen.aiScoreMatch", { score: doctor.ai.score, defaultValue: `${doctor.ai.score}% match` })}
                         </Badge>
                         <p className="text-sm leading-relaxed text-(--jh-olive-deep)">{doctor.ai.reason}</p>
                       </div>
                     )}
 
                     <p className="text-sm leading-relaxed text-muted-foreground">
-                      <span className="mr-1 font-bold text-foreground">Specialization</span>
+                      <span className="mr-1 font-bold text-foreground">{t("doctorsScreen.card.specialization", "Specialization")}</span>
                       {doctor.specialization}
                     </p>
                     <p className="text-sm leading-relaxed text-muted-foreground">
-                      <span className="mr-1 font-bold text-foreground">Experience</span>
-                      {doctor.experience}
+                      <span className="mr-1 font-bold text-foreground">{t("doctorsScreen.card.experience", "Experience")}</span>
+                      {doctor.rawExperience != null
+                        ? t("doctorsScreen.card.yearsExp", { count: doctor.rawExperience, defaultValue: `${doctor.rawExperience} years` })
+                        : (doctor.experience || t("doctorsScreen.card.notSpecified", "Not specified"))}
                     </p>
                     <p className="text-sm leading-relaxed text-muted-foreground">
-                      <span className="mr-1 font-bold text-foreground">Location</span>
-                      {doctor.location}
+                      <span className="mr-1 font-bold text-foreground">{t("doctorsScreen.card.location", "Location")}</span>
+                      {doctor.location || t("doctorsScreen.card.notSpecified", "Not specified")}
                     </p>
                     <p className="text-sm leading-relaxed text-muted-foreground">
-                      <span className="mr-1 font-bold text-foreground">Languages</span>
-                      {doctor.language}
+                      <span className="mr-1 font-bold text-foreground">{t("doctorsScreen.card.languages", "Languages")}</span>
+                      {doctor.languages?.length ? doctor.languages.join(", ") : t("doctorsScreen.card.english", "English")}
                     </p>
                     <p className="text-sm leading-relaxed text-muted-foreground">
-                      <span className="mr-1 font-bold text-foreground">Gender</span>
-                      {doctor.gender}
+                      <span className="mr-1 font-bold text-foreground">{t("doctorsScreen.card.gender", "Gender")}</span>
+                      {doctor.gender === "Male" ? t("doctorsScreen.genderOptions.male", "Male") : doctor.gender === "Female" ? t("doctorsScreen.genderOptions.female", "Female") : doctor.gender}
                     </p>
                   </div>
 
@@ -662,7 +723,7 @@ function DoctorsScreen() {
                       handleDoctorClick(doctor);
                     }}
                   >
-                    Book Consultation
+                    {t("doctorsScreen.card.bookConsultation", "Book Consultation")}
                   </Button>
                 </Card>
               ))}

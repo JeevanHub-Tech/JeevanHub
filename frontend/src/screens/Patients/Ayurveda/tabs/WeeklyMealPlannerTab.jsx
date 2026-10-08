@@ -1,21 +1,25 @@
 import { useState } from "react";
 import { Apple, GlassWater, Moon, Salad, Sun } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { cn } from "@/lib/utils";
 
 const MEAL_META = {
-	breakfast: { label: "Breakfast", icon: Sun },
-	midMorning: { label: "Mid Morning", icon: Apple },
-	lunch: { label: "Lunch", icon: Salad },
-	eveningSnack: { label: "Evening Snack", icon: GlassWater },
-	dinner: { label: "Dinner", icon: Moon },
+	breakfast: { labelKey: "breakfast", defaultLabel: "Breakfast", icon: Sun },
+	midMorning: { labelKey: "midMorning", defaultLabel: "Mid Morning", icon: Apple },
+	lunch: { labelKey: "lunch", defaultLabel: "Lunch", icon: Salad },
+	eveningSnack: { labelKey: "eveningSnack", defaultLabel: "Evening Snack", icon: GlassWater },
+	dinner: { labelKey: "dinner", defaultLabel: "Dinner", icon: Moon },
 };
 const MEAL_KEYS = Object.keys(MEAL_META);
 
 function MealCard({ mealKey, meal }) {
-	const { label, icon: Icon } = MEAL_META[mealKey];
+	const { t } = useTranslation();
+	const meta = MEAL_META[mealKey];
+	const Icon = meta.icon;
+	const label = t(`weeklyMealPlanner.meals.${meta.labelKey}`, meta.defaultLabel);
 	const hasItems = meal?.items?.length;
 
 	return (
@@ -40,7 +44,7 @@ function MealCard({ mealKey, meal }) {
 					))}
 				</div>
 			) : (
-				<p className="text-sm text-muted-foreground">Not specified</p>
+				<p className="text-sm text-muted-foreground">{t("weeklyMealPlanner.notSpecified", "Not specified")}</p>
 			)}
 
 			{meal?.purpose ? <p className="text-xs italic text-muted-foreground">{meal.purpose}</p> : null}
@@ -49,11 +53,17 @@ function MealCard({ mealKey, meal }) {
 }
 
 function WeeklyMealPlannerTab({ plan }) {
+	const { t } = useTranslation();
 	const days = plan?.weeklyPlan || [];
 	const [selectedDay, setSelectedDay] = useState(0);
 
 	if (!plan || !days.length) {
-		return <EmptyState title="No weekly plan yet" description="Generate a diet plan from the Overview tab to see the 7-day meal planner." />;
+		return (
+			<EmptyState
+				title={t("weeklyMealPlanner.emptyTitle", "No weekly plan yet")}
+				description={t("weeklyMealPlanner.emptyDesc", "Generate a diet plan from the Overview tab to see the 7-day meal planner.")}
+			/>
+		);
 	}
 
 	const active = days[selectedDay] || days[0];
@@ -61,19 +71,23 @@ function WeeklyMealPlannerTab({ plan }) {
 	return (
 		<div className="flex flex-col gap-4">
 			<div className="grid grid-cols-[repeat(auto-fit,minmax(88px,1fr))] gap-2">
-				{days.map((d, i) => (
-					<button
-						key={d.day}
-						type="button"
-						onClick={() => setSelectedDay(i)}
-						className={cn(
-							"rounded-(--jh-radius-md) px-2 py-2.5 text-center text-xs font-semibold uppercase tracking-wide transition-colors focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
-							i === selectedDay ? "bg-primary text-primary-foreground" : "bg-secondary/60 text-foreground hover:bg-secondary",
-						)}
-					>
-						{d.day.slice(0, 3)}
-					</button>
-				))}
+				{days.map((d, i) => {
+					const dayKey = (d.day || "").slice(0, 3).toLowerCase();
+					const dayLabel = t(`weeklyMealPlanner.days.${dayKey}`, (d.day || "").slice(0, 3).toUpperCase());
+					return (
+						<button
+							key={d.day}
+							type="button"
+							onClick={() => setSelectedDay(i)}
+							className={cn(
+								"rounded-(--jh-radius-md) px-2 py-2.5 text-center text-xs font-semibold uppercase tracking-wide transition-colors focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+								i === selectedDay ? "bg-primary text-primary-foreground" : "bg-secondary/60 text-foreground hover:bg-secondary",
+							)}
+						>
+							{dayLabel}
+						</button>
+					);
+				})}
 			</div>
 
 			<div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

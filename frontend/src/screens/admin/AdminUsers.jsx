@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 import { recordsData } from "./Patientdata";
 import { authFetch } from "../../utils/authFetch";
@@ -10,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 
 const AdminUsers = () => {
+	const { t } = useTranslation();
 	const [, setUsers] = useState([]);
 	const [loading, setLoading] = useState(true);
 
@@ -53,7 +55,7 @@ const AdminUsers = () => {
 	};
 
 	const handleDelete = async (userId) => {
-		if (window.confirm("Are you sure you want to delete this user?")) {
+		if (window.confirm(t("adminUsers.confirmDelete"))) {
 			try {
 				const token = localStorage.getItem("token");
 				const response = await authFetch(`${BACKEND_URL}/api/auth/users/${userId}`, {
@@ -78,27 +80,27 @@ const AdminUsers = () => {
 	if (loading) {
 		return (
 			<DashboardShell>
-				<p className="text-center text-muted-foreground">Loading users...</p>
+				<p className="text-center text-muted-foreground">{t("adminUsers.loading")}</p>
 			</DashboardShell>
 		);
 	}
 
 	return (
 		<DashboardShell>
-			<DashboardPageHeader title="Manage Users" />
+			<DashboardPageHeader title={t("adminUsers.title")} />
 
 			<Card className="overflow-hidden p-0">
 				<div className="overflow-x-auto">
 					<Table>
 						<TableHeader>
 							<TableRow>
-								<TableHead>Name</TableHead>
-								<TableHead>Email</TableHead>
-								<TableHead>Phone No.</TableHead>
-								<TableHead>Gender</TableHead>
-								<TableHead>Age</TableHead>
-								<TableHead>ZipCode</TableHead>
-								<TableHead>Actions</TableHead>
+								<TableHead>{t("adminUsers.table.name")}</TableHead>
+								<TableHead>{t("adminUsers.table.email")}</TableHead>
+								<TableHead>{t("adminUsers.table.phone")}</TableHead>
+								<TableHead>{t("adminUsers.table.gender")}</TableHead>
+								<TableHead>{t("adminUsers.table.age")}</TableHead>
+								<TableHead>{t("adminUsers.table.zipCode")}</TableHead>
+								<TableHead>{t("adminUsers.table.actions")}</TableHead>
 							</TableRow>
 						</TableHeader>
 						<TableBody>
@@ -124,7 +126,7 @@ const AdminUsers = () => {
 														handleDelete(record._id);
 													}}
 												>
-													Delete
+													{t("adminUsers.delete")}
 												</Button>
 												<Button
 													variant="outline"
@@ -134,7 +136,7 @@ const AdminUsers = () => {
 														navigate(`/patients/${record._id}`);
 													}}
 												>
-													Update
+													{t("adminUsers.update")}
 												</Button>
 											</div>
 										</TableCell>

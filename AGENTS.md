@@ -58,6 +58,19 @@ Frontend auth (`frontend/src/context/AuthContext.js`) keeps the access token in 
 
 `frontend/src/tokens.css` defines the canonical `--jh-*` CSS variables (olive/cream Ayurvedic palette) and mirrors `.impeccable/context/DESIGN.md`, which is the source-of-truth design doc used by the `impeccable` skill. When restyling a page, prefer these tokens over new hex values. Recent pattern (see `fix(medicines)` commits): scope page-specific token overrides to a page-root class (e.g. `.ay-meds-page`) rather than redefining on `:root`, so one page's theme doesn't bleed into others.
 
+## Internationalization (i18n) Patterns
+
+- Localization files: `frontend/src/locales/en.json` and `frontend/src/locales/hi.json`.
+- Uses `react-i18next` with `const { t } = useTranslation();` and `t("namespace.key", "Default English Fallback")`.
+- **UI Chrome vs. Database content**:
+  - Translate all UI labels, section titles, placeholders, buttons, badges, tooltips, and empty states into authentic Hindi.
+  - Keep patient/doctor personal names, uploaded document names, and medical prescriptions in their native/database values.
+- When localizing a screen:
+  1. Add new keys symmetrically in `frontend/src/locales/en.json` and `frontend/src/locales/hi.json`.
+  2. Replace hardcoded strings in the screen component (`frontend/src/screens/...`).
+  3. Verify with `npm run build` in `frontend` to guarantee 0 syntax or JSX compilation issues.
+  4. Commit changes to `feature/region-based-diet-plan`.
+
 ## Git workflow
 
 Do NOT open a GitHub PR for every change. Each PR sends a notification to all team members, and opening one per small fix is noisy. Instead: commit to a branch (or push it), and let the user pull/merge/review locally themselves. Only open a PR if the user explicitly asks for one.
@@ -65,3 +78,4 @@ Do NOT open a GitHub PR for every change. Each PR sends a notification to all te
 ### Known issues to be aware of
 
 `documentation/BUGS_AND_IMPROVEMENTS.md` is a standing audit of real bugs and security gaps in this codebase (role-gating holes, checkout/cart using a `localStorage` key nothing writes to, hardcoded demo payment amounts, password hashes not excluded from queries, etc.). Skim the relevant section before assuming an existing flow works correctly — several core flows (checkout, admin user management) are documented as broken rather than working-as-intended.
+

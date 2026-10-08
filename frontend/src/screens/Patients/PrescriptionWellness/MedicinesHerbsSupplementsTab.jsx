@@ -1,6 +1,7 @@
 import { useState, useEffect, useContext } from "react";
 import { Link } from "react-router-dom";
 import { ChevronRight, Pill } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +20,7 @@ const API = BACKEND_URL || "http://localhost:8080";
 // anything yet ("Not prescribed"), while a failed fetch is a different,
 // explicit error state (never silently reused as "Not prescribed").
 function MedicinesHerbsSupplementsTab() {
+	const { t } = useTranslation();
 	const { auth } = useContext(AuthContext);
 	const patientId = auth?.user?.id;
 
@@ -68,15 +70,15 @@ function MedicinesHerbsSupplementsTab() {
 	}, [patientId]);
 
 	if (loading) {
-		return <p className="py-6 text-center text-sm text-muted-foreground">Loading...</p>;
+		return <p className="py-6 text-center text-sm text-muted-foreground">{t("common.loading", "Loading...")}</p>;
 	}
 
 	if (loadFailed) {
 		return (
 			<EmptyState
 				icon={Pill}
-				title="Unable to load"
-				description="We couldn't load your prescribed medicines right now. Please try again shortly."
+				title={t("prescriptions.unableToLoadTitle", "Unable to load")}
+				description={t("prescriptions.unableToLoadDesc", "We couldn't load your prescribed medicines right now. Please try again shortly.")}
 			/>
 		);
 	}
@@ -106,8 +108,8 @@ function MedicinesHerbsSupplementsTab() {
 		return (
 			<EmptyState
 				icon={Pill}
-				title="Not prescribed"
-				description="Your doctor hasn't prescribed any medicines, herbs, or supplements yet."
+				title={t("prescriptions.notPrescribedTitle", "Not prescribed")}
+				description={t("prescriptions.notPrescribedDesc", "Your doctor hasn't prescribed any medicines, herbs, or supplements yet.")}
 			/>
 		);
 	}
@@ -117,7 +119,7 @@ function MedicinesHerbsSupplementsTab() {
 			<CardHeader>
 				<div className="flex flex-wrap items-center justify-between gap-2">
 					<CardTitle className="flex items-center gap-2 font-display text-lg">
-						<Pill size={18} /> Medicines, Herbs & Supplements
+						<Pill size={18} /> {t("prescriptions.medicinesTitle", "Medicines, Herbs & Supplements")}
 					</CardTitle>
 					<SourceBadge status="doctor" />
 				</div>
@@ -139,10 +141,10 @@ function MedicinesHerbsSupplementsTab() {
 							<div className="flex items-start justify-between gap-3">
 								<div className="flex flex-wrap items-center gap-2">
 									<span className="text-sm font-semibold text-foreground">
-										<span className="font-medium text-muted-foreground">Medicine Name: </span>
+										<span className="font-medium text-muted-foreground">{t("prescriptions.medicineName", "Medicine Name:")} </span>
 										{row.medicineName}
 									</span>
-									{!isAvailable ? <Badge variant="destructive">Not available</Badge> : null}
+									{!isAvailable ? <Badge variant="destructive">{t("prescriptions.notAvailable", "Not available")}</Badge> : null}
 								</div>
 								{isAvailable ? (
 									<ChevronRight size={18} className="shrink-0 text-primary transition-transform group-hover:translate-x-0.5" />
@@ -151,26 +153,26 @@ function MedicinesHerbsSupplementsTab() {
 
 							{row.dosage ? (
 								<p className="text-sm text-foreground/90">
-									<span className="font-medium text-muted-foreground">Dosage: </span>
+									<span className="font-medium text-muted-foreground">{t("prescriptions.dosage", "Dosage:")} </span>
 									{row.dosage}
 								</p>
 							) : null}
 
 							{row.instructions ? (
 								<p className="text-sm text-foreground/90">
-									<span className="font-medium text-muted-foreground">Instructions: </span>
+									<span className="font-medium text-muted-foreground">{t("prescriptions.instructions", "Instructions:")} </span>
 									{row.instructions}
 								</p>
 							) : null}
 
 							<div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-border/60 pt-2 text-xs text-muted-foreground">
 								<span>
-									<strong className="font-medium text-foreground">Doctor Name: </strong>
-									{row.doctorName || "Your Doctor"}
+									<strong className="font-medium text-foreground">{t("prescriptions.doctorName", "Doctor Name:")} </strong>
+									{row.doctorName || t("prescriptions.yourDoctor", "Your Doctor")}
 								</span>
 								{row.addedAt ? (
 									<span>
-										<strong className="font-medium text-foreground">Prescription Date: </strong>
+										<strong className="font-medium text-foreground">{t("prescriptions.prescriptionDate", "Prescription Date:")} </strong>
 										{formatDate(row.addedAt)}
 									</span>
 								) : null}

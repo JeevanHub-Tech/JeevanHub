@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Star } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import { BACKEND_URL } from "../../config";
 import { DashboardShell, DashboardPageHeader } from "@/components/layout/DashboardShell";
@@ -8,6 +9,7 @@ import { ExpandableText } from "@/components/ui/expandable-text";
 import { formatDate } from "@/lib/date";
 
 const DoctorReviewsPage = () => {
+	const { t } = useTranslation();
 	const [reviews, setReviews] = useState([]);
 	const doctorEmail = localStorage.getItem("email");
 
@@ -22,7 +24,7 @@ const DoctorReviewsPage = () => {
 
 	return (
 		<DashboardShell>
-			<DashboardPageHeader title="My Reviews" />
+			<DashboardPageHeader title={t("doctorReviews.title", "My Reviews")} />
 
 			<div className="mx-auto max-w-3xl">
 				{reviews.length > 0 ? (
@@ -31,17 +33,17 @@ const DoctorReviewsPage = () => {
 							<Card key={i} className="p-5">
 								<h3 className="text-lg font-semibold text-foreground">{r.patientName}</h3>
 								<p className="mt-1 flex items-center gap-1 text-sm font-medium text-primary">
-									<Star className="size-4 fill-primary text-primary" /> Rating: {r.rating}
+									<Star className="size-4 fill-primary text-primary" /> {t("doctorReviews.rating", "Rating: {{rating}}", { rating: r.rating })}
 								</p>
 								<ExpandableText text={r.review} maxLength={180} className="mt-2 italic text-foreground/80" />
 								<p className="mt-2 text-xs text-muted-foreground">
-									Date: {formatDate(r.dateOfAppointment)}
+									{t("doctorReviews.date", "Date: {{date}}", { date: formatDate(r.dateOfAppointment) })}
 								</p>
 							</Card>
 						))}
 					</div>
 				) : (
-					<p className="text-center text-muted-foreground">No reviews yet.</p>
+					<p className="text-center text-muted-foreground">{t("doctorReviews.noReviews", "No reviews yet.")}</p>
 				)}
 			</div>
 		</DashboardShell>

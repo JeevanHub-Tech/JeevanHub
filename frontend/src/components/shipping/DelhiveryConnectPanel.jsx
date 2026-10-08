@@ -1,5 +1,6 @@
 import { useState } from "react";
 import axios from "axios";
+import { useTranslation } from "react-i18next";
 import { AlertCircle, Check, CheckCircle2, ChevronDown, Copy, HelpCircle, KeyRound, Link2, Webhook } from "lucide-react";
 
 import { BACKEND_URL } from "../../config";
@@ -9,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { DELHIVERY_OPTIONS, DELHIVERY_METHOD_LABELS } from "./delhiveryOptions";
+import { getDelhiveryOptions, DELHIVERY_METHOD_LABELS } from "./delhiveryOptions";
 
 const OPTION_ICONS = {
 	apiToken: KeyRound,
@@ -54,6 +55,7 @@ function extractOAuthFields(raw) {
 }
 
 function CopyField({ label, value, multiline = false }) {
+	const { t } = useTranslation();
 	const [copied, setCopied] = useState(false);
 
 	const copy = async () => {
@@ -80,7 +82,7 @@ function CopyField({ label, value, multiline = false }) {
 				<code className={`flex-1 rounded-lg border border-border bg-muted/40 px-2 py-1.5 text-xs ${multiline ? "break-all" : "truncate"}`}>
 					{value}
 				</code>
-				<Button type="button" size="icon-sm" variant="outline" onClick={copy} aria-label={`Copy ${label}`}>
+				<Button type="button" size="icon-sm" variant="outline" onClick={copy} aria-label={t("delhiveryConnect.copyLabel", { label, defaultValue: `Copy ${label}` })}>
 					{copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
 				</Button>
 			</div>
@@ -101,6 +103,7 @@ function CopyField({ label, value, multiline = false }) {
  * @param {Function} onConnected called with the new status after a successful save
  */
 function DelhiveryConnectPanel({ retailerId, token, status, onConnected }) {
+	const { t } = useTranslation();
 	const [openOption, setOpenOption] = useState(null);
 	const [helpFor, setHelpFor] = useState(null);
 	const [saving, setSaving] = useState(null);
@@ -112,6 +115,8 @@ function DelhiveryConnectPanel({ retailerId, token, status, onConnected }) {
 	const [oauth, setOauth] = useState(EMPTY_OAUTH);
 	const [pasteNote, setPasteNote] = useState("");
 	const [webhookDetails, setWebhookDetails] = useState(null);
+
+	const options = getDelhiveryOptions(t);
 
 	const toggleOption = (id) => {
 		setError("");
@@ -128,12 +133,12 @@ function DelhiveryConnectPanel({ retailerId, token, status, onConnected }) {
 	const fillFromPaste = () => {
 		const fields = extractOAuthFields(oauthPaste);
 		if (!fields) {
-			setPasteNote("Could not find D1_CLIENT_ID / D1_CLIENT_SECRET / D1_AUTH_URL / D1_REALM in that text.");
+			setPasteNote(t("delhiveryConnect.pasteError", "Could not find D1_CLIENT_ID / D1_CLIENT_SECRET / D1_AUTH_URL / D1_REALM in that text."));
 			return;
 		}
 		setOauth(fields);
 		const missing = Object.entries(fields).filter(([, v]) => !v).map(([k]) => k);
-		setPasteNote(missing.length ? `Filled what was found. Still missing: ${missing.join(", ")}.` : "All four values filled in below.");
+		setPasteNote(missing.length ? t("delhiveryConnect.pasteMissing", { missing: missing.join(", "), defaultValue: `Filled what was found. Still missing: ${missing.join(", ")}.` }) : t("delhiveryConnect.pasteAllFilled", "All four values filled in below."));
 	};
 
 	const save = async (method, payload) => {
@@ -160,7 +165,7 @@ function DelhiveryConnectPanel({ retailerId, token, status, onConnected }) {
 			setVerifiedNote(response.data?.verificationDetail || "");
 			onConnected?.(response.data?.delhivery || { isConfigured: true, method });
 		} catch (err) {
-			setError(err.response?.data?.message || err.message || "Could not save the integration.");
+			setError(err.response?.data?.message || err.message || t("delhiveryConnect.couldNotSave", "Could not save the integration."));
 		} finally {
 			setSaving(null);
 		}
@@ -178,7 +183,7 @@ function DelhiveryConnectPanel({ retailerId, token, status, onConnected }) {
 			setOpenOption(null);
 			onConnected?.({ isConfigured: false, method: null });
 		} catch (err) {
-			setError(err.response?.data?.message || err.message || "Could not disconnect.");
+			setError(err.response?.data?.message || err.message || t("delhiveryConnect.couldNotDisconnect", "Could not disconnect."));
 		} finally {
 			setSaving(null);
 		}
@@ -195,12 +200,12 @@ function DelhiveryConnectPanel({ retailerId, token, status, onConnected }) {
 			);
 			const del = res.data?.delhivery;
 			if (del?.lastWebhookReceivedAt) {
-				setVerifiedNote(`Verified! Last webhook received at: ${new Date(del.lastWebhookReceivedAt).toLocaleString()}`);
+				setVerifiedNote(t("delhiveryConnect.verifiedLastWebhook", { time: new Date(del.lastWebhookReceivedAt).toLocaleString(), defaultValue: `Verified! Last webhook received at: ${new Date(del.lastWebhookReceivedAt).toLocaleString()}` }));
 			} else {
-				setError("No webhook data received from Delhivery yet. Try sending a test ping from your Delhivery dashboard.");
+				setError(t("delhiveryConnect.noWebhookYet", "No webhook data received from Delhivery yet. Try sending a test ping from your Delhivery dashboard."));
 			}
 		} catch (err) {
-			setError("Failed to check status.");
+			setError(t("delhiveryConnect.failedToCheckStatus", "Failed to check status."));
 		} finally {
 			setSaving(null);
 		}
@@ -219,25 +224,25 @@ function DelhiveryConnectPanel({ retailerId, token, status, onConnected }) {
 					{error ? (
 						<Alert variant="destructive">
 							<AlertCircle />
-							<AlertTitle>Not connected — Delhivery rejected these details</AlertTitle>
+							<AlertTitle>{t("delhiveryConnect.notConnectedRejected", "Not connected — Delhivery rejected these details")}</AlertTitle>
 							<AlertDescription>{error}</AlertDescription>
 						</Alert>
 					) : null}
-					<Label htmlFor="jh-delhivery-token">API token</Label>
+					<Label htmlFor="jh-delhivery-token">{t("delhiveryConnect.apiTokenLabel", "API token")}</Label>
 					<Input
 						id="jh-delhivery-token"
 						type="password"
 						autoComplete="off"
-						placeholder="Paste the production token from Delhivery One"
+						placeholder={t("delhiveryConnect.apiTokenPlaceholder", "Paste the production token from Delhivery One")}
 						value={apiToken}
 						onChange={(e) => setApiToken(e.target.value)}
 					/>
 					<p className="text-xs text-muted-foreground">
-						Stored encrypted. It is never shown again, here or anywhere else in JeevanHub.
+						{t("delhiveryConnect.apiTokenHelp", "Stored encrypted. It is never shown again, here or anywhere else in JeevanHub.")}
 					</p>
 					<div>
 						<Button type="submit" size="sm" loading={saving === "apiToken"} disabled={apiToken.trim().length < 10}>
-							{saving === "apiToken" ? "Checking with Delhivery…" : "Verify & connect"}
+							{saving === "apiToken" ? t("delhiveryConnect.checkingWithDelhivery", "Checking with Delhivery…") : t("delhiveryConnect.verifyAndConnect", "Verify & connect")}
 						</Button>
 					</div>
 				</form>
@@ -266,12 +271,12 @@ function DelhiveryConnectPanel({ retailerId, token, status, onConnected }) {
 					{error ? (
 						<Alert variant="destructive">
 							<AlertCircle />
-							<AlertTitle>Not connected — Delhivery rejected these details</AlertTitle>
+							<AlertTitle>{t("delhiveryConnect.notConnectedRejected", "Not connected — Delhivery rejected these details")}</AlertTitle>
 							<AlertDescription>{error}</AlertDescription>
 						</Alert>
 					) : null}
 					<div className="flex flex-col gap-2">
-						<Label htmlFor="jh-delhivery-mcp">Paste the JSON from Delhivery (optional shortcut)</Label>
+						<Label htmlFor="jh-delhivery-mcp">{t("delhiveryConnect.oauthPasteLabel", "Paste the JSON from Delhivery (optional shortcut)")}</Label>
 						<Textarea
 							id="jh-delhivery-mcp"
 							rows={4}
@@ -282,7 +287,7 @@ function DelhiveryConnectPanel({ retailerId, token, status, onConnected }) {
 						/>
 						<div className="flex items-center gap-2">
 							<Button type="button" size="sm" variant="outline" onClick={fillFromPaste} disabled={!oauthPaste.trim()}>
-								Fill fields
+								{t("delhiveryConnect.fillFields", "Fill fields")}
 							</Button>
 							{pasteNote ? <span className="text-xs text-muted-foreground">{pasteNote}</span> : null}
 						</div>
@@ -290,7 +295,7 @@ function DelhiveryConnectPanel({ retailerId, token, status, onConnected }) {
 
 					<div className="grid gap-3 sm:grid-cols-2">
 						<div className="flex flex-col gap-1.5">
-							<Label htmlFor="jh-d1-client-id">Client ID</Label>
+							<Label htmlFor="jh-d1-client-id">{t("delhiveryConnect.clientId", "Client ID")}</Label>
 							<Input
 								id="jh-d1-client-id"
 								autoComplete="off"
@@ -299,7 +304,7 @@ function DelhiveryConnectPanel({ retailerId, token, status, onConnected }) {
 							/>
 						</div>
 						<div className="flex flex-col gap-1.5">
-							<Label htmlFor="jh-d1-client-secret">Client secret</Label>
+							<Label htmlFor="jh-d1-client-secret">{t("delhiveryConnect.clientSecret", "Client secret")}</Label>
 							<Input
 								id="jh-d1-client-secret"
 								type="password"
@@ -309,7 +314,7 @@ function DelhiveryConnectPanel({ retailerId, token, status, onConnected }) {
 							/>
 						</div>
 						<div className="flex flex-col gap-1.5">
-							<Label htmlFor="jh-d1-auth-url">Auth URL</Label>
+							<Label htmlFor="jh-d1-auth-url">{t("delhiveryConnect.authUrl", "Auth URL")}</Label>
 							<Input
 								id="jh-d1-auth-url"
 								autoComplete="off"
@@ -319,7 +324,7 @@ function DelhiveryConnectPanel({ retailerId, token, status, onConnected }) {
 							/>
 						</div>
 						<div className="flex flex-col gap-1.5">
-							<Label htmlFor="jh-d1-realm">Realm</Label>
+							<Label htmlFor="jh-d1-realm">{t("delhiveryConnect.realm", "Realm")}</Label>
 							<Input
 								id="jh-d1-realm"
 								autoComplete="off"
@@ -331,7 +336,7 @@ function DelhiveryConnectPanel({ retailerId, token, status, onConnected }) {
 
 					<div>
 						<Button type="submit" size="sm" loading={saving === "oauth2"} disabled={!ready}>
-							{saving === "oauth2" ? "Checking with Delhivery…" : "Verify & connect"}
+							{saving === "oauth2" ? t("delhiveryConnect.checkingWithDelhivery", "Checking with Delhivery…") : t("delhiveryConnect.verifyAndConnect", "Verify & connect")}
 						</Button>
 					</div>
 				</form>
@@ -344,13 +349,12 @@ function DelhiveryConnectPanel({ retailerId, token, status, onConnected }) {
 				{error ? (
 					<Alert variant="destructive">
 						<AlertCircle />
-						<AlertTitle>Not connected — Delhivery rejected these details</AlertTitle>
+						<AlertTitle>{t("delhiveryConnect.notConnectedRejected", "Not connected — Delhivery rejected these details")}</AlertTitle>
 						<AlertDescription>{error}</AlertDescription>
 					</Alert>
 				) : null}
 				<p className="text-xs text-muted-foreground">
-					Nothing to type here — JeevanHub generates the two values and you paste them into Delhivery.
-					Generating again replaces the previous secret.
+					{t("delhiveryConnect.webhookDesc", "Nothing to type here — JeevanHub generates the two values and you paste them into Delhivery. Generating again replaces the previous secret.")}
 				</p>
 				<div>
 					<Button
@@ -359,7 +363,7 @@ function DelhiveryConnectPanel({ retailerId, token, status, onConnected }) {
 						loading={saving === "webhook"}
 						onClick={() => save("webhook", {})}
 					>
-						{webhookDetails || (connected && status?.method === 'webhook') ? "Generate new webhook details" : "Generate webhook details"}
+						{webhookDetails || (connected && status?.method === 'webhook') ? t("delhiveryConnect.generateNewWebhookDetails", "Generate new webhook details") : t("delhiveryConnect.generateWebhookDetails", "Generate webhook details")}
 					</Button>
 					{(webhookDetails || (connected && status?.method === 'webhook')) && (
 						<Button
@@ -370,7 +374,7 @@ function DelhiveryConnectPanel({ retailerId, token, status, onConnected }) {
 							loading={saving === "testWebhook"}
 							onClick={testWebhook}
 						>
-							Test Connection
+							{t("delhiveryConnect.testConnection", "Test Connection")}
 						</Button>
 					)}
 				</div>
@@ -378,19 +382,17 @@ function DelhiveryConnectPanel({ retailerId, token, status, onConnected }) {
 				{webhookDetails ? (
 					<div className="flex flex-col gap-3 rounded-lg border border-border bg-muted/30 p-3">
 						<p className="text-xs font-medium text-foreground">
-							Copy these into Delhivery now — the secret is not shown again.
+							{t("delhiveryConnect.webhookCopyPrompt", "Copy these into Delhivery now — the secret is not shown again.")}
 						</p>
-						<CopyField label="Webhook URL (POST)" value={webhookDetails.url} multiline />
-						<CopyField label="Header name" value={webhookDetails.secretHeader} />
-						<CopyField label="Header value (secret)" value={webhookDetails.secret} multiline />
+						<CopyField label={t("delhiveryConnect.webhookUrlLabel", "Webhook URL (POST)")} value={webhookDetails.url} multiline />
+						<CopyField label={t("delhiveryConnect.headerNameLabel", "Header name")} value={webhookDetails.secretHeader} />
+						<CopyField label={t("delhiveryConnect.headerSecretLabel", "Header value (secret)")} value={webhookDetails.secret} multiline />
 						{webhookDetails.url?.includes("localhost") ? (
 							<Alert variant="destructive">
 								<AlertCircle />
-								<AlertTitle>This URL is not reachable by Delhivery</AlertTitle>
+								<AlertTitle>{t("delhiveryConnect.webhookLocalhostTitle", "This URL is not reachable by Delhivery")}</AlertTitle>
 								<AlertDescription>
-									It points at localhost. Expose your backend with a tunnel (e.g. <code>ngrok http 8080</code>),
-									set <code>BASE_URL</code> in the backend <code>.env</code> to that public URL, restart the
-									server, then generate again.
+									{t("delhiveryConnect.webhookLocalhostDesc", "It points at localhost. Expose your backend with a tunnel (e.g. ngrok http 8080), set BASE_URL in the backend .env to that public URL, restart the server, then generate again.")}
 								</AlertDescription>
 							</Alert>
 						) : null}
@@ -407,19 +409,19 @@ function DelhiveryConnectPanel({ retailerId, token, status, onConnected }) {
 			<div className="flex flex-wrap items-center justify-between gap-2">
 				<div className="flex flex-col gap-0.5">
 					<p className="text-sm font-medium text-foreground">
-						{connected ? "Delhivery is connected" : "How should Delhivery share delivery status with JeevanHub?"}
+						{connected ? t("delhiveryConnect.statusConnected", "Delhivery is connected") : t("delhiveryConnect.statusPrompt", "How should Delhivery share delivery status with JeevanHub?")}
 					</p>
 					<p className="text-xs text-muted-foreground">
 						{connected
-							? `Using ${DELHIVERY_METHOD_LABELS[status.method] || status.method}. Pick another option below to switch.`
-							: "Pick whichever one your Delhivery plan gives you. You only need one."}
+							? t("delhiveryConnect.statusSubConnected", { method: t(`delhiveryConnect.methods.${status.method}`, DELHIVERY_METHOD_LABELS[status.method] || status.method), defaultValue: `Using ${DELHIVERY_METHOD_LABELS[status.method] || status.method}. Pick another option below to switch.` })
+							: t("delhiveryConnect.statusSubPrompt", "Pick whichever one your Delhivery plan gives you. You only need one.")}
 					</p>
 				</div>
 				{connected ? (
 					<div className="flex items-center gap-2">
-						<Badge variant="success">Connected</Badge>
+						<Badge variant="success">{t("delhiveryConnect.badges.connected", "Connected")}</Badge>
 						<Button type="button" size="sm" variant="ghost" loading={saving === "disconnect"} onClick={disconnect}>
-							Disconnect
+							{t("delhiveryConnect.disconnect", "Disconnect")}
 						</Button>
 					</div>
 				) : null}
@@ -428,7 +430,7 @@ function DelhiveryConnectPanel({ retailerId, token, status, onConnected }) {
 			{error && !openOption ? (
 				<Alert variant="destructive">
 					<AlertCircle />
-					<AlertTitle>Action failed</AlertTitle>
+					<AlertTitle>{t("delhiveryConnect.actionFailed", "Action failed")}</AlertTitle>
 					<AlertDescription>{error}</AlertDescription>
 				</Alert>
 			) : null}
@@ -445,13 +447,13 @@ function DelhiveryConnectPanel({ retailerId, token, status, onConnected }) {
 					}
 				>
 					{status?.sandbox ? <AlertCircle /> : <CheckCircle2 />}
-					<AlertTitle>{status?.sandbox ? "Saved, but not verified" : "Verified with Delhivery"}</AlertTitle>
+					<AlertTitle>{status?.sandbox ? t("delhiveryConnect.savedNotVerified", "Saved, but not verified") : t("delhiveryConnect.verifiedWithDelhivery", "Verified with Delhivery")}</AlertTitle>
 					<AlertDescription>{verifiedNote}</AlertDescription>
 				</Alert>
 			) : null}
 
 			<div className="flex flex-col gap-2">
-				{DELHIVERY_OPTIONS.map((option) => {
+				{options.map((option) => {
 					const Icon = OPTION_ICONS[option.id];
 					const isOpen = openOption === option.id;
 					const isActive = connected && status.method === option.id;
@@ -474,8 +476,8 @@ function DelhiveryConnectPanel({ retailerId, token, status, onConnected }) {
 									<span className="flex flex-col gap-0.5">
 										<span className="flex flex-wrap items-center gap-2">
 											<span className="text-sm font-medium text-foreground">{option.title}</span>
-											{option.badge && !connected ? <Badge variant="secondary">{option.badge}</Badge> : null}
-											{isActive ? <Badge variant="success">In use</Badge> : null}
+											{option.badge && !connected ? <Badge variant="secondary">{t("delhiveryConnect.badges.recommended", option.badge)}</Badge> : null}
+											{isActive ? <Badge variant="success">{t("delhiveryConnect.badges.inUse", "In use")}</Badge> : null}
 										</span>
 										<span className="text-xs text-muted-foreground">{option.tagline}</span>
 									</span>
@@ -489,10 +491,10 @@ function DelhiveryConnectPanel({ retailerId, token, status, onConnected }) {
 									variant={showHelp ? "secondary" : "outline"}
 									onClick={() => toggleHelp(option.id)}
 									aria-expanded={showHelp}
-									aria-label={`${showHelp ? "Hide" : "Show"} steps for ${option.title}`}
+									aria-label={showHelp ? t("delhiveryConnect.hideHelp", { title: option.title, defaultValue: `Hide steps for ${option.title}` }) : t("delhiveryConnect.showHelp", { title: option.title, defaultValue: `Show steps for ${option.title}` })}
 								>
 									<HelpCircle className="size-3.5" />
-									Help
+									{t("delhiveryConnect.help", "Help")}
 								</Button>
 							</div>
 
@@ -527,3 +529,4 @@ function DelhiveryConnectPanel({ retailerId, token, status, onConnected }) {
 }
 
 export default DelhiveryConnectPanel;
+

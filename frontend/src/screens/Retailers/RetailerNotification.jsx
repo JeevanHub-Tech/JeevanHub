@@ -1,5 +1,6 @@
 import { useState, useEffect, useContext } from "react";
 import axios from "axios";
+import { useTranslation } from "react-i18next";
 import { Package, Wallet, User, Bell } from "lucide-react";
 
 import { AuthContext } from "../../context/AuthContext";
@@ -18,6 +19,7 @@ const relatedIcon = {
 };
 
 const NotificationsPage = () => {
+	const { t } = useTranslation();
 	const [notifications, setNotifications] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const { auth } = useContext(AuthContext);
@@ -85,17 +87,6 @@ const NotificationsPage = () => {
 		}
 	};
 
-	const formatNotificationTime = (dateString) => {
-		const date = new Date(dateString);
-		return date.toLocaleDateString("en-GB", {
-			day: "numeric",
-			month: "long",
-			year: "numeric",
-			hour: "2-digit",
-			minute: "2-digit",
-		});
-	};
-
 	const groupNotificationsByDate = (list) => {
 		const groups = {};
 
@@ -116,24 +107,24 @@ const NotificationsPage = () => {
 	return (
 		<DashboardShell>
 			<DashboardPageHeader
-				title="Notifications"
+				title={t("retailerNotifications.title", "Notifications")}
 				actions={
 					hasUnread ? (
-						<Button onClick={markAllAsRead}>Mark all as read</Button>
+						<Button onClick={markAllAsRead}>{t("retailerNotifications.markAllRead", "Mark all as read")}</Button>
 					) : null
 				}
 			/>
 
 			{loading ? (
-				<p className="text-center text-muted-foreground">Loading notifications...</p>
+				<p className="text-center text-muted-foreground">{t("retailerNotifications.loading", "Loading notifications...")}</p>
 			) : notifications.length === 0 ? (
 				<Empty>
 					<EmptyHeader>
 						<EmptyMedia variant="icon">
 							<Bell />
 						</EmptyMedia>
-						<EmptyTitle>No notifications</EmptyTitle>
-						<EmptyDescription>You don't have any notifications yet.</EmptyDescription>
+						<EmptyTitle>{t("retailerNotifications.emptyTitle", "No notifications")}</EmptyTitle>
+						<EmptyDescription>{t("retailerNotifications.emptyDesc", "You don't have any notifications yet.")}</EmptyDescription>
 					</EmptyHeader>
 				</Empty>
 			) : (

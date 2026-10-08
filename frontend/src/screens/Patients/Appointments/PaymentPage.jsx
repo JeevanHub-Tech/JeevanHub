@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +10,7 @@ import { authFetch } from "../../../utils/authFetch";
 import { BACKEND_URL } from "../../../config";
 
 function PaymentPage() {
+	const { t } = useTranslation();
 	const navigate = useNavigate();
 
 	const [qrCode, setQrCode] = useState("");
@@ -60,7 +62,7 @@ function PaymentPage() {
 			const result = await response.json();
 			if (!response.ok) throw new Error(result.error || "Failed to upload payment screenshot.");
 
-			alert("Payment uploaded successfully. Your doctor will send the meeting link at the time of appointment.");
+			alert(t("paymentScreen.successAlert", "Payment uploaded successfully. Your doctor will send the meeting link at the time of appointment."));
 			setTimeout(() => navigate("/patient-home"), 3000);
 			setPaymentScreenshot(null);
 		} catch (err) {
@@ -73,7 +75,7 @@ function PaymentPage() {
 	if (loading) {
 		return (
 			<main className="flex min-h-[60vh] items-center justify-center bg-background">
-				<p className="text-muted-foreground">Loading QR code...</p>
+				<p className="text-muted-foreground">{t("paymentScreen.loadingQr", "Loading QR code...")}</p>
 			</main>
 		);
 	}
@@ -94,10 +96,14 @@ function PaymentPage() {
 			<div className="mx-auto max-w-md px-4 py-10 sm:px-6">
 				<Card>
 					<CardHeader>
-						<CardTitle className="font-display text-2xl">Doctor consultation payment</CardTitle>
+						<CardTitle className="font-display text-2xl">
+							{t("paymentScreen.title", "Doctor consultation payment")}
+						</CardTitle>
 					</CardHeader>
 					<CardContent className="flex flex-col gap-5">
-						<p className="text-sm text-muted-foreground">Scan the QR code below to pay.</p>
+						<p className="text-sm text-muted-foreground">
+							{t("paymentScreen.scanQr", "Scan the QR code below to pay.")}
+						</p>
 
 						<div className="flex justify-center rounded-(--jh-radius-lg) bg-secondary/60 p-4">
 							<img
@@ -111,11 +117,15 @@ function PaymentPage() {
 							/>
 						</div>
 
-						<p className="text-center text-lg font-semibold text-foreground">Amount to pay: ₹{price}</p>
+						<p className="text-center text-lg font-semibold text-foreground">
+							{t("paymentScreen.amountToPay", "Amount to Pay:")} ₹{price}
+						</p>
 
 						<form onSubmit={handleSubmit} className="flex flex-col gap-3">
 							<div className="flex flex-col gap-1.5">
-								<Label htmlFor="paymentScreenshot">Upload payment screenshot</Label>
+								<Label htmlFor="paymentScreenshot">
+									{t("paymentScreen.uploadScreenshot", "Upload Payment Screenshot")}
+								</Label>
 								<input
 									type="file"
 									id="paymentScreenshot"
@@ -128,20 +138,9 @@ function PaymentPage() {
 							</div>
 							<Button type="submit" disabled={submitting} className="w-full">
 								{submitting ? <Loader2 className="size-4 animate-spin" /> : null}
-								{submitting ? "Submitting..." : "Submit screenshot"}
+								{submitting ? t("paymentScreen.submitting", "Submitting...") : t("paymentScreen.submitPayment", "Submit Payment")}
 							</Button>
 						</form>
-
-						<div className="rounded-(--jh-radius-md) bg-secondary/60 p-4">
-							<h3 className="text-sm font-semibold text-foreground">Instructions</h3>
-							<ol className="mt-2 list-decimal space-y-1 pl-4 text-sm text-muted-foreground">
-								<li>Open any UPI app (PhonePe, Google Pay, Paytm)</li>
-								<li>Scan the QR code shown above</li>
-								<li>Pay the amount ₹{price}</li>
-								<li>Take a screenshot of the successful payment</li>
-								<li>Upload the screenshot using the form above</li>
-							</ol>
-						</div>
 					</CardContent>
 				</Card>
 			</div>

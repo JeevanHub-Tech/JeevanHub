@@ -1,5 +1,6 @@
 import { useContext, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { AuthContext } from '../../context/AuthContext';
 import { TextField, SelectField, PasswordPairField, PhoneField } from '../../components/registration/FormFields';
 import { DEFAULT_COUNTRY_DIAL } from '../../components/registration/countryCodes';
@@ -9,8 +10,6 @@ import { DashboardShell } from '@/components/layout/DashboardShell';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-
-const GENDER_OPTIONS = ['Male', 'Female', 'Others'];
 
 const INITIAL_STATE = {
   firstName: '',
@@ -25,14 +24,14 @@ const INITIAL_STATE = {
   confirmPassword: '',
 };
 
-function getErrors(form) {
+function getErrors(form, t) {
   return {
-    firstName: required(form.firstName, 'First name is required'),
-    lastName: required(form.lastName, 'Last name is required'),
+    firstName: required(form.firstName, t('auth.signUpForms.errors.firstNameRequired')),
+    lastName: required(form.lastName, t('auth.signUpForms.errors.lastNameRequired')),
     email: validateEmail(form.email),
     phone: validatePhone(form.phone, form.countryCode),
     dob: validateDob(form.dob),
-    gender: required(form.gender, 'Please select a gender'),
+    gender: required(form.gender, t('auth.signUpForms.errors.genderRequired')),
     zipCode: validateZipCode(form.zipCode, form.countryCode),
     password: validatePassword(form.password),
     confirmPassword: validateConfirmPassword(form.confirmPassword, form.password),
@@ -40,6 +39,7 @@ function getErrors(form) {
 }
 
 function SignUpPatientScreen() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { setAuth } = useContext(AuthContext);
   const [formData, setFormData] = useState(INITIAL_STATE);
@@ -48,7 +48,13 @@ function SignUpPatientScreen() {
   const [serverError, setServerError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const errors = getErrors(formData);
+  const genderOptions = [
+    { value: 'Male', label: t('auth.signUpForms.genders.Male') },
+    { value: 'Female', label: t('auth.signUpForms.genders.Female') },
+    { value: 'Others', label: t('auth.signUpForms.genders.Others') },
+  ];
+
+  const errors = getErrors(formData, t);
   const showError = (field) => (touched[field] || submitted) ? errors[field] : null;
 
   const handleChange = (e) => {
@@ -87,10 +93,10 @@ function SignUpPatientScreen() {
         setAuth({ token: result.token, user: result.user, role: result.user.role });
         navigate('/patient-home');
       } else {
-        setServerError(result.error || 'Something went wrong. Please try again.');
+        setServerError(result.error || t('auth.signUpForms.errors.serverErrorDefault'));
       }
     } catch (error) {
-      setServerError('Could not reach the server. Please check your connection and try again.');
+      setServerError(t('auth.signUpForms.errors.serverUnreachable'));
     } finally {
       setIsSubmitting(false);
     }
@@ -99,8 +105,8 @@ function SignUpPatientScreen() {
   return (
     <DashboardShell>
       <Card className="mx-auto max-w-4xl p-7 sm:p-11">
-        <h1 className="font-display text-3xl text-foreground">Sign Up — Patient</h1>
-        <p className="mb-8 text-muted-foreground">Unlock your inner balance. Start your Ayurvedic journey today.</p>
+        <h1 className="font-display text-3xl text-foreground">{t('auth.signUpForms.patientTitle')}</h1>
+        <p className="mb-8 text-muted-foreground">{t('auth.signUpForms.patientSubtitle')}</p>
 
         {serverError ? (
           <Alert variant="destructive" className="mb-6">
@@ -109,10 +115,11 @@ function SignUpPatientScreen() {
         ) : null}
 
         <form className="grid grid-cols-1 gap-x-7 sm:grid-cols-2" onSubmit={handleSubmit} noValidate autoComplete="off">
-          <TextField label="First Name" name="firstName" value={formData.firstName} onChange={handleChange} onBlur={handleBlur} error={showError('firstName')} placeholder="Ram" />
-          <TextField label="Last Name" name="lastName" value={formData.lastName} onChange={handleChange} onBlur={handleBlur} error={showError('lastName')} placeholder="Singh" />
-          <TextField label="Email ID" name="email" type="email" value={formData.email} onChange={handleChange} onBlur={handleBlur} error={showError('email')} placeholder="abc@gmail.com" />
+          <TextField label={t('auth.signUpForms.firstName')} name="firstName" value={formData.firstName} onChange={handleChange} onBlur={handleBlur} error={showError('firstName')} placeholder="Ram" />
+          <TextField label={t('auth.signUpForms.lastName')} name="lastName" value={formData.lastName} onChange={handleChange} onBlur={handleBlur} error={showError('lastName')} placeholder="Singh" />
+          <TextField label={t('auth.signUpForms.email')} name="email" type="email" value={formData.email} onChange={handleChange} onBlur={handleBlur} error={showError('email')} placeholder="abc@gmail.com" />
           <PhoneField
+            label={t('auth.signUpForms.phone')}
             countryCode={formData.countryCode}
             onCountryChange={handleCountryChange}
             phone={formData.phone}
@@ -121,10 +128,12 @@ function SignUpPatientScreen() {
             countryError={null}
             phoneError={showError('phone')}
           />
-          <TextField label="Date of Birth" name="dob" type="date" value={formData.dob} onChange={handleChange} onBlur={handleBlur} error={showError('dob')} max={new Date().toISOString().split('T')[0]} />
-          <SelectField label="Gender" name="gender" value={formData.gender} onChange={handleChange} onBlur={handleBlur} error={showError('gender')} options={GENDER_OPTIONS} />
+          <TextField label={t('auth.signUpForms.dob')} name="dob" type="date" value={formData.dob} onChange={handleChange} onBlur={handleBlur} error={showError('dob')} max={new Date().toISOString().split('T')[0]} />
+          <SelectField label={t('auth.signUpForms.gender')} name="gender" value={formData.gender} onChange={handleChange} onBlur={handleBlur} error={showError('gender')} options={genderOptions} placeholder={t('auth.signUpForms.selectGender')} />
 
           <PasswordPairField
+            passwordLabel={t('auth.signUpForms.password')}
+            confirmLabel={t('auth.signUpForms.confirmPassword')}
             passwordValue={formData.password}
             onPasswordChange={handleChange}
             passwordError={showError('password')}
@@ -133,17 +142,17 @@ function SignUpPatientScreen() {
             confirmError={showError('confirmPassword')}
             onBlur={handleBlur}
             rightSlot={
-              <TextField label="PIN / Zip Code" name="zipCode" value={formData.zipCode} onChange={handleChange} onBlur={handleBlur} error={showError('zipCode')} placeholder={formData.countryCode === '+91' ? '560001' : 'Postal code'} />
+              <TextField label={t('auth.signUpForms.zipCode')} name="zipCode" value={formData.zipCode} onChange={handleChange} onBlur={handleBlur} error={showError('zipCode')} placeholder={formData.countryCode === '+91' ? '560001' : 'Postal code'} />
             }
           />
 
           <div className="col-span-full mt-6 flex justify-center">
             <Button type="submit" size="lg" className="rounded-full px-12" disabled={isSubmitting}>
-              {isSubmitting ? 'Registering...' : 'Sign Up →'}
+              {isSubmitting ? t('auth.signUpForms.registering') : t('auth.signUpForms.submitBtn')}
             </Button>
           </div>
           <p className="col-span-full mt-3.5 text-center text-sm text-muted-foreground">
-            Already have an account? <a href="/signin" className="font-semibold text-primary hover:underline">Log in</a>
+            {t('auth.signUpForms.alreadyHaveAccount')} <a href="/signin" className="font-semibold text-primary hover:underline">{t('auth.signUpForms.logIn')}</a>
           </p>
         </form>
       </Card>

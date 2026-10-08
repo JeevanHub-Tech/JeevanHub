@@ -15,6 +15,7 @@ import {
 	Utensils,
 	Video,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -148,6 +149,7 @@ const CATEGORY_DEFAULT_TYPE_KEY = {
 };
 
 const DoctorNotification = () => {
+	const { t } = useTranslation();
 	const navigate = useNavigate();
 	const { auth } = useContext(AuthContext);
 	const doctorId = auth?.user?.id;
@@ -315,15 +317,15 @@ const DoctorNotification = () => {
 				<div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 					<div>
 						<div className="flex items-center gap-2.5">
-							<h1 className="font-display text-2xl font-bold text-foreground sm:text-3xl">Doctor Notifications</h1>
+							<h1 className="font-display text-2xl font-bold text-foreground sm:text-3xl">{t("doctorNotifications.title", "Doctor Notifications")}</h1>
 							{notifications.length > 0 && (
 								<Badge className="bg-[#4a5c28] text-white hover:bg-[#3a4a1f] font-semibold">
-									{notifications.length} new
+									{t("doctorNotifications.newBadge", "{{count}} new", { count: notifications.length })}
 								</Badge>
 							)}
 						</div>
 						<p className="mt-1 text-sm text-muted-foreground">
-							Stay updated with consultations, appointment bookings, cancellations, and patient reviews.
+							{t("doctorNotifications.description", "Stay updated with consultations, appointment bookings, cancellations, and patient reviews.")}
 						</p>
 					</div>
 
@@ -336,7 +338,7 @@ const DoctorNotification = () => {
 							className="flex items-center gap-1.5 self-start border-[var(--jh-line-strong)] bg-white text-foreground hover:bg-[var(--jh-sage-pale)] hover:text-[#4a5c28] font-semibold sm:self-auto cursor-pointer shadow-xs"
 						>
 							<CheckCheck className="size-4 text-[#4a5c28]" />
-							{markingAll ? "Marking..." : "Mark all as read"}
+							{markingAll ? t("doctorNotifications.marking", "Marking...") : t("doctorNotifications.markAll", "Mark all as read")}
 						</Button>
 					)}
 				</div>
@@ -352,7 +354,7 @@ const DoctorNotification = () => {
 								: "border border-[var(--jh-line-strong)] bg-white text-[var(--jh-ink)] hover:bg-[var(--jh-sage-pale)] hover:border-[#4a5c28]"
 						}`}
 					>
-						All ({counts.all})
+						{t("doctorNotifications.tabAll", "All ({{count}})", { count: counts.all })}
 					</button>
 
 					<button
@@ -364,7 +366,7 @@ const DoctorNotification = () => {
 								: "border border-[var(--jh-line-strong)] bg-white text-[var(--jh-ink)] hover:bg-[var(--jh-sage-pale)] hover:border-[#4a5c28]"
 						}`}
 					>
-						Diet Plans ({counts.diet_plans})
+						{t("doctorNotifications.tabDietPlans", "Diet Plans ({{count}})", { count: counts.diet_plans })}
 					</button>
 
 					<button
@@ -376,7 +378,7 @@ const DoctorNotification = () => {
 								: "border border-[var(--jh-line-strong)] bg-white text-[var(--jh-ink)] hover:bg-[var(--jh-sage-pale)] hover:border-[#4a5c28]"
 						}`}
 					>
-						Appointments ({counts.appointments})
+						{t("doctorNotifications.tabAppointments", "Appointments ({{count}})", { count: counts.appointments })}
 					</button>
 
 					<button
@@ -388,7 +390,7 @@ const DoctorNotification = () => {
 								: "border border-[var(--jh-line-strong)] bg-white text-[var(--jh-ink)] hover:bg-[var(--jh-sage-pale)] hover:border-[#4a5c28]"
 						}`}
 					>
-						Disputes & Issues ({counts.disputes})
+						{t("doctorNotifications.tabDisputes", "Disputes & Issues ({{count}})", { count: counts.disputes })}
 					</button>
 
 					<button
@@ -400,7 +402,7 @@ const DoctorNotification = () => {
 								: "border border-[var(--jh-line-strong)] bg-white text-[var(--jh-ink)] hover:bg-[var(--jh-sage-pale)] hover:border-[#4a5c28]"
 						}`}
 					>
-						Reviews ({counts.reviews})
+						{t("doctorNotifications.tabReviews", "Reviews ({{count}})", { count: counts.reviews })}
 					</button>
 
 					<button
@@ -412,23 +414,23 @@ const DoctorNotification = () => {
 								: "border border-[var(--jh-line-strong)] bg-white text-[var(--jh-ink)] hover:bg-[var(--jh-sage-pale)] hover:border-[#4a5c28]"
 						}`}
 					>
-						System ({counts.system})
+						{t("doctorNotifications.tabSystem", "System ({{count}})", { count: counts.system })}
 					</button>
 				</div>
 
 				{/* Notifications List */}
 				<div className="mt-6">
 					{loading ? (
-						<div className="py-12 text-center text-sm font-medium text-muted-foreground">Loading notifications...</div>
+						<div className="py-12 text-center text-sm font-medium text-muted-foreground">{t("common.loading", "Loading...")}</div>
 					) : error ? (
 						<div className="rounded-lg bg-destructive/10 p-4 text-center text-sm text-destructive">{error}</div>
 					) : filteredNotifications.length === 0 ? (
 						<EmptyState
 							icon={Bell}
-							title="No new notifications"
+							title={t("doctorNotifications.noNotifications", "No new notifications")}
 							description={
 								activeTab === "all"
-									? "You're all caught up! Patient updates and appointment alerts will appear here."
+									? t("doctorNotifications.allCaughtUp", "You're all caught up! Patient updates and appointment alerts will appear here.")
 									: `No unread notifications in ${activeTab}.`
 							}
 						/>
@@ -478,7 +480,7 @@ const DoctorNotification = () => {
 															className="inline-flex items-center gap-1.5 rounded-lg bg-[#4a5c28] px-3.5 py-1.5 text-xs font-bold text-white shadow-sm transition-colors hover:bg-[#3a4a1f]"
 														>
 															<Video className="size-3.5" />
-															Start Consultation
+															{t("doctorNotifications.startConsultation", "Start Consultation")}
 															<ExternalLink className="size-3 opacity-80" />
 														</a>
 													) : null}
@@ -488,7 +490,7 @@ const DoctorNotification = () => {
 														onClick={() => handleAction(notification)}
 														className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--jh-line-strong)] bg-[var(--jh-cream)] px-3 py-1.5 text-xs font-semibold text-[var(--jh-olive-deep)] shadow-xs transition-colors hover:bg-[var(--jh-sage-pale)] hover:border-[#4a5c28] cursor-pointer"
 													>
-														View Details
+														{t("doctorNotifications.viewDetails", "View Details")}
 													</button>
 												</div>
 											</div>
@@ -498,7 +500,7 @@ const DoctorNotification = () => {
 										<button
 											type="button"
 											onClick={(e) => markAsRead(notification._id, e)}
-											title="Mark as read"
+											title={t("doctorNotifications.markAll", "Mark as read")}
 											aria-label="Mark as read"
 											className="self-end sm:self-start shrink-0 rounded-full p-2 bg-[var(--jh-sage-pale)]/50 text-[var(--jh-muted)] hover:bg-[#4a5c28] hover:text-white border border-[var(--jh-line-strong)] transition-all cursor-pointer shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 										>

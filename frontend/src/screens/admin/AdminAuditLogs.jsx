@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 
 import { authFetch } from "../../utils/authFetch";
 import { BACKEND_URL } from "../../config";
@@ -7,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 
 const AdminAuditLogs = () => {
+	const { t } = useTranslation();
 	const [logs, setLogs] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
@@ -37,7 +39,7 @@ const AdminAuditLogs = () => {
 	if (loading) {
 		return (
 			<DashboardShell>
-				<p className="text-center text-muted-foreground">Loading logs...</p>
+				<p className="text-center text-muted-foreground">{t("adminAuditLogs.loading")}</p>
 			</DashboardShell>
 		);
 	}
@@ -52,17 +54,17 @@ const AdminAuditLogs = () => {
 
 	return (
 		<DashboardShell>
-			<DashboardPageHeader title="Admin Audit Logs" />
+			<DashboardPageHeader title={t("adminAuditLogs.title")} />
 
 			<Card className="overflow-hidden p-0">
 				<div className="overflow-x-auto">
 					<Table>
 						<TableHeader>
 							<TableRow>
-								<TableHead>Timestamp</TableHead>
-								<TableHead>Admin</TableHead>
-								<TableHead>Action</TableHead>
-								<TableHead>Details</TableHead>
+								<TableHead>{t("adminAuditLogs.table.timestamp")}</TableHead>
+								<TableHead>{t("adminAuditLogs.table.admin")}</TableHead>
+								<TableHead>{t("adminAuditLogs.table.action")}</TableHead>
+								<TableHead>{t("adminAuditLogs.table.details")}</TableHead>
 							</TableRow>
 						</TableHeader>
 						<TableBody>
@@ -72,7 +74,7 @@ const AdminAuditLogs = () => {
 										<TableCell className="whitespace-nowrap text-muted-foreground">
 											{new Date(log.timestamp).toLocaleString()}
 										</TableCell>
-										<TableCell>{log.adminId ? `${log.adminId.firstName} ${log.adminId.lastName}` : "Unknown"}</TableCell>
+										<TableCell>{log.adminId ? `${log.adminId.firstName} ${log.adminId.lastName}` : t("adminAuditLogs.unknown")}</TableCell>
 										<TableCell className="font-semibold text-primary">{log.action}</TableCell>
 										<TableCell>{log.details}</TableCell>
 									</TableRow>
@@ -80,7 +82,7 @@ const AdminAuditLogs = () => {
 							) : (
 								<TableRow>
 									<TableCell colSpan={4} className="py-8 text-center text-muted-foreground">
-										No logs found.
+										{t("adminAuditLogs.noLogsFound")}
 									</TableCell>
 								</TableRow>
 							)}

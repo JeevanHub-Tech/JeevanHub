@@ -1,6 +1,7 @@
 import { useState, useEffect, useContext } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ChevronLeft, ChevronDown, Mail, Phone, Calendar, Clock, Star, Pill } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import { AuthContext } from "../../context/AuthContext";
 import { authFetch } from "../../utils/authFetch";
@@ -26,6 +27,7 @@ const format12HourTime = (timeStr) => {
 };
 
 function PatientDetail() {
+	const { t } = useTranslation();
 	const { patientId } = useParams();
 	const navigate = useNavigate();
 	const { auth } = useContext(AuthContext);
@@ -71,7 +73,7 @@ function PatientDetail() {
 	if (loading) {
 		return (
 			<DashboardShell>
-				<p className="text-muted-foreground">Loading...</p>
+				<p className="text-muted-foreground">{t("common.loading", "Loading...")}</p>
 			</DashboardShell>
 		);
 	}
@@ -79,7 +81,7 @@ function PatientDetail() {
 	if (error || !patient) {
 		return (
 			<DashboardShell>
-				<p className="text-destructive">{error || "Patient not found."}</p>
+				<p className="text-destructive">{error || t("patientDetail.error", "Patient not found.")}</p>
 			</DashboardShell>
 		);
 	}
@@ -88,19 +90,19 @@ function PatientDetail() {
 		<DashboardShell>
 			<Button
 				onClick={() => navigate("/patient-list")}
-				className="mb-4 bg-[var(--jh-olive-light)] text-[var(--jh-cream)] hover:bg-[var(--jh-olive-leaf)] transition-colors flex items-center gap-2"
+				className="mb-4 bg-[var(--jh-olive-light)] text-[var(--jh-cream)] hover:bg-[var(--jh-olive-leaf)] transition-colors flex items-center gap-2 cursor-pointer"
 			>
-				<ChevronLeft className="size-4" /> Back to Patient List
+				<ChevronLeft className="size-4" /> {t("patientDetail.backToList", "Back to Patient List")}
 			</Button>
 
 			<DashboardPageHeader
 				title={`${patient.firstName} ${patient.lastName}`}
-				description="Patient profile, medical history, and consultation record."
+				description={t("patientDetail.description", "Patient profile, medical history, and consultation record.")}
 			/>
 
 			<div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
 				<Card className="p-6 lg:col-span-1">
-					<h3 className="mb-3 border-b border-border pb-2 text-base font-semibold text-foreground">Profile</h3>
+					<h3 className="mb-3 border-b border-border pb-2 text-base font-semibold text-foreground">{t("patientDetail.profile", "Profile")}</h3>
 					<div className="flex flex-col gap-2.5 text-sm text-foreground/80">
 						<span className="flex items-center gap-2">
 							<Mail className="size-4 text-muted-foreground" /> {patient.email}
@@ -111,7 +113,7 @@ function PatientDetail() {
 							</span>
 						) : null}
 						<span>
-							{patient.age != null ? `${patient.age} yrs` : "Age N/A"} &bull; {patient.gender || "N/A"}
+							{patient.age != null ? `${patient.age} ${t("appointmentSlots.age", "yrs")}` : t("patientDetail.ageNA", "Age N/A")} &bull; {patient.gender ? t(`common.genders.${patient.gender.toLowerCase()}`, patient.gender) : t("common.na", "N/A")}
 						</span>
 					</div>
 				</Card>
@@ -125,10 +127,10 @@ function PatientDetail() {
 				<button
 					type="button"
 					onClick={() => setShowVisits((prev) => !prev)}
-					className="flex w-full items-center justify-between gap-2 bg-transparent p-5 text-left"
+					className="flex w-full items-center justify-between gap-2 bg-transparent p-5 text-left cursor-pointer"
 				>
 					<h3 className="text-base font-semibold text-foreground">
-						Previous Appointments with You ({visits.length})
+						{t("patientDetail.prevVisits", "Previous Appointments with You ({{count}})", { count: visits.length })}
 					</h3>
 					<ChevronDown className={`size-4 text-muted-foreground transition-transform ${showVisits ? "rotate-180" : ""}`} />
 				</button>
@@ -136,7 +138,7 @@ function PatientDetail() {
 				{showVisits ? (
 					<div className="flex flex-col gap-4 border-t border-border p-5">
 						{visits.length === 0 ? (
-							<p className="text-sm text-muted-foreground">No accepted appointments with this patient yet.</p>
+							<p className="text-sm text-muted-foreground">{t("patientDetail.noPrevVisits", "No accepted appointments with this patient yet.")}</p>
 						) : (
 							visits.map((visit) => (
 								<div key={visit._id} className="rounded-lg border border-border p-4">
@@ -153,20 +155,20 @@ function PatientDetail() {
 											) : null}
 										</div>
 										<Badge variant={visit.amountPaid === 0 ? "secondary" : "default"}>
-											{visit.amountPaid === 0 ? "Free" : `₹${visit.amountPaid}`}
+											{visit.amountPaid === 0 ? t("appointmentHistory.free", "Free") : `₹${visit.amountPaid}`}
 										</Badge>
 									</div>
 
 									{/* 1. Reason for Visit */}
 									<p className="mt-3 text-xs text-muted-foreground">
-										<strong className="text-foreground">Reason for Visit:</strong>{" "}
-										{visit.patientIllness || <span className="italic text-muted-foreground/75">Not provided</span>}
+										<strong className="text-foreground">{t("patientDetail.reasonForVisit", "Reason for Visit:")}</strong>{" "}
+										{visit.patientIllness || <span className="italic text-muted-foreground/75">{t("patientDetail.notProvided", "Not provided")}</span>}
 									</p>
 
 									{/* 2. Diagnosis */}
 									<p className="mt-1.5 text-xs text-muted-foreground">
-										<strong className="text-foreground">Diagnosis:</strong>{" "}
-										{visit.diagnosis ? visit.diagnosis : <span className="italic text-muted-foreground/75">Not provided</span>}
+										<strong className="text-foreground">{t("patientDetail.diagnosis", "Diagnosis:")}</strong>{" "}
+										{visit.diagnosis ? visit.diagnosis : <span className="italic text-muted-foreground/75">{t("patientDetail.notProvided", "Not provided")}</span>}
 									</p>
 
 									{/* 3. Medicines Prescribed (below Reason for Visit & Diagnosis) */}
@@ -179,8 +181,9 @@ function PatientDetail() {
 											>
 												<Pill className="size-3.5 text-muted-foreground" />
 												<span>
-													{visit.recommendedSupplements.length} medicine
-													{visit.recommendedSupplements.length > 1 ? "s" : ""} prescribed
+													{visit.recommendedSupplements.length === 1 
+														? t("patientDetail.medicinesPrescribed_one", "{{count}} medicine prescribed", { count: 1 })
+														: t("patientDetail.medicinesPrescribed_other", "{{count}} medicines prescribed", { count: visit.recommendedSupplements.length })}
 												</span>
 												<ChevronDown className={`size-3.5 text-muted-foreground transition-transform ${expandedMedicines[visit._id] ? "rotate-180" : ""}`} />
 											</button>
@@ -190,16 +193,16 @@ function PatientDetail() {
 													{visit.recommendedSupplements.map((med, idx) => (
 														<div key={med._id || idx} className="flex flex-col gap-1 rounded-md bg-secondary/30 p-2.5 border border-border/60">
 															<div>
-																<strong className="text-foreground">Medicine Name:</strong>{" "}
-																<span className="font-semibold text-foreground">{med.medicineName || "Not provided"}</span>
+																<strong className="text-foreground">{t("patientDetail.medicineName", "Medicine Name:")}</strong>{" "}
+																<span className="font-semibold text-foreground">{med.medicineName || t("patientDetail.notProvided", "Not provided")}</span>
 															</div>
 															<div>
-																<strong className="text-foreground">Dosage:</strong>{" "}
-																<span>{med.dosage || <span className="italic text-muted-foreground/75">Not provided</span>}</span>
+																<strong className="text-foreground">{t("patientDetail.dosage", "Dosage:")}</strong>{" "}
+																<span>{med.dosage || <span className="italic text-muted-foreground/75">{t("patientDetail.notProvided", "Not provided")}</span>}</span>
 															</div>
 															<div>
-																<strong className="text-foreground">Instructions:</strong>{" "}
-																<span className="italic">{med.instructions || <span className="not-italic text-muted-foreground/75">Not provided</span>}</span>
+																<strong className="text-foreground">{t("patientDetail.instructions", "Instructions:")}</strong>{" "}
+																<span className="italic">{med.instructions || <span className="not-italic text-muted-foreground/75">{t("patientDetail.notProvided", "Not provided")}</span>}</span>
 															</div>
 														</div>
 													))}
@@ -208,15 +211,15 @@ function PatientDetail() {
 										</div>
 									) : (
 										<p className="mt-1.5 text-xs text-muted-foreground">
-											<strong className="text-foreground">Medicines:</strong>{" "}
-											<span className="italic text-muted-foreground/75">Not provided</span>
+											<strong className="text-foreground">{t("patientDetail.medicines", "Medicines:")}</strong>{" "}
+											<span className="italic text-muted-foreground/75">{t("patientDetail.notProvided", "Not provided")}</span>
 										</p>
 									)}
 
 									{/* 4. Patient Review/Feedback */}
 									{visit.rating || (visit.review && visit.review.trim()) ? (
 										<div className="mt-2.5 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
-											<strong className="text-foreground">Feedback:</strong>
+											<strong className="text-foreground">{t("patientDetail.feedback", "Feedback:")}</strong>
 											{visit.rating ? (
 												<span className="flex items-center gap-0.5 font-medium text-foreground">
 													<Star className="size-3.5 fill-(--jh-turmeric-gold) text-(--jh-turmeric-gold)" />{" "}
@@ -235,7 +238,7 @@ function PatientDetail() {
 									) : null}
 
 									<Button size="sm" variant="outline" className="mt-3.5" onClick={() => navigate(`/doctorsprescribe/${visit._id}`)}>
-										View / Edit Prescription
+										{t("patientDetail.viewEditPrescription", "View / Edit Prescription")}
 									</Button>
 								</div>
 							))

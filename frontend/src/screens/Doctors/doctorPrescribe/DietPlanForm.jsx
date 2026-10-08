@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Salad, Send, Loader2, PenLine, Check, Sparkles, UserCheck } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import { authFetch } from "../../../utils/authFetch";
 import { BACKEND_URL } from "../../../config";
@@ -70,11 +71,13 @@ function otherFieldsToForm(plan) {
 	};
 }
 
-// Which content the patient currently sees: doctorReview fields once a
-// doctor has edited/approved, otherwise the raw AI fields. Mirrors
-// resolveDisplayPlan() in backend/controllers/ayurvedaController.js.
+// Which content the patient currently sees: server-resolved displayPlan
+// (Hindi if requested, doctorReview if approved, else raw AI).
 function resolveActiveContent(plan) {
 	if (!plan) return null;
+	if (plan.displayPlan) {
+		return plan.displayPlan;
+	}
 	if (plan.status === "ai_modified" || plan.status === "doctor_approved") {
 		return { ...plan.doctorReview, cookingInstructions: plan.doctorReview?.cookingInstructions };
 	}
@@ -87,6 +90,9 @@ function resolveActiveContent(plan) {
 }
 
 export function DietPlanForm({ bookingId, patientId, onPrescribed }) {
+	const { t, i18n } = useTranslation();
+	const currentLang = i18n.language?.startsWith("hi") ? "hi" : "en";
+
 	const [plan, setPlan] = useState(null);
 	const [loadingExisting, setLoadingExisting] = useState(true);
 	const [saving, setSaving] = useState(false);
@@ -103,7 +109,7 @@ export function DietPlanForm({ bookingId, patientId, onPrescribed }) {
 			return;
 		}
 		try {
-			const response = await authFetch(`${BACKEND_URL}/api/ayurveda/diet-plan/patient/${patientId}`);
+			const response = await authFetch(`${BACKEND_URL}/api/ayurveda/diet-plan/patient/${patientId}?lang=${currentLang}`);
 			if (response.ok) {
 				const data = await response.json();
 				setPlan(data);
@@ -113,7 +119,7 @@ export function DietPlanForm({ bookingId, patientId, onPrescribed }) {
 		} finally {
 			setLoadingExisting(false);
 		}
-	}, [patientId]);
+	}, [patientId, currentLang]);
 
 	useEffect(() => {
 		fetchExisting();
@@ -134,11 +140,7 @@ export function DietPlanForm({ bookingId, patientId, onPrescribed }) {
 
 	// Accepts explicit fp/of so callers that just computed fresh values (e.g.
 	// saveAsIs) don't have to round-trip through setState + wait for a
-	// re-render -- reading the `formPlan`/`otherFields` state here would be
-	// stale (this closure was created on the render before that state
-	// update lands), which previously caused "Approve as-is" to submit
-	// still-blank form state and wipe the plan. Always a silent draft save --
-	// nothing reaches the patient until "Submit Prescription" publishes it.
+	// re-render. Always a silent draft save until "Submit Prescription".
 	const submitReview = async (fp = formPlan, of = otherFields) => {
 		setSaving(true);
 		setError(null);
@@ -177,8 +179,7 @@ export function DietPlanForm({ bookingId, patientId, onPrescribed }) {
 		}
 	};
 
-	// Save the current active content unchanged as the doctor's draft (no
-	// edits needed first) -- still just a draft until Submit Prescription.
+	// Save current active content unchanged as doctor's draft
 	const saveAsIs = async () => {
 		const active = resolveActiveContent(plan);
 		const fp = weeklyPlanToForm(active?.weeklyPlan);
@@ -194,11 +195,11 @@ export function DietPlanForm({ bookingId, patientId, onPrescribed }) {
 				<div className="border-b border-border bg-muted/40 px-6 py-4">
 					<h3 className="flex items-center gap-3 text-lg font-bold text-foreground">
 						<Salad className="size-6 text-primary" />
-						Diet & Weekly Meal Planner
+						{t("doctorPrescribe.dietPlanTitle", "Diet & Weekly Meal Planner")}
 					</h3>
 				</div>
 				<div className="p-6">
-					<p className="py-6 text-center text-muted-foreground">Checking for an existing plan...</p>
+					<p className="py-6 text-center text-muted-foreground">{t("doctorPrescribe.checkingPlan", "Checking for an existing plan...")}</p>
 				</div>
 			</Card>
 		);
@@ -210,14 +211,14 @@ export function DietPlanForm({ bookingId, patientId, onPrescribed }) {
 				<div className="border-b border-border bg-muted/40 px-6 py-4">
 					<h3 className="flex items-center gap-3 text-lg font-bold text-foreground">
 						<Salad className="size-6 text-primary" />
-						Diet & Weekly Meal Planner
+						{t("doctorPrescribe.dietPlanTitle", "Diet & Weekly Meal Planner")}
 					</h3>
 				</div>
 				<div className="p-6">
 					<EmptyState
 						icon={Sparkles}
-						title="No AI diet plan yet"
-						description="This patient hasn't generated a plan yet. Use the Generate button above to create one, then review and approve it here."
+						title={t("doctorPrescribe.noAiDietPlan", "No AI diet plan yet")}
+						description={t("doctorPrescribe.noAiDietPlanDesc", "This patient hasn't generated a plan yet. Use the Generate button above to create one, then review and approve it here.")}
 					/>
 				</div>
 			</Card>
@@ -230,7 +231,7 @@ export function DietPlanForm({ bookingId, patientId, onPrescribed }) {
 	const doctorDisplayName = doctorReview?.doctorName ||
 		(doctorReview?.reviewedBy?.firstName
 			? `Dr. ${doctorReview.reviewedBy.firstName} ${doctorReview.reviewedBy.lastName || ""}`.trim()
-			: (typeof doctorReview?.reviewedBy === "string" ? doctorReview.reviewedBy : "your doctor"));
+			: (typeof doctorReview?.reviewedBy === "string" ? doctorReview.reviewedBy : t("weeklyMealPlanner.yourDoctor", "your doctor")));
 	const reviewedDate = doctorReview?.reviewedAt ? formatDateReadable(doctorReview.reviewedAt) : "";
 
 	return (
@@ -238,11 +239,11 @@ export function DietPlanForm({ bookingId, patientId, onPrescribed }) {
 			<div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-muted/40 px-6 py-4">
 				<h3 className="flex items-center gap-3 text-lg font-bold text-foreground">
 					<Salad className="size-6 text-primary" />
-					Diet & Weekly Meal Planner
+					{t("doctorPrescribe.dietPlanTitle", "Diet & Weekly Meal Planner")}
 				</h3>
 				<div className="flex items-center gap-2">
 					{plan.doctorReview?.reviewedAt && !plan.doctorReview?.published ? (
-						<span className="rounded-full bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground">Draft -- not sent yet</span>
+						<span className="rounded-full bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground">{t("doctorPrescribe.draftBadge", "Draft -- not sent yet")}</span>
 					) : null}
 					<SourceBadge status={plan.status} />
 				</div>
@@ -252,10 +253,12 @@ export function DietPlanForm({ bookingId, patientId, onPrescribed }) {
 					<div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/30 bg-gradient-to-r from-primary/15 via-primary/10 to-amber-500/10 p-3.5 text-xs text-foreground shadow-xs">
 						<div className="flex flex-wrap items-center gap-2">
 							<span className="inline-flex items-center gap-1.5 rounded-md bg-primary/20 px-2.5 py-1 font-bold text-primary">
-								<UserCheck size={14} /> Doctor Approved
+								<UserCheck size={14} /> {t("weeklyMealPlanner.doctorApproved", "Doctor Approved")}
 							</span>
 							<span className="font-semibold text-foreground">
-								Made by {doctorDisplayName}{reviewedDate ? ` on ${reviewedDate}` : ""}
+								{reviewedDate
+									? t("weeklyMealPlanner.madeByOnDate", "Made by {{doctorName}} on {{date}}", { doctorName: doctorDisplayName, date: reviewedDate })
+									: t("weeklyMealPlanner.madeBy", "Made by {{doctorName}}", { doctorName: doctorDisplayName })}
 							</span>
 						</div>
 						{doctorReview?.notes ? (
@@ -269,30 +272,35 @@ export function DietPlanForm({ bookingId, patientId, onPrescribed }) {
 				{!editing ? (
 					<>
 						<div className="flex flex-wrap gap-1.5">
-							{DAYS.map((day) => (
-								<button
-									key={day}
-									type="button"
-									onClick={() => setActiveDayTab(day)}
-									className={
-										activeDayTab === day
-											? "rounded-full bg-primary px-3.5 py-2 text-xs font-semibold text-primary-foreground"
-											: "rounded-full border border-border bg-muted/40 px-3.5 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground"
-									}
-								>
-									{day.slice(0, 3).toUpperCase()}
-								</button>
-							))}
+							{DAYS.map((day) => {
+								const dayKey = day.slice(0, 3).toLowerCase();
+								const dayLabel = t(`weeklyMealPlanner.days.${dayKey}`, day.slice(0, 3).toUpperCase());
+								return (
+									<button
+										key={day}
+										type="button"
+										onClick={() => setActiveDayTab(day)}
+										className={
+											activeDayTab === day
+												? "rounded-full bg-primary px-3.5 py-2 text-xs font-semibold text-primary-foreground"
+												: "rounded-full border border-border bg-muted/40 px-3.5 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground"
+										}
+									>
+										{dayLabel}
+									</button>
+								);
+							})}
 						</div>
 						<div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
 							{MEAL_KEYS.map((meal) => {
 								const dayPlan = (active?.weeklyPlan || []).find((d) => d.day === activeDayTab);
 								const m = dayPlan?.[meal] || {};
+								const mealTitle = t(`weeklyMealPlanner.meals.${meal}`, MEAL_LABELS[meal]);
 								return (
 									<div key={meal} className="rounded-lg border border-border p-3">
-										<h5 className="mb-1 text-xs font-semibold text-muted-foreground">{MEAL_LABELS[meal]}</h5>
+										<h5 className="mb-1 text-xs font-semibold text-muted-foreground">{mealTitle}</h5>
 										<p className="text-sm text-foreground">{(m.items || []).join(", ") || "—"}</p>
-										{m.portion ? <p className="text-xs text-muted-foreground">Portion: {m.portion}</p> : null}
+										{m.portion ? <p className="text-xs text-muted-foreground">{t("doctorPrescribe.portion", "Portion")}: {m.portion}</p> : null}
 										{m.purpose ? <p className="text-xs text-muted-foreground italic">{m.purpose}</p> : null}
 									</div>
 								);
@@ -300,7 +308,7 @@ export function DietPlanForm({ bookingId, patientId, onPrescribed }) {
 						</div>
 						{active?.lifestyleRecommendations?.length ? (
 							<div>
-								<h5 className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Lifestyle recommendations</h5>
+								<h5 className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t("doctorPrescribe.lifestyleRecs", "Lifestyle recommendations")}</h5>
 								<ul className="list-disc pl-5 text-sm text-foreground">
 									{active.lifestyleRecommendations.map((r, i) => <li key={i}>{r}</li>)}
 								</ul>
@@ -309,55 +317,62 @@ export function DietPlanForm({ bookingId, patientId, onPrescribed }) {
 
 						<div className="flex flex-wrap gap-2">
 							<Button type="button" variant="outline" onClick={startEditing}>
-								<PenLine data-icon="inline-start" size={16} /> Edit
+								<PenLine data-icon="inline-start" size={16} /> {t("common.edit", "Edit")}
 							</Button>
 							<Button type="button" onClick={saveAsIs} disabled={saving}>
 								{saving ? <Loader2 className="animate-spin" data-icon="inline-start" /> : <Check data-icon="inline-start" size={16} />}
-								Save
+								{t("common.save", "Save")}
 							</Button>
 						</div>
 					</>
 				) : (
 					<>
 						<div className="flex flex-wrap gap-1.5">
-							{DAYS.map((day) => (
-								<button
-									key={day}
-									type="button"
-									onClick={() => setActiveDayTab(day)}
-									className={
-										activeDayTab === day
-											? "rounded-full bg-primary px-3.5 py-2 text-xs font-semibold text-primary-foreground"
-											: "rounded-full border border-border bg-muted/40 px-3.5 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground"
-									}
-								>
-									{day.slice(0, 3).toUpperCase()}
-								</button>
-							))}
+							{DAYS.map((day) => {
+								const dayKey = day.slice(0, 3).toLowerCase();
+								const dayLabel = t(`weeklyMealPlanner.days.${dayKey}`, day.slice(0, 3).toUpperCase());
+								return (
+									<button
+										key={day}
+										type="button"
+										onClick={() => setActiveDayTab(day)}
+										className={
+											activeDayTab === day
+												? "rounded-full bg-primary px-3.5 py-2 text-xs font-semibold text-primary-foreground"
+												: "rounded-full border border-border bg-muted/40 px-3.5 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground"
+										}
+									>
+										{dayLabel}
+									</button>
+								);
+							})}
 						</div>
 						<div className="rounded-lg border border-border p-4">
-							<h4 className="mb-4 text-base font-bold text-foreground">{activeDayTab}</h4>
+							<h4 className="mb-4 text-base font-bold text-foreground">
+								{t(`weeklyMealPlanner.daysFull.${activeDayTab.slice(0, 3).toLowerCase()}`, activeDayTab)}
+							</h4>
 							<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 								{MEAL_KEYS.map((meal) => {
 									const dayForm = formPlan.find((d) => d.day === activeDayTab);
+									const mealTitle = t(`weeklyMealPlanner.meals.${meal}`, MEAL_LABELS[meal]);
 									return (
 										<div key={meal} className="flex flex-col gap-1.5">
-											<label className="text-xs font-semibold text-muted-foreground">{MEAL_LABELS[meal]}</label>
+											<label className="text-xs font-semibold text-muted-foreground">{mealTitle}</label>
 											<Textarea
 												value={dayForm[meal].items}
 												onChange={(e) => updateMealField(activeDayTab, meal, "items", e.target.value)}
-												placeholder="Comma-separated food items"
+												placeholder={t("doctorPrescribe.foodItemsPlaceholder", "Comma-separated food items")}
 												rows={2}
 											/>
 											<Input
 												value={dayForm[meal].portion}
 												onChange={(e) => updateMealField(activeDayTab, meal, "portion", e.target.value)}
-												placeholder="Portion"
+												placeholder={t("doctorPrescribe.portionPlaceholder", "Portion")}
 											/>
 											<Input
 												value={dayForm[meal].purpose}
 												onChange={(e) => updateMealField(activeDayTab, meal, "purpose", e.target.value)}
-												placeholder="Why this helps (optional)"
+												placeholder={t("doctorPrescribe.purposePlaceholder", "Why this helps (optional)")}
 											/>
 										</div>
 									);
@@ -367,7 +382,7 @@ export function DietPlanForm({ bookingId, patientId, onPrescribed }) {
 
 						<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 							<div className="flex flex-col gap-1.5">
-								<label className="text-xs font-semibold text-muted-foreground">Lifestyle recommendations (comma-separated)</label>
+								<label className="text-xs font-semibold text-muted-foreground">{t("doctorPrescribe.lifestyleRecsComma", "Lifestyle recommendations (comma-separated)")}</label>
 								<Textarea
 									value={otherFields.lifestyleRecommendations}
 									onChange={(e) => setOtherFields((f) => ({ ...f, lifestyleRecommendations: e.target.value }))}
@@ -375,7 +390,7 @@ export function DietPlanForm({ bookingId, patientId, onPrescribed }) {
 								/>
 							</div>
 							<div className="flex flex-col gap-1.5">
-								<label className="text-xs font-semibold text-muted-foreground">Doctor's notes (optional)</label>
+								<label className="text-xs font-semibold text-muted-foreground">{t("doctorPrescribe.doctorNotesOptional", "Doctor's notes (optional)")}</label>
 								<Textarea
 									value={otherFields.notes}
 									onChange={(e) => setOtherFields((f) => ({ ...f, notes: e.target.value }))}
@@ -386,11 +401,11 @@ export function DietPlanForm({ bookingId, patientId, onPrescribed }) {
 
 						<div className="flex flex-wrap gap-2">
 							<Button type="button" variant="outline" onClick={() => setEditing(false)} disabled={saving}>
-								Cancel
+								{t("common.cancel", "Cancel")}
 							</Button>
 							<Button type="button" onClick={() => submitReview()} disabled={saving}>
 								{saving ? <Loader2 className="animate-spin" data-icon="inline-start" /> : <Send data-icon="inline-start" size={16} />}
-								Save
+								{t("common.save", "Save")}
 							</Button>
 						</div>
 					</>

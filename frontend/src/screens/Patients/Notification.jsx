@@ -1,5 +1,6 @@
 import { useState, useEffect, useContext, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
 	AlertCircle,
 	Bell,
@@ -80,36 +81,8 @@ const extractUrl = (text) => {
 	return match ? match[0] : null;
 };
 
-const formatNotificationTime = (dateStr) => {
-	if (!dateStr) return "";
-	const date = new Date(dateStr);
-	const now = new Date();
-	const isToday = date.toDateString() === now.toDateString();
-
-	const timePart = date.toLocaleTimeString("en-US", {
-		hour: "2-digit",
-		minute: "2-digit",
-	});
-
-	if (isToday) {
-		return `Today, ${timePart}`;
-	}
-
-	const yesterday = new Date(now);
-	yesterday.setDate(now.getDate() - 1);
-	if (date.toDateString() === yesterday.toDateString()) {
-		return `Yesterday, ${timePart}`;
-	}
-
-	return date.toLocaleDateString("en-GB", {
-		day: "numeric",
-		month: "short",
-		hour: "2-digit",
-		minute: "2-digit",
-	});
-};
-
 const Notification = () => {
+	const { t } = useTranslation();
 	const navigate = useNavigate();
 	const { auth } = useContext(AuthContext);
 	const patientId = auth?.user?.id;
@@ -119,6 +92,35 @@ const Notification = () => {
 	const [loading, setLoading] = useState(true);
 	const [markingAll, setMarkingAll] = useState(false);
 	const [error, setError] = useState(null);
+
+	const formatNotificationTime = (dateStr) => {
+		if (!dateStr) return "";
+		const date = new Date(dateStr);
+		const now = new Date();
+		const isToday = date.toDateString() === now.toDateString();
+
+		const timePart = date.toLocaleTimeString("en-US", {
+			hour: "2-digit",
+			minute: "2-digit",
+		});
+
+		if (isToday) {
+			return `${t("patientNotifications.today", "Today")}, ${timePart}`;
+		}
+
+		const yesterday = new Date(now);
+		yesterday.setDate(now.getDate() - 1);
+		if (date.toDateString() === yesterday.toDateString()) {
+			return `${t("patientNotifications.yesterday", "Yesterday")}, ${timePart}`;
+		}
+
+		return date.toLocaleDateString("en-GB", {
+			day: "numeric",
+			month: "short",
+			hour: "2-digit",
+			minute: "2-digit",
+		});
+	};
 
 	const fetchNotifications = async () => {
 		if (!auth?.token) {
@@ -138,7 +140,7 @@ const Notification = () => {
 			setNotifications(Array.isArray(data) ? data.filter((n) => !n.isRead) : []);
 		} catch (err) {
 			console.error("Error fetching notifications:", err);
-			setError("Could not load notifications.");
+			setError(t("patientNotifications.error", "Could not load notifications."));
 		} finally {
 			setLoading(false);
 		}
@@ -258,15 +260,17 @@ const Notification = () => {
 				<div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 					<div>
 						<div className="flex items-center gap-2.5">
-							<h1 className="font-display text-2xl font-bold text-foreground sm:text-3xl">Your Notifications</h1>
+							<h1 className="font-display text-2xl font-bold text-foreground sm:text-3xl">
+								{t("patientNotifications.title", "Notifications")}
+							</h1>
 							{notifications.length > 0 && (
 								<Badge className="bg-[#4a5c28] text-white hover:bg-[#3a4a1f] font-semibold">
-									{notifications.length} new
+									{t("patientNotifications.newBadge", { count: notifications.length })}
 								</Badge>
 							)}
 						</div>
 						<p className="mt-1 text-sm text-muted-foreground">
-							Stay updated with your daily wellness routine, consultations, and orders.
+							{t("patientNotifications.subtitle", "Stay updated with your daily wellness routine, consultations, and orders.")}
 						</p>
 					</div>
 
@@ -279,7 +283,7 @@ const Notification = () => {
 							className="flex items-center gap-1.5 self-start border-[var(--jh-line-strong)] bg-white text-foreground hover:bg-[var(--jh-sage-pale)] hover:text-[#4a5c28] font-semibold sm:self-auto cursor-pointer shadow-xs"
 						>
 							<CheckCheck className="size-4 text-[#4a5c28]" />
-							{markingAll ? "Marking..." : "Mark all as read"}
+							{markingAll ? t("patientNotifications.marking", "Marking...") : t("patientNotifications.markAllRead", "Mark all as read")}
 						</Button>
 					)}
 				</div>
@@ -295,7 +299,7 @@ const Notification = () => {
 								: "border border-[var(--jh-line-strong)] bg-white text-[var(--jh-ink)] hover:bg-[var(--jh-sage-pale)] hover:border-[#4a5c28]"
 						}`}
 					>
-						All ({counts.all})
+						{t("patientNotifications.tabs.all", { count: counts.all })}
 					</button>
 
 					<button
@@ -307,7 +311,7 @@ const Notification = () => {
 								: "border border-[var(--jh-line-strong)] bg-white text-[var(--jh-ink)] hover:bg-[var(--jh-sage-pale)] hover:border-[#4a5c28]"
 						}`}
 					>
-						Appointments ({counts.appointments})
+						{t("patientNotifications.tabs.appointments", { count: counts.appointments })}
 					</button>
 
 					<button
@@ -319,7 +323,7 @@ const Notification = () => {
 								: "border border-[var(--jh-line-strong)] bg-white text-[var(--jh-ink)] hover:bg-[var(--jh-sage-pale)] hover:border-[#4a5c28]"
 						}`}
 					>
-						Diet & Yoga ({counts.dietYoga})
+						{t("patientNotifications.tabs.dietYoga", { count: counts.dietYoga })}
 					</button>
 
 					<button
@@ -331,7 +335,7 @@ const Notification = () => {
 								: "border border-[var(--jh-line-strong)] bg-white text-[var(--jh-ink)] hover:bg-[var(--jh-sage-pale)] hover:border-[#4a5c28]"
 						}`}
 					>
-						Orders ({counts.orders})
+						{t("patientNotifications.tabs.orders", { count: counts.orders })}
 					</button>
 
 					<button
@@ -343,24 +347,24 @@ const Notification = () => {
 								: "border border-[var(--jh-line-strong)] bg-white text-[var(--jh-ink)] hover:bg-[var(--jh-sage-pale)] hover:border-[#4a5c28]"
 						}`}
 					>
-						Prescriptions ({counts.system})
+						{t("patientNotifications.tabs.prescriptions", { count: counts.system })}
 					</button>
 				</div>
 
 				{/* Notifications List */}
 				<div className="mt-6">
 					{loading ? (
-						<div className="py-12 text-center text-sm font-medium text-muted-foreground">Loading notifications...</div>
+						<div className="py-12 text-center text-sm font-medium text-muted-foreground">{t("patientNotifications.loading", "Loading notifications...")}</div>
 					) : error ? (
 						<div className="rounded-lg bg-destructive/10 p-4 text-center text-sm text-destructive">{error}</div>
 					) : filteredNotifications.length === 0 ? (
 						<EmptyState
 							icon={Bell}
-							title="No new notifications"
+							title={t("patientNotifications.emptyTitle", "No new notifications")}
 							description={
 								activeTab === "all"
-									? "You're all caught up! New reminders and updates will appear here."
-									: `No unread notifications in ${activeTab.replace("-", " & ")}.`
+									? t("patientNotifications.emptyDescAll", "You're all caught up! New reminders and updates will appear here.")
+									: t("patientNotifications.emptyDescTab", { tab: activeTab })
 							}
 						/>
 					) : (
@@ -386,7 +390,7 @@ const Notification = () => {
 											<div className="min-w-0 flex-1">
 												<div className="flex flex-wrap items-center gap-2">
 													<span className={`rounded-md px-2 py-0.5 text-[11px] font-bold border ${config.badgeClass}`}>
-														{config.label}
+														{t(`patientNotifications.types.${notification.type}`, config.label)}
 													</span>
 													<span className="text-xs font-semibold text-[var(--jh-muted)]">
 														{formatNotificationTime(notification.createdAt)}
@@ -408,7 +412,7 @@ const Notification = () => {
 															className="inline-flex items-center gap-1.5 rounded-lg bg-[#4a5c28] px-3.5 py-1.5 text-xs font-bold text-white shadow-sm transition-colors hover:bg-[#3a4a1f]"
 														>
 															<Video className="size-3.5" />
-															Join Video Call
+															{t("patientNotifications.joinVideoCall", "Join Video Call")}
 															<ExternalLink className="size-3 opacity-80" />
 														</a>
 													) : null}
@@ -419,7 +423,7 @@ const Notification = () => {
 															onClick={() => handleAction(notification)}
 															className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--jh-line-strong)] bg-[var(--jh-cream)] px-3 py-1.5 text-xs font-semibold text-[var(--jh-olive-deep)] shadow-xs transition-colors hover:bg-[var(--jh-sage-pale)] hover:border-[#4a5c28] cursor-pointer"
 														>
-															View Wellness Plan
+															{t("patientNotifications.viewWellnessPlan", "View Wellness Plan")}
 														</button>
 													)}
 
@@ -429,7 +433,7 @@ const Notification = () => {
 															onClick={() => handleAction(notification)}
 															className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--jh-line-strong)] bg-[var(--jh-cream)] px-3 py-1.5 text-xs font-semibold text-[var(--jh-olive-deep)] shadow-xs transition-colors hover:bg-[var(--jh-sage-pale)] hover:border-[#4a5c28] cursor-pointer"
 														>
-															View Orders
+															{t("patientNotifications.viewOrders", "View Orders")}
 														</button>
 													)}
 												</div>
@@ -440,8 +444,8 @@ const Notification = () => {
 										<button
 											type="button"
 											onClick={(e) => markAsRead(notification._id, e)}
-											title="Mark as read"
-											aria-label="Mark as read"
+											title={t("patientNotifications.markRead", "Mark as read")}
+											aria-label={t("patientNotifications.markRead", "Mark as read")}
 											className="self-end sm:self-start shrink-0 rounded-full p-2 bg-[var(--jh-sage-pale)]/50 text-[var(--jh-muted)] hover:bg-[#4a5c28] hover:text-white border border-[var(--jh-line-strong)] transition-all cursor-pointer shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 										>
 											<Check className="size-4" />

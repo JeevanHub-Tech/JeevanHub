@@ -1,7 +1,8 @@
 import { useState, useContext, useEffect, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
-import { ArrowLeft, Clock, Loader2, Plus, Salad, Star, X } from "lucide-react";
+import { ArrowLeft, Calendar, Clock, Loader2, Plus, Salad, Star, X } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,7 @@ const getLocalDateString = (d = new Date()) => {
 };
 
 function DoctorDetail() {
+	const { t, i18n } = useTranslation();
 	const location = useLocation();
 	const navigate = useNavigate();
 	const doctor = location.state?.doctor;
@@ -412,9 +414,9 @@ function DoctorDetail() {
 		tomorrow.setDate(today.getDate() + 1);
 
 		const dateStr = formatDate(dateObj);
-		if (dateStr === formatDate(today)) return "Today";
-		if (dateStr === formatDate(tomorrow)) return "Tomorrow";
-		return dateObj.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
+		if (dateStr === formatDate(today)) return t("doctorDetail.today");
+		if (dateStr === formatDate(tomorrow)) return t("doctorDetail.tomorrow");
+		return dateObj.toLocaleDateString(i18n.language === "hi" ? "hi-IN" : "en-GB", { weekday: "short", day: "numeric", month: "short" });
 	};
 
 	const isSlotPassed = (timeStr) => {
@@ -452,7 +454,7 @@ function DoctorDetail() {
 					className="inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors"
 				>
 					<ArrowLeft size={16} />
-					Back to Doctors
+					{t("doctorDetail.backToDoctors")}
 				</button>
 			</div>
 			<div className="mx-auto grid max-w-5xl gap-6 px-4 pb-10 pt-2 sm:px-6 lg:grid-cols-[1fr_1.1fr] lg:px-8">
@@ -467,7 +469,7 @@ function DoctorDetail() {
 							/>
 							<div className="min-w-0 flex-1">
 								<h1 className="font-display text-2xl text-foreground">{doctorDisplayName}</h1>
-								<p className="text-sm text-muted-foreground">{parseInt(doctor.experience) || doctor.experience || 0} years experience</p>
+								<p className="text-sm text-muted-foreground">{t("doctorDetail.experience", { years: parseInt(doctor.experience) || doctor.experience || 0 })}</p>
 								<div className="mt-2 flex flex-wrap gap-1.5">
 									{specializations.map((spec, idx) => (
 										<Badge key={idx} variant="secondary">
@@ -479,13 +481,13 @@ function DoctorDetail() {
 						</div>
 
 						<div className="mt-4 border-t border-border pt-4">
-							<p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Education</p>
+							<p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t("doctorDetail.education")}</p>
 							<p className="mt-1 text-sm text-foreground">{doctor.education || "Ayurvedic Practitioner"}</p>
 						</div>
 					</div>
 
 					<div className="rounded-(--jh-radius-lg) bg-card p-5 shadow-(--jh-shadow-rest) sm:p-6">
-						<h2 className="font-display text-xl text-foreground">Patient reviews</h2>
+						<h2 className="font-display text-xl text-foreground">{t("doctorDetail.patientReviews")}</h2>
 						{reviews.length > 0 ? (
 							<div className="mt-3 flex flex-col gap-3">
 								{reviews.map((r, i) => (
@@ -502,7 +504,7 @@ function DoctorDetail() {
 								))}
 							</div>
 						) : (
-							<p className="mt-2 text-sm text-muted-foreground">No reviews yet for this doctor.</p>
+							<p className="mt-2 text-sm text-muted-foreground">{t("doctorDetail.noReviews")}</p>
 						)}
 					</div>
 				</div>
@@ -510,21 +512,33 @@ function DoctorDetail() {
 				<div className="flex flex-col rounded-(--jh-radius-lg) bg-card p-5 shadow-(--jh-shadow-rest) sm:p-6">
 					<div className="mb-5">
 						<div className="mb-2 flex items-center justify-between gap-2">
-							<Label className="font-semibold">Select date</Label>
-							<input
-								type="date"
-								min={getLocalDateString()}
-								value={carouselStartDate}
-								onChange={(e) => {
-									if (e.target.value) {
-										setCarouselStartDate(e.target.value);
-										setDateOfAppointment(e.target.value);
-										setSelectedTime(null);
-										setShowAllSlots(false);
-									}
-								}}
-								className="rounded-md border border-input bg-transparent px-2.5 py-1 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-							/>
+							<Label htmlFor="doctor-date-picker" className="cursor-pointer font-semibold">{t("doctorDetail.selectDate")}</Label>
+							<div className="relative inline-flex items-center gap-2 rounded-md border border-input bg-card px-2.5 py-1 text-sm shadow-xs transition-colors hover:border-ring focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50">
+								<span className="select-none font-medium text-foreground tracking-wide">
+									{carouselStartDate ? carouselStartDate.split("-").reverse().join("-") : ""}
+								</span>
+								<Calendar size={15} className="text-muted-foreground shrink-0" />
+								<input
+									id="doctor-date-picker"
+									type="date"
+									min={getLocalDateString()}
+									value={carouselStartDate}
+									onClick={(e) => {
+										try {
+											e.currentTarget.showPicker();
+										} catch {}
+									}}
+									onChange={(e) => {
+										if (e.target.value) {
+											setCarouselStartDate(e.target.value);
+											setDateOfAppointment(e.target.value);
+											setSelectedTime(null);
+											setShowAllSlots(false);
+										}
+									}}
+									className="absolute inset-0 size-full cursor-pointer opacity-0"
+								/>
+							</div>
 						</div>
 						<div className="grid grid-cols-[repeat(auto-fill,minmax(96px,1fr))] gap-2">
 							{dates.map((d) => {
@@ -550,10 +564,10 @@ function DoctorDetail() {
 						</div>
 					</div>
 
-					<p className="text-sm font-semibold text-foreground">Available slots</p>
+					<p className="text-sm font-semibold text-foreground">{t("doctorDetail.availableSlots")}</p>
 					<div className="mt-2 grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-3">
 						{loadingSlots ? (
-							<p className="text-sm text-muted-foreground">Loading slots...</p>
+							<p className="text-sm text-muted-foreground">{t("doctorDetail.loadingSlots")}</p>
 						) : filteredSlots.length > 0 ? (
 							(showAllSlots ? filteredSlots : filteredSlots.slice(0, 4)).map((slot, idx) => {
 								const isBooked = slot.remainingCapacity <= 0;
@@ -579,30 +593,36 @@ function DoctorDetail() {
 											<div className="flex items-baseline gap-1.5">
 												<span className="text-sm font-bold text-foreground">{formatTime12Hour(slot.startTime)}</span>
 												<span className="text-xs text-border">|</span>
-												<span className="text-xs font-semibold text-muted-foreground">{slot.duration} min</span>
+												<span className="text-xs font-semibold text-muted-foreground">{t("doctorDetail.min", { duration: slot.duration })}</span>
 											</div>
 											<span className="text-sm font-bold text-primary">₹{slot.fee !== undefined ? slot.fee : doctor.pricepoint}</span>
 										</div>
 										<div className="flex items-center justify-between gap-2">
 											<span className="truncate text-[10px] text-muted-foreground">
-												{slot.consultationType === "Both" ? "Online/In-Person" : slot.consultationType}
+												{slot.consultationType === "Both"
+													? t("doctorDetail.both")
+													: slot.consultationType === "Online"
+														? t("doctorDetail.online")
+														: slot.consultationType === "In-Person"
+															? t("doctorDetail.inPerson")
+															: slot.consultationType}
 											</span>
 											{slot.sessionType === "Group" ? (
 												<Badge variant="secondary" className="shrink-0 px-1.5 py-0 text-[10px]">
-													Group: {slot.remainingCapacity} left
+													{t("doctorDetail.groupLeft", { count: slot.remainingCapacity })}
 												</Badge>
 											) : null}
 										</div>
 										{isBooked ? (
 											<span className="absolute right-2 top-2 rounded-(--jh-radius-sm) bg-destructive px-1.5 py-0.5 text-[10px] font-bold text-white">
-												FULL
+												{t("doctorDetail.full")}
 											</span>
 										) : null}
 									</button>
 								);
 							})
 						) : (
-							<p className="text-sm text-muted-foreground">No slots available on this date.</p>
+							<p className="text-sm text-muted-foreground">{t("doctorDetail.noSlotsAvailable")}</p>
 						)}
 					</div>
 
@@ -613,18 +633,18 @@ function DoctorDetail() {
 								onClick={() => setShowAllSlots(!showAllSlots)}
 								className="text-xs font-semibold text-muted-foreground hover:text-primary"
 							>
-								{showAllSlots ? "Show less ▲" : `Show ${filteredSlots.length - 4} more ▼`}
+								{showAllSlots ? t("doctorDetail.showLess") : t("doctorDetail.showMore", { count: filteredSlots.length - 4 })}
 							</button>
 						</div>
 					) : null}
 
 					<div className="mt-4 flex flex-col gap-1.5">
-						<Label htmlFor="patientIllness">Describe your illness</Label>
+						<Label htmlFor="patientIllness">{t("doctorDetail.describeIllness")}</Label>
 						<textarea
 							id="patientIllness"
 							value={patientIllness}
 							onChange={(e) => setPatientIllness(e.target.value)}
-							placeholder="Explain in detail about the illness"
+							placeholder={t("doctorDetail.illnessPlaceholder")}
 							rows={3}
 							required
 							className="w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
@@ -643,27 +663,26 @@ function DoctorDetail() {
 								<div className="flex items-center justify-between gap-2">
 									<span className="flex items-center gap-1.5 text-sm font-bold text-foreground">
 										<Salad size={16} className="text-primary" />
-										Personalized 7-Day Diet Plan
+										{t("doctorDetail.personalizedDietPlan")}
 									</span>
 									<span className="rounded-full bg-primary/15 px-2.5 py-0.5 text-xs font-bold text-primary">
 										+₹{doctor.dietPlanFee !== undefined ? doctor.dietPlanFee : 299}
 									</span>
 								</div>
 								<p className="mt-1 text-xs text-muted-foreground leading-relaxed">
-									Doctor will analyze your Dosha &amp; illness to craft a personalized 7-day Ayurvedic meal routine.
+									{t("doctorDetail.dietPlanDesc")}
 								</p>
 							</div>
 						</label>
 					</div>
 
 					<p className="mt-4 text-xs leading-relaxed text-muted-foreground">
-						<strong className="font-semibold">Note:</strong> Your appointment is confirmed as soon as booking (and payment, if applicable)
-						goes through — no separate doctor approval needed. You'll find it under "Your appointed doctor" on the home page.
+						<strong className="font-semibold">{t("doctorDetail.noteLabel")}</strong> {t("doctorDetail.bookingNote")}
 					</p>
 
 					<div className="sticky bottom-0 mt-5 border-t border-border bg-card pt-4">
 						<Button onClick={handleBookAppointment} className="w-full">
-							Book appointment
+							{t("doctorDetail.bookAppointment")}
 						</Button>
 
 						{statusMessage.message ? (
@@ -683,33 +702,37 @@ function DoctorDetail() {
 
 			<Dialog open={paymentModalOpen && Boolean(currentBooking)} onOpenChange={(open) => !open && handleCancelPayment()}>
 				<DialogContent className="max-w-2xl">
-					<DialogTitle>Secure payment</DialogTitle>
+					<DialogTitle>{t("doctorDetail.paymentModal.title")}</DialogTitle>
 					<p className="rounded-(--jh-radius-md) bg-secondary/60 px-3 py-2 text-sm text-muted-foreground">
-						Your slot is temporarily locked for you. Complete payment now to confirm.
+						{t("doctorDetail.paymentModal.slotLocked")}
 					</p>
 
 					<div className="grid gap-6 sm:grid-cols-2">
 						<div className="flex flex-col gap-4">
 							<div className="flex flex-col gap-2 text-sm">
 								<div className="flex items-center justify-between">
-									<span className="text-muted-foreground">Doctor</span>
+									<span className="text-muted-foreground">{t("doctorDetail.paymentModal.doctor")}</span>
 									<strong className="font-semibold text-foreground">
 										Dr. {doctorDisplayName}
 									</strong>
 								</div>
 								<div className="flex items-center justify-between">
-									<span className="text-muted-foreground">Total fee</span>
+									<span className="text-muted-foreground">{t("doctorDetail.paymentModal.totalFee")}</span>
 									<strong className="font-semibold text-primary">₹{currentBooking?.amountPaid}</strong>
 								</div>
 								{currentBooking?.dietPlanRequested ? (
 									<p className="text-xs text-muted-foreground">
-										(Includes ₹{currentBooking?.dietPlanFee !== undefined ? currentBooking.dietPlanFee : (doctor?.dietPlanFee !== undefined ? doctor.dietPlanFee : 299)} for Personalized 7-Day Diet Plan)
+										{t("doctorDetail.paymentModal.includesDiet", {
+											fee: currentBooking?.dietPlanFee !== undefined
+												? currentBooking.dietPlanFee
+												: (doctor?.dietPlanFee !== undefined ? doctor.dietPlanFee : 299)
+										})}
 									</p>
 								) : null}
 							</div>
 
 							<Button type="button" variant="destructive" onClick={() => handleCancelPayment()} disabled={uploadingScreenshot} className="hidden sm:inline-flex">
-								Cancel booking & release slot
+								{t("doctorDetail.paymentModal.cancelBooking")}
 							</Button>
 						</div>
 
@@ -719,12 +742,12 @@ function DoctorDetail() {
 								<span className={timeLeft < 60 ? "text-destructive" : undefined}>
 									{Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, "0")}
 								</span>
-								remaining to complete payment
+								{t("doctorDetail.paymentModal.timeRemaining")}
 							</span>
 
 							<Button type="button" className="w-full" onClick={handleRazorpayPayment} disabled={payingViaRazorpay}>
 								{payingViaRazorpay ? <Loader2 className="size-4 animate-spin" /> : null}
-								{payingViaRazorpay ? "Processing..." : "Pay Now"}
+								{payingViaRazorpay ? t("doctorDetail.paymentModal.processing") : t("doctorDetail.paymentModal.payNow")}
 							</Button>
 
 							{doctorUpiId ? (
@@ -740,13 +763,13 @@ function DoctorDetail() {
 													window.open(upiUrl, "_self");
 												}}
 											>
-												Pay using any UPI app
+												{t("doctorDetail.paymentModal.payAnyUpi")}
 											</Button>
 											<span className="text-xs text-muted-foreground">OR</span>
 										</div>
 
 										<div className="flex flex-col items-center gap-2 text-center">
-											<p className="text-sm font-semibold text-foreground">Scan QR code to pay</p>
+											<p className="text-sm font-semibold text-foreground">{t("doctorDetail.paymentModal.scanQr")}</p>
 											<img
 												src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
 													`upi://pay?pa=${doctorUpiId}&pn=Dr.%20${encodeURIComponent(doctorDisplayName)}&am=${currentBooking?.amountPaid}&cu=INR&tn=AyuHub-${currentBooking?._id}`,
@@ -758,8 +781,8 @@ function DoctorDetail() {
 
 										<form onSubmit={handleUploadProof} className="flex flex-col gap-3">
 								<div>
-									<Label>Upload payment screenshots (max 5)</Label>
-									<p className="mt-1 text-xs text-muted-foreground">Upload screenshots of the successful transaction. You can add multiple images.</p>
+									<Label>{t("doctorDetail.paymentModal.uploadScreenshots")}</Label>
+									<p className="mt-1 text-xs text-muted-foreground">{t("doctorDetail.paymentModal.uploadScreenshotsDesc")}</p>
 								</div>
 
 								<div className="flex flex-wrap gap-2">
@@ -815,11 +838,11 @@ function DoctorDetail() {
 
 								<DialogFooter>
 									<Button type="button" variant="destructive" onClick={() => handleCancelPayment()} disabled={uploadingScreenshot} className="sm:hidden">
-										Cancel booking & release slot
+										{t("doctorDetail.paymentModal.cancelBooking")}
 									</Button>
 									<Button type="submit" disabled={uploadingScreenshot}>
 										{uploadingScreenshot ? <Loader2 className="size-4 animate-spin" /> : null}
-										{uploadingScreenshot ? "Uploading..." : "Submit payment proof"}
+										{uploadingScreenshot ? t("doctorDetail.paymentModal.uploading") : t("doctorDetail.paymentModal.submitProof")}
 									</Button>
 								</DialogFooter>
 										</form>
@@ -829,7 +852,7 @@ function DoctorDetail() {
 											onClick={() => setShowManualUpi(false)}
 											className="mx-auto bg-transparent p-0 text-xs font-medium text-muted-foreground underline hover:text-foreground"
 										>
-											Back to Pay Now
+											{t("doctorDetail.paymentModal.backToPayNow")}
 										</button>
 									</div>
 								) : (
@@ -838,7 +861,7 @@ function DoctorDetail() {
 										onClick={() => setShowManualUpi(true)}
 										className="mx-auto bg-transparent p-0 text-xs font-medium text-muted-foreground underline hover:text-foreground"
 									>
-										Or pay manually via UPI (QR / screenshot)
+										{t("doctorDetail.paymentModal.payManuallyUpi")}
 									</button>
 								)
 							) : null}

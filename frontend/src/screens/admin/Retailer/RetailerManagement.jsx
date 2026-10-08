@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Store, Mail, Phone, MapPin, Search, ArrowLeft, Pencil } from "lucide-react";
 
 import { DashboardShell, DashboardPageHeader } from "@/components/layout/DashboardShell";
@@ -29,6 +30,7 @@ const initialRetailersData = [
 ];
 
 const RetailerManagement = () => {
+	const { t } = useTranslation();
 	const [retailers, setRetailers] = useState(initialRetailersData);
 	const [loadingRetailers, setLoadingRetailers] = useState(true);
 	const [search, setSearch] = useState("");
@@ -90,7 +92,7 @@ const RetailerManagement = () => {
 	if (loadingRetailers) {
 		return (
 			<DashboardShell>
-				<p className="text-center text-muted-foreground">Loading Retailers...</p>
+				<p className="text-center text-muted-foreground">{t("adminRetailers.loading")}</p>
 			</DashboardShell>
 		);
 	}
@@ -98,16 +100,16 @@ const RetailerManagement = () => {
 	return (
 		<DashboardShell>
 			<Button variant="ghost" className="mb-4 -ml-2" onClick={() => navigate(-1)}>
-				<ArrowLeft data-icon="inline-start" /> Back
+				<ArrowLeft data-icon="inline-start" /> {t("adminRetailers.back")}
 			</Button>
 
-			<DashboardPageHeader title="Retailer Management" />
+			<DashboardPageHeader title={t("adminRetailers.title")} />
 
 			<Card className="mb-6 p-4">
 				<div className="flex max-w-md min-w-0 items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2">
 					<Search className="size-4 shrink-0 text-muted-foreground" />
 					<Input
-						placeholder="Search by name, business, email, or phone..."
+						placeholder={t("adminRetailers.searchPlaceholder")}
 						value={search}
 						onChange={(e) => setSearch(e.target.value)}
 						className="h-auto border-0 p-0 shadow-none focus-visible:ring-0"
@@ -122,26 +124,26 @@ const RetailerManagement = () => {
 							<TableRow>
 								<TableHead>
 									<span className="flex items-center gap-1.5">
-										<Store className="size-4" /> Business Name
+										<Store className="size-4" /> {t("adminRetailers.table.businessName")}
 									</span>
 								</TableHead>
-								<TableHead>Status</TableHead>
+								<TableHead>{t("adminRetailers.table.status")}</TableHead>
 								<TableHead>
 									<span className="flex items-center gap-1.5">
-										<Mail className="size-4" /> Email
-									</span>
-								</TableHead>
-								<TableHead>
-									<span className="flex items-center gap-1.5">
-										<Phone className="size-4" /> Phone
+										<Mail className="size-4" /> {t("adminRetailers.table.email")}
 									</span>
 								</TableHead>
 								<TableHead>
 									<span className="flex items-center gap-1.5">
-										<MapPin className="size-4" /> Zip Code
+										<Phone className="size-4" /> {t("adminRetailers.table.phone")}
 									</span>
 								</TableHead>
-								<TableHead>Actions</TableHead>
+								<TableHead>
+									<span className="flex items-center gap-1.5">
+										<MapPin className="size-4" /> {t("adminRetailers.table.zipCode")}
+									</span>
+								</TableHead>
+								<TableHead>{t("adminRetailers.table.actions")}</TableHead>
 							</TableRow>
 						</TableHeader>
 						<TableBody>
@@ -170,7 +172,7 @@ const RetailerManagement = () => {
 										<TableCell>{retailer.zipCode}</TableCell>
 										<TableCell>
 											<Button variant="outline" size="sm" onClick={(e) => handleEditClick(e, retailer)}>
-												<Pencil data-icon="inline-start" /> Edit
+												<Pencil data-icon="inline-start" /> {t("adminRetailers.edit")}
 											</Button>
 										</TableCell>
 									</TableRow>
@@ -178,7 +180,7 @@ const RetailerManagement = () => {
 							) : (
 								<TableRow>
 									<TableCell colSpan={6} className="py-12 text-center text-muted-foreground">
-										No retailers found matching your criteria.
+										{t("adminRetailers.noRetailersFound")}
 									</TableCell>
 								</TableRow>
 							)}
@@ -200,6 +202,7 @@ const RetailerManagement = () => {
 };
 
 const EditModal = ({ isOpen, onClose, retailer, onSave }) => {
+	const { t } = useTranslation();
 	const [formData, setFormData] = useState(retailer);
 	const handleChange = (e) => {
 		const { name, value } = e.target;
@@ -214,49 +217,49 @@ const EditModal = ({ isOpen, onClose, retailer, onSave }) => {
 		<Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
 			<DialogContent className="max-w-lg">
 				<DialogHeader>
-					<DialogTitle>Edit Retailer Details</DialogTitle>
+					<DialogTitle>{t("adminRetailers.editModal.title")}</DialogTitle>
 				</DialogHeader>
 				<form onSubmit={handleSubmit} className="flex flex-col gap-6">
 					<FieldGroup className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 						<Field className="sm:col-span-2">
-							<FieldLabel htmlFor="BusinessName">Business Name</FieldLabel>
+							<FieldLabel htmlFor="BusinessName">{t("adminRetailers.editModal.businessName")}</FieldLabel>
 							<Input id="BusinessName" name="BusinessName" value={formData.BusinessName} onChange={handleChange} />
 						</Field>
 						<Field>
-							<FieldLabel htmlFor="email">Email</FieldLabel>
+							<FieldLabel htmlFor="email">{t("adminRetailers.editModal.email")}</FieldLabel>
 							<Input id="email" type="email" name="email" value={formData.email} onChange={handleChange} />
 						</Field>
 						<Field>
-							<FieldLabel htmlFor="phone">Phone</FieldLabel>
+							<FieldLabel htmlFor="phone">{t("adminRetailers.editModal.phone")}</FieldLabel>
 							<Input id="phone" name="phone" value={formData.phone} onChange={handleChange} />
 						</Field>
 						<Field>
-							<FieldLabel htmlFor="status">Status</FieldLabel>
+							<FieldLabel htmlFor="status">{t("adminRetailers.editModal.status")}</FieldLabel>
 							<Select
 								value={formData.status}
 								onValueChange={(value) => setFormData((prev) => ({ ...prev, status: value }))}
-								items={[{ value: "active", label: "Active" }, { value: "inactive", label: "Inactive" }]}
+								items={[{ value: "active", label: t("adminRetailers.editModal.active") }, { value: "inactive", label: t("adminRetailers.editModal.inactive") }]}
 							>
 								<SelectTrigger id="status">
 									<SelectValue />
 								</SelectTrigger>
 								<SelectContent>
-									<SelectItem value="active">Active</SelectItem>
-									<SelectItem value="inactive">Inactive</SelectItem>
+									<SelectItem value="active">{t("adminRetailers.editModal.active")}</SelectItem>
+									<SelectItem value="inactive">{t("adminRetailers.editModal.inactive")}</SelectItem>
 								</SelectContent>
 							</Select>
 						</Field>
 						<Field>
-							<FieldLabel htmlFor="zipCode">Zip Code</FieldLabel>
+							<FieldLabel htmlFor="zipCode">{t("adminRetailers.editModal.zipCode")}</FieldLabel>
 							<Input id="zipCode" name="zipCode" value={formData.zipCode} onChange={handleChange} />
 						</Field>
 					</FieldGroup>
 
 					<DialogFooter>
 						<Button type="button" variant="outline" onClick={onClose}>
-							Cancel
+							{t("adminRetailers.editModal.cancel")}
 						</Button>
-						<Button type="submit">Save Changes</Button>
+						<Button type="submit">{t("adminRetailers.editModal.saveChanges")}</Button>
 					</DialogFooter>
 				</form>
 			</DialogContent>

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { ClipboardPlus, Plus, Trash2, Loader2, ShoppingCart, Pill } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import { MedicinePickerModal } from "./MedicinePickerModal";
 import { authFetch } from "../../../utils/authFetch";
@@ -18,6 +19,7 @@ const resolveThumb = (images) => {
 };
 
 export function MedicineForm({ bookingId, patientId, doctorId, onPrescribed }) {
+	const { t } = useTranslation();
 	const [rows, setRows] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [pickerOpen, setPickerOpen] = useState(false);
@@ -127,12 +129,12 @@ export function MedicineForm({ bookingId, patientId, doctorId, onPrescribed }) {
 			<div className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-muted/40 px-6 py-4">
 				<h3 className="flex items-center gap-3 text-lg font-bold text-foreground">
 					<ClipboardPlus className="size-6 text-primary" />
-					Medicines, Herbs & Supplements
+					{t("doctorPrescribe.medicinesTitle", "Medicines, Herbs & Supplements")}
 				</h3>
 				<div className="flex items-center gap-3">
 					{rows.length > 0 ? <SourceBadge status="doctor" /> : null}
 					<span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-						<ShoppingCart size={14} /> Prescribed items are added to the patient's cart
+						<ShoppingCart size={14} /> {t("doctorPrescribe.cartNotice", "Prescribed items are added to the patient's cart")}
 					</span>
 				</div>
 			</div>
@@ -140,22 +142,22 @@ export function MedicineForm({ bookingId, patientId, doctorId, onPrescribed }) {
 			<div className="p-6">
 				{loading ? (
 					<p className="flex items-center justify-center gap-2.5 py-6 text-muted-foreground">
-						<Loader2 className="size-[18px] animate-spin" /> Loading prescription...
+						<Loader2 className="size-[18px] animate-spin" /> {t("doctorPrescribe.loadingPrescription", "Loading prescription...")}
 					</p>
 				) : (
 					<>
 						{rows.length === 0 ? (
 							<div className="flex flex-col items-center gap-1.5 rounded-xl border border-dashed border-border p-10 text-center text-muted-foreground">
 								<Pill size={32} />
-								<p className="mt-1.5 font-semibold text-muted-foreground/90">Not prescribed</p>
-								<span className="text-sm">Click "Add Medicine" to pick from the store inventory.</span>
+								<p className="mt-1.5 font-semibold text-muted-foreground/90">{t("doctorPrescribe.notPrescribed", "Not prescribed")}</p>
+								<span className="text-sm">{t("doctorPrescribe.clickAddMedicine", "Click \"Add Medicine\" to pick from the store inventory.")}</span>
 							</div>
 						) : (
 							<div className="mb-5 flex max-h-[420px] flex-col gap-2 overflow-y-auto">
 								<div className="hidden grid-cols-[1.5fr_1.7fr_1.7fr_40px] gap-3 border-b-2 border-border px-1 pb-2 text-xs font-bold text-muted-foreground uppercase tracking-wide sm:grid">
-									<div>Medicine</div>
-									<div>Dosage</div>
-									<div>Instructions</div>
+									<div>{t("doctorPrescribe.colMedicine", "Medicine")}</div>
+									<div>{t("doctorPrescribe.colDosage", "Dosage")}</div>
+									<div>{t("doctorPrescribe.colInstructions", "Instructions")}</div>
 									<div />
 								</div>
 
@@ -178,7 +180,9 @@ export function MedicineForm({ bookingId, patientId, doctorId, onPrescribed }) {
 												<span className="flex flex-wrap items-center gap-1.5 text-sm font-bold text-foreground">
 													{row.medicineName}
 													{row.published === false ? (
-														<span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">Draft -- not sent yet</span>
+														<span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+															{t("doctorPrescribe.draftBadge", "Draft -- not sent yet")}
+														</span>
 													) : null}
 												</span>
 												{row.price != null ? <span className="text-sm font-semibold text-primary">₹{row.price}</span> : null}
@@ -186,11 +190,13 @@ export function MedicineForm({ bookingId, patientId, doctorId, onPrescribed }) {
 										</div>
 
 										<div>
-											<label className="mb-1 block text-[11px] font-bold text-muted-foreground uppercase sm:hidden">Dosage</label>
+											<label className="mb-1 block text-[11px] font-bold text-muted-foreground uppercase sm:hidden">
+												{t("doctorPrescribe.colDosage", "Dosage")}
+											</label>
 											<Textarea
 												rows={2}
 												className="min-h-[52px] text-xs"
-												placeholder="e.g., Start tomorrow · one tablet · twice daily for 20 days"
+												placeholder={t("doctorPrescribe.dosagePlaceholder", "e.g., Start tomorrow · one tablet · twice daily for 20 days")}
 												value={row.dosage}
 												onChange={(e) => updateRowLocal(row._id, "dosage", e.target.value)}
 												onBlur={() => saveRow(row)}
@@ -199,12 +205,12 @@ export function MedicineForm({ bookingId, patientId, doctorId, onPrescribed }) {
 
 										<div>
 											<label className="mb-1 block text-[11px] font-bold text-muted-foreground uppercase sm:hidden">
-												Instructions
+												{t("doctorPrescribe.colInstructions", "Instructions")}
 											</label>
 											<Textarea
 												rows={2}
 												className="min-h-[52px] text-xs"
-												placeholder="e.g., Take after meals with warm water"
+												placeholder={t("doctorPrescribe.instructionsPlaceholder", "e.g., Take after meals with warm water")}
 												value={row.instructions}
 												onChange={(e) => updateRowLocal(row._id, "instructions", e.target.value)}
 												onBlur={() => saveRow(row)}
@@ -215,9 +221,9 @@ export function MedicineForm({ bookingId, patientId, doctorId, onPrescribed }) {
 											<Button
 												variant="outline"
 												size="icon"
-												className="size-8 border-destructive/30 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+												className="size-8 border-destructive/30 text-destructive hover:bg-destructive hover:text-destructive-foreground cursor-pointer"
 												onClick={() => deleteRow(row._id)}
-												title="Remove medicine"
+												title={t("doctorPrescribe.removeMedicine", "Remove medicine")}
 											>
 												<Trash2 size={16} />
 											</Button>
@@ -234,7 +240,7 @@ export function MedicineForm({ bookingId, patientId, doctorId, onPrescribed }) {
 							disabled={adding}
 						>
 							{adding ? <Loader2 className="animate-spin" data-icon="inline-start" /> : <Plus data-icon="inline-start" />}
-							Add Medicine
+							{t("doctorPrescribe.addMedicine", "Add Medicine")}
 						</Button>
 					</>
 				)}

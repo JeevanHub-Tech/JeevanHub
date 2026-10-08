@@ -1,36 +1,37 @@
 import React from "react";
-
-const points = [
-	{
-		title: "Practitioner-led care",
-		desc: "Every plan comes from a certified Ayurvedic doctor, not an algorithm.",
-	},
-	{
-		title: "Built around your body",
-		desc: "Diet, herbs, and daily rhythm tuned to your dosha and your concern.",
-	},
-	{
-		title: "Natural, quality-checked remedies",
-		desc: "Authentic formulations, delivered to your door.",
-	},
-	{
-		title: "Care from home",
-		desc: "Consult, follow up, and stay on track without a clinic visit.",
-	},
-];
+import { useTranslation } from "react-i18next";
 
 const SuccessRate = () => {
+	const { t } = useTranslation();
+
+	const points = [
+		{
+			title: t("homeScreen.calmerPath.points.practitionerLedTitle", "Practitioner-led care"),
+			desc: t("homeScreen.calmerPath.points.practitionerLedDesc", "Every plan comes from a certified Ayurvedic doctor, not an algorithm."),
+		},
+		{
+			title: t("homeScreen.calmerPath.points.builtAroundBodyTitle", "Built around your body"),
+			desc: t("homeScreen.calmerPath.points.builtAroundBodyDesc", "Diet, herbs, and daily rhythm tuned to your dosha and your concern."),
+		},
+		{
+			title: t("homeScreen.calmerPath.points.naturalRemediesTitle", "Natural, quality-checked remedies"),
+			desc: t("homeScreen.calmerPath.points.naturalRemediesDesc", "Authentic formulations, delivered to your door."),
+		},
+		{
+			title: t("homeScreen.calmerPath.points.careFromHomeTitle", "Care from home"),
+			desc: t("homeScreen.calmerPath.points.careFromHomeDesc", "Consult, follow up, and stay on track without a clinic visit."),
+		},
+	];
+
 	return (
 		<div className="bg-[radial-gradient(600px_300px_at_85%_20%,rgba(200,162,74,0.18),transparent_65%),linear-gradient(135deg,var(--jh-olive-light)_0%,var(--jh-olive-leaf)_55%,var(--jh-olive-deep)_100%)] px-5 py-16 sm:px-20">
 			<div className="mx-auto flex max-w-300 flex-col-reverse items-center justify-between gap-12 text-left sm:flex-row sm:flex-wrap">
 				<div className="max-w-145 flex-1 basis-110">
 					<h2 className="font-display m-0 mb-3.5 text-[clamp(1.8rem,3.4vw,2.6rem)] leading-tight font-semibold tracking-tight text-(--jh-surface)">
-						A calmer path to feeling well
+						{t("homeScreen.calmerPath.title", "A calmer path to feeling well")}
 					</h2>
 					<p className="m-0 mb-7.5 text-lg leading-relaxed text-(--jh-sage-pale)">
-						Ayurveda works gradually and holistically. We pair you with a real
-						practitioner and a plan you can actually keep — so change is steady,
-						natural, and yours.
+						{t("homeScreen.calmerPath.subtitle", "Ayurveda works gradually and holistically. We pair you with a real practitioner and a plan you can actually keep — so change is steady, natural, and yours.")}
 					</p>
 
 					<ul className="m-0 grid list-none grid-cols-1 gap-4.5 p-0 sm:grid-cols-2">

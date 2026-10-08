@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 import PatientTrans from "./patientTrans";
 import PatientFeedback from "./PatientFeedback";
@@ -35,21 +36,6 @@ import {
 } from "lucide-react";
 import { BACKEND_URL } from '../../../config';
 
-const tabs = [
-	{ name: "Prescriptions", icon: Pill },
-	{ name: "Diet Plan", icon: Apple },
-	{ name: "History", icon: History },
-	{ name: "Transactions", icon: IndianRupee },
-	{ name: "Feedback", icon: MessageSquareText },
-];
-
-const GENDER_OPTIONS = [
-	{ value: "male", label: "Male" },
-	{ value: "female", label: "Female" },
-	{ value: "other", label: "Other" },
-	{ value: "prefer-not-to-say", label: "Prefer not to say" },
-];
-
 function formatDOB(dobString) {
 	const date = new Date(dobString);
 	const day = date.getDate().toString().padStart(2, "0");
@@ -67,9 +53,17 @@ function formatDOB2(dobString) {
 }
 
 function EditProfileDialog({ open, onOpenChange, currentProfile, onUpdate }) {
+	const { t } = useTranslation();
 	const [formData, setFormData] = useState(currentProfile);
 	const [previewImage, setPreviewImage] = useState(currentProfile.profileImage || null);
 	const fileInputRef = useRef(null);
+
+	const genderOptions = [
+		{ value: "male", label: t("common.male", "Male") },
+		{ value: "female", label: t("common.female", "Female") },
+		{ value: "other", label: t("common.other", "Other") },
+		{ value: "prefer-not-to-say", label: t("common.preferNotToSay", "Prefer not to say") },
+	];
 
 	useEffect(() => {
 		if (open) {
@@ -89,12 +83,12 @@ function EditProfileDialog({ open, onOpenChange, currentProfile, onUpdate }) {
 		if (!file) return;
 
 		if (file.size > 100 * 1024) {
-			alert("Image must be less than 500KB");
+			alert(t("adminPatient.imageSizeLimit", "Image must be less than 500KB"));
 			return;
 		}
 
 		if (!file.type.startsWith("image/")) {
-			alert("Only image files allowed");
+			alert(t("adminPatient.onlyImagesAllowed", "Only image files allowed"));
 			return;
 		}
 
@@ -117,7 +111,7 @@ function EditProfileDialog({ open, onOpenChange, currentProfile, onUpdate }) {
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className="max-w-2xl">
 				<DialogHeader>
-					<DialogTitle className="text-2xl">Update Profile</DialogTitle>
+					<DialogTitle className="text-2xl">{t("adminPatient.updateProfile", "Update Profile")}</DialogTitle>
 				</DialogHeader>
 
 				<form onSubmit={handleSubmit} className="flex flex-col gap-6 overflow-y-auto">
@@ -130,40 +124,40 @@ function EditProfileDialog({ open, onOpenChange, currentProfile, onUpdate }) {
 						</Avatar>
 						<Button type="button" onClick={() => fileInputRef.current?.click()}>
 							<Upload size={16} data-icon="inline-start" />
-							Upload Photo
+							{t("adminPatient.uploadPhoto", "Upload Photo")}
 						</Button>
 						<input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
 					</div>
 
 					<FieldGroup className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 						<Field>
-							<FieldLabel htmlFor="firstName">First Name *</FieldLabel>
+							<FieldLabel htmlFor="firstName">{t("auth.firstName", "First Name")} *</FieldLabel>
 							<Input id="firstName" name="firstName" value={formData.firstName} onChange={handleInputChange} required />
 						</Field>
 
 						<Field>
-							<FieldLabel htmlFor="lastName">Last Name *</FieldLabel>
+							<FieldLabel htmlFor="lastName">{t("auth.lastName", "Last Name")} *</FieldLabel>
 							<Input id="lastName" name="lastName" value={formData.lastName} onChange={handleInputChange} required />
 						</Field>
 
 						<Field>
-							<FieldLabel htmlFor="email">Email *</FieldLabel>
+							<FieldLabel htmlFor="email">{t("auth.email", "Email")} *</FieldLabel>
 							<Input id="email" type="email" name="email" value={formData.email} onChange={handleInputChange} required />
 						</Field>
 
 						<Field>
-							<FieldLabel htmlFor="dob">Date of Birth *</FieldLabel>
+							<FieldLabel htmlFor="dob">{t("adminPatient.dob", "Date of Birth")} *</FieldLabel>
 							<Input id="dob" type="date" name="dob" value={formData.dob} onChange={handleInputChange} required />
 						</Field>
 
 						<Field>
-							<FieldLabel htmlFor="gender">Gender *</FieldLabel>
-							<Select value={formData.gender} onValueChange={(value) => setFormData((prev) => ({ ...prev, gender: value }))} items={GENDER_OPTIONS}>
+							<FieldLabel htmlFor="gender">{t("adminPatient.gender", "Gender")} *</FieldLabel>
+							<Select value={formData.gender} onValueChange={(value) => setFormData((prev) => ({ ...prev, gender: value }))} items={genderOptions}>
 								<SelectTrigger id="gender">
-									<SelectValue placeholder="Select gender" />
+									<SelectValue placeholder={t("adminPatient.selectGender", "Select gender")} />
 								</SelectTrigger>
 								<SelectContent>
-									{GENDER_OPTIONS.map((g) => (
+									{genderOptions.map((g) => (
 										<SelectItem key={g.value} value={g.value}>
 											{g.label}
 										</SelectItem>
@@ -173,21 +167,21 @@ function EditProfileDialog({ open, onOpenChange, currentProfile, onUpdate }) {
 						</Field>
 
 						<Field>
-							<FieldLabel htmlFor="pincode">Pincode *</FieldLabel>
+							<FieldLabel htmlFor="pincode">{t("adminPatient.pincode", "Pincode")} *</FieldLabel>
 							<Input id="pincode" name="pincode" value={formData.pincode} onChange={handleInputChange} pattern="[0-9]{6}" maxLength={6} required />
 						</Field>
 
 						<Field className="sm:col-span-2">
-							<FieldLabel htmlFor="address">Address *</FieldLabel>
+							<FieldLabel htmlFor="address">{t("adminPatient.address", "Address")} *</FieldLabel>
 							<Textarea id="address" name="address" value={formData.address} onChange={handleInputChange} rows={3} required />
 						</Field>
 					</FieldGroup>
 
 					<div className="flex flex-col-reverse gap-3 border-t border-border pt-5 sm:flex-row sm:justify-end">
 						<Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-							Cancel
+							{t("common.cancel", "Cancel")}
 						</Button>
-						<Button type="submit">Save Changes</Button>
+						<Button type="submit">{t("common.saveChanges", "Save Changes")}</Button>
 					</div>
 				</form>
 			</DialogContent>
@@ -196,6 +190,7 @@ function EditProfileDialog({ open, onOpenChange, currentProfile, onUpdate }) {
 }
 
 const PatientProfile = () => {
+	const { t } = useTranslation();
 	const { id: patientId } = useParams();
 	const navigate = useNavigate();
 	const [activeTab, setActiveTab] = useState("Diet Plan");
@@ -203,6 +198,14 @@ const PatientProfile = () => {
 	const [loading, setLoading] = useState(true);
 	const [patientBookings, setPatientBookings] = useState([]);
 	const [showEditModal, setShowEditModal] = useState(false);
+
+	const tabs = [
+		{ id: "Prescriptions", name: t("adminPatient.tabs.prescriptions", "Prescriptions"), icon: Pill },
+		{ id: "Diet Plan", name: t("adminPatient.tabs.dietPlan", "Diet Plan"), icon: Apple },
+		{ id: "History", name: t("adminPatient.tabs.history", "History"), icon: History },
+		{ id: "Transactions", name: t("adminPatient.tabs.transactions", "Transactions"), icon: IndianRupee },
+		{ id: "Feedback", name: t("adminPatient.tabs.feedback", "Feedback"), icon: MessageSquareText },
+	];
 
 	useEffect(() => {
 		const fetchPatientBookings = async () => {
@@ -269,11 +272,11 @@ const PatientProfile = () => {
 				setPatientData(data.data);
 				return true;
 			}
-			alert("Failed to update profile. Please try again.");
+			alert(t("adminPatient.updateFailed", "Failed to update profile. Please try again."));
 			return false;
 		} catch (error) {
 			console.error("Error updating profile:", error);
-			alert("An error occurred while updating the profile. Please try again.");
+			alert(t("adminPatient.updateError", "An error occurred while updating the profile. Please try again."));
 			return false;
 		}
 	};
@@ -308,11 +311,15 @@ const PatientProfile = () => {
 
 			<Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="mb-6 text-muted-foreground hover:text-foreground">
 				<ArrowLeft size={16} data-icon="inline-start" />
-				Back to Patients
+				{t("adminPatient.backToPatients", "Back to Patients")}
 			</Button>
 
-			<h1 className="font-display text-3xl text-foreground sm:text-4xl">Patient Dashboard</h1>
-			<p className="mt-2 mb-8 text-muted-foreground">Complete medical and dietary information</p>
+			<h1 className="font-display text-3xl text-foreground sm:text-4xl">
+				{t("adminPatient.patientDashboard", "Patient Dashboard")}
+			</h1>
+			<p className="mt-2 mb-8 text-muted-foreground">
+				{t("adminPatient.completeMedicalInfo", "Complete medical and dietary information")}
+			</p>
 
 			<div className="flex flex-col overflow-hidden rounded-(--jh-radius-lg) border border-border bg-card shadow-(--jh-shadow-card) lg:flex-row">
 				<div className="flex shrink-0 flex-col items-center border-b border-border bg-secondary/50 p-8 text-center lg:w-80 lg:border-b-0 lg:border-r">
@@ -324,11 +331,13 @@ const PatientProfile = () => {
 					</Avatar>
 
 					<Button variant="outline" size="sm" className="mt-4" onClick={() => setShowEditModal(true)}>
-						Edit
+						{t("common.edit", "Edit")}
 					</Button>
 
 					<h2 className="mt-4 font-display text-2xl text-foreground">{patientData.firstName}</h2>
-					<p className="mb-6 text-sm text-muted-foreground">Patient ID: {patientData._id}</p>
+					<p className="mb-6 text-sm text-muted-foreground">
+						{t("adminPatient.patientIdLabel", "Patient ID:")} {patientData._id}
+					</p>
 
 					<Separator className="w-full" />
 
@@ -336,17 +345,17 @@ const PatientProfile = () => {
 						<p className="flex items-start gap-2 text-sm text-foreground"><Mail size={16} className="mt-0.5 shrink-0 text-muted-foreground" /> {patientData.email}</p>
 						<p className="flex items-start gap-2 text-sm text-foreground"><Phone size={16} className="mt-0.5 shrink-0 text-muted-foreground" /> {patientData.phone}</p>
 						<p className="flex items-start gap-2 text-sm text-foreground"><MapPin size={16} className="mt-0.5 shrink-0 text-muted-foreground" /> {patientData.zipCode}</p>
-						<p className="flex items-start gap-2 text-sm text-foreground"><CalendarDays size={16} className="mt-0.5 shrink-0 text-muted-foreground" /> DOB: {formatDOB(patientData.dob)}</p>
+						<p className="flex items-start gap-2 text-sm text-foreground"><CalendarDays size={16} className="mt-0.5 shrink-0 text-muted-foreground" /> {t("adminPatient.dobLabel", "DOB:")} {formatDOB(patientData.dob)}</p>
 					</div>
 
 					<div className="mt-6 flex w-full justify-around">
 						<div>
 							<p className="text-2xl font-semibold text-foreground">{patientData.age}</p>
-							<p className="mt-1 text-sm text-muted-foreground">Age</p>
+							<p className="mt-1 text-sm text-muted-foreground">{t("adminPatient.age", "Age")}</p>
 						</div>
 						<div>
 							<p className="text-2xl font-semibold capitalize text-foreground">{patientData.gender}</p>
-							<p className="mt-1 text-sm text-muted-foreground">Gender</p>
+							<p className="mt-1 text-sm text-muted-foreground">{t("adminPatient.gender", "Gender")}</p>
 						</div>
 					</div>
 				</div>
@@ -355,7 +364,7 @@ const PatientProfile = () => {
 					<Tabs value={activeTab} onValueChange={setActiveTab}>
 						<TabsList className="mb-6 h-auto flex-wrap bg-secondary p-1">
 							{tabs.map((tab) => (
-								<TabsTrigger key={tab.name} value={tab.name} className="gap-2 py-2.5 text-sm font-semibold">
+								<TabsTrigger key={tab.id} value={tab.id} className="gap-2 py-2.5 text-sm font-semibold">
 									<tab.icon data-icon="inline-start" strokeWidth={2.5} />
 									{tab.name}
 								</TabsTrigger>

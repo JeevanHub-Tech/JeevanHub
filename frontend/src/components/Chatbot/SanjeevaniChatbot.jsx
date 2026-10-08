@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useContext } from 'react';
 import axios from 'axios';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useTranslation } from "react-i18next";
 import { AuthContext } from '../../context/AuthContext';
 import { BACKEND_URL } from '../../config';
 import { Button } from '@/components/ui/button';
@@ -14,6 +15,7 @@ import {
 } from '@/components/ui/dialog';
 
 const SanjeevaniChatbot = ({ isFullScreen = false }) => {
+    const { t } = useTranslation();
     const location = useLocation();
     const [chatState, setChatState] = useState(() => {
         if (isFullScreen) return 'open';
@@ -465,7 +467,7 @@ const SanjeevaniChatbot = ({ isFullScreen = false }) => {
                         <div className="flex w-full items-end gap-1.5 rounded-full bg-muted px-1.5 py-1 transition-[background,box-shadow] focus-within:bg-card focus-within:shadow-(--jh-shadow-rest)">
                             <textarea
                                 ref={textareaRef}
-                                placeholder="Ask Sanjeevani AI..."
+                                placeholder={t("chatbot.placeholder", "Ask Sanjeevani AI...")}
                                 value={inputText}
                                 onFocus={() => {
                                     if (chatState === 'peek') setChatState('open');
@@ -508,7 +510,7 @@ const SanjeevaniChatbot = ({ isFullScreen = false }) => {
                 >
                     <span className="text-3xl">🌿</span>
                     <div className="pointer-events-none absolute right-20 rounded-md bg-(--jh-ink-strong) px-3.5 py-2 text-sm whitespace-nowrap text-primary-foreground opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                        Chat with Sanjeevani AI
+                        {t("chatbot.title", "Chat with Sanjeevani AI")}
                     </div>
                 </button>
             )}

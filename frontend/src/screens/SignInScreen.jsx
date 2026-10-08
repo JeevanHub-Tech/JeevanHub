@@ -1,5 +1,6 @@
 import React, { useState, useContext, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Eye, EyeOff } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -9,12 +10,6 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@
 import { AuthContext } from "../context/AuthContext";
 import { BACKEND_URL } from "../config";
 import logo from "../media/logo.png";
-
-const ROLE_OPTIONS = [
-	{ value: "patient", label: "Patient" },
-	{ value: "doctor", label: "Doctor" },
-	{ value: "retailer", label: "Retailer" },
-];
 
 function PasswordField({ value, onChange, name, placeholder, id }) {
 	const [show, setShow] = useState(false);
@@ -45,6 +40,7 @@ function PasswordField({ value, onChange, name, placeholder, id }) {
 }
 
 function SignInScreen() {
+	const { t } = useTranslation();
 	const { auth, setAuth } = useContext(AuthContext);
 	const [formData, setFormData] = useState({ email: "", password: "", role: "patient" });
 	const [passwordResetEmail, setPasswordResetEmail] = useState("");
@@ -59,6 +55,12 @@ function SignInScreen() {
 	const [showPage, setShowPage] = useState("enterEmail");
 
 	const [tempAuth, setTempAuth] = useState(null);
+
+	const roleOptions = [
+		{ value: "patient", label: t("auth.signIn.roles.patient") },
+		{ value: "doctor", label: t("auth.signIn.roles.doctor") },
+		{ value: "retailer", label: t("auth.signIn.roles.retailer") },
+	];
 
 	useEffect(() => {
 		if (auth && auth.user) {
@@ -133,7 +135,7 @@ function SignInScreen() {
 						break;
 				}
 			} else {
-				alert(result.message || result.error || "Invalid credentials");
+				alert(result.message || result.error || t("auth.signIn.alerts.invalidCredentials"));
 			}
 		} catch (error) {
 			console.error("Error during sign-in:", error);
@@ -142,7 +144,7 @@ function SignInScreen() {
 
 	const handleForgotPassword = async () => {
 		if (!passwordResetEmail || !passwordResetRole) {
-			alert("Please provide both email and role.");
+			alert(t("auth.signIn.alerts.provideEmailRole"));
 			return;
 		}
 
@@ -156,20 +158,20 @@ function SignInScreen() {
 			const data = await response.json();
 
 			if (response.ok) {
-				alert("OTP has been sent to your registered WhatsApp number.");
+				alert(t("auth.signIn.alerts.otpSent"));
 				setShowPage("OTPVerification");
 			} else {
-				alert(data.message || "Failed to initiate password reset.");
+				alert(data.message || t("auth.signIn.alerts.otpFailed"));
 			}
 		} catch (error) {
 			console.error("Forgot Password Error:", error);
-			alert("An error occurred. Please try again later.");
+			alert(t("auth.signIn.alerts.errorOccurred"));
 		}
 	};
 
 	const handleVerifyOtp = async () => {
 		if (!otp || otp.length !== 5) {
-			alert("Please enter a valid 5-digit OTP.");
+			alert(t("auth.signIn.alerts.enterValidOtp"));
 			return;
 		}
 
@@ -183,26 +185,26 @@ function SignInScreen() {
 			const data = await response.json();
 
 			if (response.ok) {
-				alert("OTP Verified successfully!");
+				alert(t("auth.signIn.alerts.otpVerified"));
 				setResetToken(data.resetToken);
 				setShowPage("NewPassword");
 			} else {
-				alert(data.message || "Invalid or expired OTP.");
+				alert(data.message || t("auth.signIn.alerts.invalidOtp"));
 			}
 		} catch (error) {
 			console.error("OTP Verification Error:", error);
-			alert("An error occurred during verification. Please try again.");
+			alert(t("auth.signIn.alerts.errorOccurred"));
 		}
 	};
 
 	const handleChangePassword = async () => {
 		if (!newPassword || !confirmPassword) {
-			alert("Please fill in both password fields.");
+			alert(t("auth.signIn.alerts.fillBothPasswords"));
 			return;
 		}
 
 		if (newPassword !== confirmPassword) {
-			alert("Passwords do not match. Please try again.");
+			alert(t("auth.signIn.alerts.passwordsDoNotMatch"));
 			return;
 		}
 
@@ -216,26 +218,26 @@ function SignInScreen() {
 			const data = await response.json();
 
 			if (response.ok) {
-				alert("Password has been reset successfully!");
+				alert(t("auth.signIn.alerts.passwordResetSuccess"));
 				setShowReset(false);
 				setShowPage("SignIn");
 			} else {
-				alert(data.message || "Failed to reset password.");
+				alert(data.message || t("auth.signIn.alerts.passwordResetFailed"));
 			}
 		} catch (error) {
 			console.error("Reset Password Error:", error);
-			alert("An error occurred. Please try again.");
+			alert(t("auth.signIn.alerts.errorOccurred"));
 		}
 	};
 
 	const handleForceChangePassword = async () => {
 		if (!newPassword || !confirmPassword) {
-			alert("Please fill in both password fields.");
+			alert(t("auth.signIn.alerts.fillBothPasswords"));
 			return;
 		}
 
 		if (newPassword !== confirmPassword) {
-			alert("Passwords do not match. Please try again.");
+			alert(t("auth.signIn.alerts.passwordsDoNotMatch"));
 			return;
 		}
 
@@ -249,17 +251,17 @@ function SignInScreen() {
 			const data = await response.json();
 
 			if (response.ok) {
-				alert("Password successfully updated! Logging you in...");
+				alert(t("auth.signIn.alerts.passwordUpdatedLoggingIn"));
 				finalizeLogin(tempAuth.token, tempAuth.user, formData.role);
 				setShowReset(false);
 				setTempAuth(null);
 				navigate("/doctor-home");
 			} else {
-				alert(data.message || "Failed to update password.");
+				alert(data.message || t("auth.signIn.alerts.failedToUpdatePassword"));
 			}
 		} catch (error) {
 			console.error("Force Change Password Error:", error);
-			alert("An error occurred. Please try again.");
+			alert(t("auth.signIn.alerts.errorOccurred"));
 		}
 	};
 
@@ -272,30 +274,30 @@ function SignInScreen() {
 
 	const enterEmail = () =>
 		resetShell(
-			"Reset your password",
+			t("auth.signIn.resetPassword"),
 			<>
 				<div className="flex flex-col gap-4">
 					<div className="flex flex-col gap-1.5">
-						<Label htmlFor="reset-email">Email</Label>
+						<Label htmlFor="reset-email">{t("auth.signIn.resetEmail")}</Label>
 						<Input
 							id="reset-email"
 							type="email"
 							name="email"
 							value={passwordResetEmail}
 							onChange={(e) => setPasswordResetEmail(e.target.value)}
-							placeholder="Enter your email"
+							placeholder={t("auth.signIn.enterEmailPlaceholder")}
 							required
 							className="h-11"
 						/>
 					</div>
 					<div className="flex flex-col gap-1.5">
-						<Label htmlFor="reset-role">Role</Label>
-						<Select value={passwordResetRole} onValueChange={setPasswordResetRole} items={ROLE_OPTIONS}>
+						<Label htmlFor="reset-role">{t("auth.signIn.roleLabel")}</Label>
+						<Select value={passwordResetRole} onValueChange={setPasswordResetRole} items={roleOptions}>
 							<SelectTrigger id="reset-role" className="h-11">
-								<SelectValue placeholder="Select role" />
+								<SelectValue placeholder={t("auth.signIn.selectRole")} />
 							</SelectTrigger>
 							<SelectContent>
-								{ROLE_OPTIONS.map((r) => (
+								{roleOptions.map((r) => (
 									<SelectItem key={r.value} value={r.value}>
 										{r.label}
 									</SelectItem>
@@ -306,10 +308,10 @@ function SignInScreen() {
 				</div>
 				<div className="flex gap-3">
 					<Button type="button" variant="outline" className="flex-1" onClick={() => { setShowReset(false); setShowPage("enterEmail"); }}>
-						Back to sign in
+						{t("auth.signIn.backToSignIn")}
 					</Button>
 					<Button type="button" className="flex-1" onClick={handleForgotPassword}>
-						Send OTP
+						{t("auth.signIn.sendOtp")}
 					</Button>
 				</div>
 			</>
@@ -317,48 +319,48 @@ function SignInScreen() {
 
 	const OTPVerification = () =>
 		resetShell(
-			"Enter the OTP",
+			t("auth.signIn.enterOtp"),
 			<>
-				<p className="text-sm text-muted-foreground">Sent to your registered WhatsApp number.</p>
+				<p className="text-sm text-muted-foreground">{t("auth.signIn.otpHelp")}</p>
 				<Input
 					type="text"
 					name="otp"
 					value={otp}
 					onChange={(e) => setOtp(e.target.value)}
-					placeholder="5-digit OTP"
+					placeholder={t("auth.signIn.otpPlaceholder")}
 					className="h-11 text-center text-lg tracking-widest"
 				/>
 				<Button type="button" className="w-full" onClick={handleVerifyOtp}>
-					Verify OTP
+					{t("auth.signIn.verifyOtp")}
 				</Button>
 			</>
 		);
 
 	const NewPassword = () =>
 		resetShell(
-			"Set your new password",
+			t("auth.signIn.setNewPassword"),
 			<>
 				<div className="flex flex-col gap-3">
-					<PasswordField name="newPassword" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="New password" />
-					<PasswordField name="confirmPassword" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Confirm new password" />
+					<PasswordField name="newPassword" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder={t("auth.signIn.newPasswordPlaceholder")} />
+					<PasswordField name="confirmPassword" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder={t("auth.signIn.confirmNewPasswordPlaceholder")} />
 				</div>
 				<Button type="button" className="w-full" onClick={handleChangePassword}>
-					Reset password
+					{t("auth.signIn.resetPasswordBtn")}
 				</Button>
 			</>
 		);
 
 	const ForceChangePassword = () =>
 		resetShell(
-			"Set your permanent password",
+			t("auth.signIn.setPermanentPassword"),
 			<>
-				<p className="text-sm text-muted-foreground">For security, you must replace your temporary password before continuing.</p>
+				<p className="text-sm text-muted-foreground">{t("auth.signIn.permanentPasswordDesc")}</p>
 				<div className="flex flex-col gap-3">
-					<PasswordField name="newPassword" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="New password" />
-					<PasswordField name="confirmPassword" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Confirm new password" />
+					<PasswordField name="newPassword" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder={t("auth.signIn.newPasswordPlaceholder")} />
+					<PasswordField name="confirmPassword" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder={t("auth.signIn.confirmNewPasswordPlaceholder")} />
 				</div>
 				<Button type="button" className="w-full" onClick={handleForceChangePassword}>
-					Update password & log in
+					{t("auth.signIn.updatePasswordAndLogin")}
 				</Button>
 			</>
 		);
@@ -373,54 +375,52 @@ function SignInScreen() {
 				</a>
 
 				<div className="relative flex flex-col gap-4">
-					<h1 className="font-display text-4xl leading-tight text-(--jh-cream)">
-						Ayurvedic care,
-						<br />
-						organized end to end.
+					<h1 className="whitespace-pre-line font-display text-4xl leading-tight text-(--jh-cream)">
+						{t("auth.signIn.heroHeading")}
 					</h1>
 					<p className="max-w-sm text-(--jh-cream)/70">
-						Book consultations, manage prescriptions, and track your wellness journey — all in one calm, deliberate workspace.
+						{t("auth.signIn.heroDesc")}
 					</p>
 				</div>
 
-				<p className="relative text-sm text-(--jh-cream)/50">Trusted by patients, doctors, and retailers across India.</p>
+				<p className="relative text-sm text-(--jh-cream)/50">{t("auth.signIn.heroFooter")}</p>
 			</div>
 
 			<div className="flex items-center justify-center px-6 py-16 sm:px-10">
 				<div className="w-full max-w-sm">
 					{!showReset ? (
 						<>
-							<h1 className="font-display text-3xl text-foreground">Login to your account</h1>
-							<p className="mt-1.5 text-sm text-muted-foreground">Welcome back! We're happy to see you again.</p>
+							<h1 className="font-display text-3xl text-foreground">{t("auth.signIn.title")}</h1>
+							<p className="mt-1.5 text-sm text-muted-foreground">{t("auth.signIn.subtitle")}</p>
 
 							<form className="mt-8 flex flex-col gap-4" onSubmit={handleSignIn}>
 								<div className="flex flex-col gap-1.5">
-									<Label htmlFor="signin-email">Email</Label>
+									<Label htmlFor="signin-email">{t("auth.signIn.email")}</Label>
 									<Input
 										id="signin-email"
 										type="email"
 										name="email"
 										value={formData.email}
 										onChange={handleInputChange}
-										placeholder="you@example.com"
+										placeholder={t("auth.signIn.emailPlaceholder")}
 										required
 										className="h-11"
 									/>
 								</div>
 
 								<div className="flex flex-col gap-1.5">
-									<Label htmlFor="signin-password">Password</Label>
-									<PasswordField id="signin-password" name="password" value={formData.password} onChange={handleInputChange} placeholder="Password" />
+									<Label htmlFor="signin-password">{t("auth.signIn.password")}</Label>
+									<PasswordField id="signin-password" name="password" value={formData.password} onChange={handleInputChange} placeholder={t("auth.signIn.password")} />
 								</div>
 
 								<div className="flex flex-col gap-1.5">
-									<Label htmlFor="signin-role">I am a</Label>
-									<Select value={formData.role} onValueChange={(value) => setFormData((prev) => ({ ...prev, role: value }))} items={ROLE_OPTIONS}>
+									<Label htmlFor="signin-role">{t("auth.signIn.roleLabel")}</Label>
+									<Select value={formData.role} onValueChange={(value) => setFormData((prev) => ({ ...prev, role: value }))} items={roleOptions}>
 										<SelectTrigger id="signin-role" className="h-11">
-											<SelectValue placeholder="Select role" />
+											<SelectValue placeholder={t("auth.signIn.selectRole")} />
 										</SelectTrigger>
 										<SelectContent>
-											{ROLE_OPTIONS.map((r) => (
+											{roleOptions.map((r) => (
 												<SelectItem key={r.value} value={r.value}>
 													{r.label}
 												</SelectItem>
@@ -434,18 +434,18 @@ function SignInScreen() {
 									onClick={() => setShowReset(true)}
 									className="self-end text-sm font-semibold text-primary hover:underline"
 								>
-									Forgot password?
+									{t("auth.signIn.forgotPassword")}
 								</button>
 
 								<Button type="submit" size="lg" className="mt-2 w-full">
-									Login
+									{t("auth.signIn.loginBtn")}
 								</Button>
 							</form>
 
 							<p className="mt-6 text-center text-sm text-muted-foreground">
-								Don't have an account?{" "}
+								{t("auth.signIn.noAccount")}{" "}
 								<button type="button" onClick={handleSignUp} className="font-semibold text-primary hover:underline">
-									Sign up
+									{t("auth.signIn.signUpLink")}
 								</button>
 							</p>
 						</>

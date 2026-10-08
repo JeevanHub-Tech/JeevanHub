@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
 	Trash2,
 	Pencil,
@@ -38,6 +39,7 @@ const statusBadgeVariant = (status) => {
 };
 
 const DoctorManagement = () => {
+	const { t } = useTranslation();
 	const [doctors, setDoctors] = useState([]);
 
 	// Filters + page live in the URL so navigating to a doctor's detail page
@@ -187,7 +189,7 @@ const DoctorManagement = () => {
 
 	const handleDeleteClick = async (e, id) => {
 		e.stopPropagation();
-		if (!window.confirm("Are you sure you want to delete this doctor?")) return;
+		if (!window.confirm(t("adminDoctors.table.delete") + "?")) return;
 		try {
 			const token = localStorage.getItem("token") || "";
 			const res = await authFetch(`${BACKEND_URL}/api/doctors/${id}`, {
@@ -284,7 +286,7 @@ const DoctorManagement = () => {
 
 	const handleBulkVerify = async (status) => {
 		if (selectedDoctors.length === 0) return;
-		if (!window.confirm(`Mark ${selectedDoctors.length} selected doctors as ${status}?`)) return;
+		if (!window.confirm(t("adminDoctors.bulk.confirmVerify", { count: selectedDoctors.length, status }))) return;
 		try {
 			const token = localStorage.getItem("token") || "";
 			const res = await authFetch(`${BACKEND_URL}/api/doctors/bulk-verify`, {
@@ -308,7 +310,7 @@ const DoctorManagement = () => {
 
 	const handleBulkDelete = async () => {
 		if (selectedDoctors.length === 0) return;
-		if (!window.confirm(`Are you sure you want to permanently delete ${selectedDoctors.length} selected doctors?`)) return;
+		if (!window.confirm(t("adminDoctors.bulk.confirmDelete", { count: selectedDoctors.length }))) return;
 		try {
 			const token = localStorage.getItem("token") || "";
 			const res = await authFetch(`${BACKEND_URL}/api/doctors/bulk-delete`, {
@@ -367,12 +369,12 @@ const DoctorManagement = () => {
 	todayStart.setHours(0, 0, 0, 0);
 
 	const metrics = [
-		{ key: "All", label: "Total Doctors", value: doctors.length },
-		{ key: "Pending", label: "Pending Review", value: doctors.filter((d) => d.approvalStatus === "Pending").length },
-		{ key: "Approved", label: "Approved", value: doctors.filter((d) => d.approvalStatus === "Approved").length },
+		{ key: "All", label: t("adminDoctors.metrics.all"), value: doctors.length },
+		{ key: "Pending", label: t("adminDoctors.metrics.pending"), value: doctors.filter((d) => d.approvalStatus === "Pending").length },
+		{ key: "Approved", label: t("adminDoctors.metrics.approved"), value: doctors.filter((d) => d.approvalStatus === "Approved").length },
 		{
 			key: "ActiveToday",
-			label: "Active Today",
+			label: t("adminDoctors.metrics.activeToday"),
 			value: doctors.filter((d) => d.lastLogin && new Date(d.lastLogin) >= todayStart).length,
 		},
 	];
@@ -381,7 +383,7 @@ const DoctorManagement = () => {
 		"All",
 		...new Set(
 			doctors.flatMap((d) =>
-				Array.isArray(d.specialization) && d.specialization.length > 0 ? d.specialization : ["Not specified"],
+				Array.isArray(d.specialization) && d.specialization.length > 0 ? d.specialization : [t("adminDoctors.table.notSpecified")],
 			),
 		),
 	];
@@ -391,10 +393,10 @@ const DoctorManagement = () => {
 			<div className="mb-4">
 				<Button variant="outline" size="sm" onClick={() => navigate(-1)}>
 					<ArrowLeft data-icon="inline-start" />
-					Back
+					{t("adminDoctors.back")}
 				</Button>
 			</div>
-			<DashboardPageHeader title="Doctor Management" description="Review, verify, and manage doctors on the platform." />
+			<DashboardPageHeader title={t("adminDoctors.title")} description={t("adminDoctors.description")} />
 
 			<div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
 				{metrics.map((metric) => (
@@ -419,7 +421,7 @@ const DoctorManagement = () => {
 					<div className="flex min-w-56 flex-1 items-center gap-2 rounded-lg border border-input px-3">
 						<SearchIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
 						<Input
-							placeholder="Search by name, email, or specialization..."
+							placeholder={t("adminDoctors.searchPlaceholder")}
 							value={search}
 							onChange={(e) => setSearch(e.target.value)}
 							className="h-auto border-0 p-2 shadow-none focus-visible:ring-0"
@@ -430,32 +432,32 @@ const DoctorManagement = () => {
 						value={statusFilter}
 						onValueChange={setStatusFilter}
 						items={[
-							{ value: "All", label: "All Statuses" },
-							{ value: "Pending", label: "Pending" },
-							{ value: "Approved", label: "Approved" },
-							{ value: "Rejected", label: "Rejected" },
-							{ value: "ActiveToday", label: "Active Today" },
+							{ value: "All", label: t("adminDoctors.status.all") },
+							{ value: "Pending", label: t("adminDoctors.status.pending") },
+							{ value: "Approved", label: t("adminDoctors.status.approved") },
+							{ value: "Rejected", label: t("adminDoctors.status.rejected") },
+							{ value: "ActiveToday", label: t("adminDoctors.status.activeToday") },
 						]}
 					>
 						<SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
 						<SelectContent>
-							<SelectItem value="All">All Statuses</SelectItem>
-							<SelectItem value="Pending">Pending</SelectItem>
-							<SelectItem value="Approved">Approved</SelectItem>
-							<SelectItem value="Rejected">Rejected</SelectItem>
-							<SelectItem value="ActiveToday">Active Today</SelectItem>
+							<SelectItem value="All">{t("adminDoctors.status.all")}</SelectItem>
+							<SelectItem value="Pending">{t("adminDoctors.status.pending")}</SelectItem>
+							<SelectItem value="Approved">{t("adminDoctors.status.approved")}</SelectItem>
+							<SelectItem value="Rejected">{t("adminDoctors.status.rejected")}</SelectItem>
+							<SelectItem value="ActiveToday">{t("adminDoctors.status.activeToday")}</SelectItem>
 						</SelectContent>
 					</Select>
 
 					<Select
 						value={specializationFilter}
 						onValueChange={setSpecializationFilter}
-						items={uniqueSpecializations.map((spec) => ({ value: spec, label: spec }))}
+						items={uniqueSpecializations.map((spec) => ({ value: spec, label: spec === "All" ? t("adminDoctors.status.all") : spec }))}
 					>
 						<SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
 						<SelectContent>
 							{uniqueSpecializations.map((spec) => (
-								<SelectItem key={spec} value={spec}>{spec}</SelectItem>
+								<SelectItem key={spec} value={spec}>{spec === "All" ? t("adminDoctors.status.all") : spec}</SelectItem>
 							))}
 						</SelectContent>
 					</Select>
@@ -464,18 +466,18 @@ const DoctorManagement = () => {
 						value={genderFilter}
 						onValueChange={setGenderFilter}
 						items={[
-							{ value: "All", label: "All Genders" },
-							{ value: "Male", label: "Male" },
-							{ value: "Female", label: "Female" },
-							{ value: "Other", label: "Other" },
+							{ value: "All", label: t("adminDoctors.genders.all") },
+							{ value: "Male", label: t("adminDoctors.genders.male") },
+							{ value: "Female", label: t("adminDoctors.genders.female") },
+							{ value: "Other", label: t("adminDoctors.genders.other") },
 						]}
 					>
 						<SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
 						<SelectContent>
-							<SelectItem value="All">All Genders</SelectItem>
-							<SelectItem value="Male">Male</SelectItem>
-							<SelectItem value="Female">Female</SelectItem>
-							<SelectItem value="Other">Other</SelectItem>
+							<SelectItem value="All">{t("adminDoctors.genders.all")}</SelectItem>
+							<SelectItem value="Male">{t("adminDoctors.genders.male")}</SelectItem>
+							<SelectItem value="Female">{t("adminDoctors.genders.female")}</SelectItem>
+							<SelectItem value="Other">{t("adminDoctors.genders.other")}</SelectItem>
 						</SelectContent>
 					</Select>
 
@@ -483,18 +485,18 @@ const DoctorManagement = () => {
 						value={priceFilter}
 						onValueChange={setPriceFilter}
 						items={[
-							{ value: "All", label: "All Prices" },
-							{ value: "<500", label: "Under ₹500" },
-							{ value: "500-1000", label: "₹500 - ₹1000" },
-							{ value: ">1000", label: "Above ₹1000" },
+							{ value: "All", label: t("adminDoctors.prices.all") },
+							{ value: "<500", label: t("adminDoctors.prices.under500") },
+							{ value: "500-1000", label: t("adminDoctors.prices.500to1000") },
+							{ value: ">1000", label: t("adminDoctors.prices.above1000") },
 						]}
 					>
 						<SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
 						<SelectContent>
-							<SelectItem value="All">All Prices</SelectItem>
-							<SelectItem value="<500">Under ₹500</SelectItem>
-							<SelectItem value="500-1000">₹500 - ₹1000</SelectItem>
-							<SelectItem value=">1000">Above ₹1000</SelectItem>
+							<SelectItem value="All">{t("adminDoctors.prices.all")}</SelectItem>
+							<SelectItem value="<500">{t("adminDoctors.prices.under500")}</SelectItem>
+							<SelectItem value="500-1000">{t("adminDoctors.prices.500to1000")}</SelectItem>
+							<SelectItem value=">1000">{t("adminDoctors.prices.above1000")}</SelectItem>
 						</SelectContent>
 					</Select>
 
@@ -502,30 +504,30 @@ const DoctorManagement = () => {
 						value={sortBy}
 						onValueChange={setSortBy}
 						items={[
-							{ value: "date_desc", label: "Newest First" },
-							{ value: "name_asc", label: "Name (A-Z)" },
-							{ value: "name_desc", label: "Name (Z-A)" },
-							{ value: "exp_desc", label: "Experience (High to Low)" },
-							{ value: "exp_asc", label: "Experience (Low to High)" },
-							{ value: "activity_desc", label: "Highest Activity" },
-							{ value: "activity_asc", label: "Lowest Activity" },
-							{ value: "rating_desc", label: "Highest Rated" },
-							{ value: "price_asc", label: "Price (Low to High)" },
-							{ value: "price_desc", label: "Price (High to Low)" },
+							{ value: "date_desc", label: t("adminDoctors.sortOptions.dateDesc") },
+							{ value: "name_asc", label: t("adminDoctors.sortOptions.nameAsc") },
+							{ value: "name_desc", label: t("adminDoctors.sortOptions.nameDesc") },
+							{ value: "exp_desc", label: t("adminDoctors.sortOptions.expDesc") },
+							{ value: "exp_asc", label: t("adminDoctors.sortOptions.expAsc") },
+							{ value: "activity_desc", label: t("adminDoctors.sortOptions.activityDesc") },
+							{ value: "activity_asc", label: t("adminDoctors.sortOptions.activityAsc") },
+							{ value: "rating_desc", label: t("adminDoctors.sortOptions.ratingDesc") },
+							{ value: "price_asc", label: t("adminDoctors.sortOptions.priceAsc") },
+							{ value: "price_desc", label: t("adminDoctors.sortOptions.priceDesc") },
 						]}
 					>
 						<SelectTrigger className="w-52"><SelectValue /></SelectTrigger>
 						<SelectContent>
-							<SelectItem value="date_desc">Newest First</SelectItem>
-							<SelectItem value="name_asc">Name (A-Z)</SelectItem>
-							<SelectItem value="name_desc">Name (Z-A)</SelectItem>
-							<SelectItem value="exp_desc">Experience (High to Low)</SelectItem>
-							<SelectItem value="exp_asc">Experience (Low to High)</SelectItem>
-							<SelectItem value="activity_desc">Highest Activity</SelectItem>
-							<SelectItem value="activity_asc">Lowest Activity</SelectItem>
-							<SelectItem value="rating_desc">Highest Rated</SelectItem>
-							<SelectItem value="price_asc">Price (Low to High)</SelectItem>
-							<SelectItem value="price_desc">Price (High to Low)</SelectItem>
+							<SelectItem value="date_desc">{t("adminDoctors.sortOptions.dateDesc")}</SelectItem>
+							<SelectItem value="name_asc">{t("adminDoctors.sortOptions.nameAsc")}</SelectItem>
+							<SelectItem value="name_desc">{t("adminDoctors.sortOptions.nameDesc")}</SelectItem>
+							<SelectItem value="exp_desc">{t("adminDoctors.sortOptions.expDesc")}</SelectItem>
+							<SelectItem value="exp_asc">{t("adminDoctors.sortOptions.expAsc")}</SelectItem>
+							<SelectItem value="activity_desc">{t("adminDoctors.sortOptions.activityDesc")}</SelectItem>
+							<SelectItem value="activity_asc">{t("adminDoctors.sortOptions.activityAsc")}</SelectItem>
+							<SelectItem value="rating_desc">{t("adminDoctors.sortOptions.ratingDesc")}</SelectItem>
+							<SelectItem value="price_asc">{t("adminDoctors.sortOptions.priceAsc")}</SelectItem>
+							<SelectItem value="price_desc">{t("adminDoctors.sortOptions.priceDesc")}</SelectItem>
 						</SelectContent>
 					</Select>
 				</CardContent>
@@ -534,24 +536,24 @@ const DoctorManagement = () => {
 			<div className="mb-4 flex flex-wrap items-center justify-between gap-3">
 				{selectedDoctors.length > 0 ? (
 					<div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-card px-3 py-2">
-						<span className="text-sm font-semibold text-foreground">{selectedDoctors.length} selected</span>
-						<Button size="sm" onClick={() => handleBulkVerify("Approved")}>Approve</Button>
-						<Button size="sm" variant="secondary" onClick={() => handleBulkVerify("Rejected")}>Reject</Button>
-						<Button size="sm" variant="destructive" onClick={handleBulkDelete}>Delete</Button>
-						<Button size="sm" variant="ghost" onClick={() => setSelectedDoctors([])}>Clear</Button>
+						<span className="text-sm font-semibold text-foreground">{t("adminDoctors.bulk.selected", { count: selectedDoctors.length })}</span>
+						<Button size="sm" onClick={() => handleBulkVerify("Approved")}>{t("adminDoctors.bulk.approve")}</Button>
+						<Button size="sm" variant="secondary" onClick={() => handleBulkVerify("Rejected")}>{t("adminDoctors.bulk.reject")}</Button>
+						<Button size="sm" variant="destructive" onClick={handleBulkDelete}>{t("adminDoctors.bulk.delete")}</Button>
+						<Button size="sm" variant="ghost" onClick={() => setSelectedDoctors([])}>{t("adminDoctors.bulk.clear")}</Button>
 					</div>
 				) : (
-					<span className="text-sm text-muted-foreground">Select doctors to perform bulk actions</span>
+					<span className="text-sm text-muted-foreground">{t("adminDoctors.bulk.selectPrompt")}</span>
 				)}
 
 				<div className="flex gap-2">
 					<Button variant="secondary" onClick={handleExportCSV}>
 						<Download data-icon="inline-start" />
-						Export CSV
+						{t("adminDoctors.exportCsv")}
 					</Button>
 					<Button render={<label htmlFor="excel-upload" />} className="cursor-pointer">
 						<Upload data-icon="inline-start" />
-						Upload Excel
+						{t("adminDoctors.uploadExcel")}
 						<span
 							role="button"
 							onClick={(e) => {
@@ -560,7 +562,7 @@ const DoctorManagement = () => {
 								setIsInfoModalOpen(true);
 							}}
 							className="ml-1 border-l border-primary-foreground/30 pl-1.5"
-							title="View Upload Instructions"
+							title={t("adminDoctors.uploadGuideTitle")}
 						>
 							<Info className="size-4" />
 						</span>
@@ -582,12 +584,12 @@ const DoctorManagement = () => {
 										className="size-4 cursor-pointer"
 									/>
 								</TableHead>
-								<TableHead>Name</TableHead>
-								<TableHead>Specialization</TableHead>
-								<TableHead>Exp / Price</TableHead>
-								<TableHead>Rating / Activity</TableHead>
-								<TableHead>Status</TableHead>
-								<TableHead>Actions</TableHead>
+								<TableHead>{t("adminDoctors.table.name")}</TableHead>
+								<TableHead>{t("adminDoctors.table.specialization")}</TableHead>
+								<TableHead>{t("adminDoctors.table.expPrice")}</TableHead>
+								<TableHead>{t("adminDoctors.table.ratingActivity")}</TableHead>
+								<TableHead>{t("adminDoctors.table.status")}</TableHead>
+								<TableHead>{t("adminDoctors.table.actions")}</TableHead>
 							</TableRow>
 						</TableHeader>
 						<TableBody>
@@ -619,10 +621,10 @@ const DoctorManagement = () => {
 														const specStr = doctor.specialization.join(", ");
 														return specStr.length > 30 ? `${specStr.slice(0, 30)}...` : specStr;
 													})()
-												: "Not specified"}
+												: t("adminDoctors.table.notSpecified")}
 										</TableCell>
 										<TableCell>
-											<div className="text-muted-foreground">{doctor.experience || 0} years</div>
+											<div className="text-muted-foreground">{doctor.experience || 0} {t("adminDoctors.table.years")}</div>
 											<div className="text-xs font-semibold text-primary">₹{doctor.price || 0}</div>
 										</TableCell>
 										<TableCell>
@@ -631,7 +633,7 @@ const DoctorManagement = () => {
 												<span className="font-semibold text-foreground">{doctor.rating ? doctor.rating.toFixed(1) : "N/A"}</span>
 											</div>
 											<div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
-												<Clock className="size-3" /> {formatDate(doctor.lastLogin, "Never")}
+												<Clock className="size-3" /> {formatDate(doctor.lastLogin, t("adminDoctors.table.never"))}
 											</div>
 										</TableCell>
 										<TableCell>
@@ -640,7 +642,7 @@ const DoctorManagement = () => {
 										<TableCell>
 											<div className="flex gap-2">
 												<Button size="sm" variant="outline" onClick={(e) => handleEditClick(e, doctor)}>
-													<Pencil data-icon="inline-start" /> Edit
+													<Pencil data-icon="inline-start" /> {t("adminDoctors.table.edit")}
 												</Button>
 												<Button size="sm" variant="destructive" onClick={(e) => handleDeleteClick(e, doctor._id)}>
 													<Trash2 />
@@ -652,7 +654,7 @@ const DoctorManagement = () => {
 							) : (
 								<TableRow>
 									<TableCell colSpan={7} className="py-10 text-center text-muted-foreground">
-										No doctors found matching the criteria.
+										{t("adminDoctors.table.noDoctorsFound")}
 									</TableCell>
 								</TableRow>
 							)}
@@ -664,11 +666,15 @@ const DoctorManagement = () => {
 			{totalPages > 1 ? (
 				<div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card p-3">
 					<span className="text-sm text-muted-foreground">
-						Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, processedDoctors.length)} of {processedDoctors.length} doctors
+						{t("adminDoctors.pagination.showing", {
+							start: (currentPage - 1) * itemsPerPage + 1,
+							end: Math.min(currentPage * itemsPerPage, processedDoctors.length),
+							total: processedDoctors.length,
+						})}
 					</span>
 					<div className="flex gap-1.5">
 						<Button size="sm" variant="secondary" disabled={currentPage === 1} onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}>
-							Previous
+							{t("adminDoctors.pagination.prev")}
 						</Button>
 						{Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
 							<Button key={page} size="sm" variant={currentPage === page ? "default" : "outline"} onClick={() => setCurrentPage(page)}>
@@ -676,7 +682,7 @@ const DoctorManagement = () => {
 							</Button>
 						))}
 						<Button size="sm" variant="secondary" disabled={currentPage === totalPages} onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}>
-							Next
+							{t("adminDoctors.pagination.next")}
 						</Button>
 					</div>
 				</div>
@@ -687,27 +693,27 @@ const DoctorManagement = () => {
 					{doctorToEdit ? (
 						<>
 							<DialogHeader>
-								<DialogTitle>Edit Doctor Profile</DialogTitle>
+								<DialogTitle>{t("adminDoctors.editModal.title")}</DialogTitle>
 							</DialogHeader>
 							<FieldGroup>
 								<Field>
-									<FieldLabel htmlFor="dl-first-name">First Name</FieldLabel>
+									<FieldLabel htmlFor="dl-first-name">{t("adminDoctors.editModal.firstName")}</FieldLabel>
 									<Input id="dl-first-name" value={doctorToEdit.firstName} onChange={(e) => setDoctorToEdit({ ...doctorToEdit, firstName: e.target.value })} />
 								</Field>
 								<Field>
-									<FieldLabel htmlFor="dl-last-name">Last Name</FieldLabel>
+									<FieldLabel htmlFor="dl-last-name">{t("adminDoctors.editModal.lastName")}</FieldLabel>
 									<Input id="dl-last-name" value={doctorToEdit.lastName} onChange={(e) => setDoctorToEdit({ ...doctorToEdit, lastName: e.target.value })} />
 								</Field>
 								<Field>
-									<FieldLabel htmlFor="dl-email">Email</FieldLabel>
+									<FieldLabel htmlFor="dl-email">{t("adminDoctors.editModal.email")}</FieldLabel>
 									<Input id="dl-email" type="email" value={doctorToEdit.email} onChange={(e) => setDoctorToEdit({ ...doctorToEdit, email: e.target.value })} />
 								</Field>
 								<Field>
-									<FieldLabel htmlFor="dl-phone">Phone</FieldLabel>
+									<FieldLabel htmlFor="dl-phone">{t("adminDoctors.editModal.phone")}</FieldLabel>
 									<Input id="dl-phone" value={doctorToEdit.phone} onChange={(e) => setDoctorToEdit({ ...doctorToEdit, phone: e.target.value })} />
 								</Field>
 								<Field>
-									<FieldLabel htmlFor="dl-spec">Specialization (comma separated)</FieldLabel>
+									<FieldLabel htmlFor="dl-spec">{t("adminDoctors.editModal.specialization")}</FieldLabel>
 									<Input
 										id="dl-spec"
 										value={Array.isArray(doctorToEdit.specialization) ? doctorToEdit.specialization.join(", ") : doctorToEdit.specialization}
@@ -715,13 +721,13 @@ const DoctorManagement = () => {
 									/>
 								</Field>
 								<Field>
-									<FieldLabel htmlFor="dl-exp">Experience (Years)</FieldLabel>
+									<FieldLabel htmlFor="dl-exp">{t("adminDoctors.editModal.experience")}</FieldLabel>
 									<Input id="dl-exp" type="number" value={doctorToEdit.experience} onChange={(e) => setDoctorToEdit({ ...doctorToEdit, experience: e.target.value })} />
 								</Field>
 							</FieldGroup>
 							<DialogFooter>
-								<Button variant="secondary" onClick={() => setIsEditModalOpen(false)}>Cancel</Button>
-								<Button onClick={() => handleSaveChanges(doctorToEdit)}>Save Changes</Button>
+								<Button variant="secondary" onClick={() => setIsEditModalOpen(false)}>{t("adminDoctors.editModal.cancel")}</Button>
+								<Button onClick={() => handleSaveChanges(doctorToEdit)}>{t("adminDoctors.editModal.saveChanges")}</Button>
 							</DialogFooter>
 						</>
 					) : null}
@@ -731,14 +737,14 @@ const DoctorManagement = () => {
 			<Dialog open={isInfoModalOpen} onOpenChange={setIsInfoModalOpen}>
 				<DialogContent className="max-h-[90vh] max-w-4xl">
 					<DialogHeader>
-						<DialogTitle className="flex items-center gap-2 text-2xl"><Info className="size-6" /> Excel Upload Guide</DialogTitle>
-						<p className="text-sm text-muted-foreground">Follow this exact structure to seamlessly upload multiple doctors. We will securely handle the rest!</p>
+						<DialogTitle className="flex items-center gap-2 text-2xl"><Info className="size-6" /> {t("adminDoctors.guideModal.title")}</DialogTitle>
+						<p className="text-sm text-muted-foreground">{t("adminDoctors.guideModal.subtitle")}</p>
 					</DialogHeader>
 
 					<div className="flex flex-wrap gap-6 overflow-y-auto">
 						<Card className="flex-[0.6] min-w-64">
 							<CardContent>
-								<Badge variant="secondary" className="mb-3">REQUIRED FIELDS</Badge>
+								<Badge variant="secondary" className="mb-3">{t("adminDoctors.guideModal.requiredFields")}</Badge>
 								<Table>
 									<TableHeader>
 										<TableRow><TableHead>firstName</TableHead><TableHead>lastName</TableHead><TableHead>email</TableHead></TableRow>
@@ -753,7 +759,7 @@ const DoctorManagement = () => {
 
 						<Card className="flex-[1.4] min-w-64">
 							<CardContent>
-								<Badge variant="secondary" className="mb-3">OPTIONAL FIELDS</Badge>
+								<Badge variant="secondary" className="mb-3">{t("adminDoctors.guideModal.optionalFields")}</Badge>
 								<Table>
 									<TableHeader>
 										<TableRow>
@@ -779,9 +785,9 @@ const DoctorManagement = () => {
 
 					<div className="grid gap-4 sm:grid-cols-3">
 						{[
-							{ icon: CheckSquare, title: "Auto-Generated Credentials", text: "If the password column is missing or shorter than 8 characters, we automatically generate a secure 8-character password." },
-							{ icon: Download, title: "CSV Download", text: "After a successful upload, you'll receive a CSV of generated credentials. Keep this safe to distribute to your new doctors." },
-							{ icon: Star, title: "Forced Security Reset", text: "On first login, every doctor is redirected to a secure screen and forced to change their password." },
+							{ icon: CheckSquare, title: t("adminDoctors.guideModal.feature1Title"), text: t("adminDoctors.guideModal.feature1Text") },
+							{ icon: Download, title: t("adminDoctors.guideModal.feature2Title"), text: t("adminDoctors.guideModal.feature2Text") },
+							{ icon: Star, title: t("adminDoctors.guideModal.feature3Title"), text: t("adminDoctors.guideModal.feature3Text") },
 						].map((item) => (
 							<Card key={item.title}>
 								<CardContent>
@@ -800,7 +806,7 @@ const DoctorManagement = () => {
 					{uploadReport ? (
 						<>
 							<DialogHeader>
-								<DialogTitle className="flex items-center gap-2"><CheckCircle className="size-6 text-primary" /> Upload Results Report</DialogTitle>
+								<DialogTitle className="flex items-center gap-2"><CheckCircle className="size-6 text-primary" /> {t("adminDoctors.reportModal.title")}</DialogTitle>
 							</DialogHeader>
 
 							<div className="overflow-y-auto">
@@ -811,23 +817,23 @@ const DoctorManagement = () => {
 
 								{uploadReport.generatedCredentials && uploadReport.generatedCredentials.length > 0 ? (
 									<div className="mb-4 rounded-lg border border-border bg-muted/50 p-3 text-sm text-foreground">
-										<strong>Note:</strong> A CSV file containing {uploadReport.generatedCredentials.length} auto-generated credentials has been downloaded. Please distribute these to the respective doctors.
+										<strong>Note:</strong> {t("adminDoctors.reportModal.csvNotice", { count: uploadReport.generatedCredentials.length })}
 									</div>
 								) : null}
 
 								{uploadReport.skippedCount > 0 ? (
 									<div>
 										<h4 className="mb-3 flex items-center gap-2 border-b border-destructive pb-2 font-semibold text-destructive">
-											<AlertTriangle className="size-5" /> Failed to Register: {uploadReport.skippedCount} Doctors
+											<AlertTriangle className="size-5" /> {t("adminDoctors.reportModal.failedTitle", { count: uploadReport.skippedCount })}
 										</h4>
 										<Table>
 											<TableHeader>
-												<TableRow><TableHead>Excel Row</TableHead><TableHead>Reason for Failure</TableHead></TableRow>
+												<TableRow><TableHead>{t("adminDoctors.reportModal.row")}</TableHead><TableHead>{t("adminDoctors.reportModal.reason")}</TableHead></TableRow>
 											</TableHeader>
 											<TableBody>
 												{uploadReport.skippedRows.map((skip, idx) => (
 													<TableRow key={idx}>
-														<TableCell className="font-semibold text-muted-foreground">Row {skip.row}</TableCell>
+														<TableCell className="font-semibold text-muted-foreground">{t("adminDoctors.reportModal.row")} {skip.row}</TableCell>
 														<TableCell className="text-destructive">{skip.reason}</TableCell>
 													</TableRow>
 												))}
@@ -836,13 +842,13 @@ const DoctorManagement = () => {
 									</div>
 								) : (
 									<div className="rounded-lg border border-dashed border-border p-8 text-center text-muted-foreground">
-										All doctors in the Excel file were successfully registered! No rows were skipped.
+										{t("adminDoctors.reportModal.allSuccess")}
 									</div>
 								)}
 							</div>
 
 							<DialogFooter>
-								<Button onClick={() => setIsUploadReportOpen(false)}>Done</Button>
+								<Button onClick={() => setIsUploadReportOpen(false)}>{t("adminDoctors.reportModal.done")}</Button>
 							</DialogFooter>
 						</>
 					) : null}

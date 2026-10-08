@@ -1,6 +1,7 @@
 import { memo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { CircleCheck, Loader2, ShieldAlert, Star } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,7 @@ const FALLBACK_IMAGE =
 	"https://images.unsplash.com/photo-1587854692152-cbe660dbde88?q=80&w=1169&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D";
 
 const MedicineCard = ({ medicine, cartQuantity, addToCart, handleQuantityChange, isPending = false }) => {
+	const { t } = useTranslation();
 	const navigate = useNavigate();
 	const medicineId = medicine._id || medicine.id;
 
@@ -42,7 +44,7 @@ const MedicineCard = ({ medicine, cartQuantity, addToCart, handleQuantityChange,
 		<Link
 			to={`/medicines/${medicineId}`}
 			className="block h-full w-full max-w-70 no-underline"
-			aria-label={`View details of ${medicine.name}`}
+			aria-label={t("medicinesStore.viewDetailsOf", { name: medicine.name, defaultValue: `View details of ${medicine.name}` })}
 		>
 			<Card
 				className="h-full gap-0 py-0 transition-all duration-250 ease-out hover:-translate-y-1 hover:shadow-(--jh-shadow-hover) focus:-translate-y-1 focus:shadow-(--jh-shadow-hover)"
@@ -76,7 +78,7 @@ const MedicineCard = ({ medicine, cartQuantity, addToCart, handleQuantityChange,
 								<span className="text-muted-foreground">({medicine.numReviews})</span>
 							</>
 						) : (
-							<span className="text-muted-foreground">No ratings yet</span>
+							<span className="text-muted-foreground">{t("medicinesStore.noRatingsYet", "No ratings yet")}</span>
 						)}
 					</div>
 
@@ -94,12 +96,12 @@ const MedicineCard = ({ medicine, cartQuantity, addToCart, handleQuantityChange,
 						{medicine.prescription ? (
 							<>
 								<ShieldAlert className="size-4 shrink-0 text-destructive" aria-hidden="true" />
-								<span className="font-medium text-destructive">Prescription required</span>
+								<span className="font-medium text-destructive">{t("medicinesStore.prescriptionRequired", "Prescription required")}</span>
 							</>
 						) : (
 							<>
 								<CircleCheck className="size-4 shrink-0 text-(--jh-olive-deep)" aria-hidden="true" />
-								<span className="font-medium text-(--jh-olive-deep)">No prescription required</span>
+								<span className="font-medium text-(--jh-olive-deep)">{t("medicinesStore.noPrescriptionRequired", "No prescription required")}</span>
 							</>
 						)}
 					</div>
@@ -115,7 +117,7 @@ const MedicineCard = ({ medicine, cartQuantity, addToCart, handleQuantityChange,
 								<button
 									onClick={(e) => handleQuantity(e, -1)}
 									className="flex size-9 items-center justify-center rounded-lg border border-input bg-card text-xl font-bold text-foreground transition-colors hover:border-primary hover:bg-(--jh-sage-pale) disabled:pointer-events-none"
-									aria-label="Decrease quantity"
+									aria-label={t("medicinesStore.decreaseQuantity", "Decrease quantity")}
 									type="button"
 									disabled={isPending}
 								>
@@ -127,7 +129,7 @@ const MedicineCard = ({ medicine, cartQuantity, addToCart, handleQuantityChange,
 								<button
 									onClick={(e) => handleQuantity(e, 1)}
 									className="flex size-9 items-center justify-center rounded-lg border border-input bg-card text-xl font-bold text-foreground transition-colors hover:border-primary hover:bg-(--jh-sage-pale) disabled:pointer-events-none"
-									aria-label="Increase quantity"
+									aria-label={t("medicinesStore.increaseQuantity", "Increase quantity")}
 									type="button"
 									disabled={isPending}
 								>
@@ -138,11 +140,11 @@ const MedicineCard = ({ medicine, cartQuantity, addToCart, handleQuantityChange,
 							<Button
 								onClick={handleAddToCart}
 								className="w-full"
-								aria-label={`Add ${medicine.name} to cart`}
+								aria-label={t("medicinesStore.addNameToCart", { name: medicine.name, defaultValue: `Add ${medicine.name} to cart` })}
 								type="button"
 								disabled={isPending}
 							>
-								{isPending ? <Loader2 className="size-4 animate-spin" /> : "Add to Cart"}
+								{isPending ? <Loader2 className="size-4 animate-spin" /> : t("medicinesStore.addToCart", "Add to Cart")}
 							</Button>
 						)}
 					</div>

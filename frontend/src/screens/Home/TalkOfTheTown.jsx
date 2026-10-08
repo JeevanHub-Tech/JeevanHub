@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -8,6 +9,7 @@ import defaultProfilePic from '../../media/default-profile.png';
 import { BACKEND_URL } from '../../config';
 
 const DoctorsSection = () => {
+  const { t } = useTranslation();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [doctors, setDoctors] = useState([]);
   const [itemsPerPage, setItemsPerPage] = useState(3);
@@ -39,7 +41,7 @@ const DoctorsSection = () => {
           id: doctor._id,
           name: `${doctor.firstName} ${doctor.lastName}`,
           specialization: Array.isArray(doctor.specialization) ? doctor.specialization.join(', ') || "N/A" : doctor.specialization || doctor.designation || "N/A",
-          experience: doctor.experience ? `${doctor.experience} years` : "0 years",
+          experienceNum: doctor.experience || 0,
           age: `${doctor.age || 'N/A'}`,
           profileImage: doctor.profileImage || null,
           rating: doctor.rating || 0,
@@ -80,10 +82,10 @@ const DoctorsSection = () => {
     <section className="mx-auto my-14 w-[95%] max-w-310 rounded-[28px] border border-(--jh-line-strong) bg-[radial-gradient(700px_260px_at_50%_-60px,rgba(200,162,74,0.14),transparent_70%),linear-gradient(180deg,var(--jh-sage-pale)_0%,#f7f8f3_100%)] px-8.5 pt-13 pb-14 shadow-[0_16px_40px_rgba(47,53,36,0.1)] sm:my-10 sm:px-4 sm:pt-10 sm:pb-11">
       <div className="mb-9 flex flex-col items-center gap-2.5 text-center">
         <h2 className="font-display m-0 text-[clamp(1.7rem,3.4vw,2.5rem)] font-semibold tracking-tight text-(--jh-olive-deep)">
-          Meet our doctors
+          {t("homeScreen.meetDoctors.title", "Meet our doctors")}
         </h2>
         <p className="m-0 max-w-130 text-base leading-relaxed text-muted-foreground">
-          Certified Ayurvedic practitioners, ready to build a plan around you.
+          {t("homeScreen.meetDoctors.subtitle", "Certified Ayurvedic practitioners, ready to build a plan around you.")}
         </p>
         <div className="h-1 w-19.5 rounded-full bg-gradient-to-r from-(--jh-olive-leaf) via-(--jh-turmeric-gold) to-(--jh-bark-brown)"></div>
       </div>
@@ -104,7 +106,7 @@ const DoctorsSection = () => {
                 key={index}
               >
                 <div
-                  className="group relative box-border flex w-full cursor-pointer flex-col items-center overflow-hidden rounded-[20px] border border-(--jh-line-strong) bg-(--jh-surface) px-5 pt-6 pb-5.5 shadow-[0_8px_22px_rgba(47,53,36,0.08)] transition-[transform,box-shadow] duration-300 ease-out before:absolute before:inset-x-0 before:top-0 before:h-19 before:bg-gradient-to-br before:from-(--jh-olive-light) before:to-(--jh-olive-leaf) hover:-translate-y-2 hover:shadow-[0_22px_44px_rgba(47,53,36,0.16)]"
+                  className="group relative box-border flex w-full cursor-pointer flex-col items-center overflow-hidden rounded-[20px] border border-(--jh-line-strong) bg-(--jh-surface) px-5 pt-6 pb-5.5 shadow-[0_8px_22px_rgba(47,53,36,0.08)] transition-all duration-300 ease-out will-change-transform before:absolute before:inset-x-0 before:top-0 before:h-19 before:bg-gradient-to-br before:from-(--jh-olive-light) before:to-(--jh-olive-leaf) hover:-translate-y-1.5 hover:shadow-[0_20px_40px_rgba(47,53,36,0.18)]"
                   role="button"
                   tabIndex={0}
                   aria-label={`View profile of ${doctor.name}`}
@@ -117,7 +119,7 @@ const DoctorsSection = () => {
                   }}
                 >
                   <div className="relative z-1 shrink-0">
-                    <Avatar size="lg" className="size-27 border-4 border-white shadow-[0_6px_16px_rgba(47,53,36,0.18)]">
+                    <Avatar size="lg" className="size-27 border-4 border-white shadow-[0_6px_16px_rgba(47,53,36,0.18)] transition-transform duration-300 ease-out group-hover:scale-103">
                       <AvatarImage
                         src={getDoctorImageUrl(doctor.profileImage)}
                         alt={doctor.name}
@@ -132,7 +134,7 @@ const DoctorsSection = () => {
                       variant={isNew ? "default" : "warning"}
                       className={`absolute right-0 bottom-0.5 border-2 border-white text-[0.68rem] font-extrabold shadow-[0_3px_8px_rgba(47,53,36,0.2)] ${isNew ? "bg-(--jh-olive-leaf) text-white" : "bg-(--jh-turmeric-gold) text-white"}`}
                     >
-                      {isNew ? 'New' : `★ ${Number(doctor.rating).toFixed(1)}`}
+                      {isNew ? t("homeScreen.meetDoctors.newBadge", "New") : `★ ${Number(doctor.rating).toFixed(1)}`}
                     </Badge>
                   </div>
                   <div className="z-1 mt-4 flex w-full flex-col items-center gap-3 text-center">
@@ -141,11 +143,13 @@ const DoctorsSection = () => {
                       {doctor.specialization}
                     </span>
                     <div className="flex w-full flex-col gap-0.5 border-t border-(--jh-line-strong) pt-2.5 pb-1">
-                      <span className="text-[0.68rem] font-bold tracking-wide text-muted-foreground uppercase">Experience</span>
-                      <strong className="text-[1.05rem] font-extrabold text-(--jh-olive-deep)">{doctor.experience}</strong>
+                      <span className="text-[0.68rem] font-bold tracking-wide text-muted-foreground uppercase">{t("homeScreen.meetDoctors.experience", "Experience")}</span>
+                      <strong className="text-[1.05rem] font-extrabold text-(--jh-olive-deep)">
+                        {t("homeScreen.meetDoctors.years", { count: doctor.experienceNum, defaultValue: `${doctor.experienceNum} years` })}
+                      </strong>
                     </div>
                     <span className="mt-1 rounded-full bg-gradient-to-br from-(--jh-olive-light) to-(--jh-olive-deep) px-5.5 py-2.5 text-sm font-bold text-white shadow-[0_6px_14px_rgba(85,107,47,0.28)] transition-[transform,box-shadow] duration-250 ease-out group-hover:-translate-y-0.5 group-hover:shadow-[0_10px_20px_rgba(85,107,47,0.4)]">
-                      View Profile →
+                      {t("homeScreen.meetDoctors.viewProfile", "View Profile →")}
                     </span>
                   </div>
                 </div>
@@ -161,7 +165,7 @@ const DoctorsSection = () => {
               size="icon"
               className="absolute top-1/2 left-1 z-10 size-11.5 -translate-y-1/2 rounded-full border-(--jh-line-strong) bg-(--jh-surface) text-lg text-(--jh-olive-deep) shadow-[0_6px_16px_rgba(47,53,36,0.15)] hover:-translate-y-1/2 hover:scale-106 hover:bg-(--jh-olive-leaf) hover:text-white sm:size-9.5"
               onClick={handleLeftClick}
-              aria-label="Previous doctors"
+              aria-label={t("homeScreen.meetDoctors.prevDoctors", "Previous doctors")}
             >
               ←
             </Button>
@@ -171,7 +175,7 @@ const DoctorsSection = () => {
               size="icon"
               className="absolute top-1/2 right-1 z-10 size-11.5 -translate-y-1/2 rounded-full border-(--jh-line-strong) bg-(--jh-surface) text-lg text-(--jh-olive-deep) shadow-[0_6px_16px_rgba(47,53,36,0.15)] hover:-translate-y-1/2 hover:scale-106 hover:bg-(--jh-olive-leaf) hover:text-white sm:size-9.5"
               onClick={handleRightClick}
-              aria-label="Next doctors"
+              aria-label={t("homeScreen.meetDoctors.nextDoctors", "Next doctors")}
             >
               →
             </Button>
@@ -183,3 +187,4 @@ const DoctorsSection = () => {
 };
 
 export default DoctorsSection;
+

@@ -2,6 +2,7 @@ import { useState, useEffect, useContext, useCallback, useMemo, useRef } from "r
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { Search, X, RefreshCw, AlertCircle, Loader2, ShoppingCart, Frown } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -24,20 +25,6 @@ import { useGlobalSearch } from "@/hooks/useGlobalSearch";
 import { useUrlFilters } from "@/hooks/useUrlFilters";
 import MedicineCard from "./MedicineCard";
 
-const PRICE_RANGE_OPTIONS = [
-	{ value: "all", label: "All Prices" },
-	{ value: "under-500", label: "Under ₹500" },
-	{ value: "500-1000", label: "₹500 - ₹1,000" },
-	{ value: "1000-2000", label: "₹1,000 - ₹2,000" },
-	{ value: "above-2000", label: "Above ₹2,000" },
-];
-const SORT_OPTIONS = [
-	{ value: "name", label: "Name (A-Z)" },
-	{ value: "price-low", label: "Price: Low to High" },
-	{ value: "price-high", label: "Price: High to Low" },
-	{ value: "popularity", label: "Popularity" },
-];
-
 const PAGE_SIZE = 24;
 const SEARCH_DEBOUNCE_MS = 400;
 
@@ -55,11 +42,33 @@ const buildPageList = (current, total) => {
 };
 
 const Medicines = () => {
+	const { t } = useTranslation();
 	const { auth } = useContext(AuthContext);
 	const { setCartCount } = useContext(CartContext);
 	const patientId = auth?.user?.id;
 	const token = localStorage.getItem("token");
 	const navigate = useNavigate();
+
+	const priceRangeOptions = useMemo(
+		() => [
+			{ value: "all", label: t("medicinesStore.allPrices", "All Prices") },
+			{ value: "under-500", label: t("medicinesStore.under500", "Under ₹500") },
+			{ value: "500-1000", label: t("medicinesStore.price500to1000", "₹500 - ₹1,000") },
+			{ value: "1000-2000", label: t("medicinesStore.price1000to2000", "₹1,000 - ₹2,000") },
+			{ value: "above-2000", label: t("medicinesStore.above2000", "Above ₹2,000") },
+		],
+		[t],
+	);
+
+	const sortOptions = useMemo(
+		() => [
+			{ value: "name", label: t("medicinesStore.sortName", "Name (A-Z)") },
+			{ value: "price-low", label: t("medicinesStore.sortPriceLow", "Price: Low to High") },
+			{ value: "price-high", label: t("medicinesStore.sortPriceHigh", "Price: High to Low") },
+			{ value: "popularity", label: t("medicinesStore.sortPopularity", "Popularity") },
+		],
+		[t],
+	);
 
 	// Filters live in the URL (not just useState) so navigating to a medicine's
 	// detail page and hitting back restores the exact same search/category/
@@ -106,8 +115,11 @@ const Medicines = () => {
 	// label before the popup (where the matching SelectItem lives) has ever
 	// been mounted — without it the trigger shows the raw value instead.
 	const categoryItems = useMemo(
-		() => [{ value: "all", label: "All Categories" }, ...categories.map((cat) => ({ value: cat, label: cat }))],
-		[categories],
+		() => [
+			{ value: "all", label: t("medicinesStore.allCategories", "All Categories") },
+			...categories.map((cat) => ({ value: cat, label: cat })),
+		],
+		[categories, t],
 	);
 
 	// Debounce free-text search so we don't re-fetch on every keystroke, then
@@ -358,8 +370,12 @@ const Medicines = () => {
 		<div className="min-h-screen bg-background pb-16">
 			<div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
 				<div className="mb-8 text-center">
-					<h1 className="font-display text-3xl leading-tight text-foreground sm:text-4xl">Ayurvedic Medicines</h1>
-					<p className="mt-2 text-base text-muted-foreground">Natural healing solutions for your wellbeing</p>
+					<h1 className="font-display text-3xl leading-tight text-foreground sm:text-4xl">
+						{t("medicinesStore.title", "Ayurvedic Medicines")}
+					</h1>
+					<p className="mt-2 text-base text-muted-foreground">
+						{t("medicinesStore.subtitle", "Natural healing solutions for your wellbeing")}
+					</p>
 				</div>
 
 				<div className="mb-6 flex flex-col gap-4">
@@ -367,7 +383,7 @@ const Medicines = () => {
 						<Search className="pointer-events-none absolute top-1/2 left-3 size-5 -translate-y-1/2 text-muted-foreground" />
 						<Input
 							type="text"
-							placeholder="Search medicines by name, ingredients, or description..."
+							placeholder={t("medicinesStore.searchPlaceholder", "Search medicines by name, ingredients, or description...")}
 							value={searchInput}
 							onChange={(e) => {
 								setSearchInput(e.target.value);
@@ -413,13 +429,13 @@ const Medicines = () => {
 
 					<div className="flex flex-wrap items-end gap-3">
 						<Field className="w-44">
-							<FieldLabel htmlFor="category">Category</FieldLabel>
+							<FieldLabel htmlFor="category">{t("medicinesStore.category", "Category")}</FieldLabel>
 							<Select value={selectedCategory} onValueChange={setSelectedCategory} items={categoryItems}>
 								<SelectTrigger id="category">
 									<SelectValue />
 								</SelectTrigger>
 								<SelectContent>
-									<SelectItem value="all">All Categories</SelectItem>
+									<SelectItem value="all">{t("medicinesStore.allCategories", "All Categories")}</SelectItem>
 									{categories.map((cat) => (
 										<SelectItem key={cat} value={cat}>
 											{cat}
@@ -430,13 +446,13 @@ const Medicines = () => {
 						</Field>
 
 						<Field className="w-44">
-							<FieldLabel htmlFor="price">Price Range</FieldLabel>
-							<Select value={priceRange} onValueChange={setPriceRange} items={PRICE_RANGE_OPTIONS}>
+							<FieldLabel htmlFor="price">{t("medicinesStore.priceRange", "Price Range")}</FieldLabel>
+							<Select value={priceRange} onValueChange={setPriceRange} items={priceRangeOptions}>
 								<SelectTrigger id="price">
 									<SelectValue />
 								</SelectTrigger>
 								<SelectContent>
-									{PRICE_RANGE_OPTIONS.map((option) => (
+									{priceRangeOptions.map((option) => (
 										<SelectItem key={option.value} value={option.value}>
 											{option.label}
 										</SelectItem>
@@ -446,13 +462,13 @@ const Medicines = () => {
 						</Field>
 
 						<Field className="w-44">
-							<FieldLabel htmlFor="sort">Sort By</FieldLabel>
-							<Select value={sortBy} onValueChange={setSortBy} items={SORT_OPTIONS}>
+							<FieldLabel htmlFor="sort">{t("medicinesStore.sortBy", "Sort By")}</FieldLabel>
+							<Select value={sortBy} onValueChange={setSortBy} items={sortOptions}>
 								<SelectTrigger id="sort">
 									<SelectValue />
 								</SelectTrigger>
 								<SelectContent>
-									{SORT_OPTIONS.map((option) => (
+									{sortOptions.map((option) => (
 										<SelectItem key={option.value} value={option.value}>
 											{option.label}
 										</SelectItem>
@@ -463,7 +479,7 @@ const Medicines = () => {
 
 						<Button type="button" variant="outline" onClick={resetFilters}>
 							<RefreshCw className="size-4" />
-							Reset
+							{t("medicinesStore.reset", "Reset")}
 						</Button>
 					</div>
 				</div>
@@ -471,18 +487,21 @@ const Medicines = () => {
 				<div className="mb-5 flex flex-wrap items-center justify-between gap-3">
 					<p className="text-sm text-muted-foreground">
 						{loading ? (
-							"Updating results…"
+							t("medicinesStore.updatingResults", "Updating results…")
 						) : (
 							<>
-								Showing <strong className="text-foreground">{medicines.length}</strong> of{" "}
-								<strong className="text-foreground">{total}</strong> medicines
+								{t("medicinesStore.showingResults", {
+									current: medicines.length,
+									total: total,
+									defaultValue: `Showing ${medicines.length} of ${total} medicines`,
+								})}
 							</>
 						)}
 					</p>
 					{cartLoaded && cartCount > 0 && (
 						<Button type="button" variant="secondary" onClick={() => navigate("/cart")}>
 							<ShoppingCart className="size-4" />
-							{cartCount} items in cart
+							{t("medicinesStore.itemsInCart", { count: cartCount, defaultValue: `${cartCount} items in cart` })}
 						</Button>
 					)}
 				</div>
@@ -495,16 +514,16 @@ const Medicines = () => {
 					{loading && medicines.length === 0 ? (
 						<div className="flex min-h-72 flex-col items-center justify-center gap-3 text-muted-foreground">
 							<Loader2 className="size-8 animate-spin text-primary" />
-							<p>Loading medicines...</p>
+							<p>{t("medicinesStore.loadingMedicines", "Loading medicines...")}</p>
 						</div>
 					) : error ? (
 						<EmptyState
 							icon={AlertCircle}
-							title="Oops! Something went wrong"
+							title={t("medicinesStore.errorTitle", "Oops! Something went wrong")}
 							description={error}
 							action={
 								<Button variant="outline" onClick={() => window.location.reload()}>
-									Try Again
+									{t("medicinesStore.tryAgain", "Try Again")}
 								</Button>
 							}
 						/>
@@ -577,11 +596,11 @@ const Medicines = () => {
 					) : (
 						<EmptyState
 							icon={Frown}
-							title="No medicines found"
-							description="Try adjusting your filters or search terms"
+							title={t("medicinesStore.noMedicinesFound", "No medicines found")}
+							description={t("medicinesStore.adjustFiltersDesc", "Try adjusting your filters or search terms")}
 							action={
 								<Button onClick={resetFilters} className="w-full">
-									Clear All Filters
+									{t("medicinesStore.clearAllFilters", "Clear All Filters")}
 								</Button>
 							}
 						/>

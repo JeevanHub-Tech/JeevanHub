@@ -1,20 +1,22 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Stethoscope, Store, User } from "lucide-react";
 
 import logo from "../media/logo.png";
 
-const ROLES = [
-	{ role: "patient", label: "Patient", description: "Book consultations and manage your Ayurvedic care.", icon: User },
-	{ role: "doctor", label: "Doctor", description: "Offer consultations and manage your practice.", icon: Stethoscope },
-	{ role: "retailer", label: "Retailer", description: "List and sell Ayurvedic medicines online.", icon: Store },
-];
-
 function SignUpScreen() {
+	const { t } = useTranslation();
 	const navigate = useNavigate();
 
 	const handleSignIn = () => navigate("/signin");
 	const handleSignUp = (role) => navigate(`/signup-${role}`);
+
+	const roles = [
+		{ role: "patient", label: t("auth.signUpChoice.patientLabel"), description: t("auth.signUpChoice.patientDesc"), icon: User },
+		{ role: "doctor", label: t("auth.signUpChoice.doctorLabel"), description: t("auth.signUpChoice.doctorDesc"), icon: Stethoscope },
+		{ role: "retailer", label: t("auth.signUpChoice.retailerLabel"), description: t("auth.signUpChoice.retailerDesc"), icon: Store },
+	];
 
 	return (
 		<div className="grid min-h-screen lg:grid-cols-2">
@@ -26,26 +28,24 @@ function SignUpScreen() {
 				</a>
 
 				<div className="relative flex flex-col gap-4">
-					<h1 className="font-display text-4xl leading-tight text-(--jh-cream)">
-						One platform,
-						<br />
-						every role covered.
+					<h1 className="whitespace-pre-line font-display text-4xl leading-tight text-(--jh-cream)">
+						{t("auth.signUpChoice.heroHeading")}
 					</h1>
 					<p className="max-w-sm text-(--jh-cream)/70">
-						Patients, doctors, and retailers each get a workspace built for how they use Ayurvedic care.
+						{t("auth.signUpChoice.heroDesc")}
 					</p>
 				</div>
 
-				<p className="relative text-sm text-(--jh-cream)/50">Trusted by patients, doctors, and retailers across India.</p>
+				<p className="relative text-sm text-(--jh-cream)/50">{t("auth.signUpChoice.heroFooter")}</p>
 			</div>
 
 			<div className="flex items-center justify-center px-6 py-16 sm:px-10">
 				<div className="w-full max-w-sm">
-					<h1 className="font-display text-3xl text-foreground">Who are you registering as?</h1>
-					<p className="mt-1.5 text-sm text-muted-foreground">Pick a role to start your JeevanHub account.</p>
+					<h1 className="font-display text-3xl text-foreground">{t("auth.signUpChoice.title")}</h1>
+					<p className="mt-1.5 text-sm text-muted-foreground">{t("auth.signUpChoice.subtitle")}</p>
 
 					<div className="mt-8 flex flex-col gap-3">
-						{ROLES.map(({ role, label, description, icon: Icon }) => (
+						{roles.map(({ role, label, description, icon: Icon }) => (
 							<button
 								key={role}
 								type="button"
@@ -64,9 +64,9 @@ function SignUpScreen() {
 					</div>
 
 					<p className="mt-6 text-center text-sm text-muted-foreground">
-						Already have an account?{" "}
+						{t("auth.signUpChoice.alreadyAccount")}{" "}
 						<button type="button" onClick={handleSignIn} className="font-semibold text-primary hover:underline">
-							Sign in
+							{t("auth.signUpChoice.signInLink")}
 						</button>
 					</p>
 				</div>

@@ -2,6 +2,7 @@ import { useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
 import { ArrowRight, Leaf, Sparkles } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import { DashboardShell, DashboardPageHeader } from "@/components/layout/DashboardShell";
 import { Button } from "@/components/ui/button";
@@ -41,6 +42,7 @@ function ServiceCard({ image, title, description, to, onClick }) {
 }
 
 function PatientPage() {
+	const { t } = useTranslation();
 	const { auth } = useContext(AuthContext);
 	const firstName = auth.user?.firstName || "there";
 	const navigate = useNavigate();
@@ -78,32 +80,32 @@ function PatientPage() {
 
 	const services = [
 		{
-			title: "Your profile",
-			description: "View and update your details.",
+			title: t("patientHome.cardProfileTitle", "Your profile"),
+			description: t("patientHome.cardProfileDesc", "View and update your details."),
 			image: doctorImage,
 			onClick: () => navigate(`/profile/patient/${userId}`),
 		},
 		{
-			title: "Appointments",
-			description: "See your currently assigned Ayurvedic doctor.",
+			title: t("patientHome.cardApptTitle", "Appointments"),
+			description: t("patientHome.cardApptDesc", "See your currently assigned Ayurvedic doctor."),
 			image: appointmentImage,
 			onClick: () => navigate("/appointed-doctor"),
 		},
 		{
-			title: "Treatment plans",
-			description: "Explore personalized Ayurvedic treatment plans.",
+			title: t("patientHome.cardTreatmentsTitle", "Treatment plans"),
+			description: t("patientHome.cardTreatmentsDesc", "Explore personalized Ayurvedic treatment plans."),
 			image: treatmentImage,
 			onClick: () => navigate("/treatments"),
 		},
 		{
-			title: "Prescription & Wellness",
-			description: "Medicines, meal plan, yoga, and wellness recommendations.",
+			title: t("patientHome.cardPrescriptionTitle", "Prescription & Wellness"),
+			description: t("patientHome.cardPrescriptionDesc", "Medicines, meal plan, yoga, and wellness recommendations."),
 			image: yogaImage,
 			onClick: () => navigate("/prescription-wellness"),
 		},
 		{
-			title: "Medicines & remedies",
-			description: "Browse Ayurvedic medicines and natural remedies.",
+			title: t("patientHome.cardMedicinesTitle", "Medicines & remedies"),
+			description: t("patientHome.cardMedicinesDesc", "Browse Ayurvedic medicines and natural remedies."),
 			image: medicineImage,
 			onClick: () => navigate("/medicines"),
 		},
@@ -112,49 +114,55 @@ function PatientPage() {
 	return (
 		<DashboardShell>
 			<DashboardPageHeader
-				title={`Hi ${firstName},`}
-				description="Welcome back to your Ayurvedic wellness journey. We're here to help you find balance, one step at a time."
+				title={t("patientHome.greeting", "Hi {{name}},", { name: firstName })}
+				description={t("patientHome.description", "Welcome back to your Ayurvedic wellness journey. We're here to help you find balance, one step at a time.")}
 			/>
 
 			<section
-					className={cn(
-						"mt-8 flex flex-col items-start gap-4 rounded-(--jh-radius-lg) bg-card p-6 shadow-(--jh-shadow-card) sm:flex-row sm:items-center sm:justify-between",
-					)}
-				>
-					<div className="flex items-start gap-3">
-						<span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-secondary text-primary">
-							{isPrakritiFilled ? <Sparkles className="size-5" aria-hidden="true" /> : <Leaf className="size-5" aria-hidden="true" />}
-						</span>
-						<div>
-							<p className="font-display text-lg text-foreground">
-								{isPrakritiFilled ? "Thank you for completing your Prakriti assessment." : "Complete your Prakriti Determination"}
-							</p>
-							<p className="mt-1 text-sm text-muted-foreground">
-								{isPrakritiFilled
-									? "See your result, or share it with your doctor for a more precise plan."
-									: "A short questionnaire that helps us match you with the most suitable doctor."}
-							</p>
-						</div>
+				className={cn(
+					"mt-8 flex flex-col items-start gap-4 rounded-(--jh-radius-lg) bg-card p-6 shadow-(--jh-shadow-card) sm:flex-row sm:items-center sm:justify-between",
+				)}
+			>
+				<div className="flex items-start gap-3">
+					<span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-secondary text-primary">
+						{isPrakritiFilled ? <Sparkles className="size-5" aria-hidden="true" /> : <Leaf className="size-5" aria-hidden="true" />}
+					</span>
+					<div>
+						<p className="font-display text-lg text-foreground">
+							{isPrakritiFilled
+								? t("patientHome.prakritiDoneTitle", "Thank you for completing your Prakriti assessment.")
+								: t("patientHome.prakritiPendingTitle", "Complete your Prakriti Determination")}
+						</p>
+						<p className="mt-1 text-sm text-muted-foreground">
+							{isPrakritiFilled
+								? t("patientHome.prakritiDoneDesc", "See your result, or share it with your doctor for a more precise plan.")
+								: t("patientHome.prakritiPendingDesc", "A short questionnaire that helps us match you with the most suitable doctor.")}
+						</p>
 					</div>
-					<Button
-						onClick={() =>
-							isPrakritiFilled
-								? navigate("/ayurveda-wellness")
-								: navigate("/ayurveda-wellness/assessment")
-						}
-						className="w-full shrink-0 sm:w-auto"
-					>
-						{isPrakritiFilled ? "View your result" : "Start assessment"}
-						<ArrowRight className="size-4" aria-hidden="true" />
-					</Button>
-				</section>
+				</div>
+				<Button
+					onClick={() =>
+						isPrakritiFilled
+							? navigate("/ayurveda-wellness")
+							: navigate("/ayurveda-wellness/assessment")
+					}
+					className="w-full shrink-0 sm:w-auto"
+				>
+					{isPrakritiFilled
+						? t("patientHome.viewResult", "View your result")
+						: t("patientHome.startAssessment", "Start assessment")}
+					<ArrowRight className="size-4" aria-hidden="true" />
+				</Button>
+			</section>
 
-				<section className="mt-10">
-					<h2 className="font-display text-2xl text-foreground">What can we help you with today?</h2>
-					<div className="mt-5 grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-4">
-						{services.map((service) => (
-							<ServiceCard key={service.title} {...service} />
-						))}
+			<section className="mt-10">
+				<h2 className="font-display text-2xl text-foreground">
+					{t("patientHome.helpTitle", "What can we help you with today?")}
+				</h2>
+				<div className="mt-5 grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-4">
+					{services.map((service) => (
+						<ServiceCard key={service.title} {...service} />
+					))}
 				</div>
 			</section>
 		</DashboardShell>

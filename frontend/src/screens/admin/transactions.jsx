@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { ReceiptText, Search, ShieldAlert } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import { authFetch } from "../../utils/authFetch";
 import { BACKEND_URL } from "../../config";
@@ -58,6 +59,7 @@ const badgeVariant = (type) => {
 };
 
 const Transactions = () => {
+	const { t } = useTranslation();
 	const [filter, setFilter] = useState("all");
 	const [search, setSearch] = useState("");
 	const [transactions, setTransactions] = useState([]);
@@ -109,15 +111,15 @@ const Transactions = () => {
 		}
 	};
 
-	const filteredTransactions = transactions.filter((t) => {
-		const matchesFilter = filter === "all" || t.type.toLowerCase().includes(filter);
+	const filteredTransactions = transactions.filter((tItem) => {
+		const matchesFilter = filter === "all" || tItem.type.toLowerCase().includes(filter);
 		const searchLower = search.toLowerCase();
 
 		const matchesSearch =
-			t.date.toLowerCase().includes(searchLower) ||
-			t.amount.toString().toLowerCase().includes(searchLower) ||
-			t.from.toLowerCase().includes(searchLower) ||
-			t.to.toLowerCase().includes(searchLower);
+			tItem.date.toLowerCase().includes(searchLower) ||
+			tItem.amount.toString().toLowerCase().includes(searchLower) ||
+			tItem.from.toLowerCase().includes(searchLower) ||
+			tItem.to.toLowerCase().includes(searchLower);
 
 		return matchesFilter && matchesSearch;
 	});
@@ -139,10 +141,10 @@ const Transactions = () => {
 			<DashboardShell>
 				<Empty>
 					<EmptyHeader>
-						<EmptyTitle>Something went wrong</EmptyTitle>
+						<EmptyTitle>{t("adminTransactions.somethingWentWrong")}</EmptyTitle>
 						<EmptyDescription>{error}</EmptyDescription>
 					</EmptyHeader>
-					<Button onClick={() => window.location.reload()}>Retry</Button>
+					<Button onClick={() => window.location.reload()}>{t("adminTransactions.retry")}</Button>
 				</Empty>
 			</DashboardShell>
 		);
@@ -153,32 +155,32 @@ const Transactions = () => {
 			<DashboardPageHeader
 				title={
 					<span className="flex items-center gap-2">
-						<ReceiptText className="size-7" /> Transactions
+						<ReceiptText className="size-7" /> {t("adminTransactions.title")}
 					</span>
 				}
-				description="View and manage all Ayurvedic commerce history"
+				description={t("adminTransactions.description")}
 			/>
 
 			{disputedBookings.length > 0 || disputedOrders.length > 0 ? (
 				<Card className="mb-6 p-5">
 					<h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-foreground">
-						<ShieldAlert className="size-5 text-destructive" /> Payout Disputes Awaiting Review
+						<ShieldAlert className="size-5 text-destructive" /> {t("adminTransactions.disputesTitle")}
 					</h2>
 					<div className="flex flex-col gap-3">
 						{disputedBookings.map((b) => (
 							<div key={b._id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border p-3">
 								<div>
 									<p className="text-sm font-medium text-foreground">
-										Consultation — {b.patientName} with Dr. {b.doctorName} · ₹{b.amountPaid}
+										{t("adminTransactions.consultationDispute", { patient: b.patientName, doctor: b.doctorName, amount: b.amountPaid })}
 									</p>
 									<p className="text-xs text-muted-foreground">{b.dispute?.reason}</p>
 								</div>
 								<div className="flex gap-2">
 									<Button size="sm" variant="destructive" disabled={resolvingId === b._id} onClick={() => resolveDispute("booking", b._id, "refunded")}>
-										Refund Patient
+										{t("adminTransactions.refundPatient")}
 									</Button>
 									<Button size="sm" variant="outline" disabled={resolvingId === b._id} onClick={() => resolveDispute("booking", b._id, "released")}>
-										Release to Doctor
+										{t("adminTransactions.releaseToDoctor")}
 									</Button>
 								</div>
 							</div>
@@ -187,16 +189,16 @@ const Transactions = () => {
 							<div key={o._id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border p-3">
 								<div>
 									<p className="text-sm font-medium text-foreground">
-										Order {o._id} — {o.buyer?.firstName} {o.buyer?.lastName} · ₹{o.totalPrice}
+										{t("adminTransactions.orderDispute", { id: o._id, buyer: `${o.buyer?.firstName || ""} ${o.buyer?.lastName || ""}`.trim(), amount: o.totalPrice })}
 									</p>
 									<p className="text-xs text-muted-foreground">{o.dispute?.reason}</p>
 								</div>
 								<div className="flex gap-2">
 									<Button size="sm" variant="destructive" disabled={resolvingId === o._id} onClick={() => resolveDispute("order", o._id, "refunded")}>
-										Refund Patient
+										{t("adminTransactions.refundPatient")}
 									</Button>
 									<Button size="sm" variant="outline" disabled={resolvingId === o._id} onClick={() => resolveDispute("order", o._id, "released")}>
-										Release to Retailer
+										{t("adminTransactions.releaseToRetailer")}
 									</Button>
 								</div>
 							</div>
@@ -208,39 +210,39 @@ const Transactions = () => {
 			<Card className="mb-6 flex flex-wrap items-end gap-5 p-5">
 				<div className="flex min-w-52 flex-1 flex-col gap-2">
 					<label htmlFor="transaction-filter" className="text-xs font-semibold uppercase tracking-wide text-foreground">
-						Category
+						{t("adminTransactions.category")}
 					</label>
 					<Select
 						value={filter}
 						onValueChange={setFilter}
 						items={[
-							{ value: "all", label: "All Transactions" },
-							{ value: "patient-doctor", label: "Patient-Doctor" },
-							{ value: "patient-retailer", label: "Patient-Retailer" },
-							{ value: "doctor-retailer", label: "Doctor-Retailer" },
+							{ value: "all", label: t("adminTransactions.allTransactions") },
+							{ value: "patient-doctor", label: t("adminTransactions.patientDoctor") },
+							{ value: "patient-retailer", label: t("adminTransactions.patientRetailer") },
+							{ value: "doctor-retailer", label: t("adminTransactions.doctorRetailer") },
 						]}
 					>
 						<SelectTrigger id="transaction-filter">
 							<SelectValue />
 						</SelectTrigger>
 						<SelectContent>
-							<SelectItem value="all">All Transactions</SelectItem>
-							<SelectItem value="patient-doctor">Patient-Doctor</SelectItem>
-							<SelectItem value="patient-retailer">Patient-Retailer</SelectItem>
-							<SelectItem value="doctor-retailer">Doctor-Retailer</SelectItem>
+							<SelectItem value="all">{t("adminTransactions.allTransactions")}</SelectItem>
+							<SelectItem value="patient-doctor">{t("adminTransactions.patientDoctor")}</SelectItem>
+							<SelectItem value="patient-retailer">{t("adminTransactions.patientRetailer")}</SelectItem>
+							<SelectItem value="doctor-retailer">{t("adminTransactions.doctorRetailer")}</SelectItem>
 						</SelectContent>
 					</Select>
 				</div>
 
 				<div className="flex min-w-52 flex-1 flex-col gap-2">
 					<label htmlFor="tx-search" className="text-xs font-semibold uppercase tracking-wide text-foreground">
-						Quick Search
+						{t("adminTransactions.quickSearch")}
 					</label>
 					<div className="flex items-center gap-2 rounded-lg border border-input px-3 py-1">
 						<Search className="size-4 shrink-0 text-muted-foreground" />
 						<Input
 							id="tx-search"
-							placeholder="Search by date, amount, or name..."
+							placeholder={t("adminTransactions.searchPlaceholder")}
 							value={search}
 							onChange={(e) => setSearch(e.target.value)}
 							className="h-auto border-0 p-0 shadow-none focus-visible:ring-0"
@@ -255,29 +257,29 @@ const Transactions = () => {
 						<Table>
 							<TableHeader>
 								<TableRow>
-									<TableHead>Transaction ID</TableHead>
-									<TableHead>Type</TableHead>
-									<TableHead>Date</TableHead>
-									<TableHead>Amount</TableHead>
-									<TableHead>From</TableHead>
-									<TableHead>To</TableHead>
+									<TableHead>{t("adminTransactions.table.id")}</TableHead>
+									<TableHead>{t("adminTransactions.table.type")}</TableHead>
+									<TableHead>{t("adminTransactions.table.date")}</TableHead>
+									<TableHead>{t("adminTransactions.table.amount")}</TableHead>
+									<TableHead>{t("adminTransactions.table.from")}</TableHead>
+									<TableHead>{t("adminTransactions.table.to")}</TableHead>
 								</TableRow>
 							</TableHeader>
 							<TableBody>
-								{filteredTransactions.map((t) => (
-									<TableRow key={t.id}>
-										<TableCell className="font-mono text-xs text-muted-foreground">{t.id}</TableCell>
+								{filteredTransactions.map((tItem) => (
+									<TableRow key={tItem.id}>
+										<TableCell className="font-mono text-xs text-muted-foreground">{tItem.id}</TableCell>
 										<TableCell>
-											<Badge variant={badgeVariant(t.type)} className="uppercase">
-												{t.type}
+											<Badge variant={badgeVariant(tItem.type)} className="uppercase">
+												{tItem.type}
 											</Badge>
 										</TableCell>
-										<TableCell>{t.date}</TableCell>
+										<TableCell>{tItem.date}</TableCell>
 										<TableCell className="font-semibold text-foreground">
-											₹{t.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+											₹{tItem.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
 										</TableCell>
-										<TableCell>{t.from}</TableCell>
-										<TableCell>{t.to}</TableCell>
+										<TableCell>{tItem.from}</TableCell>
+										<TableCell>{tItem.to}</TableCell>
 									</TableRow>
 								))}
 							</TableBody>
@@ -290,8 +292,8 @@ const Transactions = () => {
 						<EmptyMedia variant="icon">
 							<Search />
 						</EmptyMedia>
-						<EmptyTitle>No results found</EmptyTitle>
-						<EmptyDescription>Try adjusting your filters or search keywords.</EmptyDescription>
+						<EmptyTitle>{t("adminTransactions.noResults")}</EmptyTitle>
+						<EmptyDescription>{t("adminTransactions.noResultsDesc")}</EmptyDescription>
 					</EmptyHeader>
 				</Empty>
 			)}

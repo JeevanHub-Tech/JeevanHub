@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { HeartPulse, Sun, Moon, Plus, X, Send, ExternalLink, Loader2, Search, PenLine, Check, UserCheck } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import { authFetch } from "../../../utils/authFetch";
 import { BACKEND_URL } from "../../../config";
@@ -25,6 +26,7 @@ const COMMON_ASANAS = [
 ];
 
 const AsanaEditor = ({ title, Icon, planType, planData, addAsana, removeAsana, updateAsanaLink, onSuggestVideo, suggestingFor }) => {
+	const { t } = useTranslation();
 	const [input, setInput] = useState("");
 	const [youtubeUrl, setYoutubeUrl] = useState("");
 	const datalistId = `asana-options-${planType}`;
@@ -82,12 +84,12 @@ const AsanaEditor = ({ title, Icon, planType, planData, addAsana, removeAsana, u
 			<div className="flex flex-1 flex-col gap-4 p-4">
 				<div className="flex flex-col gap-2.5 rounded-lg border border-dashed border-border p-3">
 					<div className="flex flex-col gap-1">
-						<label className="text-xs font-semibold text-muted-foreground">Asana name</label>
+						<label className="text-xs font-semibold text-muted-foreground">{t("doctorPrescribe.asanaName", "Asana name")}</label>
 						<Input
 							list={datalistId}
 							value={input}
 							onChange={(e) => setInput(e.target.value)}
-							placeholder="Type or choose an asana..."
+							placeholder={t("doctorPrescribe.typeAsanaPlaceholder", "Type or choose an asana...")}
 							onKeyDown={handleKeyPress}
 						/>
 						<datalist id={datalistId}>
@@ -98,13 +100,13 @@ const AsanaEditor = ({ title, Icon, planType, planData, addAsana, removeAsana, u
 					</div>
 
 					<div className="flex flex-col gap-1">
-						<label className="text-xs font-semibold text-muted-foreground">Video link (optional)</label>
+						<label className="text-xs font-semibold text-muted-foreground">{t("doctorPrescribe.videoLinkOptional", "Video link (optional)")}</label>
 						<div className="flex gap-2">
 							<Input
 								type="url"
 								value={youtubeUrl}
 								onChange={(e) => setYoutubeUrl(e.target.value)}
-								placeholder="Auto-fetched if left blank"
+								placeholder={t("doctorPrescribe.autoFetchedPlaceholder", "Auto-fetched if left blank")}
 								onKeyDown={handleKeyPress}
 								className="flex-1"
 							/>
@@ -115,12 +117,14 @@ const AsanaEditor = ({ title, Icon, planType, planData, addAsana, removeAsana, u
 					</div>
 
 					<Button type="button" onClick={handleAdd} className="self-end">
-						<Plus data-icon="inline-start" size={16} /> Add asana
+						<Plus data-icon="inline-start" size={16} /> {t("doctorPrescribe.addAsana", "Add asana")}
 					</Button>
 				</div>
 
 				<div className="flex flex-col gap-2">
-					<label className="text-xs font-semibold text-muted-foreground">Selected Asanas ({planData.length}):</label>
+					<label className="text-xs font-semibold text-muted-foreground">
+						{t("doctorPrescribe.selectedAsanas", "Selected Asanas ({{count}}):", { count: planData.length })}
+					</label>
 					<div className="max-h-72 overflow-y-auto rounded-lg border border-border bg-muted/40 p-2">
 						{planData.length > 0 ? (
 							<div className="flex flex-col gap-2">
@@ -146,7 +150,7 @@ const AsanaEditor = ({ title, Icon, planType, planData, addAsana, removeAsana, u
 												<button
 													type="button"
 													onClick={() => removeAsana(planType, name)}
-													className="flex size-6 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-destructive hover:text-destructive-foreground"
+													className="flex size-6 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-destructive hover:text-destructive-foreground cursor-pointer"
 												>
 													<X size={14} />
 												</button>
@@ -156,14 +160,14 @@ const AsanaEditor = ({ title, Icon, planType, planData, addAsana, removeAsana, u
 											type="url"
 											value={link || ""}
 											onChange={(e) => updateAsanaLink(planType, name, e.target.value)}
-											placeholder="Paste YouTube video link"
+											placeholder={t("doctorPrescribe.pasteYoutubePlaceholder", "Paste YouTube video link")}
 											className="h-8 text-xs"
 										/>
 									</div>
 								))}
 							</div>
 						) : (
-							<p className="py-6 text-center text-sm text-muted-foreground italic">No asanas added yet.</p>
+							<p className="py-6 text-center text-sm text-muted-foreground italic">{t("doctorPrescribe.noAsanasYet", "No asanas added yet.")}</p>
 						)}
 					</div>
 				</div>
@@ -174,22 +178,24 @@ const AsanaEditor = ({ title, Icon, planType, planData, addAsana, removeAsana, u
 
 const asanasToStr = (list) => (Array.isArray(list) ? list.map((a) => a.name).join(", ") : "");
 
-// Which content the patient currently sees: doctorReview fields once
-// published, otherwise the raw AI fields. Mirrors resolveDisplayYogaPlan()
-// in backend/controllers/ayurvedaYogaPlanController.js.
+// Which content the patient currently sees: server-resolved displayPlan
+// (Hindi if requested, doctorReview if approved, else raw AI).
 function resolveActiveContent(plan) {
 	if (!plan) return null;
+	if (plan.displayPlan) {
+		return { morning: plan.displayPlan?.morning || [], evening: plan.displayPlan?.evening || [] };
+	}
 	if (plan.status === "ai_modified" || plan.status === "doctor_approved") {
 		return { morning: plan.doctorReview?.morning || [], evening: plan.doctorReview?.evening || [] };
 	}
 	return { morning: plan.morning || [], evening: plan.evening || [] };
 }
 
-// Doctor-facing review of the patient's AI-generated yoga plan (patient
-// triggers generation from their own Prescription & Wellness page). The
-// doctor can view it read-only, then Edit -> Save as a silent draft --
-// nothing reaches the patient until "Submit Prescription" publishes it.
+// Doctor-facing review of the patient's AI-generated yoga plan
 export function YogaPlanForm({ patientId, bookingId }) {
+	const { t, i18n } = useTranslation();
+	const currentLang = i18n.language?.startsWith("hi") ? "hi" : "en";
+
 	const [plan, setPlan] = useState(null);
 	const [loadingExisting, setLoadingExisting] = useState(true);
 	const [saving, setSaving] = useState(false);
@@ -206,7 +212,7 @@ export function YogaPlanForm({ patientId, bookingId }) {
 			return;
 		}
 		try {
-			const response = await authFetch(`${BACKEND_URL}/api/ayurveda/yoga-plan/patient/${patientId}`);
+			const response = await authFetch(`${BACKEND_URL}/api/ayurveda/yoga-plan/patient/${patientId}?lang=${currentLang}`);
 			if (response.ok) {
 				const data = await response.json();
 				setPlan(data);
@@ -216,7 +222,7 @@ export function YogaPlanForm({ patientId, bookingId }) {
 		} finally {
 			setLoadingExisting(false);
 		}
-	}, [patientId]);
+	}, [patientId, currentLang]);
 
 	useEffect(() => {
 		fetchExisting();
@@ -266,8 +272,7 @@ export function YogaPlanForm({ patientId, bookingId }) {
 		}
 	};
 
-	// Always a silent draft save -- nothing reaches the patient until
-	// "Submit Prescription" publishes it.
+	// Silent draft save until "Submit Prescription"
 	const submitReview = async (fp = formPlan, notesVal = notes) => {
 		setSaving(true);
 		setError(null);
@@ -290,7 +295,7 @@ export function YogaPlanForm({ patientId, bookingId }) {
 		}
 	};
 
-	// Save the current active content unchanged as the doctor's draft.
+	// Save current active content unchanged as doctor's draft
 	const saveAsIs = async () => {
 		const active = resolveActiveContent(plan);
 		const fp = { morning: active?.morning || [], evening: active?.evening || [] };
@@ -304,11 +309,11 @@ export function YogaPlanForm({ patientId, bookingId }) {
 				<div className="border-b border-border bg-muted/40 px-6 py-4">
 					<h3 className="flex items-center gap-3 text-lg font-bold text-foreground">
 						<HeartPulse className="size-6 text-primary" />
-						Yoga & Lifestyle
+						{t("doctorPrescribe.yogaTitle", "Yoga & Lifestyle")}
 					</h3>
 				</div>
 				<div className="p-6">
-					<p className="py-6 text-center text-muted-foreground">Checking for an existing plan...</p>
+					<p className="py-6 text-center text-muted-foreground">{t("doctorPrescribe.checkingPlan", "Checking for an existing plan...")}</p>
 				</div>
 			</Card>
 		);
@@ -320,14 +325,14 @@ export function YogaPlanForm({ patientId, bookingId }) {
 				<div className="border-b border-border bg-muted/40 px-6 py-4">
 					<h3 className="flex items-center gap-3 text-lg font-bold text-foreground">
 						<HeartPulse className="size-6 text-primary" />
-						Yoga & Lifestyle
+						{t("doctorPrescribe.yogaTitle", "Yoga & Lifestyle")}
 					</h3>
 				</div>
 				<div className="p-6">
 					<EmptyState
 						icon={HeartPulse}
-						title="No AI yoga plan yet"
-						description="This patient hasn't generated a plan yet. Use the Generate button above to create one, then review and approve it here."
+						title={t("doctorPrescribe.noYogaPlan", "No AI yoga plan yet")}
+						description={t("doctorPrescribe.noAiDietPlanDesc", "This patient hasn't generated a plan yet. Use the Generate button above to create one, then review and approve it here.")}
 					/>
 				</div>
 			</Card>
@@ -340,7 +345,7 @@ export function YogaPlanForm({ patientId, bookingId }) {
 	const doctorDisplayName = doctorReview?.doctorName ||
 		(doctorReview?.reviewedBy?.firstName
 			? `Dr. ${doctorReview.reviewedBy.firstName} ${doctorReview.reviewedBy.lastName || ""}`.trim()
-			: (typeof doctorReview?.reviewedBy === "string" ? doctorReview.reviewedBy : "your doctor"));
+			: (typeof doctorReview?.reviewedBy === "string" ? doctorReview.reviewedBy : t("weeklyMealPlanner.yourDoctor", "your doctor")));
 	const reviewedDate = doctorReview?.reviewedAt ? formatDateReadable(doctorReview.reviewedAt) : "";
 
 	return (
@@ -348,11 +353,11 @@ export function YogaPlanForm({ patientId, bookingId }) {
 			<div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-muted/40 px-6 py-4">
 				<h3 className="flex items-center gap-3 text-lg font-bold text-foreground">
 					<HeartPulse className="size-6 text-primary" />
-					Yoga & Lifestyle
+					{t("doctorPrescribe.yogaTitle", "Yoga & Lifestyle")}
 				</h3>
 				<div className="flex items-center gap-2">
 					{plan.doctorReview?.reviewedAt && !plan.doctorReview?.published ? (
-						<span className="rounded-full bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground">Draft -- not sent yet</span>
+						<span className="rounded-full bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground">{t("doctorPrescribe.draftBadge", "Draft -- not sent yet")}</span>
 					) : null}
 					<SourceBadge status={plan.status} />
 				</div>
@@ -362,10 +367,12 @@ export function YogaPlanForm({ patientId, bookingId }) {
 					<div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/30 bg-gradient-to-r from-primary/15 via-primary/10 to-amber-500/10 p-3.5 text-xs text-foreground shadow-xs">
 						<div className="flex flex-wrap items-center gap-2">
 							<span className="inline-flex items-center gap-1.5 rounded-md bg-primary/20 px-2.5 py-1 font-bold text-primary">
-								<UserCheck size={14} /> Doctor Approved
+								<UserCheck size={14} /> {t("weeklyMealPlanner.doctorApproved", "Doctor Approved")}
 							</span>
 							<span className="font-semibold text-foreground">
-								Made by {doctorDisplayName}{reviewedDate ? ` on ${reviewedDate}` : ""}
+								{reviewedDate
+									? t("weeklyMealPlanner.madeByOnDate", "Made by {{doctorName}} on {{date}}", { doctorName: doctorDisplayName, date: reviewedDate })
+									: t("weeklyMealPlanner.madeBy", "Made by {{doctorName}}", { doctorName: doctorDisplayName })}
 							</span>
 						</div>
 						{doctorReview?.notes ? (
@@ -381,30 +388,30 @@ export function YogaPlanForm({ patientId, bookingId }) {
 						<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 							<div className="rounded-lg border border-border p-3">
 								<h5 className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
-									<Sun size={14} /> Morning
+									<Sun size={14} /> {t("doctorPrescribe.morning", "Morning")}
 								</h5>
 								<p className="text-sm text-foreground">{asanasToStr(active?.morning) || "—"}</p>
 							</div>
 							<div className="rounded-lg border border-border p-3">
 								<h5 className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
-									<Moon size={14} /> Evening
+									<Moon size={14} /> {t("doctorPrescribe.evening", "Evening")}
 								</h5>
 								<p className="text-sm text-foreground">{asanasToStr(active?.evening) || "—"}</p>
 							</div>
 						</div>
 						{plan.doctorReview?.notes ? (
 							<div>
-								<h5 className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Doctor's notes</h5>
+								<h5 className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t("doctorPrescribe.doctorNotesOptional", "Doctor's notes")}</h5>
 								<p className="text-sm text-foreground">{plan.doctorReview.notes}</p>
 							</div>
 						) : null}
 						<div className="flex flex-wrap gap-2">
 							<Button type="button" variant="outline" onClick={startEditing}>
-								<PenLine data-icon="inline-start" size={16} /> Edit
+								<PenLine data-icon="inline-start" size={16} /> {t("common.edit", "Edit")}
 							</Button>
 							<Button type="button" onClick={saveAsIs} disabled={saving}>
 								{saving ? <Loader2 className="animate-spin" data-icon="inline-start" /> : <Check data-icon="inline-start" size={16} />}
-								Save
+								{t("common.save", "Save")}
 							</Button>
 						</div>
 					</div>
@@ -412,7 +419,7 @@ export function YogaPlanForm({ patientId, bookingId }) {
 					<div className="flex flex-col gap-6">
 						<div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
 							<AsanaEditor
-								title="Morning Plan"
+								title={t("doctorPrescribe.morningPlan", "Morning Plan")}
 								Icon={Sun}
 								planType="morning"
 								planData={formPlan.morning}
@@ -423,7 +430,7 @@ export function YogaPlanForm({ patientId, bookingId }) {
 								suggestingFor={suggestingFor}
 							/>
 							<AsanaEditor
-								title="Evening Plan"
+								title={t("doctorPrescribe.eveningPlan", "Evening Plan")}
 								Icon={Moon}
 								planType="evening"
 								planData={formPlan.evening}
@@ -435,16 +442,16 @@ export function YogaPlanForm({ patientId, bookingId }) {
 							/>
 						</div>
 						<div className="flex flex-col gap-1.5">
-							<label className="text-xs font-semibold text-muted-foreground">Doctor's notes (optional)</label>
+							<label className="text-xs font-semibold text-muted-foreground">{t("doctorPrescribe.doctorNotesOptional", "Doctor's notes (optional)")}</label>
 							<Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
 						</div>
 						<div className="flex flex-wrap gap-2">
 							<Button type="button" variant="outline" onClick={() => setEditing(false)} disabled={saving}>
-								Cancel
+								{t("common.cancel", "Cancel")}
 							</Button>
 							<Button type="button" onClick={() => submitReview()} disabled={saving}>
 								{saving ? <Loader2 className="animate-spin" data-icon="inline-start" /> : <Send data-icon="inline-start" size={16} />}
-								Save
+								{t("common.save", "Save")}
 							</Button>
 						</div>
 					</div>

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { Stethoscope, Send, Loader2, Activity, ChevronLeft, Salad } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import { PatientHeader } from "./PatientHeader";
 import { PrescriptionHistory } from "./PrescriptionHistory";
@@ -18,6 +19,7 @@ import { cn } from "@/lib/utils";
 const BACKEND = BACKEND_URL || "http://localhost:8080";
 
 const PrescribeIndex = () => {
+	const { t } = useTranslation();
 	const { bookingId } = useParams();
 	const navigate = useNavigate();
 	const location = useLocation();
@@ -123,9 +125,9 @@ const PrescribeIndex = () => {
 				method: "POST",
 			});
 			if (!response.ok) throw new Error("Failed to submit");
-			alert("The prescription has been submitted — the patient has been notified.");
+			alert(t("doctorPrescribe.submittedSuccess", "The prescription has been submitted — the patient has been notified."));
 		} catch (err) {
-			alert("Could not submit the prescription. Please try again.");
+			alert(t("doctorPrescribe.submitError", "Could not submit the prescription. Please try again."));
 		} finally {
 			setSubmitting(false);
 		}
@@ -134,7 +136,9 @@ const PrescribeIndex = () => {
 	if (loading) {
 		return (
 			<DashboardShell>
-				<p className="text-center text-lg font-bold text-primary">Loading patient details...</p>
+				<p className="text-center text-lg font-bold text-primary">
+					{t("doctorPrescribe.loadingPatient", "Loading patient details...")}
+				</p>
 			</DashboardShell>
 		);
 	}
@@ -143,11 +147,11 @@ const PrescribeIndex = () => {
 		return (
 			<DashboardShell>
 				<Button variant="ghost" size="sm" className="mb-4" onClick={() => navigate(-1)}>
-					<ChevronLeft className="size-4" /> Back
+					<ChevronLeft className="size-4" /> {t("doctorPrescribe.back", "Back")}
 				</Button>
 				<Card className="mx-auto max-w-2xl p-8 text-center">
-					<p className="text-foreground">{error || "This appointment could not be found."}</p>
-					<p className="mt-2 text-sm text-muted-foreground">Please go back to your appointment list and try again.</p>
+					<p className="text-foreground">{error || t("doctorPrescribe.notFound", "This appointment could not be found.")}</p>
+					<p className="mt-2 text-sm text-muted-foreground">{t("doctorPrescribe.goBack", "Please go back to your appointment list and try again.")}</p>
 				</Card>
 			</DashboardShell>
 		);
@@ -167,11 +171,13 @@ const PrescribeIndex = () => {
 						className="inline-flex items-center gap-1.5 rounded-lg border border-primary/40 bg-card px-3.5 py-2 text-sm font-semibold text-primary shadow-xs transition-all hover:bg-primary hover:text-primary-foreground dark:border-primary/50 dark:hover:bg-primary"
 						onClick={() => navigate(-1)}
 					>
-						<ChevronLeft className="size-4" /> Back
+						<ChevronLeft className="size-4" /> {t("doctorPrescribe.back", "Back")}
 					</Button>
 					{booking.dateOfAppointment && (
 						<Badge variant="outline" className="border-border/80 bg-card/60 px-3 py-1.5 text-xs font-semibold text-muted-foreground shadow-xs">
-							Consultation Date: {new Date(booking.dateOfAppointment).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+							{t("doctorPrescribe.consultationDate", "Consultation Date: {{date}}", {
+								date: new Date(booking.dateOfAppointment).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }),
+							})}
 						</Badge>
 					)}
 				</div>
@@ -191,10 +197,10 @@ const PrescribeIndex = () => {
 								</span>
 								<div className="min-w-0">
 									<h4 className="font-display text-base font-bold text-foreground">
-										Paid Personalized Diet Plan Requested (+₹{booking.dietPlanFee || 299})
+										{t("doctorPrescribe.dietPlanBannerTitle", "Paid Personalized Diet Plan Requested (+₹{{fee}})", { fee: booking.dietPlanFee || 299 })}
 									</h4>
 									<p className="mt-0.5 text-xs text-foreground/80 leading-relaxed">
-										The patient purchased a customized 7-day Ayurvedic meal plan. Please review and tailor the &quot;Diet &amp; Meal Planner&quot; tab below.
+										{t("doctorPrescribe.dietPlanBannerDesc", "The patient purchased a customized 7-day Ayurvedic meal plan. Please review and tailor the \"Diet & Meal Planner\" tab below.")}
 									</p>
 								</div>
 							</div>
@@ -206,7 +212,9 @@ const PrescribeIndex = () => {
 										: "bg-amber-600 text-white border-transparent animate-pulse"
 								)}
 							>
-								{booking.dietPlanStatus === "completed" ? "✓ Diet Plan Published" : "⚡ Action Required — Tailor Plan"}
+								{booking.dietPlanStatus === "completed"
+									? t("doctorPrescribe.dietPlanPublished", "✓ Diet Plan Published")
+									: t("doctorPrescribe.dietPlanActionRequired", "⚡ Action Required — Tailor Plan")}
 							</Badge>
 						</div>
 					</div>
@@ -217,20 +225,20 @@ const PrescribeIndex = () => {
 					<Card className="grid grid-cols-1 gap-6 p-4.5 sm:grid-cols-[1fr_1.2fr]">
 						<div>
 							<span className="mb-1.5 inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-								<Activity size={14} className="text-primary" /> Patient Reason
+								<Activity size={14} className="text-primary" /> {t("doctorPrescribe.patientReason", "Patient Reason")}
 							</span>
-							<p className="text-sm leading-relaxed text-foreground/80">{booking.patientIllness || "Not specified"}</p>
+							<p className="text-sm leading-relaxed text-foreground/80">{booking.patientIllness || t("doctorPrescribe.notSpecified", "Not specified")}</p>
 						</div>
 						<div className="flex flex-col">
 							<FieldLabel
 								htmlFor="pi-diagnosis"
 								className="mb-1.5 inline-flex items-center gap-1.5 text-xs font-bold text-muted-foreground uppercase tracking-wide"
 							>
-								<Stethoscope size={14} /> Diagnosis for this visit
+								<Stethoscope size={14} /> {t("doctorPrescribe.diagnosisForVisit", "Diagnosis for this visit")}
 							</FieldLabel>
 							<Input
 								id="pi-diagnosis"
-								placeholder="e.g., Amavata (rheumatoid-type joint inflammation)"
+								placeholder={t("doctorPrescribe.diagnosisPlaceholder", "e.g., Amavata (rheumatoid-type joint inflammation)")}
 								value={diagnosis}
 								onChange={(e) => setDiagnosis(e.target.value)}
 								onBlur={saveDiagnosis}
@@ -262,11 +270,11 @@ const PrescribeIndex = () => {
 
 						<Card className="flex flex-wrap items-center justify-between gap-4 p-4.5">
 							<p className="max-w-[480px] text-sm leading-relaxed text-muted-foreground">
-								Each panel's Save keeps your work as a private draft -- the patient sees nothing until you submit. Submit once everything for this visit is ready.
+								{t("doctorPrescribe.autoSaveNotice", "Each panel's Save keeps your work as a private draft -- the patient sees nothing until you submit. Submit once everything for this visit is ready.")}
 							</p>
 							<Button onClick={submitPrescription} disabled={submitting}>
 								{submitting ? <Loader2 className="animate-spin" data-icon="inline-start" /> : <Send data-icon="inline-start" />}
-								Submit Prescription
+								{t("doctorPrescribe.submitPrescription", "Submit Prescription")}
 							</Button>
 						</Card>
 					</div>

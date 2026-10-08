@@ -194,6 +194,7 @@ const PatientProfile = () => {
 	const { id: patientId } = useParams();
 	const navigate = useNavigate();
 	const [activeTab, setActiveTab] = useState("Diet Plan");
+	const [visitedTabs, setVisitedTabs] = useState(() => new Set(["Diet Plan"]));
 	const [patientData, setPatientData] = useState(null);
 	const [loading, setLoading] = useState(true);
 	const [patientBookings, setPatientBookings] = useState([]);
@@ -207,49 +208,56 @@ const PatientProfile = () => {
 		{ id: "Feedback", name: t("adminPatient.tabs.feedback", "Feedback"), icon: MessageSquareText },
 	];
 
-	useEffect(() => {
-		const fetchPatientBookings = async () => {
-			try {
-				const res = await authFetch(
-					`${BACKEND_URL}/api/bookings/patient/${patientId}`,
-					{ headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
-				);
+	const handleTabChange = (val) => {
+		setActiveTab(val);
+		setVisitedTabs((prev) => {
+			if (prev.has(val)) return prev;
+			const next = new Set(prev);
+			next.add(val);
+			return next;
+		});
+	};
 
-				if (!res.ok) {
-					if (res.status === 404) {
-						setPatientBookings([]);
-						return;
-					}
-					throw new Error("Failed to fetch patient bookings");
+	useEffect(() => {
+		if (!patientId) return;
+		let isMounted = true;
+
+		const loadInitialData = async () => {
+			try {
+				setLoading(true);
+				const token = localStorage.getItem("token");
+				const headers = { Authorization: `Bearer ${token}` };
+
+				const [patientRes, bookingsRes] = await Promise.all([
+					authFetch(`${BACKEND_URL}/api/patients/getPatient/${patientId}`, { headers }),
+					authFetch(`${BACKEND_URL}/api/bookings/patient/${patientId}`, { headers }),
+				]);
+
+				if (!isMounted) return;
+
+				if (patientRes.ok) {
+					const data = await patientRes.json();
+					setPatientData(data);
 				}
 
-				const data = await res.json();
-				setPatientBookings(data.bookings);
+				if (bookingsRes.ok) {
+					const bData = await bookingsRes.json();
+					setPatientBookings(bData.bookings || []);
+				} else if (bookingsRes.status === 404) {
+					setPatientBookings([]);
+				}
 			} catch (error) {
-				console.error("❌ Error fetching patient bookings:", error);
-			}
-		};
-
-		if (patientId) fetchPatientBookings();
-	}, [patientId]);
-
-	useEffect(() => {
-		const fetchPatient = async () => {
-			try {
-				const res = await authFetch(`${BACKEND_URL}/api/patients/getPatient/${patientId}`, {
-					headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
-				});
-				if (!res.ok) throw new Error("Failed to fetch patient");
-				const data = await res.json();
-				setPatientData(data);
-			} catch (error) {
-				console.error("Error fetching patients:", error);
+				console.error("❌ Error loading patient profile:", error);
 			} finally {
-				setLoading(false);
+				if (isMounted) setLoading(false);
 			}
 		};
 
-		fetchPatient();
+		loadInitialData();
+
+		return () => {
+			isMounted = false;
+		};
 	}, [patientId]);
 
 	const handleUpdateProfile = async (updatedData) => {
@@ -361,7 +369,7 @@ const PatientProfile = () => {
 				</div>
 
 				<div className="flex min-w-0 flex-1 flex-col p-6 sm:p-8">
-					<Tabs value={activeTab} onValueChange={setActiveTab}>
+					<Tabs value={activeTab} onValueChange={handleTabChange}>
 						<TabsList className="mb-6 h-auto flex-wrap bg-secondary p-1">
 							{tabs.map((tab) => (
 								<TabsTrigger key={tab.id} value={tab.id} className="gap-2 py-2.5 text-sm font-semibold">
@@ -372,19 +380,19 @@ const PatientProfile = () => {
 						</TabsList>
 
 						<TabsContent value="Prescriptions" className="min-w-0">
-							<Prescription patientBookings={patientBookings} />
+							{visitedTabs.has("Prescriptions") && <Prescription patientBookings={patientBookings} />}
 						</TabsContent>
 						<TabsContent value="Diet Plan" className="min-w-0">
-							<DietPlan patientId={patientId} />
+							{visitedTabs.has("Diet Plan") && <DietPlan patientId={patientId} />}
 						</TabsContent>
 						<TabsContent value="History" className="min-w-0">
-							<PatientHistory bookings={patientBookings} />
+							{visitedTabs.has("History") && <PatientHistory bookings={patientBookings} />}
 						</TabsContent>
 						<TabsContent value="Transactions" className="min-w-0">
-							<PatientTrans bookings={patientBookings} patientId={patientId} />
+							{visitedTabs.has("Transactions") && <PatientTrans bookings={patientBookings} patientId={patientId} />}
 						</TabsContent>
 						<TabsContent value="Feedback" className="min-w-0">
-							<PatientFeedback patientId={patientId} />
+							{visitedTabs.has("Feedback") && <PatientFeedback patientId={patientId} />}
 						</TabsContent>
 					</Tabs>
 				</div>

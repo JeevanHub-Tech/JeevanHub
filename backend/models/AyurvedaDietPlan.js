@@ -114,6 +114,11 @@ const ayurvedaDietPlanSchema = new mongoose.Schema({
         of: mongoose.Schema.Types.Mixed,
         default: {},
     },
+    recipes: {
+        type: Map,
+        of: mongoose.Schema.Types.Mixed,
+        default: {},
+    },
 }, { timestamps: true });
 
 const AyurvedaDietPlan = mongoose.model("AyurvedaDietPlan", ayurvedaDietPlanSchema);

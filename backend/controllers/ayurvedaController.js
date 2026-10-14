@@ -257,6 +257,7 @@ exports.generateDietPlan = async (req, res) => {
                 status: hasDoctorReview ? existing.status : "ai",
                 doctorReview: hasDoctorReview ? existing.doctorReview : {},
                 history,
+                recipes: {},
             },
             { new: true, upsert: true, runValidators: true, setDefaultsOnInsert: true }
         );
@@ -460,13 +461,37 @@ exports.getMealRecipe = async (req, res) => {
 
         let dosha = null;
         let profile = null;
+        let dietPlan = null;
         if (patientId) {
-            [dosha, profile] = await Promise.all([
+            [dosha, profile, dietPlan] = await Promise.all([
                 AyurvedaDoshaAssessment.findOne({ patientId }),
                 AyurvedaWellnessProfile.findOne({ patientId }),
+                AyurvedaDietPlan.findOne({ patientId }),
             ]);
         }
 
+        // Build a sanitized cache key scoped by day, mealContext, items, and language
+        const safeDay = (day || "any").toLowerCase().replace(/[^a-z0-9]/g, "");
+        const safeMeal = (mealContext || "meal").toLowerCase().replace(/[^a-z0-9]/g, "");
+        const safeLang = (lang || "en").toLowerCase();
+        const itemsSig = Array.isArray(items)
+            ? items.map((s) => String(s).trim().toLowerCase()).sort().join("_").replace(/[^a-z0-9_]/g, "").slice(0, 50)
+            : "";
+        const recipeKey = itemsSig
+            ? `${safeDay}_${safeMeal}_${itemsSig}_${safeLang}`
+            : `${safeDay}_${safeMeal}_${safeLang}`;
+
+        // 1. Check if recipe is already cached in MongoDB
+        if (dietPlan && dietPlan.recipes) {
+            const cachedRecipe = typeof dietPlan.recipes.get === "function"
+                ? dietPlan.recipes.get(recipeKey)
+                : dietPlan.recipes[recipeKey];
+            if (cachedRecipe && cachedRecipe.dishName) {
+                return res.status(200).json({ success: true, recipe: cachedRecipe, fromCache: true });
+            }
+        }
+
+        // 2. Generate on-demand with Gemini AI
         const recipe = await generateMealRecipe({
             mealContext,
             items,
@@ -480,6 +505,20 @@ exports.getMealRecipe = async (req, res) => {
             lang,
             regionalPreference: profile?.foodHabits?.regionalPreference || null,
         });
+
+        // 3. Persist the generated recipe to MongoDB
+        if (dietPlan && recipe) {
+            if (!dietPlan.recipes) {
+                dietPlan.recipes = new Map();
+            }
+            if (typeof dietPlan.recipes.set === "function") {
+                dietPlan.recipes.set(recipeKey, recipe);
+            } else {
+                dietPlan.recipes[recipeKey] = recipe;
+            }
+            dietPlan.markModified("recipes");
+            await dietPlan.save();
+        }
 
         return res.status(200).json({ success: true, recipe });
     } catch (error) {

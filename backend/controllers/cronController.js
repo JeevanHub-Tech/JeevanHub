@@ -59,16 +59,132 @@ exports.settlePayouts = async (req, res) => {
 			result.ordersReleased += 1;
 			await order.save();
 
-			// Release Razorpay Route transfers from hold
-			const getRazorpay = require('../services/razorpayService');
-			const razorpay = getRazorpay();
-			const transferIds = [...new Set(order.items.map(i => i.razorpayTransferId).filter(Boolean))];
-			for (const tId of transferIds) {
-				try {
-					await razorpay.transfers.edit(tId, { on_hold: false });
-				} catch (e) {
-					console.error("Error releasing Razorpay transfer hold for:", tId, e);
+			// Release Razorpay Route transfers from hold if any were created on checkout
+			try {
+				const getRazorpay = require('../services/razorpayService');
+				const razorpay = getRazorpay();
+				const transferIds = [...new Set(order.items.map(i => i.razorpayTransferId).filter(Boolean))];
+				for (const tId of transferIds) {
+					try {
+						await razorpay.transfers.edit(tId, { on_hold: false });
+					} catch (e) {
+						console.error("Error releasing Razorpay transfer hold for:", tId, e.message);
+					}
 				}
+			} catch (e) {
+				// Razorpay service may not be configured in local test
+			}
+		}
+
+		// Process multi-vendor per-shipment 7-day holds
+		const dueShipmentOrders = await Order.find({
+			paymentMethod: "onlinePayment",
+			paymentStatus: "paid",
+			"shipments.payout.status": "held",
+			"shipments.payout.holdUntil": { $lte: now }
+		}).populate("items.medicineId");
+
+		const Retailer = require("../models/Retailer");
+		const { createNotification } = require("./notificationController");
+
+		for (const order of dueShipmentOrders) {
+			let orderModified = false;
+			for (const shipment of (order.shipments || [])) {
+				if (shipment.payout?.status === "held" && shipment.payout.holdUntil && shipment.payout.holdUntil <= now) {
+					const retailerId = shipment.retailerId;
+					const retailer = await Retailer.findById(retailerId);
+
+					// Calculate items total for this specific retailer
+					const retailerItems = (order.items || []).filter(item => {
+						const rId = item.medicineId?.retailerId?._id || item.medicineId?.retailerId;
+						return rId && String(rId) === String(retailerId);
+					});
+					const itemsSubtotal = retailerItems.reduce((acc, i) => acc + (i.subTotal || 0), 0);
+
+					const COMMISSION_RATE = process.env.PLATFORM_COMMISSION_PERCENT
+						? (parseFloat(process.env.PLATFORM_COMMISSION_PERCENT) / 100)
+						: 0.02;
+
+					const commissionAmount = Math.round(itemsSubtotal * COMMISSION_RATE * 100) / 100;
+					const itemsAfterCommission = Math.max(0, itemsSubtotal - commissionAmount);
+
+					const totalRetailersInOrder = new Set((order.items || []).map(i => {
+						const rId = i.medicineId?.retailerId?._id || i.medicineId?.retailerId;
+						return rId ? String(rId) : null;
+					}).filter(Boolean)).size || 1;
+
+					const shippingAmount = shipment.shippingCharge !== undefined && shipment.shippingCharge !== null && shipment.shippingCharge > 0
+						? shipment.shippingCharge
+						: (order.shippingCharge ? Math.round((order.shippingCharge / totalRetailersInOrder) * 100) / 100 : 0);
+
+					const netPayout = Math.round((itemsAfterCommission + shippingAmount) * 100) / 100;
+					const payoutAmount = shipment.payout.amount > 0 ? shipment.payout.amount : netPayout;
+
+					shipment.payout.amount = payoutAmount;
+					shipment.payout.itemsSubtotal = itemsSubtotal;
+					shipment.payout.commissionAmount = commissionAmount;
+					shipment.payout.shippingAmount = shippingAmount;
+
+					// Find retailer's primary payout method (or fallback to bankDetails or first method)
+					const primaryPayoutMethod = (retailer?.payoutMethods || []).find(m => m.isPrimary) ||
+						retailer?.payoutMethods?.[0] ||
+						(retailer?.bankDetails?.isSubmitted ? {
+							type: retailer.bankDetails.upiId ? 'upi' : 'bank_account',
+							accountHolderName: retailer.bankDetails.accountHolderName || `${retailer.firstName} ${retailer.lastName}`,
+							accountNumber: retailer.bankDetails.accountNumber,
+							ifscCode: retailer.bankDetails.ifscCode,
+							bankName: retailer.bankDetails.bankName,
+							upiId: retailer.bankDetails.upiId
+						} : null);
+
+					if (primaryPayoutMethod && retailer) {
+						try {
+							const razorpayXService = require("../services/razorpayXService");
+							const payoutRes = await razorpayXService.processPayout({
+								retailer,
+								payoutMethod: primaryPayoutMethod,
+								amountInRupees: payoutAmount,
+								orderId: order._id
+							});
+
+							shipment.payout.razorpayTransferId = payoutRes.payoutId;
+							shipment.payout.status = "transferred";
+							shipment.payout.transferredAt = now;
+							orderModified = true;
+							result.ordersReleased += 1;
+
+							const destination = primaryPayoutMethod.type === 'upi'
+								? `UPI ID (${primaryPayoutMethod.upiId})`
+								: `Bank Account (ending in ${primaryPayoutMethod.accountNumber ? primaryPayoutMethod.accountNumber.slice(-4) : 'XXXX'})`;
+
+							const breakdownText = commissionAmount > 0 || shippingAmount > 0
+								? ` (Items: ₹${itemsSubtotal.toFixed(2)} - 2% fee: ₹${commissionAmount.toFixed(2)} + Shipping: ₹${shippingAmount.toFixed(2)})`
+								: '';
+
+							await createNotification(
+								retailerId,
+								"retailer",
+								order._id,
+								`Payout of ₹${payoutAmount.toFixed(2)}${breakdownText} for Order #${order._id.toString().slice(-6)} has been disbursed to your ${destination}. Ref: ${payoutRes.payoutId}`,
+								"order"
+							);
+						} catch (transferErr) {
+							console.error(`Failed to disburse payout for order ${order._id}, retailer ${retailerId}:`, transferErr.message);
+							shipment.payout.status = "failed";
+							shipment.payout.failureReason = transferErr.message;
+							orderModified = true;
+						}
+					} else {
+						// In case no payout method configured, mark released for manual settlement
+						shipment.payout.status = "released";
+						shipment.payout.transferredAt = now;
+						orderModified = true;
+						result.ordersReleased += 1;
+					}
+				}
+			}
+			if (orderModified) {
+				await order.save();
 			}
 		}
 

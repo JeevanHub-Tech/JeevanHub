@@ -1,0 +1,22 @@
+{
+  "watch": [
+    "controllers",
+    "routes",
+    "models",
+    "services",
+    "middleware",
+    "validation",
+    "utils",
+    "index.js",
+    "scheduler.js"
+  ],
+  "ext": "js,json",
+  "ignore": [
+    "uploads/*",
+    "node_modules/*",
+    "scratch/*",
+    "*.log",
+    "*.test.js"
+  ],
+  "delay": 500
+}

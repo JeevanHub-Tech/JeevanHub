@@ -35,16 +35,21 @@ const webhookRoutes = require("./routes/webhookRoutes");
 const shippingRoutes = require("./routes/shippingRoutes");
 const { initShippingAdapters } = require("./services/shippingAdapterInit");
 
-if (process.env.NODE_ENV !== 'production') {
-    mongoose.set('debug', true);
-}
+// Optimize MongoDB startup: disable autoIndex to avoid 30+ network calls for existing indexes
 const app = express();
 const PORT = process.env.PORT || 8080;
 
 // MongoDB connection
 mongoose
-  .connect(process.env.MDB)
-  .then(() => console.log("Connected to MongoDB"))
+  .connect(process.env.MDB, {
+    autoIndex: false, // Prevents 30+ sequential index scans on remote DB on every startup
+  })
+  .then(() => {
+    console.log("------------------------------------------");
+    console.log(" Connected to MongoDB successfully!");
+    console.log(` Backend is UP & running on http://localhost:${PORT}`);
+    console.log("------------------------------------------");
+  })
   .catch((err) => console.error("MongoDB connection error:", err));
 
 const allowedOrigins = [
@@ -60,12 +65,25 @@ const allowedOrigins = [
 
 // Middleware
 app.use(cors({
-  origin: allowedOrigins,
+  origin: (origin, callback) => {
+    // Allow mobile apps, curl, Postman (no origin header) or local dev
+    if (!origin || process.env.NODE_ENV !== 'production' || allowedOrigins.indexOf(origin) !== -1) {
+      return callback(null, true);
+    }
+    return callback(new Error('Not allowed by CORS'));
+  },
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"],
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true, // required so the httpOnly refresh-token cookie is sent/received
   maxAge: 86400 // cache preflight so repeat requests skip the OPTIONS round-trip
 }));
+
+// Request Logger Middleware for real-time mobile API tracking
+app.use((req, res, next) => {
+  const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+  console.log(`📡 [${req.method}] ${req.url} (from ${clientIp})`);
+  next();
+});
 
 app.use(compression());
 app.use(cookieParser());

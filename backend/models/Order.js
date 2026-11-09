@@ -98,7 +98,19 @@ const orderSchema = new mongoose.Schema({
       location: { type: String },
       timestamp: { type: Date },
       remarks: { type: String }
-    }]
+    }],
+    payout: {
+      amount: { type: Number, default: 0 },
+      itemsSubtotal: { type: Number, default: 0 },
+      commissionAmount: { type: Number, default: 0 },
+      shippingAmount: { type: Number, default: 0 },
+      status: { type: String, enum: ['not_applicable', 'held', 'released', 'transferred', 'disputed', 'failed'], default: 'held' },
+      holdUntil: { type: Date, default: null },
+      deliveredAt: { type: Date, default: null },
+      razorpayTransferId: { type: String, default: null },
+      transferredAt: { type: Date, default: null },
+      failureReason: { type: String, default: null }
+    }
   }],
   // Estimated shipping charge collected from the patient at checkout.
   // Sum of freight for all retailer groups in the order.

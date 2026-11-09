@@ -10,7 +10,14 @@ const { getAllRetailers,
     getWarehouse,
     saveWarehouse,
     getBankDetails,
-    saveBankDetails
+    saveBankDetails,
+    getPayoutMethods,
+    addPayoutMethod,
+    updatePayoutMethod,
+    deletePayoutMethod,
+    setPrimaryPayoutMethod,
+    toggleRetailerVerification,
+    getRetailerEligibility
  } = require('../controllers/retailerController');
 
 router.get('/getAllRetailers', auth, getAllRetailers);
@@ -25,7 +32,19 @@ router.get('/:id/shipping-integration/status', auth, getShippingIntegrationStatu
 router.put('/:id/shipping-integration', auth, saveDelhiveryIntegration);
 router.delete('/:id/shipping-integration', auth, disconnectShippingIntegration);
 
+// Payout Methods (Multi-Bank & UPI CRUD)
+router.get('/:id/payout-methods', auth, getPayoutMethods);
+router.post('/:id/payout-methods', auth, addPayoutMethod);
+router.put('/:id/payout-methods/:methodId', auth, updatePayoutMethod);
+router.delete('/:id/payout-methods/:methodId', auth, deletePayoutMethod);
+router.patch('/:id/payout-methods/:methodId/primary', auth, setPrimaryPayoutMethod);
+
+// Legacy bank details endpoints
 router.get('/:id/bank-details', auth, getBankDetails);
 router.put('/:id/bank-details', auth, saveBankDetails);
+
+// Retailer onboarding verification & status
+router.put('/:id/verify', auth, toggleRetailerVerification);
+router.get('/:id/eligibility', auth, getRetailerEligibility);
 
 module.exports = router;

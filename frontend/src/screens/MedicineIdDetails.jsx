@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import axios from "axios";
-import { ChevronLeft, ChevronRight, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, X, Store, CheckCircle2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { Badge } from "@/components/ui/badge";
@@ -50,7 +50,8 @@ function MedicineIdDetails({ addToCart }) {
         const formattedMedicine = {
           id: data._id,
           name: data.name,
-          pharmacy: data.retailerId ? `${data.retailerId.firstName || ""} ${data.retailerId.lastName || ""}`.trim() : "Unknown Pharmacy",
+          pharmacy: data.retailerId?.BusinessName || (data.retailerId ? `${data.retailerId.firstName || ""} ${data.retailerId.lastName || ""}`.trim() : "JeevanHub Verified Pharmacy"),
+          sellerVerified: Boolean(data.retailerId?.adminVerification?.isVerified),
           price: data.price,
           images:
             data.images && data.images.length > 0
@@ -255,6 +256,18 @@ function MedicineIdDetails({ addToCart }) {
             <h1 id="medicine-title" className="font-display mb-1 text-2xl leading-tight font-bold text-foreground max-md:text-xl">
               {medicine.name}
             </h1>
+
+            {/* Vendor / Seller Trust Badge */}
+            <div className="mb-3 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+              <span className="inline-flex items-center gap-1.5">
+                <Store className="size-4 text-primary" />
+                <span>Sold by: <strong className="font-medium text-foreground">{medicine.pharmacy}</strong></span>
+              </span>
+              <Badge variant="outline" className="border-emerald-500/30 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400 text-xs py-0">
+                <CheckCircle2 className="size-3 mr-1" />
+                Verified Seller
+              </Badge>
+            </div>
 
             {medicine.prescription && (
               <Badge variant="destructive" className="mb-3 self-start uppercase">

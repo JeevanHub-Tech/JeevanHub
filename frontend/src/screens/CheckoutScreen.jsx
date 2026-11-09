@@ -374,7 +374,7 @@ const CheckoutScreen = () => {
 			const res = await authFetch(`${BACKEND_URL}/api/payment/create-order`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ amount: totalPrice })
+				body: JSON.stringify({ amount: Number(grandTotal.toFixed(2)) })
 			});
 			const razorpayOrder = await res.json();
 			if (!res.ok) {

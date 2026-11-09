@@ -673,7 +673,7 @@ async function checkServiceability(retailer, destPin) {
  */
 async function calculateFreight(retailer, originPin, destPin, weightGrams, mode = 'S', paymentType = 'Pre-paid', codAmount = 0) {
     if (SANDBOX_ENABLED) {
-        return { totalAmount: 78.50, grossAmount: 66.52, zone: 'Sandbox Zone', tax: 11.98 };
+        return { totalAmount: 0.10, grossAmount: 0.08, zone: 'Sandbox Zone', tax: 0.02 };
     }
     const authHeader = await getAuthHeader(retailer);
     
@@ -728,7 +728,7 @@ async function calculateFreight(retailer, originPin, destPin, weightGrams, mode 
  */
 async function createShipment(retailer, order, packageDetails) {
     if (SANDBOX_ENABLED) {
-        const fakeAwb = 'SBX' + Date.now().toString().slice(-10);
+        const fakeAwb = 'SBX-DL-' + Date.now().toString().slice(-8);
         return { success: true, awb: fakeAwb, refnum: order._id.toString(), remarks: 'Sandbox shipment' };
     }
 
@@ -802,8 +802,87 @@ async function createShipment(retailer, order, packageDetails) {
  */
 async function getShippingLabel(retailer, awb) {
     if (SANDBOX_ENABLED) {
-        // Return a minimal PDF placeholder for sandbox mode
-        return Buffer.from('%PDF-1.0\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n3 0 obj<</Type/Page/MediaBox[0 0 595 842]/Parent 2 0 R>>endobj\nxref\n0 4\n0000000000 65535 f \n0000000009 00000 n \n0000000058 00000 n \n0000000115 00000 n \ntrailer<</Size 4/Root 1 0 R>>\nstartxref\n190\n%%EOF');
+        // Return a structured, readable mock PDF shipping label for sandbox mode
+        const textLines = [
+            'BT',
+            '/F1 16 Tf',
+            '50 750 Td',
+            '(DELHIVERY EXPRESS - SHIPPING LABEL & PACKING SLIP) Tj',
+            '/F1 11 Tf',
+            '0 -30 Td',
+            '([SANDBOX TESTING MODE - MOCK PACKING SLIP]) Tj',
+            '0 -25 Td',
+            '(AWB NUMBER: ' + (awb || 'SBX-DL-00000000') + ') Tj',
+            '0 -20 Td',
+            '(PAYMENT MODE: PREPAID) Tj',
+            '0 -20 Td',
+            '(--------------------------------------------------------------------------) Tj',
+            '/F1 12 Tf',
+            '0 -25 Td',
+            '(SHIP TO (CONSIGNEE):) Tj',
+            '/F2 10 Tf',
+            '0 -18 Td',
+            '(Name: Test Patient) Tj',
+            '0 -15 Td',
+            '(Address: Flat 101, Connaught Place) Tj',
+            '0 -15 Td',
+            '(City: New Delhi - 110001, Delhi) Tj',
+            '0 -15 Td',
+            '(Phone: +91 99999 11111) Tj',
+            '/F1 12 Tf',
+            '0 -30 Td',
+            '(SHIP FROM (SELLER):) Tj',
+            '/F2 10 Tf',
+            '0 -18 Td',
+            '(Store: AyurCare Test Pharmacy) Tj',
+            '0 -15 Td',
+            '(Pickup Warehouse: Plot 42, Okhla Industrial Area Phase 3) Tj',
+            '0 -15 Td',
+            '(City: New Delhi - 110020, Delhi) Tj',
+            '/F1 11 Tf',
+            '0 -30 Td',
+            '(--------------------------------------------------------------------------) Tj',
+            '0 -25 Td',
+            '(BARCODE: ||| ||||||| |||||| |||||||| |||||| |||||| |||||| |||) Tj',
+            '0 -18 Td',
+            '(*' + (awb || 'SBX-DL-00000000') + '*) Tj',
+            '/F2 9 Tf',
+            '0 -35 Td',
+            '(Note: In production, Delhivery generates an official thermal 4x6 / A4 barcode label) Tj',
+            '0 -15 Td',
+            '(with Delhivery routing codes, hub codes, QR code, and dispatch manifest.) Tj',
+            'ET'
+        ].join('\n');
+
+        const streamBytes = Buffer.from(textLines, 'utf-8');
+        const length = streamBytes.length;
+
+        const objects = [];
+        objects.push('1 0 obj\n<</Type/Catalog/Pages 2 0 R>>\nendobj');
+        objects.push('2 0 obj\n<</Type/Pages/Kids[3 0 R]/Count 1>>\nendobj');
+        objects.push('3 0 obj\n<</Type/Page/Parent 2 0 R/MediaBox[0 0 595 842]/Resources<</Font<</F1 4 0 R/F2 5 0 R>>>>/Contents 6 0 R>>\nendobj');
+        objects.push('4 0 obj\n<</Type/Font/Subtype/Type1/BaseFont/Helvetica-Bold>>\nendobj');
+        objects.push('5 0 obj\n<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>\nendobj');
+        objects.push('6 0 obj\n<</Length ' + length + '>>\nstream\n' + textLines + '\nendstream\nendobj');
+
+        let body = '%PDF-1.4\n';
+        const xref = [0];
+        for (let i = 0; i < objects.length; i++) {
+            xref.push(body.length);
+            body += objects[i] + '\n';
+        }
+
+        const startXref = body.length;
+        let xrefTable = 'xref\n0 ' + (objects.length + 1) + '\n0000000000 65535 f \n';
+        for (let i = 1; i <= objects.length; i++) {
+            xrefTable += String(xref[i]).padStart(10, '0') + ' 00000 n \n';
+        }
+
+        body += xrefTable;
+        body += 'trailer\n<</Size ' + (objects.length + 1) + '/Root 1 0 R>>\n';
+        body += 'startxref\n' + startXref + '\n%%EOF';
+
+        return Buffer.from(body, 'utf-8');
     }
     const authHeader = await getAuthHeader(retailer);
     const response = await axios.get(`${getBaseUrl()}/api/p/packing_slip`, {

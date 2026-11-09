@@ -1,4 +1,5 @@
 const Medicine = require('../models/Medicine');
+const Retailer = require('../models/Retailer');
 
 const fs = require('fs');
 const path = require('path');
@@ -150,6 +151,24 @@ exports.addMedicine = async (req, res) => {
   }
 };
 
+// Helper to retrieve retailer IDs that meet all 3 eligibility requirements:
+// 1. Delivery partner configured (courier & warehouse)
+// 2. Payout method configured (Bank / UPI / Linked Account)
+// 3. Admin verification approved
+const getEligibleRetailerIds = async () => {
+  const eligibleRetailers = await Retailer.find({
+    'shippingIntegrations.delhivery.isConfigured': true,
+    'warehouse.isConfigured': true,
+    'adminVerification.isVerified': true,
+    $or: [
+      { 'payoutMethods.0': { $exists: true } },
+      { 'bankDetails.isSubmitted': true },
+      { razorpayAccountId: { $exists: true, $ne: null } }
+    ]
+  }).select('_id');
+  return eligibleRetailers.map(r => r._id);
+};
+
 // Get All Medicines (Public) — paginated, filterable; pass all=true for the
 // full unpaginated list (used by callers that render a small in-page slice,
 // e.g. the homepage "Explore All Medicines" widget).
@@ -158,6 +177,11 @@ exports.getAllMedicines = async (req, res) => {
     const { page = 1, limit = 24, search, category, priceRange, sortBy = 'name', all } = req.query;
 
     const query = {};
+
+    // Gate public catalog to only eligible retailers & active medicines
+    const eligibleRetailerIds = await getEligibleRetailerIds();
+    query.retailerId = { $in: eligibleRetailerIds };
+    query.isActive = { $ne: false };
 
     if (search) {
       const regex = { $regex: search, $options: 'i' };
@@ -194,7 +218,7 @@ exports.getAllMedicines = async (req, res) => {
     if (all === 'true') {
       const medicines = await Medicine.find(query)
         .sort(sort)
-        .populate('retailerId', 'firstName lastName')
+        .populate('retailerId', 'firstName lastName BusinessName adminVerification')
         .lean();
       return res.status(200).json(medicines);
     }
@@ -208,7 +232,7 @@ exports.getAllMedicines = async (req, res) => {
         .sort(sort)
         .skip(skip)
         .limit(limitNum)
-        .populate('retailerId', 'firstName lastName')
+        .populate('retailerId', 'firstName lastName BusinessName adminVerification')
         .lean(),
       Medicine.countDocuments(query),
     ]);
@@ -228,7 +252,11 @@ exports.getAllMedicines = async (req, res) => {
 // Get distinct medicine categories (Public)
 exports.getMedicineCategories = async (req, res) => {
   try {
-    const categories = await Medicine.distinct('category');
+    const eligibleRetailerIds = await getEligibleRetailerIds();
+    const categories = await Medicine.distinct('category', {
+      retailerId: { $in: eligibleRetailerIds },
+      isActive: { $ne: false }
+    });
     res.status(200).json(categories.filter(Boolean).sort());
   } catch (error) {
     res.status(500).json({ message: 'Failed to fetch categories', error: error.message });
@@ -239,11 +267,29 @@ exports.getMedicineCategories = async (req, res) => {
 exports.getMedicineById = async (req, res) => {
   try {
     const medicine = await Medicine.findById(req.params.id)
-      .populate('retailerId', 'firstName lastName')
+      .populate(
+        'retailerId',
+        'firstName lastName BusinessName adminVerification shippingIntegrations warehouse razorpayAccountId'
+      )
       .lean();
     if (!medicine) {
       return res.status(404).json({ message: 'Medicine not found' });
     }
+
+    // Check retailer eligibility
+    const isEligible = medicine.retailerId && typeof medicine.retailerId.isEligibleToSell === 'function'
+      ? medicine.retailerId.isEligibleToSell()
+      : (
+          Boolean(medicine.retailerId?.shippingIntegrations?.delhivery?.isConfigured) &&
+          Boolean(medicine.retailerId?.warehouse?.isConfigured) &&
+          Boolean(medicine.retailerId?.razorpayAccountId) &&
+          Boolean(medicine.retailerId?.adminVerification?.isVerified)
+        );
+
+    if (!isEligible) {
+      return res.status(404).json({ message: 'Medicine is currently unavailable from this vendor' });
+    }
+
     res.status(200).json(medicine);
   } catch (error) {
     res.status(500).json({ message: 'Failed to fetch medicine details', error: error.message });

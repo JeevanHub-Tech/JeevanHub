@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const Doctor = require("../models/Doctor");
 const Medicine = require("../models/Medicine");
+const Retailer = require("../models/Retailer");
 const Blog = require("../models/Blog");
 const DietYoga = require("../models/DietYoga");
 const { fuzzySearch } = require("../utils/fuzzySearch");
@@ -23,7 +24,20 @@ router.get("/", async (req, res) => {
         break;
       }
       case "medicine": {
-        const medicines = await getCached("medicine", () => Medicine.find().select("name"));
+        const eligibleRetailers = await Retailer.find({
+          'shippingIntegrations.delhivery.isConfigured': true,
+          'warehouse.isConfigured': true,
+          'adminVerification.isVerified': true,
+          $or: [
+            { 'payoutMethods.0': { $exists: true } },
+            { 'bankDetails.isSubmitted': true },
+            { razorpayAccountId: { $exists: true, $ne: null } }
+          ]
+        }).select('_id');
+        const eligibleIds = eligibleRetailers.map(r => r._id);
+        const medicines = await getCached("medicine", () =>
+          Medicine.find({ retailerId: { $in: eligibleIds }, isActive: { $ne: false } }).select("name")
+        );
         const matches = fuzzySearch(medicines, ["name"], s);
         results = matches.map((m) => ({ _id: m.item._id, name: m.item.name }));
         break;
@@ -43,8 +57,19 @@ router.get("/", async (req, res) => {
       case "disease": {
         // No separate Treatment/Disease model exists; fuzzy-match against
         // Medicine.diseasesTreated and Medicine.description instead.
+        const eligibleRetailers = await Retailer.find({
+          'shippingIntegrations.delhivery.isConfigured': true,
+          'warehouse.isConfigured': true,
+          'adminVerification.isVerified': true,
+          $or: [
+            { 'payoutMethods.0': { $exists: true } },
+            { 'bankDetails.isSubmitted': true },
+            { razorpayAccountId: { $exists: true, $ne: null } }
+          ]
+        }).select('_id');
+        const eligibleIds = eligibleRetailers.map(r => r._id);
         const medicines = await getCached("disease-medicine", () =>
-          Medicine.find().select("name description diseasesTreated")
+          Medicine.find({ retailerId: { $in: eligibleIds }, isActive: { $ne: false } }).select("name description diseasesTreated")
         );
         const matches = fuzzySearch(
           medicines,

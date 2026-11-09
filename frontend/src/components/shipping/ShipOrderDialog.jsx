@@ -191,14 +191,20 @@ function ShipOrderDialog({ open, onOpenChange, order, retailerId, token, onShipp
 								<Separator className="my-2" />
 								
 								<div className="flex flex-col gap-2">
-									<p className="text-sm font-medium">Request Pickup</p>
+									<div className="flex items-center gap-2">
+										<p className="text-sm font-medium">Request Courier Pickup</p>
+										<Badge variant="outline" className="text-[10px] py-0 px-1.5 font-normal text-muted-foreground">Optional</Badge>
+									</div>
+									<p className="text-xs text-muted-foreground">
+										Convenience dispatch scheduling. If your pharmacy already has daily scheduled Delhivery pickups or you drop packages at a nearby hub, you can safely skip this and click <strong>Done</strong>. Pickup fulfillment depends on local courier route capacity.
+									</p>
 									{pickupRequested ? (
 										<Alert className="bg-success/10 border-success/20 text-success-foreground">
 											<CheckCircle2 className="text-success" />
 											<AlertDescription>Pickup requested successfully for {pickupDate}</AlertDescription>
 										</Alert>
 									) : (
-										<div className="flex items-center gap-2">
+										<div className="flex items-center gap-2 mt-1">
 											<Input 
 												type="date" 
 												value={pickupDate} 
@@ -206,9 +212,9 @@ function ShipOrderDialog({ open, onOpenChange, order, retailerId, token, onShipp
 												className="max-w-[200px]"
 												min={new Date().toISOString().split('T')[0]}
 											/>
-											<Button type="button" onClick={requestPickup} disabled={!pickupDate}>
+											<Button type="button" variant="outline" onClick={requestPickup} disabled={!pickupDate}>
 												<Calendar className="mr-2 size-4" />
-												Request Pickup
+												Schedule Pickup
 											</Button>
 										</div>
 									)}

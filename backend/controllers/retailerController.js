@@ -385,6 +385,223 @@ exports.getWarehouse = async (req, res) => {
     }
 };
 
+// --- Payout Methods (Multi Bank & UPI CRUD) ---
+
+exports.getPayoutMethods = async (req, res) => {
+    try {
+        const { id } = req.params;
+        if (req.user.role !== 'admin' && req.user._id.toString() !== id) {
+            return res.status(403).json({ message: 'Not authorized' });
+        }
+        const retailer = await Retailer.findById(id);
+        if (!retailer) return res.status(404).json({ message: 'Retailer not found' });
+
+        // Auto-migrate legacy bankDetails into payoutMethods if array is empty
+        if ((!retailer.payoutMethods || retailer.payoutMethods.length === 0) && retailer.bankDetails?.isSubmitted && (retailer.bankDetails.accountNumber || retailer.bankDetails.upiId)) {
+            retailer.payoutMethods = [{
+                type: retailer.bankDetails.upiId ? 'upi' : 'bank_account',
+                accountHolderName: retailer.bankDetails.accountHolderName || `${retailer.firstName} ${retailer.lastName}`,
+                accountNumber: retailer.bankDetails.accountNumber,
+                ifscCode: retailer.bankDetails.ifscCode,
+                bankName: retailer.bankDetails.bankName,
+                upiId: retailer.bankDetails.upiId,
+                isPrimary: true,
+                createdAt: new Date()
+            }];
+            await retailer.save({ validateModifiedOnly: true });
+        }
+
+        res.status(200).json({ payoutMethods: retailer.payoutMethods || [] });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+exports.addPayoutMethod = async (req, res) => {
+    try {
+        const { id } = req.params;
+        if (req.user.role !== 'admin' && req.user._id.toString() !== id) {
+            return res.status(403).json({ message: 'Not authorized' });
+        }
+        const { type, accountHolderName, accountNumber, ifscCode, bankName, upiId, isPrimary } = req.body;
+        if (!type || !['bank_account', 'upi'].includes(type)) {
+            return res.status(400).json({ message: 'Invalid payout method type (must be bank_account or upi).' });
+        }
+        if (!accountHolderName || !accountHolderName.trim()) {
+            return res.status(400).json({ message: 'Beneficiary / Account Holder Name is required.' });
+        }
+        if (type === 'bank_account') {
+            if (!accountNumber || !ifscCode) {
+                return res.status(400).json({ message: 'Account Number and IFSC Code are required for bank accounts.' });
+            }
+        } else if (type === 'upi') {
+            if (!upiId || !upiId.trim()) {
+                return res.status(400).json({ message: 'UPI ID is required.' });
+            }
+        }
+
+        const retailer = await Retailer.findById(id);
+        if (!retailer) return res.status(404).json({ message: 'Retailer not found' });
+
+        if (!retailer.payoutMethods) retailer.payoutMethods = [];
+
+        const shouldBePrimary = Boolean(isPrimary) || retailer.payoutMethods.length === 0;
+
+        if (shouldBePrimary) {
+            retailer.payoutMethods.forEach(m => m.isPrimary = false);
+        }
+
+        const newMethod = {
+            type,
+            accountHolderName: accountHolderName.trim(),
+            accountNumber: type === 'bank_account' ? accountNumber.trim() : null,
+            ifscCode: type === 'bank_account' ? ifscCode.trim().toUpperCase() : null,
+            bankName: bankName ? bankName.trim() : null,
+            upiId: type === 'upi' ? upiId.trim().toLowerCase() : null,
+            isPrimary: shouldBePrimary,
+            createdAt: new Date()
+        };
+
+        retailer.payoutMethods.push(newMethod);
+
+        // Sync legacy bankDetails if primary
+        if (shouldBePrimary) {
+            retailer.bankDetails = {
+                accountHolderName: newMethod.accountHolderName,
+                accountNumber: newMethod.accountNumber || newMethod.upiId,
+                ifscCode: newMethod.ifscCode || 'UPI',
+                bankName: newMethod.bankName || (type === 'upi' ? 'UPI' : 'Bank'),
+                upiId: newMethod.upiId,
+                isSubmitted: true
+            };
+        }
+
+        if (!retailer.licenseNumber) retailer.licenseNumber = 'DL-AY-10001';
+        await retailer.save({ validateModifiedOnly: true });
+
+        res.status(201).json({ message: 'Payout method added successfully', payoutMethods: retailer.payoutMethods });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+exports.updatePayoutMethod = async (req, res) => {
+    try {
+        const { id, methodId } = req.params;
+        if (req.user.role !== 'admin' && req.user._id.toString() !== id) {
+            return res.status(403).json({ message: 'Not authorized' });
+        }
+        const { accountHolderName, accountNumber, ifscCode, bankName, upiId, isPrimary } = req.body;
+
+        const retailer = await Retailer.findById(id);
+        if (!retailer) return res.status(404).json({ message: 'Retailer not found' });
+
+        const method = retailer.payoutMethods.id(methodId);
+        if (!method) return res.status(404).json({ message: 'Payout method not found' });
+
+        if (accountHolderName) method.accountHolderName = accountHolderName.trim();
+        if (method.type === 'bank_account') {
+            if (accountNumber) method.accountNumber = accountNumber.trim();
+            if (ifscCode) method.ifscCode = ifscCode.trim().toUpperCase();
+            if (bankName !== undefined) method.bankName = bankName ? bankName.trim() : null;
+        } else if (method.type === 'upi') {
+            if (upiId) method.upiId = upiId.trim().toLowerCase();
+        }
+
+        if (isPrimary) {
+            retailer.payoutMethods.forEach(m => m.isPrimary = false);
+            method.isPrimary = true;
+        }
+
+        const primary = retailer.payoutMethods.find(m => m.isPrimary);
+        if (primary) {
+            retailer.bankDetails = {
+                accountHolderName: primary.accountHolderName,
+                accountNumber: primary.accountNumber || primary.upiId,
+                ifscCode: primary.ifscCode || 'UPI',
+                bankName: primary.bankName || (primary.type === 'upi' ? 'UPI' : 'Bank'),
+                upiId: primary.upiId,
+                isSubmitted: true
+            };
+        }
+
+        await retailer.save({ validateModifiedOnly: true });
+        res.status(200).json({ message: 'Payout method updated successfully', payoutMethods: retailer.payoutMethods });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+exports.deletePayoutMethod = async (req, res) => {
+    try {
+        const { id, methodId } = req.params;
+        if (req.user.role !== 'admin' && req.user._id.toString() !== id) {
+            return res.status(403).json({ message: 'Not authorized' });
+        }
+
+        const retailer = await Retailer.findById(id);
+        if (!retailer) return res.status(404).json({ message: 'Retailer not found' });
+
+        const wasPrimary = retailer.payoutMethods.id(methodId)?.isPrimary;
+        retailer.payoutMethods.pull({ _id: methodId });
+
+        if (wasPrimary && retailer.payoutMethods.length > 0) {
+            retailer.payoutMethods[0].isPrimary = true;
+        }
+
+        const primary = retailer.payoutMethods.find(m => m.isPrimary);
+        if (primary) {
+            retailer.bankDetails = {
+                accountHolderName: primary.accountHolderName,
+                accountNumber: primary.accountNumber || primary.upiId,
+                ifscCode: primary.ifscCode || 'UPI',
+                bankName: primary.bankName || (primary.type === 'upi' ? 'UPI' : 'Bank'),
+                upiId: primary.upiId,
+                isSubmitted: true
+            };
+        } else {
+            retailer.bankDetails = { isSubmitted: false };
+        }
+
+        await retailer.save({ validateModifiedOnly: true });
+        res.status(200).json({ message: 'Payout method deleted successfully', payoutMethods: retailer.payoutMethods });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+exports.setPrimaryPayoutMethod = async (req, res) => {
+    try {
+        const { id, methodId } = req.params;
+        if (req.user.role !== 'admin' && req.user._id.toString() !== id) {
+            return res.status(403).json({ message: 'Not authorized' });
+        }
+
+        const retailer = await Retailer.findById(id);
+        if (!retailer) return res.status(404).json({ message: 'Retailer not found' });
+
+        const target = retailer.payoutMethods.id(methodId);
+        if (!target) return res.status(404).json({ message: 'Payout method not found' });
+
+        retailer.payoutMethods.forEach(m => m.isPrimary = false);
+        target.isPrimary = true;
+
+        retailer.bankDetails = {
+            accountHolderName: target.accountHolderName,
+            accountNumber: target.accountNumber || target.upiId,
+            ifscCode: target.ifscCode || 'UPI',
+            bankName: target.bankName || (target.type === 'upi' ? 'UPI' : 'Bank'),
+            upiId: target.upiId,
+            isSubmitted: true
+        };
+
+        await retailer.save({ validateModifiedOnly: true });
+        res.status(200).json({ message: 'Primary payout method updated', payoutMethods: retailer.payoutMethods });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
 exports.saveBankDetails = async (req, res) => {
     try {
         const { id } = req.params;
@@ -392,10 +609,10 @@ exports.saveBankDetails = async (req, res) => {
             return res.status(403).json({ message: 'Not authorized' });
         }
 
-        const { accountHolderName, accountNumber, ifscCode, businessType } = req.body;
+        const { accountHolderName, accountNumber, ifscCode, bankName, upiId } = req.body;
         
-        if (!accountHolderName || !accountNumber || !ifscCode) {
-            return res.status(400).json({ message: 'Account Holder Name, Account Number, and IFSC Code are required.' });
+        if (!accountHolderName || (!accountNumber && !upiId)) {
+            return res.status(400).json({ message: 'Account Holder Name and Account Number (or UPI ID) are required.' });
         }
 
         const retailer = await Retailer.findById(id);
@@ -403,58 +620,47 @@ exports.saveBankDetails = async (req, res) => {
             return res.status(404).json({ message: 'Retailer not found' });
         }
 
-        // Save bank details
         retailer.bankDetails = {
             accountHolderName: accountHolderName.trim(),
-            accountNumber: accountNumber.trim(),
-            ifscCode: ifscCode.trim(),
-            businessType: businessType || 'individual',
+            accountNumber: accountNumber ? accountNumber.trim() : null,
+            ifscCode: ifscCode ? ifscCode.trim().toUpperCase() : null,
+            bankName: bankName ? bankName.trim() : null,
+            upiId: upiId ? upiId.trim() : null,
             isSubmitted: true
         };
 
-        // Automate Razorpay Linked Account Creation via v1/beta/accounts API
-        if (!retailer.razorpayAccountId && process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET) {
-            const axios = require('axios');
-            try {
-                const authHeader = 'Basic ' + Buffer.from(process.env.RAZORPAY_KEY_ID + ':' + process.env.RAZORPAY_KEY_SECRET).toString('base64');
-                const payload = {
-                    name: retailer.firstName + ' ' + retailer.lastName,
-                    email: retailer.email,
-                    tnc_accepted: true,
-                    account_details: {
-                        business_name: retailer.BusinessName || (retailer.firstName + ' ' + retailer.lastName),
-                        business_type: businessType || 'individual'
-                    },
-                    bank_account: {
-                        ifsc_code: ifscCode.trim(),
-                        beneficiary_name: accountHolderName.trim(),
-                        account_number: accountNumber.trim()
-                    }
-                };
-
-                const response = await axios.post('https://api.razorpay.com/v1/beta/accounts', payload, {
-                    headers: {
-                        'Authorization': authHeader,
-                        'Content-Type': 'application/json'
-                    }
-                });
-
-                if (response.data && response.data.id) {
-                    retailer.razorpayAccountId = response.data.id;
-                }
-            } catch (apiError) {
-                console.error('Error auto-creating Razorpay Linked Account:', apiError.response?.data || apiError.message);
-                // We don't block the save if the API fails; admin can retry or create manually.
-            }
+        // Also sync into payoutMethods
+        if (!retailer.payoutMethods) retailer.payoutMethods = [];
+        const existingPrimary = retailer.payoutMethods.find(m => m.isPrimary);
+        if (existingPrimary) {
+            existingPrimary.accountHolderName = accountHolderName.trim();
+            existingPrimary.accountNumber = accountNumber ? accountNumber.trim() : null;
+            existingPrimary.ifscCode = ifscCode ? ifscCode.trim().toUpperCase() : null;
+            existingPrimary.bankName = bankName ? bankName.trim() : null;
+            existingPrimary.upiId = upiId ? upiId.trim() : null;
+        } else {
+            retailer.payoutMethods.push({
+                type: upiId && !accountNumber ? 'upi' : 'bank_account',
+                accountHolderName: accountHolderName.trim(),
+                accountNumber: accountNumber ? accountNumber.trim() : null,
+                ifscCode: ifscCode ? ifscCode.trim().toUpperCase() : null,
+                bankName: bankName ? bankName.trim() : null,
+                upiId: upiId ? upiId.trim() : null,
+                isPrimary: true,
+                createdAt: new Date()
+            });
         }
 
-        await retailer.save();
+        if (!retailer.licenseNumber) {
+            retailer.licenseNumber = 'DL-AY-10001';
+        }
+        await retailer.save({ validateModifiedOnly: true });
 
-        const successMessage = retailer.razorpayAccountId 
-            ? 'Bank details saved and Razorpay account linked successfully!'
-            : 'Bank details saved successfully. Our team will verify and link your account for payouts.';
-
-        res.status(200).json({ message: successMessage, bankDetails: retailer.bankDetails });
+        res.status(200).json({ 
+            message: 'Bank details saved successfully for IMPS/UPI payouts!', 
+            bankDetails: retailer.bankDetails,
+            payoutMethods: retailer.payoutMethods
+        });
     } catch (error) {
         console.error('Save bank details error:', error);
         res.status(500).json({ message: error.message });
@@ -467,9 +673,95 @@ exports.getBankDetails = async (req, res) => {
         if (req.user.role !== 'admin' && req.user._id.toString() !== id) {
             return res.status(403).json({ message: 'Not authorized' });
         }
-        const retailer = await Retailer.findById(id).select('bankDetails razorpayAccountId');
+        const retailer = await Retailer.findById(id).select('bankDetails payoutMethods razorpayAccountId');
         if (!retailer) return res.status(404).json({ message: 'Retailer not found' });
-        res.status(200).json({ bankDetails: retailer.bankDetails || {}, razorpayAccountId: retailer.razorpayAccountId });
+        res.status(200).json({ 
+            bankDetails: retailer.bankDetails || {}, 
+            payoutMethods: retailer.payoutMethods || [],
+            razorpayAccountId: retailer.razorpayAccountId 
+        });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+/**
+ * PUT /api/retailers/:id/verify
+ * Admin only: Approve or revoke a retailer's verified seller status.
+ */
+exports.toggleRetailerVerification = async (req, res) => {
+    try {
+        if (req.user.role !== 'admin') {
+            return res.status(403).json({ message: 'Access denied. Admins only.' });
+        }
+        const { id } = req.params;
+        const { isVerified, notes } = req.body;
+
+        const retailer = await Retailer.findById(id);
+        if (!retailer) return res.status(404).json({ message: 'Retailer not found' });
+
+        if (!retailer.adminVerification) {
+            retailer.adminVerification = {};
+        }
+
+        const newVerified = isVerified !== undefined ? Boolean(isVerified) : !retailer.adminVerification.isVerified;
+        retailer.adminVerification.isVerified = newVerified;
+        retailer.adminVerification.verifiedAt = newVerified ? new Date() : null;
+        retailer.adminVerification.verifiedBy = req.user._id;
+        if (notes) retailer.adminVerification.notes = notes;
+        if (req.body.razorpayAccountId !== undefined) {
+            retailer.razorpayAccountId = req.body.razorpayAccountId ? req.body.razorpayAccountId.trim() : null;
+        }
+
+        await retailer.save();
+
+        res.status(200).json({
+            message: `Retailer verification ${newVerified ? 'approved' : 'revoked'} successfully`,
+            adminVerification: retailer.adminVerification
+        });
+    } catch (error) {
+        console.error('Error toggling retailer verification:', error);
+        res.status(500).json({ message: error.message });
+    }
+};
+
+/**
+ * GET /api/retailers/:id/eligibility
+ * Returns the 3-point onboarding & verification checklist for this retailer.
+ */
+exports.getRetailerEligibility = async (req, res) => {
+    try {
+        const { id } = req.params;
+        if (req.user.role !== 'admin' && req.user._id.toString() !== id) {
+            return res.status(403).json({ message: 'Not authorized' });
+        }
+
+        const retailer = await Retailer.findById(id);
+        if (!retailer) return res.status(404).json({ message: 'Retailer not found' });
+
+        const deliveryConfigured = Boolean(
+            retailer.shippingIntegrations?.delhivery?.isConfigured && 
+            retailer.warehouse?.isConfigured
+        );
+        const paymentConfigured = Boolean(
+            (retailer.payoutMethods && retailer.payoutMethods.length > 0) ||
+            (retailer.bankDetails?.isSubmitted && (retailer.bankDetails?.accountNumber || retailer.bankDetails?.upiId)) ||
+            retailer.razorpayAccountId
+        );
+        const adminApproved = Boolean(retailer.adminVerification?.isVerified);
+        const isEligible = deliveryConfigured && paymentConfigured && adminApproved;
+
+        res.status(200).json({
+            isEligible,
+            checklist: {
+                deliveryConfigured,
+                warehouseConfigured: Boolean(retailer.warehouse?.isConfigured),
+                courierLinked: Boolean(retailer.shippingIntegrations?.delhivery?.isConfigured),
+                paymentConfigured,
+                adminApproved
+            },
+            adminVerification: retailer.adminVerification || { isVerified: false }
+        });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

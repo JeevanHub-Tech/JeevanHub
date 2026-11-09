@@ -1,5 +1,5 @@
 import React, { useContext, Suspense, lazy } from 'react';
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import ProtectedRoute from './components/AppShell/ProtectedRoute';
 import NavBar from './screens/Navbar';
 import PatientNavBar from './screens/Patients/PatientNavBar';  // Patient specific navbar
@@ -207,6 +207,7 @@ function App() {
           <Route path="/patients/:id" element={<Patientprofile />} />
           <Route path="/admin/consultations/:id" element={<DoctorFullDetails />} />
           <Route path="/admin/transactions" element={<Transactions />} />
+          <Route path="/admin/retailers" element={<AdminRetailers />} />
           <Route path="/admin/medicine-orders" element={<RetailerManagement />} />
           <Route path="/admin/users" element={<PatientFullDetails />} />
           <Route path="/admin/medicine-orders/:id" element={<RetailerFullDetails />} />
@@ -220,6 +221,9 @@ function App() {
             <Route path="/profile/patient" element={<PatientProfileNew />} />
             <Route path="/profile/doctor" element={<DoctorProfileNew />} />
             <Route path="/profile/retailer" element={<RetailerProfileNew />} />
+            <Route path="/retailer/profile" element={<RetailerProfileNew />} />
+            <Route path="/retailer/my-items" element={<Navigate to="/manage-products/items" replace />} />
+            <Route path="/retailer/orders" element={<Navigate to="/my-orders" replace />} />
             <Route path="/prescription-wellness" element={<PrescriptionWellnessPage />} />
             <Route path="/PrescriptionWellness" element={<PrescriptionWellnessPage />} />
             <Route path="/prescriptionwellness" element={<PrescriptionWellnessPage />} />

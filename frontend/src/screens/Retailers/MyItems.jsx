@@ -1,6 +1,8 @@
-import { useState, useEffect, useRef, useCallback } from "react";
-import { Search, Plus, Edit2, Trash2, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Download, ChevronsUpDown } from "lucide-react";
+import { useState, useEffect, useRef, useCallback, useContext } from "react";
+import { useNavigate } from "react-router-dom";
+import { Search, Plus, Edit2, Trash2, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Download, ChevronsUpDown, ShieldCheck, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
 
+import { AuthContext } from "../../context/AuthContext";
 import { authFetch } from "../../utils/authFetch";
 import { BACKEND_URL } from "../../config";
 import { useUrlFilters } from "@/hooks/useUrlFilters";
@@ -40,9 +42,34 @@ const stockBadgeVariant = (quantity) => {
 };
 
 function MyItems() {
+	const navigate = useNavigate();
 	const [items, setItems] = useState([]);
 	const [error, setError] = useState(null);
 	const [loading, setLoading] = useState(true);
+
+	const { auth } = useContext(AuthContext);
+	const retailerId = auth?.user?.id || auth?.user?._id;
+	const [eligibility, setEligibility] = useState(null);
+
+	const fetchEligibility = useCallback(async () => {
+		if (!retailerId) return;
+		try {
+			const token = localStorage.getItem("token");
+			const res = await authFetch(`${BACKEND_URL}/api/retailers/${retailerId}/eligibility`, {
+				headers: { Authorization: `Bearer ${token}` }
+			});
+			if (res.ok) {
+				const data = await res.json();
+				setEligibility(data);
+			}
+		} catch (e) {
+			console.error("Error fetching retailer eligibility:", e);
+		}
+	}, [retailerId]);
+
+	useEffect(() => {
+		fetchEligibility();
+	}, [fetchEligibility]);
 
 	// Filters + pagination + sort live in the URL so leaving this section
 	// (lazy route swap unmounts it) and coming back restores them.
@@ -405,7 +432,22 @@ function MyItems() {
 	return (
 		<DashboardShell>
 			<DashboardPageHeader
-				title="My Items"
+				title={
+					<div className="flex flex-wrap items-center gap-3">
+						<span>My Items</span>
+						{eligibility?.isEligible ? (
+							<Badge className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1 text-xs py-0.5">
+								<ShieldCheck className="size-3.5" />
+								Verified Seller
+							</Badge>
+						) : (
+							<Badge variant="outline" className="border-amber-500/40 text-amber-700 bg-amber-50 dark:bg-amber-950/30 dark:text-amber-400 gap-1 text-xs py-0.5">
+								<AlertCircle className="size-3.5" />
+								Onboarding Incomplete
+							</Badge>
+						)}
+					</div>
+				}
 				actions={
 					<div className="flex flex-wrap items-center gap-2">
 						<Button variant="outline" onClick={handleExport}>
@@ -417,6 +459,71 @@ function MyItems() {
 					</div>
 				}
 			/>
+
+			{/* 3-Step Verification Checklist Alert */}
+			{eligibility && !eligibility.isEligible && (
+				<Card className="mb-6 border-amber-500/30 bg-amber-500/5 p-4">
+					<div className="flex items-start gap-3">
+						<AlertCircle className="size-5 text-amber-600 shrink-0 mt-0.5" />
+						<div className="flex-1">
+							<h4 className="font-semibold text-foreground text-sm">Action Required: Your products are hidden from patients</h4>
+							<p className="text-xs text-muted-foreground mt-0.5 mb-3">
+								To protect patient safety and ensure fulfillment reliability, your inventory is only displayed to customers once you complete all 3 requirements and receive Admin approval.
+							</p>
+							<div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+								<button
+									type="button"
+									onClick={() => navigate('/profile/retailer?tab=shipping')}
+									className={`p-3 rounded-lg border text-xs flex items-center gap-2.5 text-left transition-all hover:scale-[1.01] hover:border-primary/60 cursor-pointer ${eligibility?.checklist?.deliveryConfigured ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-800 dark:text-emerald-300' : 'bg-background border-border text-foreground hover:bg-muted/30'}`}
+								>
+									{eligibility?.checklist?.deliveryConfigured ? <CheckCircle2 className="size-4 text-emerald-600 shrink-0" /> : <XCircle className="size-4 text-amber-600 shrink-0" />}
+									<div className="flex-1">
+										<div className="font-semibold flex items-center justify-between">
+											<span>1. Delivery Partner</span>
+											<span className="text-[10px] text-primary font-normal underline">Setup &rarr;</span>
+										</div>
+										<div className="text-[11px] text-muted-foreground mt-0.5">
+											{eligibility?.checklist?.deliveryConfigured ? "Courier & Warehouse linked" : "Click to link courier & warehouse"}
+										</div>
+									</div>
+								</button>
+								<button
+									type="button"
+									onClick={() => navigate('/profile/retailer?tab=payouts')}
+									className={`p-3 rounded-lg border text-xs flex items-center gap-2.5 text-left transition-all hover:scale-[1.01] hover:border-primary/60 cursor-pointer ${eligibility?.checklist?.paymentConfigured ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-800 dark:text-emerald-300' : 'bg-background border-border text-foreground hover:bg-muted/30'}`}
+								>
+									{eligibility?.checklist?.paymentConfigured ? <CheckCircle2 className="size-4 text-emerald-600 shrink-0" /> : <XCircle className="size-4 text-amber-600 shrink-0" />}
+									<div className="flex-1">
+										<div className="font-semibold flex items-center justify-between">
+											<span>2. Bank & UPI Payouts</span>
+											<span className="text-[10px] text-primary font-normal underline">Setup &rarr;</span>
+										</div>
+										<div className="text-[11px] text-muted-foreground mt-0.5">
+											{eligibility?.checklist?.paymentConfigured ? "Payout account linked" : "Click to add bank account or UPI"}
+										</div>
+									</div>
+								</button>
+								<button
+									type="button"
+									onClick={() => navigate('/profile/retailer?tab=verification')}
+									className={`p-3 rounded-lg border text-xs flex items-center gap-2.5 text-left transition-all hover:scale-[1.01] hover:border-primary/60 cursor-pointer ${eligibility?.checklist?.adminApproved ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-800 dark:text-emerald-300' : 'bg-background border-border text-foreground hover:bg-muted/30'}`}
+								>
+									{eligibility?.checklist?.adminApproved ? <CheckCircle2 className="size-4 text-emerald-600 shrink-0" /> : <XCircle className="size-4 text-amber-600 shrink-0" />}
+									<div className="flex-1">
+										<div className="font-semibold flex items-center justify-between">
+											<span>3. Admin Verification</span>
+											<span className="text-[10px] text-primary font-normal underline">View &rarr;</span>
+										</div>
+										<div className="text-[11px] text-muted-foreground mt-0.5">
+											{eligibility?.checklist?.adminApproved ? "Approved by Admin" : "Click to view seller status"}
+										</div>
+									</div>
+								</button>
+							</div>
+						</div>
+					</div>
+				</Card>
+			)}
 
 			<Card className="mb-6 flex flex-row flex-wrap items-center gap-3 p-4">
 				<div className="flex min-w-52 flex-1 items-center gap-2 rounded-lg border border-input px-3 py-2">

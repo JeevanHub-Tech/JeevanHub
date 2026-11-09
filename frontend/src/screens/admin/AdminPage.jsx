@@ -11,11 +11,12 @@ const AdminDashboard = () => {
 	const { auth } = useContext(AuthContext);
 
 	const sections = [
-		{ to: "/admin/users", icon: Users, label: t("adminDashboard.patientManagement"), description: t("adminDashboard.patientManagementDesc") },
-		{ to: "/admin/consultations", icon: Stethoscope, label: t("adminDashboard.doctorManagement"), description: t("adminDashboard.doctorManagementDesc") },
-		{ to: "/admin/medicine-orders", icon: Store, label: t("adminDashboard.retailerManagement"), description: t("adminDashboard.retailerManagementDesc") },
-		{ to: "/admin/transactions", icon: Receipt, label: t("adminDashboard.transactions"), description: t("adminDashboard.transactionsDesc") },
-		{ to: "/admin/blogs", icon: Newspaper, label: t("adminDashboard.blogs"), description: t("adminDashboard.blogsDesc") },
+		{ to: "/admin/users", icon: Users, label: t("adminDashboard.patientManagement", "Patient Management"), description: t("adminDashboard.patientManagementDesc", "View and manage patient accounts") },
+		{ to: "/admin/consultations", icon: Stethoscope, label: t("adminDashboard.doctorManagement", "Doctor Management"), description: t("adminDashboard.doctorManagementDesc", "Review doctors and consultations") },
+		{ to: "/admin/retailers", icon: Store, label: t("adminDashboard.retailerVerification", "Retailer Management & Verification"), description: t("adminDashboard.retailerVerificationDesc", "Manage retailers, verify onboarding & bank accounts") },
+		{ to: "/admin/medicine-orders", icon: Store, label: t("adminDashboard.retailerManagement", "Medicine Orders"), description: t("adminDashboard.retailerManagementDesc", "Track retailer medicine orders") },
+		{ to: "/admin/transactions", icon: Receipt, label: t("adminDashboard.transactions", "Transactions"), description: t("adminDashboard.transactionsDesc", "Track platform payments") },
+		{ to: "/admin/blogs", icon: Newspaper, label: t("adminDashboard.blogs", "Blogs"), description: t("adminDashboard.blogsDesc", "Manage published articles") },
 	];
 
 	if (auth.user?.permissions?.manageAdmins) {

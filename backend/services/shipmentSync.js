@@ -5,7 +5,7 @@
 // dialog, a Delhivery webhook push, and the polling cron -- and all three must
 // agree on what "delivered" does to the order, so the rule lives here once.
 
-const { startPayoutHoldIfDelivered } = require('../utils/payoutHold');
+const { startPayoutHoldIfDelivered, startShipmentPayoutHoldIfDelivered } = require('../utils/payoutHold');
 
 /**
  * Recomputes the order-wide status from its item statuses.
@@ -106,6 +106,7 @@ function applyTrackingToOrder(order, shipment, tracking) {
         order.orderStatus = recomputeOrderStatus(order);
         becameDelivered = previousStatus !== 'delivered' && order.orderStatus === 'delivered';
         payoutHeld = startPayoutHoldIfDelivered(order, order.orderStatus);
+        startShipmentPayoutHoldIfDelivered(order, shipment, tracking.mappedOrderStatus);
     } else if (tracking.mappedOrderStatus === 'cancelled') {
         // RTO -- the parcel is going back to the seller, so the patient isn't
         // getting it. Never walk back an order that already delivered.

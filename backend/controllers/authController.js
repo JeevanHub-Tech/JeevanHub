@@ -6,6 +6,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const { sendOTPWhatsApp } = require('../scheduler');
+const { sendOTPEmail } = require('../services/emailService');
 const {
 	patientRegistrationSchema,
 	doctorRegistrationSchema,
@@ -104,17 +105,33 @@ exports.loginUser = async (req, res) => {
 			return res.status(400).json({ message: 'Email, password, and role are required' });
 		}
 
+		const cleanEmail = String(email).trim().toLowerCase();
+		const emailQuery = { email: { $regex: new RegExp(`^${cleanEmail.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') } };
+
 		if (role === 'doctor') {
-			user = await Doctor.findOne({ email });
+			user = await Doctor.findOne(emailQuery);
 		} else if (role === 'retailer') {
-			user = await Retailer.findOne({ email });
+			user = await Retailer.findOne(emailQuery);
 		} else if (role === 'patient') {
-			user = await Patient.findOne({ email });
+			user = await Patient.findOne(emailQuery);
 		} else if (role === 'admin') {
-			user = await Admin.findOne({ email });
+			user = await Admin.findOne(emailQuery);
 		}
 
 		if (!user) {
+			// Check if account exists under another role to help the user select the right role
+			let matchedRole = null;
+			if (role !== 'patient' && await Patient.findOne(emailQuery)) matchedRole = 'Patient';
+			else if (role !== 'retailer' && await Retailer.findOne(emailQuery)) matchedRole = 'Retailer';
+			else if (role !== 'doctor' && await Doctor.findOne(emailQuery)) matchedRole = 'Doctor';
+			else if (role !== 'admin' && await Admin.findOne(emailQuery)) matchedRole = 'Admin';
+
+			if (matchedRole) {
+				return res.status(400).json({
+					message: `Account found as '${matchedRole}'. Please change the 'I am a' dropdown to '${matchedRole}'.`
+				});
+			}
+
 			return res.status(400).json({ message: 'User not found' });
 		}
 
@@ -387,16 +404,20 @@ exports.handleForgotPassword = async (req, res) => {
 		user.isOTPVerified = false;
 		await user.save();
 
-		// 5. Trigger WhatsApp Message
-		if (!user.phone) {
-			return res.status(400).json({ message: "No phone number associated with this account." });
+		// 5. Send OTP via Nodemailer Email Service
+		let emailResult = null;
+		try {
+			emailResult = await sendOTPEmail(user.email, user.firstName, otp);
+		} catch (mailErr) {
+			console.error("Failed to send OTP email:", mailErr);
+			return res.status(500).json({ message: "Failed to send OTP email. Please try again later." });
 		}
-		const userPhone = user.phone.toString();
-
-		// await sendOTPWhatsApp(userPhone, user.firstName, otp);
 
 		return res.status(200).json({
-			message: "Success! OTP generated (WhatsApp disabled in sandbox)."
+			message: "OTP sent successfully to your registered email address.",
+			previewUrl: emailResult?.previewUrl || null,
+			// For convenience during local development:
+			...(process.env.NODE_ENV !== 'production' && { devOtp: otp })
 		});
 
 	} catch (error) {

@@ -508,7 +508,7 @@ router.get("/retailers", auth, async (req, res) => {
     if (req.user.role !== "admin") {
       return res.status(403).json({ message: "Access denied. Admins only." });
     }
-    const retailers = await Retailer.find({}).select('-password -resetPasswordOTP -resetPasswordOTPExpires -isOTPVerified -razorpayAccountId');
+    const retailers = await Retailer.find({}).select('-password -resetPasswordOTP -resetPasswordOTPExpires -isOTPVerified');
     res.status(200).json(retailers);
   } catch (error) {
     console.error("Error fetching retailers:", error);

@@ -102,11 +102,16 @@ function SignInScreen() {
 		e.preventDefault();
 
 		try {
+			const sanitizedFormData = {
+				...formData,
+				email: formData.email.trim().toLowerCase(),
+			};
+
 			const response = await fetch(`${BACKEND_URL}/api/auth/login`, {
 				method: "POST",
 				credentials: "include",
 				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify(formData),
+				body: JSON.stringify(sanitizedFormData),
 			});
 
 			const result = await response.json();

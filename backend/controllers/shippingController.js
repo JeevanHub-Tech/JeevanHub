@@ -211,7 +211,7 @@ exports.createShipment = async (req, res) => {
 
         // Update item statuses
         retailerItems.forEach(item => { item.itemStatus = 'shipped'; });
-        recomputeOrderStatus(order);
+        order.orderStatus = recomputeOrderStatus(order);
 
         await order.save();
 

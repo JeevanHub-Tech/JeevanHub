@@ -39,12 +39,30 @@ const RetailerSchema = new mongoose.Schema({
     type: String,
     default: null
   },
+  payoutMethods: [{
+    type: { type: String, enum: ['bank_account', 'upi'], required: true },
+    accountHolderName: { type: String, required: true },
+    accountNumber: { type: String, default: null },
+    ifscCode: { type: String, default: null },
+    bankName: { type: String, default: null },
+    upiId: { type: String, default: null },
+    isPrimary: { type: Boolean, default: false },
+    createdAt: { type: Date, default: Date.now }
+  }],
   bankDetails: {
     accountHolderName: { type: String, default: null },
     accountNumber: { type: String, default: null },
     ifscCode: { type: String, default: null },
+    bankName: { type: String, default: null },
+    upiId: { type: String, default: null },
     businessType: { type: String, default: 'individual' },
     isSubmitted: { type: Boolean, default: false }
+  },
+  adminVerification: {
+    isVerified: { type: Boolean, default: false },
+    verifiedAt: { type: Date, default: null },
+    verifiedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin', default: null },
+    notes: { type: String, default: null }
   },
   // Per-courier shipping credentials the retailer links so we can pull real
   // tracking instead of trusting a manual "Shipped" click. Nested under a
@@ -114,6 +132,20 @@ const RetailerSchema = new mongoose.Schema({
   },
   passwordChangedAt: Date
 }, { timestamps: true });
+
+RetailerSchema.methods.isEligibleToSell = function() {
+  const deliveryConfigured = Boolean(
+    this.shippingIntegrations?.delhivery?.isConfigured && 
+    this.warehouse?.isConfigured
+  );
+  const paymentConfigured = Boolean(
+    (this.payoutMethods && this.payoutMethods.length > 0) ||
+    (this.bankDetails?.isSubmitted && (this.bankDetails?.accountNumber || this.bankDetails?.upiId)) ||
+    this.razorpayAccountId
+  );
+  const adminApproved = Boolean(this.adminVerification?.isVerified);
+  return deliveryConfigured && paymentConfigured && adminApproved;
+};
 
 attachAgeVirtual(RetailerSchema);
 

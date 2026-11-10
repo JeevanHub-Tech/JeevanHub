@@ -10,6 +10,8 @@ const auth = require("../middleware/auth");
 const { aiRateLimit } = require("../middleware/aiRateLimit");
 const crypto = require("crypto");
 const bcrypt = require("bcryptjs");
+const cloudinary = require("../config/cloudinary");
+const { CloudinaryStorage } = require("multer-storage-cloudinary");
 const { getAllDoctors, 
     getAllDoctorsData, 
     updateDoctor,
@@ -305,6 +307,57 @@ router.get("/:doctorId/slots/:date", auth, slotController.getProcessedSlotsForDa
 
 // update doctor details
 router.put("/updateDoctor/:id", auth, updateDoctor);
+
+// Cloudinary storage setup for doctor degree certificates
+const doctorCertStorage = new CloudinaryStorage({
+    cloudinary: cloudinary,
+    params: async (req, file) => {
+        return {
+            folder: "jeevanhub/doctors/certificates",
+            resource_type: "auto",
+            public_id: Date.now() + "-" + (file.originalname ? file.originalname.split('.')[0] : 'certificate')
+        };
+    },
+});
+const certificateUpload = multer({ 
+    storage: doctorCertStorage,
+    limits: { fileSize: 10 * 1024 * 1024 } // 10MB
+});
+
+// Upload degree certificate
+router.post("/:id/certificate", auth, (req, res, next) => {
+    certificateUpload.single("certificate")(req, res, function (err) {
+        if (err) {
+            console.error("Certificate upload error:", err);
+            return res.status(400).json({ message: "Certificate upload failed", error: err.message });
+        }
+        next();
+    });
+}, async (req, res) => {
+    try {
+        const { id } = req.params;
+        if (req.user.role !== 'admin' && req.user._id.toString() !== id) {
+            return res.status(403).json({ message: "Not authorized to update this certificate" });
+        }
+        if (!req.file || !req.file.path) {
+            return res.status(400).json({ message: "No certificate file provided" });
+        }
+        const doctor = await Doctor.findById(id);
+        if (!doctor) {
+            return res.status(404).json({ message: "Doctor not found" });
+        }
+        doctor.certificate = req.file.path;
+        await doctor.save();
+
+        res.status(200).json({
+            message: "Degree certificate uploaded successfully",
+            certificate: doctor.certificate,
+        });
+    } catch (err) {
+        console.error("Error saving certificate:", err);
+        res.status(500).json({ message: "Server error uploading certificate" });
+    }
+});
 
 // verify doctor
 router.put("/verify/:id", auth, verifyDoctor);

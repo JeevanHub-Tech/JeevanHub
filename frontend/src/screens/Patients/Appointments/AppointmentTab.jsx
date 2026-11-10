@@ -32,7 +32,7 @@ import { ExpandableText } from "@/components/ui/expandable-text";
 import { cn } from "@/lib/utils";
 import ShareRecordModal from "./ShareRecordModal";
 import { authFetch } from "../../../utils/authFetch";
-import { BACKEND_URL, RAZORPAY_KEY_ID } from "../../../config";
+import { BACKEND_URL, CASHFREE_ENV } from "../../../config";
 
 const BACKEND = BACKEND_URL;
 
@@ -283,60 +283,55 @@ const AppointmentTab = ({
 			const orderRes = await authFetch(`${BACKEND}/api/payment/create-order`, {
 				method: "POST",
 				headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-				body: JSON.stringify({ amount: fee }),
+				body: JSON.stringify({
+					amount: fee,
+					customerName: appointment.patientName || undefined
+				}),
 			});
-			const orderData = await orderRes.json();
-			if (!orderRes.ok || !orderData.id) {
-				throw new Error(orderData.error || "Could not initialize payment order.");
+			const cfOrder = await orderRes.json();
+			if (!orderRes.ok || !cfOrder.payment_session_id) {
+				throw new Error(cfOrder.error || "Could not initialize payment order.");
 			}
 
-			if (RAZORPAY_KEY_ID && window.Razorpay) {
-				const options = {
-					key: RAZORPAY_KEY_ID,
-					amount: orderData.amount,
-					currency: orderData.currency,
-					name: "JeevanHub",
-					description: `Personalized 7-Day Diet Plan — Dr. ${appointment.doctorName}`,
-					order_id: orderData.id,
-					handler: async function (response) {
-						try {
-							const submitRes = await authFetch(`${BACKEND}/api/bookings/${appointment._id}/add-diet-plan`, {
-								method: "POST",
-								headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-								body: JSON.stringify({
-									razorpayPaymentId: response.razorpay_payment_id,
-									razorpayOrderId: response.razorpay_order_id,
-									razorpaySignature: response.razorpay_signature,
-								}),
-							});
-							const submitData = await submitRes.json();
-							if (!submitRes.ok) throw new Error(submitData.error || "Failed to confirm request");
+			if (!window.Cashfree) {
+				throw new Error("Cashfree SDK is loading. Please try again in a moment.");
+			}
 
-							setDietModalAppointment(null);
-							setShowManualUpi(false);
-							setScreenshotFiles([]);
-							alert(`Payment successful! Your Personalized Diet Plan request has been sent to Dr. ${appointment.doctorName}.`);
-							onReload?.();
-						} catch (err) {
-							console.error("Error confirming diet plan payment:", err);
-							alert(`Payment received (ID: ${response.razorpay_payment_id}), but error updating record: ${err.message}`);
-						} finally {
-							setPayingViaRazorpay(false);
-						}
-					},
-					modal: {
-						ondismiss: () => setPayingViaRazorpay(false),
-					},
-					theme: { color: "#556b2f" },
-				};
-				const rzp = new window.Razorpay(options);
-				rzp.on("payment.failed", () => {
-					alert("Payment failed. Please try again or use the UPI QR code.");
-					setPayingViaRazorpay(false);
+			const cashfree = window.Cashfree({ mode: CASHFREE_ENV });
+			const checkoutOptions = {
+				paymentSessionId: cfOrder.payment_session_id,
+				redirectTarget: "_modal"
+			};
+
+			const result = await cashfree.checkout(checkoutOptions);
+			if (result.error) {
+				console.error("Cashfree checkout error:", result.error);
+				alert(result.error.message || "Payment was not completed.");
+				setPayingViaRazorpay(false);
+				return;
+			}
+
+			try {
+				const submitRes = await authFetch(`${BACKEND}/api/bookings/${appointment._id}/add-diet-plan`, {
+					method: "POST",
+					headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+					body: JSON.stringify({
+						cashfreeOrderId: cfOrder.order_id,
+						cashfreePaymentId: cfOrder.cf_order_id ? String(cfOrder.cf_order_id) : cfOrder.order_id,
+					}),
 				});
-				rzp.open();
-			} else {
-				setShowManualUpi(true);
+				const submitData = await submitRes.json();
+				if (!submitRes.ok) throw new Error(submitData.error || "Failed to confirm request");
+
+				setDietModalAppointment(null);
+				setShowManualUpi(false);
+				setScreenshotFiles([]);
+				alert(`Payment successful! Your Personalized Diet Plan request has been sent to Dr. ${appointment.doctorName}.`);
+				onReload?.();
+			} catch (err) {
+				console.error("Error confirming diet plan payment:", err);
+				alert(`Payment received, but error updating record: ${err.message}`);
+			} finally {
 				setPayingViaRazorpay(false);
 			}
 		} catch (err) {

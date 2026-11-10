@@ -163,7 +163,8 @@ const getEligibleRetailerIds = async () => {
     $or: [
       { 'payoutMethods.0': { $exists: true } },
       { 'bankDetails.isSubmitted': true },
-      { razorpayAccountId: { $exists: true, $ne: null } }
+      { cashfreeVendorId: { $exists: true, $ne: null } },
+      { cashfreeBeneficiaryId: { $exists: true, $ne: null } }
     ]
   }).select('_id');
   return eligibleRetailers.map(r => r._id);
@@ -269,7 +270,7 @@ exports.getMedicineById = async (req, res) => {
     const medicine = await Medicine.findById(req.params.id)
       .populate(
         'retailerId',
-        'firstName lastName BusinessName adminVerification shippingIntegrations warehouse razorpayAccountId'
+        'firstName lastName BusinessName adminVerification shippingIntegrations warehouse cashfreeVendorId cashfreeBeneficiaryId payoutMethods bankDetails'
       )
       .lean();
     if (!medicine) {
@@ -277,14 +278,16 @@ exports.getMedicineById = async (req, res) => {
     }
 
     // Check retailer eligibility
-    const isEligible = medicine.retailerId && typeof medicine.retailerId.isEligibleToSell === 'function'
-      ? medicine.retailerId.isEligibleToSell()
-      : (
-          Boolean(medicine.retailerId?.shippingIntegrations?.delhivery?.isConfigured) &&
-          Boolean(medicine.retailerId?.warehouse?.isConfigured) &&
-          Boolean(medicine.retailerId?.razorpayAccountId) &&
-          Boolean(medicine.retailerId?.adminVerification?.isVerified)
-        );
+    const r = medicine.retailerId;
+    const hasDelivery = Boolean(r?.shippingIntegrations?.delhivery?.isConfigured && r?.warehouse?.isConfigured);
+    const hasPayment = Boolean(
+      (r?.payoutMethods && r.payoutMethods.length > 0) ||
+      (r?.bankDetails?.isSubmitted && (r.bankDetails?.accountNumber || r.bankDetails?.upiId)) ||
+      r?.cashfreeVendorId ||
+      r?.cashfreeBeneficiaryId
+    );
+    const hasAdminApproval = Boolean(r?.adminVerification?.isVerified);
+    const isEligible = hasDelivery && hasPayment && hasAdminApproval;
 
     if (!isEligible) {
       return res.status(404).json({ message: 'Medicine is currently unavailable from this vendor' });

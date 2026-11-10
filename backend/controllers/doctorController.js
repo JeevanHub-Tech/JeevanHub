@@ -361,6 +361,9 @@ exports.updateDoctor = async (req, res) => {
             if (updates.education !== undefined) doctor.education = updates.education;
             if (updates.designation !== undefined) doctor.designation = updates.designation;
             if (updates.profileImage !== undefined) doctor.profileImage = updates.profileImage;
+            if (updates.certificate !== undefined) doctor.certificate = updates.certificate;
+            if (updates.introduction !== undefined) doctor.introduction = updates.introduction;
+            if (updates.languages !== undefined) doctor.languages = updates.languages;
             if (updates.availableSlots !== undefined) doctor.availableSlots = updates.availableSlots;
             if (updates.upiId !== undefined) {
                 if (updates.upiId && !/^[a-zA-Z0-9.\-_]{1,256}@[a-zA-Z0-9.\-_]{1,64}$/.test(updates.upiId)) {

@@ -10,7 +10,7 @@ const Doctor = require('../models/Doctor');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
-const getRazorpay = require('../services/razorpayService');
+const cashfreeService = require('../services/cashfreeService');
 const notificationController = require('./notificationController');
 const delhiveryService = require('../services/delhiveryService');
 const { applyTrackingToOrder, recomputeOrderStatus } = require('../services/shipmentSync');
@@ -84,9 +84,10 @@ exports.createOrder = async (req, res) => {
             shippingCharge,
             prescriptionUrl,
             prescriptionUrls,
+            cashfreeOrderId,
+            cashfreePaymentId,
             razorpayOrderId,
-            razorpayPaymentId,
-            razorpaySignature
+            razorpayPaymentId
         } = req.body;
 
         // Accept either the legacy single prescriptionUrl or the new prescriptionUrls
@@ -107,7 +108,7 @@ exports.createOrder = async (req, res) => {
         // or skip the Rx gate.
         const medicines = await Medicine.find({
             _id: { $in: items.map(item => item.medicineId) }
-        }).populate('retailerId'); // populate retailerId to access razorpayAccountId
+        }).populate('retailerId');
         const medicineById = new Map(medicines.map(med => [med._id.toString(), med]));
 
         const formattedItems = items.map(item => {
@@ -119,9 +120,7 @@ exports.createOrder = async (req, res) => {
                 medicineId: medicine._id,
                 quantity: item.quantity,
                 subTotal: medicine.price * item.quantity,
-                // temporarily hold retailerId for transfer logic
-                _retailerId: medicine.retailerId._id,
-                _razorpayAccountId: medicine.retailerId.razorpayAccountId
+                _retailerId: medicine.retailerId._id
             };
         });
 
@@ -161,28 +160,24 @@ exports.createOrder = async (req, res) => {
         }
 
         if (paymentMethod === 'onlinePayment') {
-            if (!razorpayOrderId || !razorpayPaymentId || !razorpaySignature) {
+            const orderIdToVerify = cashfreeOrderId || razorpayOrderId;
+            if (!orderIdToVerify) {
                 return res.status(400).json({ message: "Missing payment verification details" });
             }
-            if (!process.env.RAZORPAY_KEY_SECRET) {
-                return res.status(500).json({ message: "Payment gateway not configured" });
+            
+            const cfOrder = await cashfreeService.getOrderStatus(orderIdToVerify);
+            if (cfOrder.order_status !== 'PAID') {
+                return res.status(400).json({ message: `Payment not completed. Status: ${cfOrder.order_status}` });
             }
-            const expectedSignature = crypto
-                .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
-                .update(razorpayOrderId + "|" + razorpayPaymentId)
-                .digest('hex');
-            if (expectedSignature !== razorpaySignature) {
-                return res.status(400).json({ message: "Payment verification failed" });
-            }
-            // Signature only proves the payment/order pair is genuine, not that the
-            // amount charged matches this cart -- confirm the Razorpay order amount
-            // against the server-computed total before trusting the payment.
-            const razorpayOrder = await getRazorpay().orders.fetch(razorpayOrderId);
-            if (razorpayOrder.amount !== Math.round((totalPrice + (Number(shippingCharge) || 0)) * 100)) {
+            
+            const expectedAmount = Math.round((totalPrice + (Number(shippingCharge) || 0)) * 100) / 100;
+            if (Math.round(Number(cfOrder.order_amount)) !== Math.round(expectedAmount)) {
                 return res.status(400).json({ message: "Paid amount does not match order total" });
             }
-            newOrder.razorpayOrderId = razorpayOrderId;
-            newOrder.paymentId = razorpayPaymentId;
+
+            newOrder.cashfreeOrderId = cfOrder.order_id;
+            newOrder.cashfreePaymentId = cfOrder.cf_order_id ? String(cfOrder.cf_order_id) : (cashfreePaymentId || cfOrder.order_id);
+            newOrder.paymentId = newOrder.cashfreePaymentId;
             newOrder.paymentStatus = 'paid';
         }
 
@@ -791,25 +786,7 @@ exports.resolveOrderDispute = async (req, res) => {
         order.dispute.resolvedBy = req.user._id;
         await order.save();
 
-        const getRazorpay = require('../services/razorpayService');
-        const razorpay = getRazorpay();
-
-        if (resolution === 'released') {
-            const transferIds = [...new Set(order.items.map(i => i.razorpayTransferId).filter(Boolean))];
-            for (const tId of transferIds) {
-                try {
-                    await razorpay.transfers.edit(tId, { on_hold: false });
-                } catch (e) {
-                    console.error("Error releasing Razorpay transfer hold for:", tId, e);
-                }
-            }
-        } else if (resolution === 'refunded' && order.paymentId) {
-            try {
-                await razorpay.payments.refund(order.paymentId, { amount: Math.round(order.totalPrice * 100) });
-            } catch (e) {
-                console.error("Error refunding Razorpay payment:", order.paymentId, e);
-            }
-        }
+        console.log(`[Admin Order Dispute] Resolution '${resolution}' recorded for Order ${order._id}`);
 
         return res.status(200).json({ message: `Dispute resolved as ${resolution}.`, order });
     } catch (error) {

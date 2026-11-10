@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { CheckCircle2, Loader2, ShoppingCart, X } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
 import { authFetch } from '../utils/authFetch';
-import { BACKEND_URL, RAZORPAY_KEY_ID } from '../config';
+import { BACKEND_URL, CASHFREE_ENV } from '../config';
 import { getCheckoutCartUrl, getDefaultCartItems } from '../utils/cartData';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -374,57 +374,50 @@ const CheckoutScreen = () => {
 			const res = await authFetch(`${BACKEND_URL}/api/payment/create-order`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ amount: Number(grandTotal.toFixed(2)) })
+				body: JSON.stringify({
+					amount: Number(grandTotal.toFixed(2)),
+					customerName: `${auth?.user?.firstName || ''} ${auth?.user?.lastName || ''}`.trim() || undefined,
+					customerEmail: auth?.user?.email || undefined,
+					customerPhone: auth?.user?.phone || undefined
+				})
 			});
-			const razorpayOrder = await res.json();
-			if (!res.ok) {
-				throw new Error(razorpayOrder.error || 'Could not start payment');
+			const cfOrder = await res.json();
+			if (!res.ok || !cfOrder.payment_session_id) {
+				throw new Error(cfOrder.error || 'Could not start payment session');
 			}
 
-			const options = {
-				key: RAZORPAY_KEY_ID,
-				amount: razorpayOrder.amount,
-				currency: razorpayOrder.currency,
-				name: 'JeevanHub',
-				description: 'Medicine order payment',
-				order_id: razorpayOrder.id,
+			if (!window.Cashfree) {
+				throw new Error('Cashfree SDK is loading. Please try again in a moment.');
+			}
 
-				handler: async function (response) {
-					try {
-						const order = await submitOrder(buildOrderPayload({
-							razorpayOrderId: response.razorpay_order_id,
-							razorpayPaymentId: response.razorpay_payment_id,
-							razorpaySignature: response.razorpay_signature
-						}));
-						setOrderId(order._id);
-						setCurrentStepIndex(steps.length - 1);
-					} catch (err) {
-						console.error('Error finalizing paid order:', err);
-						setError(`Payment was received but we could not finalize your order: ${err.message}. Please contact support with payment id ${response.razorpay_payment_id}.`);
-					} finally {
-						setLoading(false);
-					}
-				},
-
-				modal: {
-					ondismiss: () => setLoading(false)
-				},
-
-				prefill: {
-					name: `${auth.user.firstName} ${auth.user.lastName}`,
-				},
-
-				theme: {
-					color: '#556b2f',
-				},
+			const cashfree = window.Cashfree({ mode: CASHFREE_ENV });
+			const checkoutOptions = {
+				paymentSessionId: cfOrder.payment_session_id,
+				redirectTarget: "_modal"
 			};
 
-			const rzp = new window.Razorpay(options);
-			rzp.on('payment.failed', () => {
-				setError('Payment failed. Please try again.');
+			const result = await cashfree.checkout(checkoutOptions);
+			if (result.error) {
+				console.error("Cashfree checkout error:", result.error);
+				setError(result.error.message || "Payment was not completed.");
 				setLoading(false);
-			});
-			rzp.open();
+				return;
+			}
+
+			// When modal completes successfully or redirects, finalize the order
+			try {
+				const order = await submitOrder(buildOrderPayload({
+					cashfreeOrderId: cfOrder.order_id,
+					cashfreePaymentId: cfOrder.cf_order_id ? String(cfOrder.cf_order_id) : cfOrder.order_id
+				}));
+				setOrderId(order._id);
+				setCurrentStepIndex(steps.length - 1);
+			} catch (err) {
+				console.error('Error finalizing paid order:', err);
+				setError(`Payment was received but we could not finalize your order: ${err.message}. Please contact support with Order ID ${cfOrder.order_id}.`);
+			} finally {
+				setLoading(false);
+			}
 		} catch (err) {
 			console.error('Payment error:', err);
 			setError(err.message || 'Payment failed');
@@ -437,7 +430,7 @@ const CheckoutScreen = () => {
 		setLoading(true);
 
 		if (paymentMethod === 'onlinePayment') {
-			// loading stays true until the Razorpay handler/dismiss resolves it
+			// loading stays true until the Cashfree handler/dismiss resolves it
 			await handleOnlinePayment();
 			return;
 		}

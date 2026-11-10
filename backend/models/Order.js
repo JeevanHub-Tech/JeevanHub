@@ -13,7 +13,7 @@ const orderSchema = new mongoose.Schema({
     // never progresses past "pending" -- see updateOrderStatus below.
     itemStatus: { type: String, enum: ['pending', 'accepted', 'rejected', 'processing', 'shipped', 'delivered', 'cancelled'], default: 'pending' },
     retailerStatus: { type: String, enum: ['received', 'accepted', 'rejected', 'shipped'], default: 'received' },
-    razorpayTransferId: { type: String, default: null } // Stores the route transfer ID for this item's payout
+    cashfreeTransferId: { type: String, default: null } // Stores the transfer ID for this item's payout
   }],
   totalPrice: Number,
 
@@ -48,8 +48,10 @@ const orderSchema = new mongoose.Schema({
     type: String, // Path to the QR code image
     required: false
   },
-  razorpayOrderId: { type: String, required: false },
-  paymentId: { type: String, required: false }, // Razorpay payment id, set once verified
+  cashfreeOrderId: { type: String, required: false },
+  cashfreePaymentId: { type: String, required: false },
+  cashfreePaymentSessionId: { type: String, required: false },
+  paymentId: { type: String, required: false }, // Cashfree payment id, set once verified
   prescriptionUrl: { type: String, required: false }, // Deprecated: first of prescriptionUrls, kept for older orders/clients
   prescriptionUrls: { type: [String], default: [] }, // Uploaded prescription images, required when cart has an Rx item
   review: {
@@ -107,7 +109,7 @@ const orderSchema = new mongoose.Schema({
       status: { type: String, enum: ['not_applicable', 'held', 'released', 'transferred', 'disputed', 'failed'], default: 'held' },
       holdUntil: { type: Date, default: null },
       deliveredAt: { type: Date, default: null },
-      razorpayTransferId: { type: String, default: null },
+      cashfreeTransferId: { type: String, default: null },
       transferredAt: { type: Date, default: null },
       failureReason: { type: String, default: null }
     }

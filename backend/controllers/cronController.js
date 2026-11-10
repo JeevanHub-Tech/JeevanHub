@@ -58,22 +58,6 @@ exports.settlePayouts = async (req, res) => {
 			order.payoutStatus = "released";
 			result.ordersReleased += 1;
 			await order.save();
-
-			// Release Razorpay Route transfers from hold if any were created on checkout
-			try {
-				const getRazorpay = require('../services/razorpayService');
-				const razorpay = getRazorpay();
-				const transferIds = [...new Set(order.items.map(i => i.razorpayTransferId).filter(Boolean))];
-				for (const tId of transferIds) {
-					try {
-						await razorpay.transfers.edit(tId, { on_hold: false });
-					} catch (e) {
-						console.error("Error releasing Razorpay transfer hold for:", tId, e.message);
-					}
-				}
-			} catch (e) {
-				// Razorpay service may not be configured in local test
-			}
 		}
 
 		// Process multi-vendor per-shipment 7-day holds

@@ -35,7 +35,11 @@ const RetailerSchema = new mongoose.Schema({
   password: { type: String, required: true },
   status: { type: String, enum: ['active', 'inactive'], default: 'active' },
   role: { type: String, default: 'retailer' },
-  razorpayAccountId: {
+  cashfreeVendorId: {
+    type: String,
+    default: null
+  },
+  cashfreeBeneficiaryId: {
     type: String,
     default: null
   },
@@ -141,7 +145,8 @@ RetailerSchema.methods.isEligibleToSell = function() {
   const paymentConfigured = Boolean(
     (this.payoutMethods && this.payoutMethods.length > 0) ||
     (this.bankDetails?.isSubmitted && (this.bankDetails?.accountNumber || this.bankDetails?.upiId)) ||
-    this.razorpayAccountId
+    this.cashfreeVendorId ||
+    this.cashfreeBeneficiaryId
   );
   const adminApproved = Boolean(this.adminVerification?.isVerified);
   return deliveryConfigured && paymentConfigured && adminApproved;

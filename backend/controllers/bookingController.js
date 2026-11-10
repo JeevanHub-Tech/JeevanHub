@@ -12,7 +12,7 @@ const fs = require("fs");
 const multer = require("multer");
 const path = require("path");
 const crypto = require("crypto");
-const getRazorpay = require("../services/razorpayService");
+const cashfreeService = require("../services/cashfreeService");
 const notificationController = require("./notificationController");
 
 // Slot times ("HH:MM") are always IST wall-clock -- the doctor picked "23:00"
@@ -581,14 +581,12 @@ exports.uploadPaymentScreenshot = (req, res) => {
 // so a tampered request body can't mark an underpaid or fake booking as paid.
 exports.verifyBookingPayment = async (req, res) => {
 	const { id } = req.params;
-	const { razorpayOrderId, razorpayPaymentId, razorpaySignature } = req.body;
+	const { cashfreeOrderId, cashfreePaymentId, razorpayOrderId } = req.body;
+	const orderIdToVerify = cashfreeOrderId || razorpayOrderId;
 
 	try {
-		if (!razorpayOrderId || !razorpayPaymentId || !razorpaySignature) {
-			return res.status(400).json({ error: "Missing payment verification details" });
-		}
-		if (!process.env.RAZORPAY_KEY_SECRET) {
-			return res.status(500).json({ error: "Payment gateway not configured" });
+		if (!orderIdToVerify) {
+			return res.status(400).json({ error: "Missing payment order ID" });
 		}
 
 		const booking = await Booking.findById(id);
@@ -599,25 +597,19 @@ exports.verifyBookingPayment = async (req, res) => {
 			return res.status(403).json({ error: "Not authorized" });
 		}
 
-		const expectedSignature = crypto
-			.createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
-			.update(razorpayOrderId + "|" + razorpayPaymentId)
-			.digest('hex');
-		if (expectedSignature !== razorpaySignature) {
-			return res.status(400).json({ error: "Payment verification failed" });
+		// Verify directly with Cashfree PG
+		const cfOrder = await cashfreeService.getOrderStatus(orderIdToVerify);
+		if (cfOrder.order_status !== "PAID") {
+			return res.status(400).json({ error: `Payment not completed. Status: ${cfOrder.order_status}` });
 		}
 
-		// Signature only proves the payment/order pair is genuine -- confirm the
-		// Razorpay order amount against this booking's fee before trusting it.
-		const razorpayOrder = await getRazorpay().orders.fetch(razorpayOrderId);
-		if (razorpayOrder.amount !== Math.round(booking.amountPaid * 100)) {
+		if (Math.round(Number(cfOrder.order_amount)) !== Math.round(Number(booking.amountPaid))) {
 			return res.status(400).json({ error: "Paid amount does not match consultation fee" });
 		}
 
 		booking.paymentDetails = {
-			razorpayOrderId,
-			razorpayPaymentId,
-			razorpaySignature,
+			cashfreeOrderId: cfOrder.order_id,
+			cashfreePaymentId: cfOrder.cf_order_id ? String(cfOrder.cf_order_id) : (cashfreePaymentId || cfOrder.order_id),
 			amount: booking.amountPaid,
 			currency: "INR",
 			status: "paid"
@@ -1967,6 +1959,15 @@ exports.requestDietPlanPostBooking = async (req, res) => {
 
 		const doctor = await Doctor.findById(booking.doctorId);
 		const fee = doctor?.dietPlanFee !== undefined ? Number(doctor.dietPlanFee) : 299;
+
+		const { cashfreeOrderId, razorpayOrderId } = req.body;
+		const orderIdToVerify = cashfreeOrderId || razorpayOrderId;
+		if (orderIdToVerify) {
+			const cfOrder = await cashfreeService.getOrderStatus(orderIdToVerify);
+			if (cfOrder.order_status !== "PAID") {
+				return res.status(400).json({ error: `Diet plan payment not completed. Status: ${cfOrder.order_status}` });
+			}
+		}
 
 		booking.dietPlanRequested = true;
 		booking.dietPlanFee = fee;

@@ -30,10 +30,10 @@ const handleRegistrationError = (error, res) => {
 	return res.status(500).json({ error: 'Registration failed' });
 };
 
-// Helper function to generate a short-lived access token
+// Helper function to generate access token (30 days for mobile & web persistence)
 const generateToken = (user) => {
 	console.log("generating token : user : ", user.role);
-	return jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '15m' });
+	return jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '30d' });
 };
 
 // Helper function to generate a long-lived refresh token (kept out of the JS-visible

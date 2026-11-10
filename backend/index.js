@@ -87,7 +87,11 @@ app.use((req, res, next) => {
 
 app.use(compression());
 app.use(cookieParser());
-app.use(bodyParser.json());
+app.use(bodyParser.json({
+  verify: (req, res, buf) => {
+    req.rawBody = buf;
+  }
+}));
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use("/uploads", express.static("uploads")); // Serve images from the uploads folder
 
@@ -119,6 +123,7 @@ app.use("/api/chat", chatRoutes);
 app.use("/api/knowledge", knowledgeBaseRoutes);
 
 app.use("/api/payment", paymentRoutes);
+app.use("/api/payments", paymentRoutes);
 app.use("/api/callback-requests", callbackRequestRoutes);
 app.use("/api/cron", cronRoutes);
 // Inbound courier push notifications (Delhivery scan events). Note the plural:

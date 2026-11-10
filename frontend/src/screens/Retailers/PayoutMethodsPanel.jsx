@@ -519,7 +519,7 @@ const PayoutMethodsPanel = ({ retailerId, token }) => {
 										required
 									/>
 									<p className="text-[11px] text-muted-foreground mt-1">
-										Disbursements sent via RazorpayX instant UPI transfer.
+										Disbursements sent via Cashfree instant UPI transfer.
 									</p>
 								</Field>
 							)}

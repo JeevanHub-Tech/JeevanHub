@@ -88,9 +88,17 @@ const doctorSchema = new mongoose.Schema({
         default: 'Pending' 
     },
     role: { type: String, default: 'doctor' },
-    razorpayAccountId: {
+    cashfreeBeneficiaryId: {
         type: String,
         default: null
+    },
+    bankDetails: {
+        accountHolderName: { type: String, default: null },
+        accountNumber: { type: String, default: null },
+        ifscCode: { type: String, default: null },
+        bankName: { type: String, default: null },
+        upiId: { type: String, default: null },
+        isSubmitted: { type: Boolean, default: false }
     },
     resetPasswordOTP: {
         type: String,

@@ -673,12 +673,13 @@ exports.getBankDetails = async (req, res) => {
         if (req.user.role !== 'admin' && req.user._id.toString() !== id) {
             return res.status(403).json({ message: 'Not authorized' });
         }
-        const retailer = await Retailer.findById(id).select('bankDetails payoutMethods razorpayAccountId');
+        const retailer = await Retailer.findById(id).select('bankDetails payoutMethods cashfreeVendorId cashfreeBeneficiaryId');
         if (!retailer) return res.status(404).json({ message: 'Retailer not found' });
         res.status(200).json({ 
             bankDetails: retailer.bankDetails || {}, 
             payoutMethods: retailer.payoutMethods || [],
-            razorpayAccountId: retailer.razorpayAccountId 
+            cashfreeVendorId: retailer.cashfreeVendorId,
+            cashfreeBeneficiaryId: retailer.cashfreeBeneficiaryId 
         });
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -709,8 +710,11 @@ exports.toggleRetailerVerification = async (req, res) => {
         retailer.adminVerification.verifiedAt = newVerified ? new Date() : null;
         retailer.adminVerification.verifiedBy = req.user._id;
         if (notes) retailer.adminVerification.notes = notes;
-        if (req.body.razorpayAccountId !== undefined) {
-            retailer.razorpayAccountId = req.body.razorpayAccountId ? req.body.razorpayAccountId.trim() : null;
+        if (req.body.cashfreeVendorId !== undefined) {
+            retailer.cashfreeVendorId = req.body.cashfreeVendorId ? req.body.cashfreeVendorId.trim() : null;
+        }
+        if (req.body.cashfreeBeneficiaryId !== undefined) {
+            retailer.cashfreeBeneficiaryId = req.body.cashfreeBeneficiaryId ? req.body.cashfreeBeneficiaryId.trim() : null;
         }
 
         await retailer.save();
@@ -746,7 +750,8 @@ exports.getRetailerEligibility = async (req, res) => {
         const paymentConfigured = Boolean(
             (retailer.payoutMethods && retailer.payoutMethods.length > 0) ||
             (retailer.bankDetails?.isSubmitted && (retailer.bankDetails?.accountNumber || retailer.bankDetails?.upiId)) ||
-            retailer.razorpayAccountId
+            retailer.cashfreeVendorId ||
+            retailer.cashfreeBeneficiaryId
         );
         const adminApproved = Boolean(retailer.adminVerification?.isVerified);
         const isEligible = deliveryConfigured && paymentConfigured && adminApproved;

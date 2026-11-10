@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 import { formatDate } from "@/lib/date";
 import { AuthContext } from "../../context/AuthContext";
 import { authFetch } from "../../utils/authFetch";
-import { BACKEND_URL, RAZORPAY_KEY_ID } from "../../config";
+import { BACKEND_URL, CASHFREE_ENV } from "../../config";
 import defaultProfilePic from "../../media/default-profile.png";
 
 const getLocalDateString = (d = new Date()) => {
@@ -250,66 +250,57 @@ function DoctorDetail() {
 			const res = await authFetch(`${BACKEND_URL}/api/payment/create-order`, {
 				method: "POST",
 				headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-				body: JSON.stringify({ amount: currentBooking.amountPaid }),
+				body: JSON.stringify({
+					amount: currentBooking.amountPaid,
+					customerName: patientName || undefined
+				}),
 			});
-			const razorpayOrder = await res.json();
-			if (!res.ok) {
-				throw new Error(razorpayOrder.error || "Could not start payment");
+			const cfOrder = await res.json();
+			if (!res.ok || !cfOrder.payment_session_id) {
+				throw new Error(cfOrder.error || "Could not start payment session");
 			}
 
-			const options = {
-				key: RAZORPAY_KEY_ID,
-				amount: razorpayOrder.amount,
-				currency: razorpayOrder.currency,
-				name: "JeevanHub",
-				description: `Consultation fee — Dr. ${doctorDisplayName}`,
-				order_id: razorpayOrder.id,
+			if (!window.Cashfree) {
+				throw new Error("Cashfree SDK is loading. Please try again in a moment.");
+			}
 
-				handler: async function (response) {
-					try {
-						const verifyRes = await authFetch(`${BACKEND_URL}/api/bookings/${currentBooking._id}/verify-payment`, {
-							method: "PUT",
-							headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-							body: JSON.stringify({
-								razorpayOrderId: response.razorpay_order_id,
-								razorpayPaymentId: response.razorpay_payment_id,
-								razorpaySignature: response.razorpay_signature,
-							}),
-						});
-						const verifyData = await verifyRes.json();
-						if (!verifyRes.ok) throw new Error(verifyData.error || "Payment verification failed");
-
-						setPaymentModalOpen(false);
-						setCurrentBooking(null);
-						alert("Payment successful! Your appointment is confirmed.");
-						fetchSlots();
-					} catch (err) {
-						console.error("Error verifying payment:", err);
-						alert(`Payment was received but we could not confirm it: ${err.message}. Please contact support with payment id ${response.razorpay_payment_id}.`);
-					} finally {
-						setPayingViaRazorpay(false);
-					}
-				},
-
-				modal: {
-					ondismiss: () => setPayingViaRazorpay(false),
-				},
-
-				prefill: {
-					name: patientName,
-				},
-
-				theme: {
-					color: "#556b2f",
-				},
+			const cashfree = window.Cashfree({ mode: CASHFREE_ENV });
+			const checkoutOptions = {
+				paymentSessionId: cfOrder.payment_session_id,
+				redirectTarget: "_modal"
 			};
 
-			const rzp = new window.Razorpay(options);
-			rzp.on("payment.failed", () => {
-				alert("Payment failed. Please try again.");
+			const result = await cashfree.checkout(checkoutOptions);
+			if (result.error) {
+				console.error("Cashfree checkout error:", result.error);
+				alert(result.error.message || "Payment was not completed.");
 				setPayingViaRazorpay(false);
-			});
-			rzp.open();
+				return;
+			}
+
+			// Finalize booking verification with Cashfree order ID
+			try {
+				const verifyRes = await authFetch(`${BACKEND_URL}/api/bookings/${currentBooking._id}/verify-payment`, {
+					method: "PUT",
+					headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+					body: JSON.stringify({
+						cashfreeOrderId: cfOrder.order_id,
+						cashfreePaymentId: cfOrder.cf_order_id ? String(cfOrder.cf_order_id) : cfOrder.order_id
+					}),
+				});
+				const verifyData = await verifyRes.json();
+				if (!verifyRes.ok) throw new Error(verifyData.error || "Payment verification failed");
+
+				setPaymentModalOpen(false);
+				setCurrentBooking(null);
+				alert("Payment successful! Your appointment is confirmed.");
+				fetchSlots();
+			} catch (err) {
+				console.error("Error verifying payment:", err);
+				alert(`Payment received, but error confirming appointment: ${err.message}. Please contact support with Order ID ${cfOrder.order_id}.`);
+			} finally {
+				setPayingViaRazorpay(false);
+			}
 		} catch (err) {
 			console.error("Payment error:", err);
 			alert(err.message || "Payment failed");

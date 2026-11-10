@@ -141,14 +141,15 @@ const bookingSchema = new mongoose.Schema({
 		type: Date,
 	},
 	paymentDetails: {
-		razorpayOrderId: { type: String },
-		razorpayPaymentId: { type: String },
-		razorpaySignature: { type: String },
+		cashfreeOrderId: { type: String },
+		cashfreePaymentId: { type: String },
+		cashfreePaymentSessionId: { type: String },
 		amount: { type: Number },
 		currency: { type: String, default: "INR" },
 		status: { type: String, enum: ["created", "paid", "failed"], default: "created" },
+		cashfreeTransferId: { type: String },
 		transferId: { type: String }
-		},
+	},
 		// Fairness/escrow: the doctor's payout is held until slot-end + a grace
 		// window (or resolved by an admin), so a paid no-show doesn't just pay
 		// out regardless. doctorJoinedAt is the technical proof-of-attendance

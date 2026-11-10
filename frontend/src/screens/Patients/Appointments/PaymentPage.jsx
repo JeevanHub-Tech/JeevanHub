@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { authFetch } from "../../../utils/authFetch";
-import { BACKEND_URL } from "../../../config";
+import { BACKEND_URL, CASHFREE_ENV } from "../../../config";
 
 function PaymentPage() {
 	const { t } = useTranslation();
@@ -20,6 +20,60 @@ function PaymentPage() {
 	const [error, setError] = useState(null);
 	const [loading, setLoading] = useState(true);
 	const [submitting, setSubmitting] = useState(false);
+	const [payingOnline, setPayingOnline] = useState(false);
+
+	const handleCashfreeOnlinePayment = async () => {
+		setPayingOnline(true);
+		setError(null);
+		try {
+			const token = localStorage.getItem("token");
+			const res = await authFetch(`${BACKEND_URL}/api/payment/create-order`, {
+				method: "POST",
+				headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+				body: JSON.stringify({ amount: Number(price) })
+			});
+			const cfOrder = await res.json();
+			if (!res.ok || !cfOrder.payment_session_id) {
+				throw new Error(cfOrder.error || "Could not start payment session");
+			}
+
+			if (!window.Cashfree) {
+				throw new Error("Cashfree SDK is loading. Please try again in a moment.");
+			}
+
+			const cashfree = window.Cashfree({ mode: CASHFREE_ENV });
+			const result = await cashfree.checkout({
+				paymentSessionId: cfOrder.payment_session_id,
+				redirectTarget: "_modal"
+			});
+
+			if (result.error) {
+				console.error("Cashfree checkout error:", result.error);
+				setError(result.error.message || "Payment was not completed.");
+				setPayingOnline(false);
+				return;
+			}
+
+			const verifyRes = await authFetch(`${BACKEND_URL}/api/bookings/${bookingId}/verify-payment`, {
+				method: "PUT",
+				headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+				body: JSON.stringify({
+					cashfreeOrderId: cfOrder.order_id,
+					cashfreePaymentId: cfOrder.cf_order_id ? String(cfOrder.cf_order_id) : cfOrder.order_id
+				})
+			});
+			const verifyData = await verifyRes.json();
+			if (!verifyRes.ok) throw new Error(verifyData.error || "Payment verification failed");
+
+			alert("Payment successful! Your appointment is confirmed.");
+			navigate("/patient-home");
+		} catch (err) {
+			console.error("Online payment error:", err);
+			setError(err.message || "Payment failed");
+		} finally {
+			setPayingOnline(false);
+		}
+	};
 
 	useEffect(() => {
 		const urlParams = new URLSearchParams(window.location.search);
@@ -120,6 +174,21 @@ function PaymentPage() {
 						<p className="text-center text-lg font-semibold text-foreground">
 							{t("paymentScreen.amountToPay", "Amount to Pay:")} ₹{price}
 						</p>
+
+						<div className="flex flex-col gap-2">
+							<Button 
+								type="button" 
+								onClick={handleCashfreeOnlinePayment} 
+								disabled={payingOnline}
+								className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+							>
+								{payingOnline ? <Loader2 className="size-4 animate-spin mr-2" /> : null}
+								{payingOnline ? "Opening Cashfree Gateway..." : `Pay Online Instantly (UPI / Cards) • ₹${price}`}
+							</Button>
+							<div className="relative my-1 text-center text-xs text-muted-foreground after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t after:border-border">
+								<span className="relative z-10 bg-card px-2 text-muted-foreground">OR UPLOAD SCREENSHOT</span>
+							</div>
+						</div>
 
 						<form onSubmit={handleSubmit} className="flex flex-col gap-3">
 							<div className="flex flex-col gap-1.5">

@@ -121,14 +121,14 @@ const AdminRetailers = () => {
 		}
 	};
 
-	const handleLinkRazorpay = async (retailer) => {
-		const defaultId = retailer.razorpayAccountId || `acc_${retailer._id.toString().slice(-8)}`;
+	const handleLinkCashfreeVendor = async (retailer) => {
+		const defaultId = retailer.cashfreeVendorId || `vendor_${retailer._id.toString().slice(-8)}`;
 		const promptId = window.prompt(
-			`Enter Razorpay Linked Account ID for ${retailer.firstName} ${retailer.lastName} (or keep default to approve for testing):`,
+			`Enter Cashfree Vendor ID for ${retailer.firstName} ${retailer.lastName} (or keep default to approve for testing):`,
 			defaultId
 		);
 		if (promptId === null) return;
-		const accountId = promptId.trim() || defaultId;
+		const vendorId = promptId.trim() || defaultId;
 
 		try {
 			const token = localStorage.getItem("token");
@@ -138,7 +138,7 @@ const AdminRetailers = () => {
 					Authorization: `Bearer ${token}`,
 					"Content-Type": "application/json",
 				},
-				body: JSON.stringify({ isVerified: true, razorpayAccountId: accountId })
+				body: JSON.stringify({ isVerified: true, cashfreeVendorId: vendorId })
 			});
 
 			if (!response.ok) {
@@ -146,11 +146,11 @@ const AdminRetailers = () => {
 				throw new Error(err.message || "Failed to link account");
 			}
 
-			alert(`Razorpay account linked successfully: ${accountId}`);
+			alert(`Cashfree vendor linked successfully: ${vendorId}`);
 			fetchRetailers();
 		} catch (error) {
-			console.error("Error linking Razorpay account:", error);
-			alert(error.message || "Failed to link Razorpay account");
+			console.error("Error linking Cashfree vendor:", error);
+			alert(error.message || "Failed to link Cashfree vendor");
 		}
 	};
 
@@ -239,7 +239,7 @@ const AdminRetailers = () => {
 									const courierLinked = Boolean(retailer.shippingIntegrations?.delhivery?.isConfigured);
 									const warehouseSet = Boolean(retailer.warehouse?.isConfigured);
 									const primaryPayout = retailer.payoutMethods?.find(m => m.isPrimary) || retailer.payoutMethods?.[0];
-									const hasPayout = Boolean(primaryPayout || retailer.bankDetails?.isSubmitted || retailer.razorpayAccountId);
+									const hasPayout = Boolean(primaryPayout || retailer.bankDetails?.isSubmitted || retailer.cashfreeVendorId || retailer.cashfreeBeneficiaryId);
 
 									return (
 										<TableRow key={retailer._id}>

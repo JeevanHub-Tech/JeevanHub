@@ -324,7 +324,7 @@ function DoctorAnalytics() {
 	const getPaymentDate = (b) => b.paymentConfirmedAt || b.createdAt;
 
 	// Payment history: only appointments the doctor actually got paid for --
-	// accepted + a completed payment (Razorpay-verified or doctor-confirmed proof).
+	// accepted + a completed payment (Cashfree-verified or doctor-confirmed proof).
 	const paidBookings = acceptedBookings
 		.filter((b) => b.amountPaid > 0 && b.paymentStatus === "Completed")
 		.sort((a, b) => new Date(getPaymentDate(b)) - new Date(getPaymentDate(a)));

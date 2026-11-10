@@ -67,7 +67,7 @@ function DoctorDetail() {
 	const [includeDietPlan, setIncludeDietPlan] = useState(false);
 	const [screenshotFiles, setScreenshotFiles] = useState([]);
 	const [uploadingScreenshot, setUploadingScreenshot] = useState(false);
-	const [payingViaRazorpay, setPayingViaRazorpay] = useState(false);
+	const [payingViaCashfree, setPayingViaCashfree] = useState(false);
 	const [showManualUpi, setShowManualUpi] = useState(false);
 	const [uploadAlert, setUploadAlert] = useState(null);
 	const [timeLeft, setTimeLeft] = useState(600);
@@ -98,7 +98,7 @@ function DoctorDetail() {
 	}, [paymentModalOpen, currentBooking]);
 
 	// Paid slots no longer require the doctor to have a UPI ID on file --
-	// Razorpay is a platform-level gateway, not tied to a per-doctor payout ID.
+	// Cashfree is a platform-level gateway, not tied to a per-doctor payout ID.
 	const filteredSlots = Array.isArray(availableSlots) ? availableSlots : [];
 
 	const dates = useMemo(() => {
@@ -243,8 +243,8 @@ function DoctorDetail() {
 		}
 	};
 
-	const handleRazorpayPayment = async () => {
-		setPayingViaRazorpay(true);
+	const handleCashfreePayment = async () => {
+		setPayingViaCashfree(true);
 		try {
 			const token = localStorage.getItem("token");
 			const res = await authFetch(`${BACKEND_URL}/api/payment/create-order`, {
@@ -274,7 +274,7 @@ function DoctorDetail() {
 			if (result.error) {
 				console.error("Cashfree checkout error:", result.error);
 				alert(result.error.message || "Payment was not completed.");
-				setPayingViaRazorpay(false);
+				setPayingViaCashfree(false);
 				return;
 			}
 
@@ -299,12 +299,12 @@ function DoctorDetail() {
 				console.error("Error verifying payment:", err);
 				alert(`Payment received, but error confirming appointment: ${err.message}. Please contact support with Order ID ${cfOrder.order_id}.`);
 			} finally {
-				setPayingViaRazorpay(false);
+				setPayingViaCashfree(false);
 			}
 		} catch (err) {
 			console.error("Payment error:", err);
 			alert(err.message || "Payment failed");
-			setPayingViaRazorpay(false);
+			setPayingViaCashfree(false);
 		}
 	};
 
@@ -736,9 +736,9 @@ function DoctorDetail() {
 								{t("doctorDetail.paymentModal.timeRemaining")}
 							</span>
 
-							<Button type="button" className="w-full" onClick={handleRazorpayPayment} disabled={payingViaRazorpay}>
-								{payingViaRazorpay ? <Loader2 className="size-4 animate-spin" /> : null}
-								{payingViaRazorpay ? t("doctorDetail.paymentModal.processing") : t("doctorDetail.paymentModal.payNow")}
+							<Button type="button" className="w-full" onClick={handleCashfreePayment} disabled={payingViaCashfree}>
+								{payingViaCashfree ? <Loader2 className="size-4 animate-spin" /> : null}
+								{payingViaCashfree ? t("doctorDetail.paymentModal.processing") : t("doctorDetail.paymentModal.payNow")}
 							</Button>
 
 							{doctorUpiId ? (

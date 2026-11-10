@@ -54,7 +54,7 @@ const WriteBlog = lazy(() => import('./screens/Doctors/WriteBlog'));
 const TreatmentDetailsScreen = lazy(() => import('./screens/TreatmentDetailsScreen'));
 const CheckoutScreen = lazy(() => import('./screens/CheckoutScreen'));
 
-// Legal & Compliance screens (Razorpay activation)
+// Legal & Compliance screens (Cashfree activation)
 const ContactUs = lazy(() => import('./screens/ContactUs'));
 const TermsAndConditions = lazy(() => import('./screens/Legal/TermsAndConditions'));
 const PrivacyPolicy = lazy(() => import('./screens/Legal/PrivacyPolicy'));
@@ -175,7 +175,7 @@ function App() {
           <Route path="/medicines" element={<MedicinesScreen />} />
           <Route path="/medicines/:id" element={<MedicineIdDetails />} />
 
-          {/* Razorpay Website Compliance & Legal Routes */}
+          {/* Website Compliance & Legal Routes */}
           <Route path="/contact-us" element={<ContactUs />} />
           <Route path="/contact" element={<ContactUs />} />
           <Route path="/terms-and-conditions" element={<TermsAndConditions />} />

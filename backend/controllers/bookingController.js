@@ -90,22 +90,29 @@ const resolveBookingSlotTime = (doctor, booking) => {
 const JOIN_WINDOW_BEFORE_MS = 10 * 60 * 1000;
 const JOIN_WINDOW_AFTER_GRACE_MS = 15 * 60 * 1000;
 // How long after a slot ends a paid booking's payout stays "held" before the
-// settlement cron auto-releases it -- the patient's dispute window.
-const PAYOUT_HOLD_GRACE_MS = 48 * 60 * 60 * 1000;
+// settlement cron auto-releases it -- the patient's dispute window (default 7 days).
+const getDoctorPayoutHoldGraceMs = () => {
+	if (process.env.PAYOUT_HOLD_MINUTES) {
+		return Math.max(1, parseInt(process.env.PAYOUT_HOLD_MINUTES, 10)) * 60 * 1000;
+	}
+	const days = parseInt(process.env.DOCTOR_PAYOUT_HOLD_DAYS || '7', 10);
+	return days * 24 * 60 * 60 * 1000;
+};
 
 // Fairness/escrow: computes the payout-hold fields for a just-confirmed paid
-// booking (slot-end + PAYOUT_HOLD_GRACE_MS). Returns null for free bookings --
+// booking (slot-end + hold grace window). Returns null for free bookings --
 // there's nothing to hold. Shared by every path that can confirm a booking
-// (free auto-confirm, Razorpay verification, manual screenshot upload).
+// (free auto-confirm, Cashfree verification, manual screenshot upload).
 const computeBookingPayoutHold = async (booking) => {
 	if (!booking.amountPaid || booking.amountPaid <= 0) return null;
 	const doctor = await Doctor.findById(booking.doctorId);
 	const slotTime = resolveBookingSlotTime(doctor, booking);
 	const joinWindow = getJoinWindow(booking.dateOfAppointment, slotTime);
-	const slotEnd = joinWindow ? joinWindow.closesAt : new Date(Date.now() + PAYOUT_HOLD_GRACE_MS);
+	const graceMs = getDoctorPayoutHoldGraceMs();
+	const slotEnd = joinWindow ? joinWindow.closesAt : new Date(Date.now() + graceMs);
 	return {
 		payoutStatus: 'held',
-		payoutHoldUntil: new Date(slotEnd.getTime() + PAYOUT_HOLD_GRACE_MS),
+		payoutHoldUntil: new Date(slotEnd.getTime() + graceMs),
 	};
 };
 const getJoinWindow = (dateOfAppointment, slotTime) => {
@@ -1960,8 +1967,8 @@ exports.requestDietPlanPostBooking = async (req, res) => {
 		const doctor = await Doctor.findById(booking.doctorId);
 		const fee = doctor?.dietPlanFee !== undefined ? Number(doctor.dietPlanFee) : 299;
 
-		const { cashfreeOrderId, razorpayOrderId } = req.body;
-		const orderIdToVerify = cashfreeOrderId || razorpayOrderId;
+		const { cashfreeOrderId } = req.body;
+		const orderIdToVerify = cashfreeOrderId;
 		if (orderIdToVerify) {
 			const cfOrder = await cashfreeService.getOrderStatus(orderIdToVerify);
 			if (cfOrder.order_status !== "PAID") {
@@ -1974,9 +1981,10 @@ exports.requestDietPlanPostBooking = async (req, res) => {
 		booking.dietPlanStatus = "pending";
 		booking.amountPaid = (booking.amountPaid || 0) + fee;
 		// Post-booking diet plan payment escrow window:
-		// Always guarantee a fresh 48-hour escrow hold from the moment the diet plan is requested
-		// (or slotEnd + 48h, whichever is later), and re-engage escrow hold even if consultation payout was already released.
-		const minHoldUntil = new Date(Date.now() + PAYOUT_HOLD_GRACE_MS);
+		// Always guarantee a fresh escrow hold from the moment the diet plan is requested
+		// (or slotEnd + hold grace, whichever is later), and re-engage escrow hold even if consultation payout was already released.
+		const graceMs = getDoctorPayoutHoldGraceMs();
+		const minHoldUntil = new Date(Date.now() + graceMs);
 		const initialHold = await computeBookingPayoutHold(booking);
 		const computedHoldUntil = initialHold?.payoutHoldUntil ? new Date(initialHold.payoutHoldUntil) : minHoldUntil;
 		

@@ -12,7 +12,8 @@ const getPayoutHoldGraceMs = () => {
     if (process.env.PAYOUT_HOLD_MINUTES) {
         return Math.max(1, parseInt(process.env.PAYOUT_HOLD_MINUTES, 10)) * 60 * 1000;
     }
-    return 7 * 24 * 60 * 60 * 1000;
+    const days = parseInt(process.env.RETAILER_PAYOUT_HOLD_DAYS || '7', 10);
+    return days * 24 * 60 * 60 * 1000;
 };
 
 const PAYOUT_HOLD_GRACE_MS = getPayoutHoldGraceMs();
@@ -63,10 +64,8 @@ const startShipmentPayoutHoldIfDelivered = (order, shipment, status) => {
             shipment.payout.status = 'held';
             shipment.payout.holdUntil = new Date(Date.now() + getPayoutHoldGraceMs());
 
-            // 2% platform commission rate (configurable via PLATFORM_COMMISSION_PERCENT)
-            const commissionRate = process.env.PLATFORM_COMMISSION_PERCENT
-                ? (parseFloat(process.env.PLATFORM_COMMISSION_PERCENT) / 100)
-                : 0.02;
+            // Platform commission rate (configurable via RETAILER_COMMISSION_PERCENT / PLATFORM_COMMISSION_PERCENT, default 2%)
+            const commissionRate = (parseFloat(process.env.RETAILER_COMMISSION_PERCENT || process.env.PLATFORM_COMMISSION_PERCENT || '2')) / 100;
 
             const retailerId = shipment.retailerId ? String(shipment.retailerId) : null;
             const retailerItems = (order.items || []).filter(item => {

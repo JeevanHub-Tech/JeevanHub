@@ -147,7 +147,7 @@ const TermsAndConditions = () => {
                 <strong className="text-foreground">Currency:</strong> All prices displayed on JeevanHub are in Indian Rupees (INR ₹) and are inclusive of applicable Goods and Services Tax (GST) unless explicitly noted.
               </li>
               <li>
-                <strong className="text-foreground">Payment Processing:</strong> Online digital payments are processed through secure, PCI-DSS compliant payment aggregators including <strong className="text-foreground">Razorpay</strong>. We accept Credit Cards, Debit Cards, Net Banking, UPI, and authorized digital wallets.
+                <strong className="text-foreground">Payment Processing:</strong> Online digital payments are processed through secure, PCI-DSS compliant payment aggregators including <strong className="text-foreground">Cashfree Payments</strong>. We accept Credit Cards, Debit Cards, Net Banking, UPI, and authorized digital wallets.
               </li>
               <li>
                 <strong className="text-foreground">Cash on Delivery (COD):</strong> Where available for serviceable pincodes, COD is supported. Payment must be tendered in full in cash to the courier representative upon delivery.

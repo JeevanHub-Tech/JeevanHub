@@ -147,11 +147,11 @@ const CancellationRefundPolicy = () => {
             </h2>
             <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 space-y-3">
               <p className="font-semibold text-foreground">
-                Mandatory Statutory Refund Timelines (Razorpay Integration):
+                Mandatory Statutory Refund Timelines (Cashfree Integration):
               </p>
               <ul className="list-disc list-inside space-y-2 text-muted-foreground">
                 <li>
-                  <strong className="text-foreground">Online Prepaid Payments (Cards, UPI, Net Banking, Wallets):</strong> All approved refunds are automatically initiated back to the original source instrument through our payment gateway partner <strong className="text-foreground">Razorpay</strong>. The amount typically reflects in the customer&apos;s bank account or card statement within <strong className="text-foreground">5 to 7 working days</strong>, depending on the issuing bank&apos;s settlement cycle.
+                  <strong className="text-foreground">Online Prepaid Payments (Cards, UPI, Net Banking, Wallets):</strong> All approved refunds are automatically initiated back to the original source instrument through our payment gateway partner <strong className="text-foreground">Cashfree Payments</strong>. The amount typically reflects in the customer&apos;s bank account or card statement within <strong className="text-foreground">5 to 7 working days</strong>, depending on the issuing bank&apos;s settlement cycle.
                 </li>
                 <li>
                   <strong className="text-foreground">Cash on Delivery (COD) Orders:</strong> In case of an approved refund for a delivered and returned COD order, our customer support team will contact you to obtain verified bank details (Account Number, IFSC, Account Holder Name). The refund will be transferred via NEFT/IMPS or UPI within <strong className="text-foreground">5 to 7 working days</strong> of receiving complete details.

@@ -2725,7 +2725,7 @@
     "businessType": "व्यवसाय का प्रकार",
     "selectBusinessType": "व्यवसाय प्रकार चुनें",
     "standardFastOnboarding": "मानक (त्वरित ऑनबोर्डिंग)",
-    "corporateKycNotice": "कॉर्पोरेट (Razorpay आपको KYC दस्तावेजों के लिए ईमेल कर सकता है)",
+    "corporateKycNotice": "कॉर्पोरेट (Cashfree आपको KYC दस्तावेजों के लिए संपर्क कर सकता है)",
     "types": {
       "individual": "व्यक्तिगत (Individual)",
       "proprietorship": "एकल स्वामित्व (Proprietorship)",

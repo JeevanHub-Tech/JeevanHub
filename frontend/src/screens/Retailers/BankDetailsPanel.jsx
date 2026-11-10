@@ -20,7 +20,7 @@ const BankDetailsPanel = ({ retailerId, token }) => {
 		ifscCode: "",
 		businessType: "individual"
 	});
-	const [razorpayAccountId, setRazorpayAccountId] = useState(null);
+	const [cashfreeAccountId, setCashfreeAccountId] = useState(null);
 
 	useEffect(() => {
 		const fetchBankDetails = async () => {
@@ -36,7 +36,7 @@ const BankDetailsPanel = ({ retailerId, token }) => {
 						...response.data.bankDetails
 					}));
 				}
-				setRazorpayAccountId(response.data.razorpayAccountId);
+				setCashfreeAccountId(response.data.cashfreeVendorId || response.data.cashfreeBeneficiaryId);
 			} catch (error) {
 				console.error("Error fetching bank details:", error);
 			} finally {
@@ -99,13 +99,13 @@ const BankDetailsPanel = ({ retailerId, token }) => {
 				</div>
 			</div>
 
-			{razorpayAccountId && !isEditing && (
+			{cashfreeAccountId && !isEditing && (
 				<div className="mb-4 rounded bg-green-100 p-3 text-sm text-green-800">
-					{t("retailerBankDetails.verifiedMessage", { id: razorpayAccountId, defaultValue: `✅ Your bank account is verified and successfully linked for payouts. (Account ID: ${razorpayAccountId})` })}
+					{t("retailerBankDetails.verifiedMessage", { id: cashfreeAccountId, defaultValue: `✅ Your bank account is verified and successfully linked for payouts. (Account ID: ${cashfreeAccountId})` })}
 				</div>
 			)}
 			
-			{!razorpayAccountId && bankDetails.isSubmitted && !isEditing && (
+			{!cashfreeAccountId && bankDetails.isSubmitted && !isEditing && (
 				<div className="mb-4 rounded bg-yellow-100 p-3 text-sm text-yellow-800">
 					{t("retailerBankDetails.reviewMessage", "⏳ Your bank details are under review. Payouts will start once verified by the admin.")}
 				</div>
@@ -170,7 +170,7 @@ const BankDetailsPanel = ({ retailerId, token }) => {
 								<div className="my-1 h-px bg-border" />
 
 								<div className="px-2 py-1.5 text-[11px] font-semibold text-muted-foreground leading-tight">
-									{t("retailerBankDetails.corporateKycNotice", "Corporate (Razorpay may email you for KYC docs)")}
+									{t("retailerBankDetails.corporateKycNotice", "Corporate (Cashfree may request KYC documentation)")}
 								</div>
 								<SelectItem value="partnership">{t("retailerBankDetails.types.partnership", "Partnership")}</SelectItem>
 								<SelectItem value="private_limited">{t("retailerBankDetails.types.private_limited", "Private Limited")}</SelectItem>

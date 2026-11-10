@@ -1,7 +1,7 @@
 import { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { Camera, AlertTriangle, CreditCard, Pencil, Check } from "lucide-react";
+import { Camera, AlertTriangle, CreditCard, Pencil, Check, Landmark } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { AuthContext } from "../../context/AuthContext";
@@ -22,8 +22,16 @@ const DoctorProfile = () => {
 	const navigate = useNavigate();
 
 	const [isEditing, setIsEditing] = useState(false);
-	const [isEditingUpi, setIsEditingUpi] = useState(false);
+	const [isEditingPayout, setIsEditingPayout] = useState(false);
+	const [payoutTab, setPayoutTab] = useState("upi"); // "upi" | "bank"
 	const [tempUpiId, setTempUpiId] = useState("");
+	const [bankForm, setBankForm] = useState({
+		accountHolderName: "",
+		accountNumber: "",
+		confirmAccountNumber: "",
+		ifscCode: "",
+		bankName: "",
+	});
 	const [loading, setLoading] = useState(false);
 	const [doctorData, setDoctorData] = useState({
 		firstName: "",
@@ -42,6 +50,14 @@ const DoctorProfile = () => {
 		designation: "",
 		profileImage: "",
 		upiId: "",
+		bankDetails: {
+			accountHolderName: "",
+			accountNumber: "",
+			ifscCode: "",
+			bankName: "",
+			upiId: "",
+			isSubmitted: false,
+		},
 	});
 
 	const [passwords, setPasswords] = useState({
@@ -80,6 +96,14 @@ const DoctorProfile = () => {
 					designation: data.designation || "",
 					profileImage: data.profileImage || "",
 					upiId: data.upiId || "",
+					bankDetails: data.bankDetails || {
+						accountHolderName: "",
+						accountNumber: "",
+						ifscCode: "",
+						bankName: "",
+						upiId: data.upiId || "",
+						isSubmitted: false,
+					},
 				});
 			} catch (error) {
 				console.error("Error fetching doctor data:", error);
@@ -168,29 +192,99 @@ const DoctorProfile = () => {
 		}
 	};
 
-	const handleSaveUpiId = async () => {
-		const upiRegex = /^[a-zA-Z0-9.\-_]{1,256}@[a-zA-Z0-9.\-_]{1,64}$/;
-		if (tempUpiId && !upiRegex.test(tempUpiId)) {
-			alert(t("doctorProfile.validUpiRequired", "Please enter a valid UPI ID format (e.g., doctor@upi)."));
-			return;
-		}
+	const handleOpenPayoutEdit = () => {
+		setTempUpiId(doctorData.upiId || "");
+		setBankForm({
+			accountHolderName: doctorData.bankDetails?.accountHolderName || `${doctorData.firstName} ${doctorData.lastName}`,
+			accountNumber: doctorData.bankDetails?.accountNumber || "",
+			confirmAccountNumber: doctorData.bankDetails?.accountNumber || "",
+			ifscCode: doctorData.bankDetails?.ifscCode || "",
+			bankName: doctorData.bankDetails?.bankName || "",
+		});
+		setPayoutTab(doctorData.bankDetails?.accountNumber ? "bank" : "upi");
+		setIsEditingPayout(true);
+	};
 
-		setLoading(true);
-		try {
-			await axios.put(
-				`${BACKEND_URL || "http://localhost:8080"}/api/doctors/updateDoctor/${auth.user.id}`,
-				{ upiId: tempUpiId },
-				{ headers: { Authorization: `Bearer ${auth.token}` } }
-			);
+	const handleSavePayout = async () => {
+		if (payoutTab === "upi") {
+			const upiRegex = /^[a-zA-Z0-9.\-_]{1,256}@[a-zA-Z0-9.\-_]{1,64}$/;
+			if (!tempUpiId || !upiRegex.test(tempUpiId)) {
+				alert(t("doctorProfile.validUpiRequired", "Please enter a valid UPI ID format (e.g., doctor@upi)."));
+				return;
+			}
 
-			setDoctorData((prev) => ({ ...prev, upiId: tempUpiId }));
-			alert(t("doctorProfile.upiUpdated", "UPI ID updated successfully!"));
-			setIsEditingUpi(false);
-		} catch (error) {
-			console.error("Error updating UPI ID:", error);
-			alert(error.response?.data?.message || t("doctorProfile.upiUpdateFailed", "Failed to update UPI ID."));
-		} finally {
-			setLoading(false);
+			setLoading(true);
+			try {
+				await axios.put(
+					`${BACKEND_URL || "http://localhost:8080"}/api/doctors/updateDoctor/${auth.user.id}`,
+					{
+						upiId: tempUpiId,
+						bankDetails: {
+							accountHolderName: `${doctorData.firstName} ${doctorData.lastName}`,
+							upiId: tempUpiId,
+							isSubmitted: true,
+						},
+					},
+					{ headers: { Authorization: `Bearer ${auth.token}` } }
+				);
+
+				setDoctorData((prev) => ({
+					...prev,
+					upiId: tempUpiId,
+					bankDetails: { ...(prev.bankDetails || {}), upiId: tempUpiId, isSubmitted: true },
+				}));
+				alert(t("doctorProfile.payoutUpdated", "Payout method updated successfully!"));
+				setIsEditingPayout(false);
+			} catch (error) {
+				console.error("Error updating UPI ID:", error);
+				alert(error.response?.data?.message || t("doctorProfile.upiUpdateFailed", "Failed to update UPI ID."));
+			} finally {
+				setLoading(false);
+			}
+		} else {
+			if (!bankForm.accountNumber || !bankForm.ifscCode) {
+				alert(t("doctorProfile.bankRequired", "Account number and IFSC code are required."));
+				return;
+			}
+			if (bankForm.accountNumber !== bankForm.confirmAccountNumber) {
+				alert(t("doctorProfile.bankMismatch", "Account numbers do not match!"));
+				return;
+			}
+			const ifscRegex = /^[A-Z]{4}0[A-Z0-9]{6}$/;
+			if (!ifscRegex.test(bankForm.ifscCode.toUpperCase().trim())) {
+				alert(t("doctorProfile.invalidIfsc", "Please enter a valid 11-digit IFSC code (e.g. HDFC0001234)."));
+				return;
+			}
+
+			setLoading(true);
+			try {
+				const bankPayload = {
+					accountHolderName: bankForm.accountHolderName.trim() || `${doctorData.firstName} ${doctorData.lastName}`,
+					accountNumber: bankForm.accountNumber.trim(),
+					ifscCode: bankForm.ifscCode.toUpperCase().trim(),
+					bankName: bankForm.bankName.trim() || null,
+					upiId: doctorData.upiId || null,
+					isSubmitted: true,
+				};
+
+				await axios.put(
+					`${BACKEND_URL || "http://localhost:8080"}/api/doctors/updateDoctor/${auth.user.id}`,
+					{ bankDetails: bankPayload },
+					{ headers: { Authorization: `Bearer ${auth.token}` } }
+				);
+
+				setDoctorData((prev) => ({
+					...prev,
+					bankDetails: bankPayload,
+				}));
+				alert(t("doctorProfile.bankUpdated", "Bank details saved successfully for payouts!"));
+				setIsEditingPayout(false);
+			} catch (error) {
+				console.error("Error updating bank details:", error);
+				alert(error.response?.data?.message || t("doctorProfile.bankUpdateFailed", "Failed to update bank details."));
+			} finally {
+				setLoading(false);
+			}
 		}
 	};
 
@@ -329,73 +423,188 @@ const DoctorProfile = () => {
 							</div>
 						</div>
 
-						{/* UPI Payment Setup */}
+						{/* Payout Method Setup (Cashfree Payouts) */}
 						<div className="mb-6">
-							{isEditingUpi ? (
-								<div className="rounded-lg border border-border bg-muted/40 p-4">
-									<div className="mb-2 flex items-center gap-2">
-										<CreditCard className="size-5 text-primary" />
-										<h4 className="font-semibold text-foreground">{t("doctorProfile.configureUpi", "Configure UPI ID")}</h4>
-									</div>
-									<p className="mb-3 text-sm text-muted-foreground">
-										{t("doctorProfile.configureUpiDesc", "Enter your UPI ID to receive direct payments for consultation slots.")}
-									</p>
-									<div className="flex flex-wrap items-center gap-2">
-										<Input
-											placeholder={t("doctorProfile.upiPlaceholder", "e.g. doctorname@okaxis")}
-											value={tempUpiId}
-											onChange={(e) => setTempUpiId(e.target.value)}
-											className="min-w-52 flex-1"
-										/>
-										<Button size="icon" onClick={handleSaveUpiId} disabled={loading} title="Save UPI ID" className="cursor-pointer">
-											<Check />
-										</Button>
-										<Button variant="outline" onClick={() => setIsEditingUpi(false)} className="cursor-pointer">
-											{t("common.cancel", "Cancel")}
-										</Button>
-									</div>
-								</div>
-							) : !doctorData.upiId ? (
-								<div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-muted/40 p-4">
-									<div className="flex items-start gap-3">
-										<AlertTriangle className="size-6 shrink-0 text-primary" />
-										<div>
-											<h4 className="font-semibold text-foreground">{t("doctorProfile.upiMissing", "UPI ID Missing")}</h4>
-											<p className="text-sm text-muted-foreground">
-												{t("doctorProfile.upiMissingDesc", "Your paid slots will not be visible to the patients until you configure a valid UPI ID.")}
-											</p>
+							{isEditingPayout ? (
+								<div className="rounded-lg border border-border bg-muted/30 p-4">
+									<div className="mb-3 flex items-center justify-between">
+										<div className="flex items-center gap-2">
+											<Landmark className="size-5 text-primary" />
+											<h4 className="font-semibold text-foreground">{t("doctorProfile.payoutMethodTitle", "Payout Settlement Setup")}</h4>
+										</div>
+										<div className="flex gap-1 rounded-lg bg-muted p-1">
+											<Button
+												type="button"
+												size="sm"
+												variant={payoutTab === "upi" ? "default" : "ghost"}
+												onClick={() => setPayoutTab("upi")}
+												className="cursor-pointer text-xs"
+											>
+												<CreditCard className="mr-1 size-3.5" />
+												UPI ID
+											</Button>
+											<Button
+												type="button"
+												size="sm"
+												variant={payoutTab === "bank" ? "default" : "ghost"}
+												onClick={() => setPayoutTab("bank")}
+												className="cursor-pointer text-xs"
+											>
+												<Landmark className="mr-1 size-3.5" />
+												Bank Account
+											</Button>
 										</div>
 									</div>
-									<Button
-										onClick={() => {
-											setIsEditingUpi(true);
-											setTempUpiId("");
-										}}
-										className="cursor-pointer"
-									>
-										{t("doctorProfile.addUpi", "Add UPI ID")}
-									</Button>
+									<p className="mb-3 text-xs text-muted-foreground">
+										{payoutTab === "upi"
+											? t("doctorProfile.configureUpiDesc", "Enter your UPI ID to receive automatic payouts for consultation and diet plan bookings.")
+											: t("doctorProfile.configureBankDesc", "Enter your Indian bank account details to receive direct IMPS/NEFT disbursements via Cashfree Payouts.")}
+									</p>
+
+									{payoutTab === "upi" ? (
+										<div className="flex flex-wrap items-center gap-2">
+											<Input
+												placeholder={t("doctorProfile.upiPlaceholder", "e.g. doctorname@okaxis")}
+												value={tempUpiId}
+												onChange={(e) => setTempUpiId(e.target.value)}
+												className="min-w-52 flex-1"
+											/>
+											<Button size="sm" onClick={handleSavePayout} disabled={loading} className="cursor-pointer">
+												<Check className="mr-1 size-4" />
+												{t("common.save", "Save")}
+											</Button>
+											<Button size="sm" variant="outline" onClick={() => setIsEditingPayout(false)} className="cursor-pointer">
+												{t("common.cancel", "Cancel")}
+											</Button>
+										</div>
+									) : (
+										<div className="space-y-3">
+											<div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+												<Field>
+													<FieldLabel className="text-xs">{t("doctorProfile.accountHolderName", "Account Holder Name")}</FieldLabel>
+													<Input
+														value={bankForm.accountHolderName}
+														onChange={(e) => setBankForm({ ...bankForm, accountHolderName: e.target.value })}
+														placeholder="Exact name as in bank"
+													/>
+												</Field>
+												<Field>
+													<FieldLabel className="text-xs">{t("doctorProfile.bankName", "Bank Name (Optional)")}</FieldLabel>
+													<Input
+														value={bankForm.bankName}
+														onChange={(e) => setBankForm({ ...bankForm, bankName: e.target.value })}
+														placeholder="e.g. HDFC Bank, SBI"
+													/>
+												</Field>
+											</div>
+											<div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+												<Field>
+													<FieldLabel className="text-xs">{t("doctorProfile.accountNumber", "Account Number")}</FieldLabel>
+													<Input
+														type="password"
+														value={bankForm.accountNumber}
+														onChange={(e) => setBankForm({ ...bankForm, accountNumber: e.target.value })}
+														placeholder="1234567890"
+													/>
+												</Field>
+												<Field>
+													<FieldLabel className="text-xs">{t("doctorProfile.confirmAccountNumber", "Confirm Account Number")}</FieldLabel>
+													<Input
+														value={bankForm.confirmAccountNumber}
+														onChange={(e) => setBankForm({ ...bankForm, confirmAccountNumber: e.target.value })}
+														placeholder="Re-enter Account Number"
+													/>
+												</Field>
+												<Field>
+													<FieldLabel className="text-xs">{t("doctorProfile.ifscCode", "IFSC Code")}</FieldLabel>
+													<Input
+														value={bankForm.ifscCode}
+														onChange={(e) => setBankForm({ ...bankForm, ifscCode: e.target.value.toUpperCase() })}
+														placeholder="HDFC0001234"
+													/>
+												</Field>
+											</div>
+											<div className="flex justify-end gap-2 pt-2">
+												<Button size="sm" onClick={handleSavePayout} disabled={loading} className="cursor-pointer">
+													<Check className="mr-1 size-4" />
+													{t("common.save", "Save Details")}
+												</Button>
+												<Button size="sm" variant="outline" onClick={() => setIsEditingPayout(false)} className="cursor-pointer">
+													{t("common.cancel", "Cancel")}
+												</Button>
+											</div>
+										</div>
+									)}
 								</div>
-							) : (
+							) : doctorData.bankDetails?.accountNumber ? (
 								<div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-muted/40 p-4">
 									<div className="flex items-start gap-3">
-										<CreditCard className="size-6 shrink-0 text-primary" />
+										<Landmark className="size-6 shrink-0 text-primary" />
 										<div>
-											<h4 className="font-semibold text-foreground">{t("doctorProfile.upiConfigured", "UPI ID Configured")}</h4>
-											<p className="text-sm text-muted-foreground">{doctorData.upiId}</p>
+											<div className="flex items-center gap-2">
+												<h4 className="font-semibold text-foreground">{t("doctorProfile.bankConfigured", "Bank Account Linked")}</h4>
+												<span className="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">Cashfree Payouts</span>
+											</div>
+											<p className="text-sm text-muted-foreground">
+												{doctorData.bankDetails.bankName ? `${doctorData.bankDetails.bankName} • ` : ""}
+												••••{doctorData.bankDetails.accountNumber.slice(-4)} (IFSC: {doctorData.bankDetails.ifscCode})
+											</p>
+											<p className="text-xs text-muted-foreground/80">
+												Holder: {doctorData.bankDetails.accountHolderName || `${doctorData.firstName} ${doctorData.lastName}`}
+											</p>
 										</div>
 									</div>
 									<Button
 										variant="outline"
 										size="icon"
-										onClick={() => {
-											setIsEditingUpi(true);
-											setTempUpiId(doctorData.upiId);
-										}}
+										onClick={handleOpenPayoutEdit}
+										title={t("doctorProfile.editPayout", "Edit Payout Method")}
+										className="cursor-pointer"
+									>
+										<Pencil />
+									</Button>
+								</div>
+							) : doctorData.upiId ? (
+								<div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-muted/40 p-4">
+									<div className="flex items-start gap-3">
+										<CreditCard className="size-6 shrink-0 text-primary" />
+										<div>
+											<div className="flex items-center gap-2">
+												<h4 className="font-semibold text-foreground">{t("doctorProfile.upiConfigured", "UPI ID Configured")}</h4>
+												<span className="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">Cashfree Payouts</span>
+											</div>
+											<p className="text-sm text-muted-foreground">{doctorData.upiId}</p>
+											<p className="text-xs text-muted-foreground/80">
+												Direct payouts disbursed 7 days after consultations (12% platform fee retained).
+											</p>
+										</div>
+									</div>
+									<Button
+										variant="outline"
+										size="icon"
+										onClick={handleOpenPayoutEdit}
 										title={t("doctorProfile.editUpi", "Edit UPI ID")}
 										className="cursor-pointer"
 									>
 										<Pencil />
+									</Button>
+								</div>
+							) : (
+								<div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-muted/40 p-4">
+									<div className="flex items-start gap-3">
+										<AlertTriangle className="size-6 shrink-0 text-amber-500" />
+										<div>
+											<h4 className="font-semibold text-foreground">{t("doctorProfile.payoutMissing", "No Payout Method Linked")}</h4>
+											<p className="text-sm text-muted-foreground">
+												{t("doctorProfile.payoutMissingDesc", "Configure a UPI ID or Bank Account to receive automatic 7-day post-consultation payouts.")}
+											</p>
+										</div>
+									</div>
+									<Button
+										onClick={handleOpenPayoutEdit}
+										className="cursor-pointer"
+									>
+										{t("doctorProfile.addPayoutMethod", "Configure Payout Method")}
 									</Button>
 								</div>
 							)}

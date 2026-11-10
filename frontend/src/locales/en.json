@@ -2725,7 +2725,7 @@
     "businessType": "Business Type",
     "selectBusinessType": "Select Business Type",
     "standardFastOnboarding": "Standard (Fast Onboarding)",
-    "corporateKycNotice": "Corporate (Razorpay may email you for KYC docs)",
+    "corporateKycNotice": "Corporate (Cashfree may request KYC documentation)",
     "types": {
       "individual": "Individual",
       "proprietorship": "Proprietorship",

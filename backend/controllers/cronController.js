@@ -1,5 +1,9 @@
 const Booking = require("../models/Booking");
 const Order = require("../models/Order");
+const Doctor = require("../models/Doctor");
+const Retailer = require("../models/Retailer");
+const cashfreeService = require("../services/cashfreeService");
+const { createNotification } = require("./notificationController");
 
 // Settlement sweep for the payout escrow (see Booking.payoutStatus / Order.payoutStatus).
 // Meant to be hit by an external cron pinger (cron-job.org, etc.) every 15-30 min --
@@ -7,14 +11,17 @@ const Order = require("../models/Order");
 // requests. Protected by a shared secret header, not a user session, since the
 // caller is a machine, not a logged-in admin.
 //
-// Bookings: a held payout whose hold window has passed either releases (the doctor
-// actually opened the call room -- doctorJoinedAt is set) or gets auto-flagged as
-// disputed (no doctorJoinedAt -- a likely no-show), landing it in the same admin
-// review queue as a patient-raised dispute instead of paying out unattended.
+// Bookings (Doctors):
+// - Payout lock-in period: 7 days after appointment / slot-end.
+// - Platform commission: 12% on consultation + diet plan fee.
+// - Requirements: Doctor must have attended (doctorJoinedAt is set), and diet plan
+//   must be completed if requested. Otherwise auto-flagged as disputed.
+// - Disbursed directly via Cashfree Payouts into the doctor's UPI ID or Bank Account.
 //
-// Orders: there's no attendance-equivalent signal yet (no patient "I received this"
-// confirmation flow), so a held order payout just auto-releases once its window
-// passes -- a patient who never got their delivery has to dispute before then.
+// Orders (Retailers):
+// - Payout lock-in period: 7 days after per-shipment delivery.
+// - Platform commission: 2% on items subtotal + 100% shipping charge.
+// - Disbursed directly via Cashfree Payouts into the retailer's primary payout method.
 exports.settlePayouts = async (req, res) => {
 	const secret = req.header("x-cron-secret");
 	if (!process.env.CRON_SECRET || secret !== process.env.CRON_SECRET) {
@@ -24,11 +31,17 @@ exports.settlePayouts = async (req, res) => {
 	const now = new Date();
 	const result = {
 		bookingsReleased: 0,
+		bookingsTransferred: 0,
 		bookingsFlaggedNoShow: 0,
+		bookingsFlaggedDietIncomplete: 0,
+		bookingsFailed: 0,
 		ordersReleased: 0,
+		ordersTransferred: 0,
+		ordersFailed: 0,
 	};
 
 	try {
+		// --- 1. Settle Doctor Consultation Bookings ---
 		const dueBookings = await Booking.find({ payoutStatus: "held", payoutHoldUntil: { $lte: now } });
 		for (const booking of dueBookings) {
 			if (!booking.doctorJoinedAt) {
@@ -38,21 +51,96 @@ exports.settlePayouts = async (req, res) => {
 					raisedAt: now,
 				};
 				result.bookingsFlaggedNoShow += 1;
-			} else if (booking.dietPlanRequested && booking.dietPlanStatus !== "completed") {
-				// Doctor attended the consultation call, but did not upload/publish the requested personalized diet plan
+				await booking.save();
+				continue;
+			}
+			
+			if (booking.dietPlanRequested && booking.dietPlanStatus !== "completed") {
+				// Doctor attended consultation call, but did not upload/publish the requested personalized diet plan
 				booking.payoutStatus = "disputed";
 				booking.dispute = {
-					reason: `Auto-flagged: Doctor did not upload/publish the requested Personalized Diet Plan (₹${booking.dietPlanFee || 299}) within the 48-hour fulfillment window.`,
+					reason: `Auto-flagged: Doctor did not upload/publish the requested Personalized Diet Plan (₹${booking.dietPlanFee || 299}) within the fulfillment window.`,
 					raisedAt: now,
 				};
-				result.bookingsFlaggedNoShow += 1;
+				result.bookingsFlaggedDietIncomplete += 1;
+				await booking.save();
+				continue;
+			}
+
+			// Doctor fulfilled all requirements: calculate 12% commission and net payout
+			const DOCTOR_COMMISSION_RATE = process.env.DOCTOR_COMMISSION_PERCENT
+				? (parseFloat(process.env.DOCTOR_COMMISSION_PERCENT) / 100)
+				: 0.12;
+
+			const totalPaid = Number(booking.amountPaid) || 0;
+			const commissionAmount = Math.round(totalPaid * DOCTOR_COMMISSION_RATE * 100) / 100;
+			const netPayout = Math.max(0, Math.round((totalPaid - commissionAmount) * 100) / 100);
+
+			booking.paymentDetails = booking.paymentDetails || {};
+			booking.paymentDetails.payoutAmount = netPayout;
+			booking.paymentDetails.commissionAmount = commissionAmount;
+
+			// Locate Doctor payout destination (UPI ID or Bank Details)
+			const doctor = await Doctor.findById(booking.doctorId);
+			const doctorPayoutMethod = (doctor?.bankDetails?.isSubmitted && (doctor.bankDetails.accountNumber || doctor.bankDetails.upiId))
+				? {
+					type: doctor.bankDetails.upiId ? 'upi' : 'bank_account',
+					accountHolderName: doctor.bankDetails.accountHolderName || `${doctor.firstName} ${doctor.lastName}`,
+					accountNumber: doctor.bankDetails.accountNumber,
+					ifscCode: doctor.bankDetails.ifscCode,
+					bankName: doctor.bankDetails.bankName,
+					upiId: doctor.bankDetails.upiId
+				}
+				: (doctor?.upiId ? {
+					type: 'upi',
+					upiId: doctor.upiId,
+					accountHolderName: `${doctor.firstName} ${doctor.lastName}`
+				} : null);
+
+			if (doctorPayoutMethod && doctor && netPayout > 0) {
+				try {
+					const payoutRes = await cashfreeService.processEntityPayout({
+						entityType: 'doctor',
+						entity: doctor,
+						payoutMethod: doctorPayoutMethod,
+						amount: netPayout,
+						referenceId: `bkg_${booking._id.toString().slice(-8)}`,
+						remarks: `JH Payout Bkg ${booking._id.toString().slice(-6)}`
+					});
+
+					booking.payoutStatus = "transferred";
+					booking.paymentDetails.cashfreeTransferId = payoutRes.cfTransferId || payoutRes.transferId;
+					booking.paymentDetails.transferId = payoutRes.transferId;
+					booking.paymentDetails.transferredAt = now;
+					result.bookingsTransferred += 1;
+
+					const destination = doctorPayoutMethod.type === 'upi'
+						? `UPI ID (${doctorPayoutMethod.upiId})`
+						: `Bank Account (ending in ${doctorPayoutMethod.accountNumber ? doctorPayoutMethod.accountNumber.slice(-4) : 'XXXX'})`;
+
+					await createNotification(
+						doctor._id,
+						"doctor",
+						booking._id,
+						`Payout of ₹${netPayout.toFixed(2)} (Fee: ₹${totalPaid.toFixed(2)} - 12% commission: ₹${commissionAmount.toFixed(2)}) for Appointment #${booking._id.toString().slice(-6)} has been disbursed to your ${destination}. Ref: ${payoutRes.cfTransferId || payoutRes.transferId}`,
+						"booking"
+					);
+				} catch (transferErr) {
+					console.error(`Failed to disburse payout for booking ${booking._id}, doctor ${booking.doctorId}:`, transferErr.message);
+					booking.payoutStatus = "failed";
+					booking.paymentDetails.payoutFailureReason = transferErr.message;
+					result.bookingsFailed += 1;
+				}
 			} else {
+				// Doctor has not configured payout destination yet; mark released for manual settlement
 				booking.payoutStatus = "released";
 				result.bookingsReleased += 1;
 			}
+
 			await booking.save();
 		}
 
+		// --- 2. Settle Legacy Single-Retailer Orders (if any) ---
 		const dueOrders = await Order.find({ payoutStatus: "held", payoutHoldUntil: { $lte: now } });
 		for (const order of dueOrders) {
 			order.payoutStatus = "released";
@@ -60,16 +148,13 @@ exports.settlePayouts = async (req, res) => {
 			await order.save();
 		}
 
-		// Process multi-vendor per-shipment 7-day holds
+		// --- 3. Settle Multi-Vendor Per-Shipment Orders (Retailers) ---
 		const dueShipmentOrders = await Order.find({
 			paymentMethod: "onlinePayment",
 			paymentStatus: "paid",
 			"shipments.payout.status": "held",
 			"shipments.payout.holdUntil": { $lte: now }
 		}).populate("items.medicineId");
-
-		const Retailer = require("../models/Retailer");
-		const { createNotification } = require("./notificationController");
 
 		for (const order of dueShipmentOrders) {
 			let orderModified = false;
@@ -85,11 +170,11 @@ exports.settlePayouts = async (req, res) => {
 					});
 					const itemsSubtotal = retailerItems.reduce((acc, i) => acc + (i.subTotal || 0), 0);
 
-					const COMMISSION_RATE = process.env.PLATFORM_COMMISSION_PERCENT
-						? (parseFloat(process.env.PLATFORM_COMMISSION_PERCENT) / 100)
-						: 0.02;
+					const RETAILER_COMMISSION_RATE = process.env.RETAILER_COMMISSION_PERCENT
+						? (parseFloat(process.env.RETAILER_COMMISSION_PERCENT) / 100)
+						: (process.env.PLATFORM_COMMISSION_PERCENT ? parseFloat(process.env.PLATFORM_COMMISSION_PERCENT) / 100 : 0.02);
 
-					const commissionAmount = Math.round(itemsSubtotal * COMMISSION_RATE * 100) / 100;
+					const commissionAmount = Math.round(itemsSubtotal * RETAILER_COMMISSION_RATE * 100) / 100;
 					const itemsAfterCommission = Math.max(0, itemsSubtotal - commissionAmount);
 
 					const totalRetailersInOrder = new Set((order.items || []).map(i => {
@@ -121,21 +206,22 @@ exports.settlePayouts = async (req, res) => {
 							upiId: retailer.bankDetails.upiId
 						} : null);
 
-					if (primaryPayoutMethod && retailer) {
+					if (primaryPayoutMethod && retailer && payoutAmount > 0) {
 						try {
-							const razorpayXService = require("../services/razorpayXService");
-							const payoutRes = await razorpayXService.processPayout({
-								retailer,
+							const payoutRes = await cashfreeService.processEntityPayout({
+								entityType: 'retailer',
+								entity: retailer,
 								payoutMethod: primaryPayoutMethod,
-								amountInRupees: payoutAmount,
-								orderId: order._id
+								amount: payoutAmount,
+								referenceId: `ord_${order._id.toString().slice(-8)}_${retailerId.toString().slice(-6)}`,
+								remarks: `JH Payout Order ${order._id.toString().slice(-6)}`
 							});
 
-							shipment.payout.razorpayTransferId = payoutRes.payoutId;
+							shipment.payout.cashfreeTransferId = payoutRes.cfTransferId || payoutRes.transferId;
 							shipment.payout.status = "transferred";
 							shipment.payout.transferredAt = now;
 							orderModified = true;
-							result.ordersReleased += 1;
+							result.ordersTransferred += 1;
 
 							const destination = primaryPayoutMethod.type === 'upi'
 								? `UPI ID (${primaryPayoutMethod.upiId})`
@@ -149,7 +235,7 @@ exports.settlePayouts = async (req, res) => {
 								retailerId,
 								"retailer",
 								order._id,
-								`Payout of ₹${payoutAmount.toFixed(2)}${breakdownText} for Order #${order._id.toString().slice(-6)} has been disbursed to your ${destination}. Ref: ${payoutRes.payoutId}`,
+								`Payout of ₹${payoutAmount.toFixed(2)}${breakdownText} for Order #${order._id.toString().slice(-6)} has been disbursed to your ${destination}. Ref: ${payoutRes.cfTransferId || payoutRes.transferId}`,
 								"order"
 							);
 						} catch (transferErr) {
@@ -157,6 +243,7 @@ exports.settlePayouts = async (req, res) => {
 							shipment.payout.status = "failed";
 							shipment.payout.failureReason = transferErr.message;
 							orderModified = true;
+							result.ordersFailed += 1;
 						}
 					} else {
 						// In case no payout method configured, mark released for manual settlement

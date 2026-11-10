@@ -148,7 +148,11 @@ const bookingSchema = new mongoose.Schema({
 		currency: { type: String, default: "INR" },
 		status: { type: String, enum: ["created", "paid", "failed"], default: "created" },
 		cashfreeTransferId: { type: String },
-		transferId: { type: String }
+		transferId: { type: String },
+		transferredAt: { type: Date },
+		payoutAmount: { type: Number },
+		commissionAmount: { type: Number },
+		payoutFailureReason: { type: String }
 	},
 		// Fairness/escrow: the doctor's payout is held until slot-end + a grace
 		// window (or resolved by an admin), so a paid no-show doesn't just pay
@@ -157,7 +161,7 @@ const bookingSchema = new mongoose.Schema({
 		doctorJoinedAt: { type: Date },
 		payoutStatus: {
 			type: String,
-			enum: ['not_applicable', 'held', 'released', 'disputed', 'refunded'],
+			enum: ['not_applicable', 'held', 'released', 'transferred', 'disputed', 'refunded', 'failed'],
 			default: 'not_applicable'
 		},
 		payoutHoldUntil: { type: Date },

@@ -69,7 +69,7 @@ const PrivacyPolicy = () => {
               </li>
               <li>
                 <strong className="text-foreground">Payment Information:</strong> Transaction ID, payment status, and order totals. 
-                <span className="text-foreground font-medium"> Note: All online payment processing is executed via RBI-licensed payment aggregator Razorpay. JeevanHub never collects, stores, or processes raw credit/debit card numbers, CVVs, or Net Banking credentials on its servers.</span>
+                <span className="text-foreground font-medium"> Note: All online payment processing is executed via RBI-licensed payment aggregator Cashfree Payments. JeevanHub never collects, stores, or processes raw credit/debit card numbers, CVVs, or Net Banking credentials on its servers.</span>
               </li>
               <li>
                 <strong className="text-foreground">Technical &amp; Log Data:</strong> IP address, device type, browser specifications, and usage telemetry collected to secure and enhance system performance.
@@ -87,7 +87,7 @@ const PrivacyPolicy = () => {
             <ul className="mt-2 list-disc list-inside space-y-1.5 text-muted-foreground">
               <li>Facilitating doctor appointment scheduling, teleconsultations, and electronic prescriptions.</li>
               <li>Validating, packaging, manifesting, and delivering medicine orders to your doorstep.</li>
-              <li>Processing online transactions, dispute handling, and automated refund disbursements via Razorpay.</li>
+              <li>Processing online transactions, dispute handling, and automated refund disbursements via Cashfree Payments.</li>
               <li>Generating personalized Ayurvedic lifestyle recommendations, Dosha balancing guides, and reminders.</li>
               <li>Complying with statutory reporting requirements under the Drugs and Cosmetics Act and Telemedicine Guidelines.</li>
             </ul>
@@ -108,7 +108,7 @@ const PrivacyPolicy = () => {
                 <strong className="text-foreground">Licensed Retail Pharmacies:</strong> Fulfilling retailers access your shipping details and uploaded prescriptions solely for order dispensing.
               </li>
               <li>
-                <strong className="text-foreground">Payment Gateway (Razorpay):</strong> Transaction tokens and amounts are exchanged over encrypted SSL connections to process payments and refunds securely.
+                <strong className="text-foreground">Payment Gateway (Cashfree Payments):</strong> Transaction tokens and amounts are exchanged over encrypted SSL connections to process payments and refunds securely.
               </li>
               <li>
                 <strong className="text-foreground">Logistics Partners (Delhivery):</strong> Consignee name, destination address, and phone number are shared to facilitate parcel tracking, dispatch, and delivery.

@@ -259,7 +259,7 @@ const AppointmentTab = ({
 	const [showManualUpi, setShowManualUpi] = useState(false);
 	const [screenshotFiles, setScreenshotFiles] = useState([]);
 	const [uploadingScreenshot, setUploadingScreenshot] = useState(false);
-	const [payingViaRazorpay, setPayingViaRazorpay] = useState(false);
+	const [payingViaCashfree, setPayingViaCashfree] = useState(false);
 
 	const getDietFee = (appointment) => {
 		if (!appointment) return 299;
@@ -273,9 +273,9 @@ const AppointmentTab = ({
 		return 299;
 	};
 
-	const handleRazorpayDietPayment = async (appointment) => {
+	const handleCashfreeDietPayment = async (appointment) => {
 		if (!appointment) return;
-		setPayingViaRazorpay(true);
+		setPayingViaCashfree(true);
 		try {
 			const fee = getDietFee(appointment);
 			const token = localStorage.getItem("token");
@@ -307,7 +307,7 @@ const AppointmentTab = ({
 			if (result.error) {
 				console.error("Cashfree checkout error:", result.error);
 				alert(result.error.message || "Payment was not completed.");
-				setPayingViaRazorpay(false);
+				setPayingViaCashfree(false);
 				return;
 			}
 
@@ -332,12 +332,12 @@ const AppointmentTab = ({
 				console.error("Error confirming diet plan payment:", err);
 				alert(`Payment received, but error updating record: ${err.message}`);
 			} finally {
-				setPayingViaRazorpay(false);
+				setPayingViaCashfree(false);
 			}
 		} catch (err) {
 			console.error("Payment error:", err);
 			setShowManualUpi(true);
-			setPayingViaRazorpay(false);
+			setPayingViaCashfree(false);
 		}
 	};
 
@@ -782,11 +782,11 @@ const AppointmentTab = ({
 								<Button
 									type="button"
 									className="w-full"
-									onClick={() => handleRazorpayDietPayment(dietModalAppointment)}
-									disabled={payingViaRazorpay}
+									onClick={() => handleCashfreeDietPayment(dietModalAppointment)}
+									disabled={payingViaCashfree}
 								>
-									{payingViaRazorpay ? <Loader2 className="size-4 animate-spin" /> : null}
-									{payingViaRazorpay ? t("appointedDoctor.dietModal.openingGateway", "Opening payment gateway...") : t("appointedDoctor.dietModal.payNow", { fee: getDietFee(dietModalAppointment), defaultValue: `Pay Now (₹${getDietFee(dietModalAppointment)})` })}
+									{payingViaCashfree ? <Loader2 className="size-4 animate-spin" /> : null}
+									{payingViaCashfree ? t("appointedDoctor.dietModal.openingGateway", "Opening payment gateway...") : t("appointedDoctor.dietModal.payNow", { fee: getDietFee(dietModalAppointment), defaultValue: `Pay Now (₹${getDietFee(dietModalAppointment)})` })}
 								</Button>
 
 								<button

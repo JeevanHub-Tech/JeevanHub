@@ -371,6 +371,20 @@ exports.updateDoctor = async (req, res) => {
                 }
                 doctor.upiId = updates.upiId;
             }
+            if (updates.bankDetails !== undefined) {
+                const b = updates.bankDetails || {};
+                doctor.bankDetails = {
+                    accountHolderName: b.accountHolderName || `${doctor.firstName} ${doctor.lastName}`,
+                    accountNumber: b.accountNumber || null,
+                    ifscCode: b.ifscCode ? b.ifscCode.toUpperCase().trim() : null,
+                    bankName: b.bankName || null,
+                    upiId: b.upiId || doctor.upiId || null,
+                    isSubmitted: Boolean(b.accountNumber || b.upiId)
+                };
+                if (b.upiId && !doctor.upiId) {
+                    doctor.upiId = b.upiId;
+                }
+            }
 
 			await doctor.save();
 			console.log("Updated Doctor details successfully");
@@ -381,7 +395,6 @@ exports.updateDoctor = async (req, res) => {
 			delete safeData.resetPasswordOTPExpires;
 			delete safeData.isOTPVerified;
 			delete safeData.forcePasswordReset;
-			delete safeData.razorpayAccountId;
 			
             return res.status(200).json({ success: true, message: "Doctor profile updated", data: safeData });
         }
